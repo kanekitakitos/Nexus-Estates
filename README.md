@@ -1,5 +1,3 @@
----
-
 ## 🏠 Ideia do Projeto
 
 Sistema de Gestão de Reservas e Disponibilidade de Imóveis
