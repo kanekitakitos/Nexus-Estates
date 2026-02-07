@@ -1,112 +1,102 @@
-## 🏠 Ideia do Projeto
+# 🏠 Nexus Estates: Sistema de Gestão de Reservas Distribuído (PMS)
 
-Sistema de Gestão de Reservas e Disponibilidade de Imóveis
+O **Nexus Estates** não é apenas um site de reservas, mas um **Sistema Distribuído Resiliente** focado na **Consistência de Dados** entre a plataforma interna e canais externos (Airbnb/Booking), eliminando o risco de *Overbooking*.
 
-O projeto consiste no desenvolvimento de um sistema centralizado para **gerir reservas, ocupação e disponibilidade** de imóveis (casas, apartamentos, prédios), capaz de:
-
-* gerir estados de ocupação (disponível, reservado, ocupado, limpeza, manutenção);
-* prevenir conflitos de reservas no mesmo intervalo temporal;
-* sincronizar automaticamente a disponibilidade quando uma reserva é feita ou cancelada;
-* integrar (de forma simulada) múltiplas plataformas externas de reservas, garantindo que uma reserva feita numa plataforma bloqueia a disponibilidade nas restantes.
-
-O sistema atua como a **fonte única da verdade** para a disponibilidade dos imóveis, resolvendo problemas reais de **overbooking** e **inconsistência entre plataformas**.
+Este projeto utiliza uma **Arquitetura Baseada em Eventos (Event-Driven Architecture)** para garantir escalabilidade e robustez.
 
 ---
 
-## 🧠 Principais Funcionalidades
+## 📘 Master Plan
 
-* Gestão de imóveis e respetivos atributos
-* Motor de disponibilidade e ocupação
-* Criação, cancelamento e gestão de reservas
-* Regras de negócio (penalizações, bloqueios, aprovação manual)
-* Integração simulada com plataformas externas (ex.: Airbnb/Booking)
-* Notificações e histórico de ações
+### 1. Visão Geral e Objetivo
+O problema central a resolver é a sincronização em tempo real de disponibilidade. Abandonámos a arquitetura monolítica tradicional em favor de microserviços independentes que comunicam de forma assíncrona.
 
----
+### 2. A Stack Tecnológica (O "Arsenal") 🛠️
 
-## 🧱 Arquitetura
+#### 🔹 Backend: O Núcleo Robusto
+*   **Java 17+**: Robustez, tipagem forte e gestão de memória empresarial.
+*   **Spring Boot 3.x**: Padrão de indústria para microserviços.
+*   **Spring Data JPA (Hibernate)**: Abstração de SQL através de Entidades.
+*   **Spring Security + JWT**: Autenticação *stateless* e segura.
 
-* Arquitetura baseada em **microserviços**
-* Backend separado em múltiplas APIs REST
-* Comunicação síncrona (REST) e assíncrona (eventos)
-* Execução reprodutível através de containers
+#### 🔹 Comunicação & Mensageria
+*   **Síncrona (REST)**: `OpenFeign` para chamadas diretas onde a resposta imediata é necessária.
+*   **Assíncrona (Eventos)**: **RabbitMQ** (AMQP + JSON payload). Garante que, se um serviço falhar, as mensagens são processadas assim que ele recuperar (desacoplamento temporal).
 
----
+#### 🔹 Base de Dados
+*   **PostgreSQL 15**: SGBD principal.
+*   **Estratégia**: *Database per Service*. O isolamento total previne acoplamento de dados.
+*   **Flyway**: Gestão automática de migrações SQL.
 
-## 🛠️ Linguagens e Stack Tecnológica
+#### 🔹 Frontend
+*   **Next.js (React) + TypeScript**: Rendering híbrido (SSR/SSG) e tipagem estática para integridade com o backend.
 
-### 🔹 Backend
-
-* **Java 17+**
-* **Spring Boot**
-* Spring Data JPA (Hibernate)
-* Spring Security (JWT)
-* PostgreSQL
-* Flyway (migrações da BD)
-
-Cada microserviço é uma aplicação Spring Boot independente.
+#### 🔹 Infraestrutura
+*   **Docker & Docker Compose**: Todo o ecossistema (serviços Java, Gateway, RabbitMQ, Postgres e Frontend) num só comando.
 
 ---
 
-### 🔹 Frontend
+## 🧱 Arquitetura Detalhada dos Componentes
 
-* **Next.js**
-* **TypeScript**
-* Interface web simples para utilizadores, gestores e administradores
+#### 🚪 1. API Gateway (O Porteiro)
+*   **Tecnologia**: Spring Cloud Gateway.
+*   **Roteamento**: Único ponto de entrada; redireciona pedidos para os serviços internos apropriados.
+*   **Segurança**: Centraliza a validação de tokens JWT.
 
----
+#### 👤 2. User Service (Identidade)
+*   **Função**: Gestão de perfis (ADMIN, MANAGER, GUEST) e emissão de tokens.
 
-### 🔹 Infraestrutura & DevOps
+#### 🏠 3. Property Service (O Catálogo)
+*   **Função**: CRUD de imóveis (título, descrição, fotos, preços). É a fonte estática da informação dos imóveis.
 
-* **Docker**
-* docker-compose
-* GitHub Actions (CI)
-* Git (pull requests, code review)
+#### 📅 4. Booking Service (O Maestro Síncrono)
+*   **Lógica**: Recebe pedidos de reserva, valida disponibilidade local, grava como `PENDING` e publica o evento no RabbitMQ. Implementa o padrão **Outbox** para máxima resiliência.
 
----
-
-### 🔹 Integrações Externas
-
-* APIs externas **simuladas** (Airbnb/Booking-like)
-* Serviço dedicado para sincronização de disponibilidade
+#### 🔄 5. Sync Service (O Worker Assíncrono)
+*   **Função**: Integração real com APIs externas (Airbnb/Stripe). Processa eventos do RabbitMQ e confirma ou cancela reservas baseando-se no sucesso das integrações externas.
 
 ---
 
-## 🧑‍🤝‍🧑 Organização do Grupo
+## 🔄 Fluxo de Dados e Consistência (O Padrão Saga)
 
-* Backend dividido por microserviços (responsabilidades claras)
-* Frontend separado
-* Possibilidade de módulos opcionais mais técnicos sem afetar o core
+Implementamos o padrão **Saga Coreografada** para a **Consistência Eventual**:
 
----
+1.  **Fase 1 (Venda Rápida)**: Reserva criada como `PENDING`. Feedback instantâneo ao utilizador.
+2.  **Fase 2 (Processamento Background)**: O *Sync Service* comunica com APIs externas (lentas).
+3.  **Fase 3 (Feedback Loop)**: O estado é atualizado para `CONFIRMED` ou `FAILED` via RabbitMQ.
 
-## 🎯 Por que esta stack é uma boa escolha
-
-* Java + Spring Boot → robustez, concorrência, defesa académica forte
-* Next.js + TypeScript → frontend moderno e bem separado
-* Docker → execução reprodutível e alinhada com o enunciado
-* Microserviços → justificados pelo domínio (integrações, regras, escalabilidade)
+> **Racional**: Priorizamos a experiência do utilizador e a garantia da venda, tratando da burocracia externa de forma assíncrona.
 
 ---
 
-/
+## 📂 Estrutura do Projeto
+
+```text
 ├── .github/
-│   └── workflows/          # Pipelines de CI (Build, Test, Lint) 
-├── backend/                # Root para os serviços Java
-│   ├── property-service/   # Spring Boot: Imóveis, atributos, fotos
-│   ├── booking-service/    # Spring Boot: Motor de reservas e disponibilidade
-│   ├── sync-service/       # (Novo) Serviço dedicado à integração externa/webhooks
-│   └── .gitignore          # Ignorar target/, .mvn/, .idea/
+│   └── workflows/          # CI Pipeline (Build, Test, Lint)
+├── backend/
+│   ├── pom.xml             # Parent POM
+│   ├── common-library/     # Código partilhado (DTOs, Eventos)
+│   ├── api-gateway/        # Spring Cloud Gateway
+│   ├── user-service/       # Autenticação e JWT
+│   ├── property-service/   # Gestão de Imóveis
+│   ├── booking-service/    # Motor de Reservas
+│   └── sync-service/       # Integrações Externas & RabbitMQ
 ├── frontend/               # Next.js + TypeScript
-│   ├── src/
-│   ├── public/
-│   └── .gitignore          # Ignorar node_modules/, .next/
-├── infrastructure/         # Infraestrutura as Code
-│   ├── docker-compose.yml  # Orquestração local de todos os serviços
-│   └── postgres/           # Scripts de init da BD (se não usares Flyway no boot)
-├── docs/                   # Relatório Técnico e Diagramas [cite: 51]
-│   ├── architecture/       # Diagramas C4 ou UML [cite: 53]
-│   └── decisions/          # ADRs (Architecture Decision Records) [cite: 55]
-├── .gitignore              # Gitignore global (ficheiros de SO, IDEs)
-├── README.md               # Entry point do projeto (instruções de setup) [cite: 57]
-└── CONTRIBUTING.md         # O teu guia de commits e regras
+├── infrastructure/
+│   ├── docker-compose.yml  # Orquestração completa
+│   └── postgres/           # Scripts de inicialização multi-db
+├── docs/                   # Relatório Técnico
+└── README.md
+```
+
+---
+
+## 🎯 Defesa das Decisões de Engenharia
+
+*   **Microserviços vs Monólito**: Permite escalar o *Sync Service* (I/O intensivo) independentemente e isolar falhas de APIs externas.
+*   **RabbitMQ**: Essencial para não perder reservas. HTTP é efêmero, filas são persistentes.
+*   **PostgreSQL Isolado**: Evita que mudanças num schema quebrem múltiplos serviços inadvertidamente.
+
+---
+🚀 **Nexus Estates** - Construindo o futuro da gestão imobiliária distribuída.

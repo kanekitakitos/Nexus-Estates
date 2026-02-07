@@ -1,6 +1,41 @@
+### Java ###
+*.class
+*.log
+*.ctxt
+.mtj.tmp/
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+### Maven ###
 target/
-.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/resources/**
+!**/src/test/resources/**
+
+### IntelliJ IDEA ###
 .idea/
+*.iws
+*.iml
+*.ipr
+
+### Eclipse (Caso alguém da equipa use) ###
 .classpath
 .project
 .settings/
+bin/
+
+### Visual Studio Code ###
+.vscode/
+
+### Sistema Operativo (Lixo do Windows/Mac) ###
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+### Logs de Erro ###
+hs_err_pid*
