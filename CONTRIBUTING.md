@@ -76,3 +76,4 @@ fix(booking): corrige sobreposição de datas na reserva [NEX-22]
 ```plaintext
 docs: atualiza guia de instalação no README [NEX-05]
 ```
+
