@@ -1,6 +1,6 @@
 # 🏰 Nexus Estates - Backend
 
-O motor do sistema Nexus Estates. Construído com uma arquitetura de **Microserviços** robusta, utilizando Java 23 e Spring Boot 3.2.
+O motor do sistema Nexus Estates. Construído com uma arquitetura de **Microserviços** robusta, utilizando Java 23 e Spring Boot 3.3.
 
 ## 🏗️ Arquitetura & Módulos
 
@@ -26,11 +26,11 @@ Implementamos o padrão **Saga Coreografada** para garantir a consistência even
 ## 🛠️ Stack Tecnológica
 
 * **Linguagem:** Java 23
-* **Framework:** Spring Boot 3.2.x
-* **Persistência:** Spring Data JPA + PostgreSQL 15
+* **Framework:** Spring Boot 3.3.x
+* **Persistência:** Spring Data JPA + PostgreSQL 16
 * **Mensageria:** RabbitMQ (AMQP + JSON)
 * **Segurança:** Spring Security + JWT
-* **Migrações:** Flyway
+* **Migrações:** Flyway 10.x
 
 ## 🚀 Como Correr
 

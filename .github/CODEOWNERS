@@ -1,0 +1,4 @@
+# Isto define que para QUALQUER ficheiro (*) estes users são os donos
+# O GitHub vai pedir review a eles automaticamente em todos os PRs.
+
+* @DanielFisherMan @KorteXPoison @truta02
