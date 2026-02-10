@@ -49,6 +49,7 @@
         <module>user-service</module>
         <module>sync-service</module>
         <module>api-gateway</module>
+        <module>common-library</module>
     </modules>
 
 </project>

@@ -38,3 +38,15 @@ Por favor leia o nosso Guia de Contribuição antes de submeter código.
 * Use **Bun** no frontend.
 * Use **Java 23** no backend.
 * Commits devem seguir a convenção **Conventional Commits**.
+
+---
+
+
+## 🤝 Devs
+
+- **Brandon Mejia** - 79261 " [kanekiTakitos](https://github.com/kanekiTakitos) " 
+- **Luís Moreira** - 81432 " [DanielFisherMan](https://github.com/DanielFisherMan) "
+- **Miguel Correia** - 71369 " [KorteXPoison](https://github.com/KorteXPoison) "
+- **Tiago Antunes** - 76920 " [truta02](https://github.com/truta02) "
+
+---
