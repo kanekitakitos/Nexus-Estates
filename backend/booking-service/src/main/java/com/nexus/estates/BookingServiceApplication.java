@@ -1,20 +1,24 @@
 package com.nexus.estates;
 
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+
+
+/**
+ * Ponto de entrada da aplicação Booking Service.
+ * <p>
+ * Inicializa o contexto do Spring Boot e configura os componentes automáticos.
+ * </p>
+ *
+ * @author Nexus Estates Team
+ */
 @SpringBootApplication
-public class BookingServiceApplication {
-    public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
-
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
-        }
+public class BookingServiceApplication
+{
+    public static void main(String[] args)
+    {
+        SpringApplication.run(BookingServiceApplication.class, args);
     }
 }
