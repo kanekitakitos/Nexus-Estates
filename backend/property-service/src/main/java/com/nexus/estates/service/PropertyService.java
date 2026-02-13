@@ -1,16 +1,21 @@
 package com.nexus.estates.service;
 
 import com.nexus.estates.entity.Property;
+import com.nexus.estates.exception.PropertyNotFoundException;
 import com.nexus.estates.repository.PropertyRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Serviço responsável pela lógica de negócio associada às propriedades.
  *
  * <p>Esta camada atua como intermediária entre o controller e o repositório,
  * encapsulando operações de persistência e regras de negócio.</p>
+ *
+ * @see PropertyRepository
+ * @author Nexus Estates Team
  */
 @Service
 public class PropertyService {
@@ -54,8 +59,8 @@ public class PropertyService {
      * @return propriedade encontrada
      * @throws RuntimeException caso a propriedade não exista
      */
-    public Property findById(Long id) {
+    public Property findById(UUID id) {
         return repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Property not found"));
+                .orElseThrow(() -> new PropertyNotFoundException(id));
     }
 }

@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * REST Controller responsável pela gestão de propriedades.
@@ -18,9 +19,13 @@ import java.util.List;
  *     <li>Listar todas as propriedades</li>
  *     <li>Obter detalhes de uma propriedade</li>
  * </ul>
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
+ * @since 2026-02-13
  */
 @RestController
-@RequestMapping("/Properties")
+@RequestMapping("/properties")
 public class PropertyController {
 
     private final PropertyService service;
@@ -39,9 +44,9 @@ public class PropertyController {
      *
      * <p>Valida os campos obrigatórios antes de persistir:</p>
      * <ul>
-     *     <li>title</li>
-     *     <li>price</li>
-     *     <li>ownerId</li>
+     *     <li>name</li>
+     *     <li>basePrice</li>
+     *     <li>maxGuests</li>
      * </ul>
      *
      * @param property dados da propriedade a criar
@@ -50,7 +55,10 @@ public class PropertyController {
     @PostMapping
     public ResponseEntity<Property> create(@RequestBody Property property) {
 
-        if (property.getTitle() == null || property.getPrice() == null || property.getOwnerId() == null) {
+        if (property.getName() == null ||
+                property.getBasePrice() == null ||
+                property.getMaxGuests() == null) {
+
             return ResponseEntity.badRequest().build();
         }
 
@@ -75,7 +83,7 @@ public class PropertyController {
      * @throws RuntimeException caso a propriedade não exista
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Property> getById(@PathVariable Long id) {
+    public ResponseEntity<Property> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(service.findById(id));
     }
 }

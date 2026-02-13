@@ -1,6 +1,8 @@
 package com.nexus.estates.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.util.UUID;
 
 /**
  * Entidade que representa uma propriedade imobiliária no sistema.
@@ -9,6 +11,8 @@ import jakarta.persistence.*;
  * reservado ou gerido dentro da plataforma Nexus Estates.</p>
  *
  * <p>Esta entidade é persistida na tabela <b>properties</b>.</p>
+ *
+ * @author Nexus Estates Team
  */
 @Entity
 @Table(name = "properties")
@@ -17,49 +21,69 @@ public class Property {
     /**
      * Identificador único da propriedade.
      *
-     * <p>Gerado automaticamente pela base de dados.</p>
+     * <p>Gerado automaticamente pelo sistema.</p>
      */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue
+    private UUID id;
 
     /**
-     * Título da propriedade.
+     * Nome / título da propriedade.
      *
-     * <p>Representa o nome ou designação principal do imóvel.</p>
+     * <p>Representa a designação principal do imóvel.</p>
      */
-    private String title;
+    @Column(nullable = false)
+    private String name;
 
     /**
      * Descrição detalhada da propriedade.
      *
-     * <p>Pode conter informações adicionais como localização,
-     * características ou observações relevantes.</p>
+     * <p>Pode conter informações adicionais como características,
+     * comodidades ou observações relevantes.</p>
      */
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     /**
-     * Preço associado à propriedade.
-     *
-     * <p>Representa o valor monetário do imóvel.</p>
+     * Cidade onde a propriedade está localizada.
      */
-    private Double price;
+    @Column(nullable = false)
+    private String city;
 
     /**
-     * Identificador do proprietário da propriedade.
-     *
-     * <p>Campo obrigatório. Representa a relação lógica com o utilizador
-     * dono do imóvel.</p>
+     * Endereço completo da propriedade.
      */
-    @Column(name = "owner_id", nullable = false)
-    private Long ownerId;
+    @Column(nullable = false)
+    private String address;
+
+    /**
+     * Preço base por noite.
+     *
+     * <p>Representa o valor monetário base associado ao imóvel.</p>
+     */
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal basePrice;
+
+    /**
+     * Número máximo de hóspedes permitidos.
+     */
+    @Column(nullable = false)
+    private Integer maxGuests;
+
+    /**
+     * Estado do anúncio.
+     *
+     * <p>Indica se a propriedade está ativa na plataforma.</p>
+     */
+    @Column(nullable = false)
+    private Boolean isActive = true;
 
     /**
      * Obtém o identificador da propriedade.
      *
      * @return ID da propriedade
      */
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
@@ -68,26 +92,26 @@ public class Property {
      *
      * @param id novo ID
      */
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
     /**
-     * Obtém o título da propriedade.
+     * Obtém o nome da propriedade.
      *
-     * @return título da propriedade
+     * @return nome da propriedade
      */
-    public String getTitle() {
-        return title;
+    public String getName() {
+        return name;
     }
 
     /**
-     * Define o título da propriedade.
+     * Define o nome da propriedade.
      *
-     * @param title novo título
+     * @param name novo nome
      */
-    public void setTitle(String title) {
-        this.title = title;
+    public void setName(String name) {
+        this.name = name;
     }
 
     /**
@@ -109,38 +133,92 @@ public class Property {
     }
 
     /**
-     * Obtém o preço da propriedade.
+     * Obtém a cidade da propriedade.
      *
-     * @return preço da propriedade
+     * @return cidade
      */
-    public Double getPrice() {
-        return price;
+    public String getCity() {
+        return city;
     }
 
     /**
-     * Define o preço da propriedade.
+     * Define a cidade da propriedade.
      *
-     * @param price novo preço
+     * @param city nova cidade
      */
-    public void setPrice(Double price) {
-        this.price = price;
+    public void setCity(String city) {
+        this.city = city;
     }
 
     /**
-     * Obtém o identificador do proprietário.
+     * Obtém o endereço da propriedade.
      *
-     * @return ID do proprietário
+     * @return endereço
      */
-    public Long getOwnerId() {
-        return ownerId;
+    public String getAddress() {
+        return address;
     }
 
     /**
-     * Define o identificador do proprietário.
+     * Define o endereço da propriedade.
      *
-     * @param ownerId novo ID do proprietário
+     * @param address novo endereço
      */
-    public void setOwnerId(Long ownerId) {
-        this.ownerId = ownerId;
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    /**
+     * Obtém o preço base da propriedade.
+     *
+     * @return preço base
+     */
+    public BigDecimal getBasePrice() {
+        return basePrice;
+    }
+
+    /**
+     * Define o preço base da propriedade.
+     *
+     * @param basePrice novo preço base
+     */
+    public void setBasePrice(BigDecimal basePrice) {
+        this.basePrice = basePrice;
+    }
+
+    /**
+     * Obtém o número máximo de hóspedes.
+     *
+     * @return limite de hóspedes
+     */
+    public Integer getMaxGuests() {
+        return maxGuests;
+    }
+
+    /**
+     * Define o número máximo de hóspedes.
+     *
+     * @param maxGuests novo limite
+     */
+    public void setMaxGuests(Integer maxGuests) {
+        this.maxGuests = maxGuests;
+    }
+
+    /**
+     * Verifica se a propriedade está ativa.
+     *
+     * @return estado do anúncio
+     */
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    /**
+     * Define o estado da propriedade.
+     *
+     * @param active novo estado
+     */
+    public void setIsActive(Boolean active) {
+        isActive = active;
     }
 }
