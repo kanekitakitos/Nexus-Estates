@@ -3,7 +3,6 @@ package com.nexus.estates.repository;
 
 
 import com.nexus.estates.entity.Booking;
-import com.nexus.estates.entity.BookingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

@@ -7,7 +7,6 @@ import com.nexus.estates.exception.BookingConflictException;
 import com.nexus.estates.mapper.BookingMapper;
 import com.nexus.estates.repository.BookingRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
