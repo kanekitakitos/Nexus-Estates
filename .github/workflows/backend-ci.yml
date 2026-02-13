@@ -26,4 +26,4 @@ jobs:
 
       - name: Build and Test with Maven
         working-directory: ./backend
-        run: ./mvnw clean test # Usa o Maven Wrapper do projeto
+        run: mvn clean test

@@ -22,8 +22,6 @@
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
 
-<<<<<<< Updated upstream
-=======
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -40,6 +38,5 @@
             <scope>test</scope>
         </dependency>
         <!-- H2 dependency explicitly excluded or not added here as API Gateway doesn't need DB tests -->
->>>>>>> Stashed changes
     </dependencies>
 </project>
