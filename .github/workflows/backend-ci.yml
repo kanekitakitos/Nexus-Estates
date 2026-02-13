@@ -1,6 +1,6 @@
 name: Backend CI
 # Corre todos os testes dos modulos.
-# Booking, User, Property, Api-Gateway e Sync 
+# Booking, User, Property, Api-Gateway e Sync
 on:
   push:
     paths:
@@ -24,6 +24,13 @@ jobs:
           distribution: 'temurin'
           cache: 'maven' # Cache inteligente para acelerar builds futuros
 
-      - name: Build and Test with Maven
+      - name: Install Dependencies
         working-directory: ./backend
-        run: mvn clean test
+        run: mvn clean install -DskipTests
+        # Compila e instala todos os módulos (incluindo common-library) no repositório local
+        # sem correr os testes ainda, garantindo que as dependências existem.
+
+      - name: Run Tests
+        working-directory: ./backend
+        run: mvn test
+        # Agora corre os testes de todos os módulos.
