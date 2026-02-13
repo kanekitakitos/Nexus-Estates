@@ -1,6 +1,6 @@
 package com.nexus.estates.exception;
 
-import com.nexus.estates.dto.ErrorResponse;
+import com.nexus.estates.common.dto.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
  * Manipulador global de exceções para a API.
  * <p>
  * Intercepta exceções lançadas pelos controladores e converte-as em respostas HTTP padronizadas
- * utilizando o formato {@link ErrorResponse}.
+ * utilizando o formato {@link ErrorResponse} da common-library.
  * </p>
  *
  * @author Nexus Estates Team
@@ -32,13 +32,13 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BookingConflictException.class)
     public ResponseEntity<ErrorResponse> handleConflict(BookingConflictException ex, HttpServletRequest request) {
-        ErrorResponse error = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.CONFLICT.value(),
-                HttpStatus.CONFLICT.getReasonPhrase(),
-                ex.getMessage(),
-                request.getRequestURI()
-        );
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.CONFLICT.value())
+                .error(HttpStatus.CONFLICT.getReasonPhrase())
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
 
@@ -58,13 +58,13 @@ public class GlobalExceptionHandler {
                 .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
                 .collect(Collectors.joining(", "));
 
-        ErrorResponse error = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                "Validation Error",
-                errorMessage,
-                request.getRequestURI()
-        );
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Validation Error")
+                .message(errorMessage)
+                .path(request.getRequestURI())
+                .build();
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
@@ -80,13 +80,13 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
-        ErrorResponse error = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "Internal Server Error",
-                "An unexpected error occurred. Please contact support.",
-                request.getRequestURI()
-        );
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .error("Internal Server Error")
+                .message("An unexpected error occurred. Please contact support.")
+                .path(request.getRequestURI())
+                .build();
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
