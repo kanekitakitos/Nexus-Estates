@@ -5,11 +5,13 @@ import com.nexus.estates.entity.AmenityCategory;
 import com.nexus.estates.exception.AmenityNotFoundException;
 import com.nexus.estates.repository.AmenityRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +26,7 @@ import static org.mockito.Mockito.*;
  * de exceções personalizadas.
  */
 @ExtendWith(MockitoExtension.class)
+@WebMvcTest(AmenityService.class)
 class AmenityServiceTest {
 
     @Mock
@@ -45,6 +48,7 @@ class AmenityServiceTest {
     }
 
     @Test
+    @DisplayName("Should create amenity successfully")
     void shouldCreateAmenityWithSuccess() {
         // Arrange
         when(repository.save(any(Amenity.class))).thenReturn(amenity);
@@ -59,6 +63,7 @@ class AmenityServiceTest {
     }
 
     @Test
+    @DisplayName("Should return all amenities")
     void shouldFindAllAmenities() {
         // Arrange
         when(repository.findAll()).thenReturn(List.of(amenity));
@@ -73,6 +78,7 @@ class AmenityServiceTest {
     }
 
     @Test
+    @DisplayName("Should return amenity by ID when found")
     void shouldFindAmenityByIdWithSuccess() {
         // Arrange
         when(repository.findById(amenityId)).thenReturn(Optional.of(amenity));
@@ -86,6 +92,7 @@ class AmenityServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw AmenityNotFoundException when ID does not exist")
     void shouldThrowAmenityNotFoundExceptionWhenIdDoesNotExist() {
         // Arrange
         UUID idInexistente = UUID.randomUUID();
