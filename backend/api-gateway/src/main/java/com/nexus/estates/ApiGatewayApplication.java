@@ -1,20 +1,38 @@
 package com.nexus.estates;
 
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+/**
+ * Ponto de entrada da aplicação API Gateway.
+ * <p>
+ * Este componente atua como a "porta de entrada" unificada para todo o ecossistema de microserviços
+ * da Nexus Estates. É responsável por:
+ * <ul>
+ *   <li>Roteamento dinâmico de pedidos para os serviços competentes.</li>
+ *   <li>Autenticação e Autorização centralizadas (via {@link com.nexus.estates.filter.AuthenticationFilter}).</li>
+ *   <li>Balanceamento de carga (client-side via Spring Cloud LoadBalancer).</li>
+ *   <li>Cross-cutting concerns como logging, rate limiting e segurança.</li>
+ * </ul>
+ * </p>
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
+ * @since 2026-02-10
+ */
 @SpringBootApplication
-public class ApiGatewayApplication {
-    public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+@EnableDiscoveryClient
+public class ApiGatewayApplication
+{
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
-        }
+    /**
+     * Método principal que inicializa o contexto do Spring Boot.
+     *
+     * @param args Argumentos de linha de comando.
+     */
+    public static void main(String[] args)
+    {
+        SpringApplication.run(ApiGatewayApplication.class, args);
     }
 }
