@@ -4,6 +4,7 @@ import com.nexus.estates.entity.Property;
 import com.nexus.estates.exception.PropertyNotFoundException;
 import com.nexus.estates.repository.PropertyRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -36,6 +37,7 @@ class PropertyServiceTest {
     }
 
     @Test
+    @DisplayName("Should create property successfully")
     void shouldCreateProperty() {
         // Arrange
         Property property = new Property();
@@ -55,6 +57,7 @@ class PropertyServiceTest {
     }
 
     @Test
+    @DisplayName("Should return all properties")
     void shouldReturnAllProperties() {
         // Arrange
         when(repository.findAll()).thenReturn(List.of(new Property()));
@@ -68,6 +71,7 @@ class PropertyServiceTest {
     }
 
     @Test
+    @DisplayName("Should return property by ID when found")
     void shouldReturnPropertyById() {
         // Arrange
         UUID id = UUID.randomUUID();
@@ -88,6 +92,7 @@ class PropertyServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw PropertyNotFoundException when ID does not exist")
     void shouldThrowPropertyNotFoundExceptionWhenPropertyNotFound() {
         // Arrange
         UUID id = UUID.randomUUID();
