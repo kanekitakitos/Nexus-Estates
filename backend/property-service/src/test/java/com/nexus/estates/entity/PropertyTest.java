@@ -1,6 +1,7 @@
 package com.nexus.estates.entity;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -12,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * <p>Valida o correto funcionamento dos getters e setters.</p>
  */
+@WebMvcTest(Property.class)
 class PropertyTest {
 
     @Test

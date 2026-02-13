@@ -1,6 +1,8 @@
 package com.nexus.estates.entity;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -10,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * * Verifica se os mecanismos de getter e setter estão a funcionar
  * corretamente para garantir a integridade dos dados da permissão.
  */
+@WebMvcTest(PropertyPermission.class)
 class PropertyPermissionTest {
 
     @Test
