@@ -34,6 +34,14 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     private JwtUtil jwtUtil;
 
     /**
+     * Classe de configuração para o filtro (Padrão Spring Cloud Gateway).
+     * Pode ser expandida para aceitar parâmetros no application.yml.
+     */
+    public static class Config {
+        // Configuração vazia por agora
+    }
+
+    /**
      * Construtor padrão que regista a classe de configuração.
      */
     public AuthenticationFilter() {
@@ -94,11 +102,4 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
         });
     }
 
-    /**
-     * Classe de configuração para o filtro (Padrão Spring Cloud Gateway).
-     * Pode ser expandida para aceitar parâmetros no application.yml.
-     */
-    public static class Config {
-        // Configuração vazia por agora
-    }
 }

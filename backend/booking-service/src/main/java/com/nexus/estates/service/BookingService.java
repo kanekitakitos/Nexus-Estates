@@ -81,12 +81,8 @@ public class BookingService
         // 3. Converter DTO para Entidade
         Booking booking = bookingMapper.toEntity(request);
 
-        // 4. Calcular Preço (MOCK TEMPORÁRIO)
-        // TODO: Substituir pelo PricingService real no próximo passo
-        BigDecimal pricePerNight = new BigDecimal("100.00");
-        long days = request.checkOutDate().toEpochDay() - request.checkInDate().toEpochDay();
-        BigDecimal total = pricePerNight.multiply(BigDecimal.valueOf(days));
-        booking.setTotalPrice(total);
+        // 4. Calcular Preço
+        booking.setTotalPrice(this.calculateTotalPrice(request));
 
         // 5. Guardar na BD
         Booking savedBooking = bookingRepository.save(booking);
@@ -94,6 +90,27 @@ public class BookingService
         // 6. Retornar resposta
         return bookingMapper.toResponse(savedBooking);
         }
+
+
+
+    /**
+     * Calcula o preço total da reserva com base na tarifa diária e na duração da estadia.
+     *
+     * <p>Implementação temporária (mock) que aplica um preço fixo por noite. No futuro,
+     * este método será substituído por um {@code PricingService} que considera fatores
+     * sazonais, regras de negócio e descontos.</p>
+     *
+     * @param request dados validados da reserva, incluindo datas de check-in e check-out
+     * @return montante total a pagar pela estadia, em {@link BigDecimal}
+     * @throws IllegalArgumentException caso a duração calculada seja negativa ou zero
+     */
+    private BigDecimal calculateTotalPrice(CreateBookingRequest request)
+    {            // Calcular Preço (MOCK TEMPORÁRIO)
+            // TODO: Substituir pelo PricingService real no próximo passo
+            BigDecimal pricePerNight = new BigDecimal("100.00");
+            long days = request.checkOutDate().toEpochDay() - request.checkInDate().toEpochDay();
+        return pricePerNight.multiply(BigDecimal.valueOf(days));
+    }
 
 
     /**
