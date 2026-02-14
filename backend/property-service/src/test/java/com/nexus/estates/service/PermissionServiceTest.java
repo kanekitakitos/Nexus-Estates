@@ -9,7 +9,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,7 +23,6 @@ import static org.mockito.Mockito.*;
  * a lógica de negócio isoladamente.
  */
 @ExtendWith(MockitoExtension.class)
-@WebMvcTest(PermissionService.class)
 class PermissionServiceTest {
 
     @Mock
