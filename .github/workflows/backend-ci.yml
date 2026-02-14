@@ -8,6 +8,7 @@ on:
   pull_request:
     paths:
       - 'backend/**'
+  workflow_dispatch: # Permite execução manual
 
 jobs:
   test:
@@ -26,4 +27,4 @@ jobs:
 
       - name: Build and Test with Maven
         working-directory: ./backend
-        run: mvn clean test
+        run: mvn -B clean install
