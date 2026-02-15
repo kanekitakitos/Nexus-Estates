@@ -65,7 +65,7 @@ public class BookingEventPublisher {
      * <p>
      * Sempre que uma mensagem é recebida na fila configurada, o serviço tenta
      * localizar a reserva correspondente e atualiza o seu {@link Booking} com
-     * o novo {@link com.nexus.estates.entity.BookingStatus}.
+     * o novo {@link com.nexus.estates.common.enums.BookingStatus}.
      * </p>
      *
      * @param message mensagem contendo o identificador da reserva e o novo estado.
