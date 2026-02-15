@@ -24,6 +24,7 @@ import java.util.UUID;
  * @param status Estado atual da reserva.
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 public record BookingResponse(
         UUID id,

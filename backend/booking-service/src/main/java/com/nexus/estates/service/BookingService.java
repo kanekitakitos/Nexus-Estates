@@ -5,6 +5,8 @@ import com.nexus.estates.dto.CreateBookingRequest;
 import com.nexus.estates.entity.Booking;
 import com.nexus.estates.exception.BookingConflictException;
 import com.nexus.estates.mapper.BookingMapper;
+import com.nexus.estates.messaging.BookingCreatedMessage;
+import com.nexus.estates.messaging.BookingEventPublisher;
 import com.nexus.estates.repository.BookingRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ import java.math.BigDecimal;
  * @see BookingRepository
  * @see BookingMapper
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Service
 public class BookingService
@@ -29,17 +32,20 @@ public class BookingService
 
     private final BookingRepository bookingRepository;
     private final BookingMapper bookingMapper;
+    private final BookingEventPublisher bookingEventPublisher;
 
     /**
      * Construtor padrão para injeção de dependências.
      *
      * @param bookingRepository Interface de acesso aos dados persistidos.
      * @param bookingMapper Componente de transformação de objetos.
+     * @param bookingEventPublisher Componente responsável pela publicação de eventos de reserva.
      */
-    public BookingService(BookingRepository bookingRepository, BookingMapper bookingMapper)
+    public BookingService(BookingRepository bookingRepository, BookingMapper bookingMapper, BookingEventPublisher bookingEventPublisher)
     {
         this.bookingRepository = bookingRepository;
         this.bookingMapper = bookingMapper;
+        this.bookingEventPublisher = bookingEventPublisher;
     }
 
     /**
@@ -84,11 +90,20 @@ public class BookingService
         // 4. Calcular Preço
         booking.setTotalPrice(this.calculateTotalPrice(request));
 
-        // 5. Guardar na BD
         Booking savedBooking = bookingRepository.save(booking);
 
-        // 6. Retornar resposta
-        return bookingMapper.toResponse(savedBooking);
+        BookingResponse response = bookingMapper.toResponse(savedBooking);
+
+        BookingCreatedMessage message = new BookingCreatedMessage(
+                savedBooking.getId(),
+                savedBooking.getPropertyId(),
+                savedBooking.getUserId(),
+                savedBooking.getStatus()
+        );
+
+        bookingEventPublisher.publishBookingCreated(message);
+
+        return response;
         }
 
 
@@ -105,8 +120,7 @@ public class BookingService
      * @throws IllegalArgumentException caso a duração calculada seja negativa ou zero
      */
     private BigDecimal calculateTotalPrice(CreateBookingRequest request)
-    {            // Calcular Preço (MOCK TEMPORÁRIO)
-            // TODO: Substituir pelo PricingService real no próximo passo
+    {
             BigDecimal pricePerNight = new BigDecimal("100.00");
             long days = request.checkOutDate().toEpochDay() - request.checkInDate().toEpochDay();
         return pricePerNight.multiply(BigDecimal.valueOf(days));

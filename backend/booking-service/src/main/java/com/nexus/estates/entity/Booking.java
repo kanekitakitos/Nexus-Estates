@@ -25,6 +25,7 @@ import java.util.UUID;
  * </ul>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Entity
 @Table(name = "bookings")

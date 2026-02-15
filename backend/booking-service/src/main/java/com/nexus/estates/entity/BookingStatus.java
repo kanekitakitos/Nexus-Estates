@@ -8,6 +8,7 @@ package com.nexus.estates.entity;
  * </p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 public enum BookingStatus
 {

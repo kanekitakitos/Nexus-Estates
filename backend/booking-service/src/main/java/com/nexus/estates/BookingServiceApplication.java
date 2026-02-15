@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * </p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @SpringBootApplication
 public class BookingServiceApplication

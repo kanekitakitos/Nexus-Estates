@@ -19,6 +19,7 @@ import java.util.UUID;
  * personalizadas otimizadas para o domínio de reservas.
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, UUID> {

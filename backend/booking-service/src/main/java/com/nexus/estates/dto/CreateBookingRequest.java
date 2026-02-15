@@ -21,6 +21,7 @@ import java.util.UUID;
  * @param guestCount Número de hóspedes.
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 public record CreateBookingRequest(
         @NotNull(message = "Property ID is required")
