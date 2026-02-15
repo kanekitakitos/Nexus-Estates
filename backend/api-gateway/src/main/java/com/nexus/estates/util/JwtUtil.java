@@ -17,6 +17,7 @@ import java.security.Key;
  * </p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Component
 public class JwtUtil {

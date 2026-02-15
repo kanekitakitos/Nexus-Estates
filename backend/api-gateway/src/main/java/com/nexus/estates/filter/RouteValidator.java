@@ -14,6 +14,7 @@ import java.util.function.Predicate;
  * </p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Component
 public class RouteValidator {
