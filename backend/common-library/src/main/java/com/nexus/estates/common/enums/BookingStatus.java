@@ -1,4 +1,4 @@
-package com.nexus.estates.entity;
+package com.nexus.estates.common.enums;
 
 /**
  * Define a Máquina de Estados Finita (FSM) para o ciclo de vida de uma reserva.

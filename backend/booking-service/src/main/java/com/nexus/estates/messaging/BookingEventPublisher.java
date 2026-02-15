@@ -1,5 +1,7 @@
 package com.nexus.estates.messaging;
 
+import com.nexus.estates.common.messaging.BookingCreatedMessage;
+import com.nexus.estates.common.messaging.BookingStatusUpdatedMessage;
 import com.nexus.estates.entity.Booking;
 import com.nexus.estates.repository.BookingRepository;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;

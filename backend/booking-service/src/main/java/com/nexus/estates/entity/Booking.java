@@ -1,6 +1,7 @@
 package com.nexus.estates.entity;
 
 
+import com.nexus.estates.common.enums.BookingStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

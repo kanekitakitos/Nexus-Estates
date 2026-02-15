@@ -1,7 +1,9 @@
 package com.nexus.estates.messaging;
 
 import com.nexus.estates.entity.Booking;
-import com.nexus.estates.entity.BookingStatus;
+import com.nexus.estates.common.enums.BookingStatus;
+import com.nexus.estates.common.messaging.BookingCreatedMessage;
+import com.nexus.estates.common.messaging.BookingStatusUpdatedMessage;
 import com.nexus.estates.repository.BookingRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

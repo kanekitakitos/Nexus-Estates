@@ -5,7 +5,7 @@ import com.nexus.estates.dto.CreateBookingRequest;
 import com.nexus.estates.entity.Booking;
 import com.nexus.estates.exception.BookingConflictException;
 import com.nexus.estates.mapper.BookingMapper;
-import com.nexus.estates.messaging.BookingCreatedMessage;
+import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.messaging.BookingEventPublisher;
 import com.nexus.estates.repository.BookingRepository;
 import jakarta.transaction.Transactional;

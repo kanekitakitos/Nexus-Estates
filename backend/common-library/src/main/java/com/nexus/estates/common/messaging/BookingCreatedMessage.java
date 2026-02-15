@@ -1,16 +1,14 @@
-package com.nexus.estates.messaging;
+package com.nexus.estates.common.messaging;
 
-import com.nexus.estates.entity.BookingStatus;
-
+import com.nexus.estates.common.enums.BookingStatus;
 import java.util.UUID;
 
 /**
  * Mensagem de integração emitida quando uma nova reserva é criada.
- *
  * <p>
  * Contém apenas os identificadores essenciais para que outros serviços possam
  * processar o fluxo assíncrono (pagamentos, sincronização externa, etc.) sem
- * depender da representação completa da entidade {@code Booking}.
+ * depender da representação completa da entidade Booking.
  * </p>
  *
  * @param bookingId  identificador único da reserva.
@@ -28,4 +26,3 @@ public record BookingCreatedMessage(
         BookingStatus status
 ) {
 }
-

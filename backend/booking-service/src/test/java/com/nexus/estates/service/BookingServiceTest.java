@@ -3,7 +3,7 @@ package com.nexus.estates.service;
 import com.nexus.estates.dto.BookingResponse;
 import com.nexus.estates.dto.CreateBookingRequest;
 import com.nexus.estates.entity.Booking;
-import com.nexus.estates.entity.BookingStatus;
+import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.exception.BookingConflictException;
 import com.nexus.estates.mapper.BookingMapper;
 import com.nexus.estates.messaging.BookingEventPublisher;

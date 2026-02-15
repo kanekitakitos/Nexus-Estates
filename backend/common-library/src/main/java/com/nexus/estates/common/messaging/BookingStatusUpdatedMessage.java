@@ -1,16 +1,14 @@
-package com.nexus.estates.messaging;
+package com.nexus.estates.common.messaging;
 
-import com.nexus.estates.entity.BookingStatus;
-
+import com.nexus.estates.common.enums.BookingStatus;
 import java.util.UUID;
 
 /**
  * Mensagem de integração recebida quando o estado de uma reserva é alterado.
- *
  * <p>
  * Normalmente é emitida por serviços responsáveis por pagamentos ou
- * sincronização com plataformas externas, permitindo ao {@code booking-service}
- * atualizar o {@link BookingStatus} de forma assíncrona.
+ * sincronização com plataformas externas, permitindo ao booking-service
+ * atualizar o BookingStatus de forma assíncrona.
  * </p>
  *
  * @param bookingId identificador único da reserva afetada.
