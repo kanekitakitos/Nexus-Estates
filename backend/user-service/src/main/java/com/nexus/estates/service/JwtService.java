@@ -1,4 +1,4 @@
-package com.nexus.estates.config;
+package com.nexus.estates.service;
 
 import com.nexus.estates.entity.User;
 import io.jsonwebtoken.Claims;
@@ -44,8 +44,12 @@ public class JwtService {
 
 
     public boolean isTokenValid(String token, String email) {
-        final String username = extractUsername(token);
-        return (username.equals(email)) && !isTokenExpired(token);
+        try {
+            final String username = extractUsername(token);
+            return (username.equals(email)) && !isTokenExpired(token);
+        } catch (Exception ex) {
+            return false;
+        }
     }
 
     private boolean isTokenExpired(String token) {

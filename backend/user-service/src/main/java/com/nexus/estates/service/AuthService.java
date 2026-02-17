@@ -1,6 +1,5 @@
 package com.nexus.estates.service;
 
-import com.nexus.estates.config.JwtService;
 import com.nexus.estates.dto.LoginRequest;
 import com.nexus.estates.dto.RegisterRequest;
 import com.nexus.estates.dto.AuthResponde;
@@ -33,16 +32,15 @@ public class AuthService {
                 .role(request.getRole() != null ? request.getRole() : UserRole.GUEST)
                 .build();
 
-        userRepository.save(user);
+        var savedUser = userRepository.save(user);
 
-        // 3. Gerar Token
-        var token = jwtService.generateToken(user);
+        var token = jwtService.generateToken(savedUser);
 
         return AuthResponde.builder()
                 .token(token)
-                .id(user.getId())
-                .email(user.getEmail())
-                .role(user.getRole().name())
+                .id(savedUser.getId())
+                .email(savedUser.getEmail())
+                .role(savedUser.getRole().name())
                 .build();
     }
 

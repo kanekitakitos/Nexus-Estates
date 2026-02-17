@@ -1,6 +1,7 @@
 package com.nexus.estates.config;
 
 import com.nexus.estates.repository.UserRepository;
+import com.nexus.estates.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,7 +9,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -29,8 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
+            FilterChain filterChain ) throws ServletException, IOException {
 
         // 1. Tenta apanhar o cabeçalho "Authorization"
         final String authHeader = request.getHeader("Authorization");
@@ -43,29 +42,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 3. Extrai o Token (remove a palavra "Bearer ")
-        jwt = authHeader.substring(7);
+        try {
+            jwt = authHeader.substring(7);
+            userEmail = jwtService.extractUsername(jwt);
 
-        // 4. Extrai o email do Token
-        userEmail = jwtService.extractUsername(jwt); // Vamos ter de adicionar este método ao JwtService!
+            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                var userDetails = userRepository.findByEmail(userEmail).orElse(null);
 
-        // 5. Se temos email e o utilizador ainda não está autenticado no contexto
-        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-            // Vai buscar os dados do utilizador à BD
-            var userDetails = userRepository.findByEmail(userEmail).orElse(null);
-
-            // 6. Valida o Token e define a autenticação no Spring Security
-            if (userDetails != null && jwtService.isTokenValid(jwt, userDetails.getEmail())) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        new ArrayList<>() // Aqui poderias passar as roles/authorities
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                if (userDetails != null && jwtService.isTokenValid(jwt, userDetails.getEmail())) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            new ArrayList<>()
+                    );
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
+            filterChain.doFilter(request, response);
+        } catch (Exception ex) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
-        filterChain.doFilter(request, response);
     }
 }
