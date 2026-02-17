@@ -19,6 +19,7 @@ import java.util.UUID;
  * personalizadas otimizadas para o domínio de reservas.
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, UUID> {
@@ -58,11 +59,29 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
 
 
+    /**
+     * Recupera todas as reservas associadas a uma determinada propriedade.
+     *
+     * <p>Uso típico: construir calendários de disponibilidade e verificar ocupação.</p>
+     *
+     * <b>Nota de desempenho:</b> recomenda-se índice composto (property_id, check_in_date, check_out_date).
+     *
+     * @param propertyId identificador único (UUID) da propriedade
+     * @return lista de reservas da propriedade (sem ordenação garantida)
+     */
     List<Booking> findByPropertyId(UUID propertyId);
+
+    /**
+     * Recupera o histórico de reservas efetuadas por um utilizador específico.
+     *
+     * <p>Uso típico: exibir histórico pessoal de reservas no frontend.</p>
+     *
+     * @param userId identificador único (UUID) do utilizador
+     * @return lista de reservas associadas ao utilizador (sem ordenação garantida)
+     */
     List<Booking> findByUserId(UUID userId);
 
     //* Outra forma de fazer a query, mas se ve horrivel
-
 //?    boolean existsByPropertyIdAndStatusInAndCheckInDateLessThanAndCheckOutDateGreaterThan(
 //            UUID propertyId,
 //            List<BookingStatus> statuses,

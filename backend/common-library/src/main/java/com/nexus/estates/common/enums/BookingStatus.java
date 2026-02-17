@@ -1,4 +1,4 @@
-package com.nexus.estates.entity;
+package com.nexus.estates.common.enums;
 
 /**
  * Define a Máquina de Estados Finita (FSM) para o ciclo de vida de uma reserva.
@@ -8,6 +8,7 @@ package com.nexus.estates.entity;
  * </p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 public enum BookingStatus
 {

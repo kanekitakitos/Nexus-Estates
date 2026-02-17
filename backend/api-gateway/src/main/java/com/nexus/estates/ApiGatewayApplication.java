@@ -2,7 +2,7 @@ package com.nexus.estates;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+
 
 /**
  * Ponto de entrada da aplicação API Gateway.
@@ -22,7 +22,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
  * @since 2026-02-10
  */
 @SpringBootApplication
-@EnableDiscoveryClient
+
 public class ApiGatewayApplication
 {
 

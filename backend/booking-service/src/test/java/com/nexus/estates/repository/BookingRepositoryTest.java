@@ -1,7 +1,7 @@
 package com.nexus.estates.repository;
 
 import com.nexus.estates.entity.Booking;
-import com.nexus.estates.entity.BookingStatus;
+import com.nexus.estates.common.enums.BookingStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;

@@ -14,6 +14,7 @@ import java.util.function.Predicate;
  * </p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Component
 public class RouteValidator {
@@ -30,9 +31,12 @@ public class RouteValidator {
      * </p>
      */
     public static final List<String> openApiEndpoints = List.of(
-            "/api/users/auth/register",
-            "/api/users/auth/login",
-            "/api/properties/search" // Pesquisa de casas costuma ser pública
+            "/api/v1/users/auth/register",
+            "/api/v1/users/auth/login",
+            "/api/v1/properties/search",
+            "/swagger-ui",
+            "/swagger-ui.html",
+            "/v3/api-docs"
     );
 
     /**

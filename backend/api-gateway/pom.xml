@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Módulo API Gateway
+  Responsável por orquestrar o tráfego entre clientes externos e microserviços internos,
+  aplicando autenticação JWT, roteamento e observabilidade.
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>com.nexus.estates</groupId>
         <artifactId>nexus-backend-root</artifactId>
@@ -13,14 +19,13 @@
     <version>1.0.0</version>
 
     <dependencies>
+        <!-- Infraestrutura do Spring Cloud Gateway (roteamento reativo, filtros, etc.) -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-gateway</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
-        </dependency>
+
+        <!-- Suporte a JSON Web Tokens (JWT) com jjwt -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -39,11 +44,14 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Anotações para reduzir boilerplate -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+
+        <!-- Stack de testes reativos e de integração -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -53,6 +61,19 @@
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-test</artifactId>
             <scope>test</scope>
+        </dependency>
+
+        <!-- Swagger/OpenAPI para aplicações WebFlux (caso sejam expostos endpoints próprios no gateway) -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+            <version>2.6.0</version>
+        </dependency>
+
+        <!-- Actuator para métricas, health checks e monitorização do gateway -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
     </dependencies>
 </project>
