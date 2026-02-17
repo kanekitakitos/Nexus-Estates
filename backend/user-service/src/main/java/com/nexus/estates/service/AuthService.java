@@ -1,6 +1,5 @@
 package com.nexus.estates.service;
 
-import com.nexus.estates.config.JwtService;
 import com.nexus.estates.dto.LoginRequest;
 import com.nexus.estates.dto.RegisterRequest;
 import com.nexus.estates.dto.AuthResponde;

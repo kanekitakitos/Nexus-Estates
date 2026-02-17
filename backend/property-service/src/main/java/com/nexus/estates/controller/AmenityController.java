@@ -25,7 +25,7 @@ import java.util.UUID;
  * @since 2026-02-12
  */
 @RestController
-@RequestMapping("/amenities")
+@RequestMapping("/api/amenities")
 public class AmenityController {
 
     private final AmenityService service;

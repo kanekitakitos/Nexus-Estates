@@ -62,12 +62,17 @@ class AuthenticationFilterTest {
                 .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
-        when(filterChain.filter(exchange)).thenReturn(Mono.empty());
+        when(filterChain.filter(any())).thenReturn(Mono.empty());
         doNothing().when(jwtUtil).validateToken("valid-token");
+        io.jsonwebtoken.Claims claims = mock(io.jsonwebtoken.Claims.class);
+        when(claims.get("userId")).thenReturn(java.util.UUID.randomUUID().toString());
+        when(claims.get("role")).thenReturn("GUEST");
+        when(claims.getSubject()).thenReturn("user@example.com");
+        when(jwtUtil.getAllClaimsFromToken("valid-token")).thenReturn(claims);
 
         authenticationFilter.apply(new AuthenticationFilter.Config()).filter(exchange, filterChain);
 
         verify(jwtUtil).validateToken("valid-token");
-        verify(filterChain).filter(exchange);
+        verify(filterChain).filter(any());
     }
 }

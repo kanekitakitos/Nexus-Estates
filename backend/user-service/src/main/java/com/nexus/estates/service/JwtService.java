@@ -1,4 +1,4 @@
-package com.nexus.estates.config;
+package com.nexus.estates.service;
 
 import com.nexus.estates.entity.User;
 import io.jsonwebtoken.Claims;

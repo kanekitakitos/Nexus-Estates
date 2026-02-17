@@ -30,7 +30,7 @@ import java.util.UUID;
  * @since 2026-02-10
  */
 @RestController
-@RequestMapping("/api/v1/bookings")
+@RequestMapping("/api/bookings")
 @Tag(
         name = "Bookings",
         description = "Operações para criação e consulta de reservas de propriedades."
@@ -78,8 +78,15 @@ public class BookingController {
     })
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<BookingResponse> createBooking(@Valid @RequestBody CreateBookingRequest request) {
-        BookingResponse response = bookingService.createBooking(request);
+    public ResponseEntity<BookingResponse> createBooking(@Valid @RequestBody CreateBookingRequest request, @RequestHeader(value = "X-User-Id", required = false) String userIdHeader) {
+        CreateBookingRequest effective = request;
+        try {
+            if (userIdHeader != null) {
+                java.util.UUID uid = java.util.UUID.fromString(userIdHeader);
+                effective = new CreateBookingRequest(request.propertyId(), uid, request.checkInDate(), request.checkOutDate(), request.guestCount());
+            }
+        } catch (Exception ignored) {}
+        BookingResponse response = bookingService.createBooking(effective);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
