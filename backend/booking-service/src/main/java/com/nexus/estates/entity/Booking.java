@@ -1,6 +1,7 @@
 package com.nexus.estates.entity;
 
 
+import com.nexus.estates.common.enums.BookingStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -25,6 +26,7 @@ import java.util.UUID;
  * </ul>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Entity
 @Table(name = "bookings")

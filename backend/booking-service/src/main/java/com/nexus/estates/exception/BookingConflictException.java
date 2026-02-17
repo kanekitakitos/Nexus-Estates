@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @ResponseStatus(HttpStatus.CONFLICT)
 public class BookingConflictException extends RuntimeException

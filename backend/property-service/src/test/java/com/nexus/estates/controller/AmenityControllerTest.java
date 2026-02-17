@@ -66,7 +66,7 @@ class AmenityControllerTest {
     void shouldCreateAmenityWithSuccess() throws Exception {
         when(service.create(any(Amenity.class))).thenReturn(validAmenity);
 
-        mockMvc.perform(post("/Amenities")
+        mockMvc.perform(post("/amenities")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validAmenity)))
                 .andExpect(status().isOk())
@@ -83,7 +83,7 @@ class AmenityControllerTest {
         Amenity invalidAmenity = new Amenity();
         invalidAmenity.setCategory(AmenityCategory.SAFETY);
 
-        mockMvc.perform(post("/Amenities")
+        mockMvc.perform(post("/amenities")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidAmenity)))
                 .andExpect(status().isBadRequest());
@@ -96,7 +96,7 @@ class AmenityControllerTest {
     void shouldListAllAmenities() throws Exception {
         when(service.findAll()).thenReturn(List.of(validAmenity));
 
-        mockMvc.perform(get("/Amenities"))
+        mockMvc.perform(get("/amenities"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].name").value("Piscina"));
@@ -109,7 +109,7 @@ class AmenityControllerTest {
     void shouldGetAmenityById() throws Exception {
         when(service.findById(amenityId)).thenReturn(validAmenity);
 
-        mockMvc.perform(get("/Amenities/{id}", amenityId))
+        mockMvc.perform(get("/amenities/{id}", amenityId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(amenityId.toString()))
                 .andExpect(jsonPath("$.name").value("Piscina"));

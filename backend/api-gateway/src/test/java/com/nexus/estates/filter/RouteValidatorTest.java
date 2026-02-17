@@ -13,7 +13,7 @@ class RouteValidatorTest {
     @Test
     void shouldReturnFalseForOpenEndpoints() {
         // Arrange
-        var request = MockServerHttpRequest.get("/api/users/auth/login").build();
+        var request = MockServerHttpRequest.get("/api/v1/users/auth/login").build();
 
         // Act
         boolean result = routeValidator.isSecured.test(request);
@@ -25,7 +25,7 @@ class RouteValidatorTest {
     @Test
     void shouldReturnTrueForSecuredEndpoints() {
         // Arrange
-        var request = MockServerHttpRequest.get("/api/bookings").build();
+        var request = MockServerHttpRequest.get("/api/v1/bookings").build();
 
         // Act
         boolean result = routeValidator.isSecured.test(request);

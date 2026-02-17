@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
  * </p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Component
 public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
@@ -32,6 +33,14 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    /**
+     * Classe de configuração para o filtro (Padrão Spring Cloud Gateway).
+     * Pode ser expandida para aceitar parâmetros no application.yml.
+     */
+    public static class Config {
+        // Configuração vazia por agora
+    }
 
     /**
      * Construtor padrão que regista a classe de configuração.
@@ -94,11 +103,4 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
         });
     }
 
-    /**
-     * Classe de configuração para o filtro (Padrão Spring Cloud Gateway).
-     * Pode ser expandida para aceitar parâmetros no application.yml.
-     */
-    public static class Config {
-        // Configuração vazia por agora
-    }
 }

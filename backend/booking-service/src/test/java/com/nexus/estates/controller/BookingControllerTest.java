@@ -1,10 +1,9 @@
 package com.nexus.estates.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nexus.estates.controller.BookingController;
 import com.nexus.estates.dto.BookingResponse;
 import com.nexus.estates.dto.CreateBookingRequest;
-import com.nexus.estates.entity.BookingStatus;
+import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.exception.BookingConflictException;
 import com.nexus.estates.service.BookingService;
 import org.junit.jupiter.api.DisplayName;
