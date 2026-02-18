@@ -18,10 +18,9 @@ import org.springframework.web.client.RestClient;
 public class ExternalApiClientConfig {
 
     @Bean
-    public RestClient externalApiRestClient(@Value("${external.api.base-url}") String baseUrl) {
+    public RestClient externalApiRestClient(@Value("${external.api.base-url:http://localhost}") String baseUrl) {
         return RestClient.builder()
                 .baseUrl(baseUrl)
                 .build();
     }
 }
-
