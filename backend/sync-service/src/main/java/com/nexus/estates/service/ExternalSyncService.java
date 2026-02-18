@@ -36,16 +36,17 @@ public class ExternalSyncService {
      * <p>
      * Esta operação está protegida por:
      * <ul>
-     *     <li>Um Circuit Breaker identificado como {@code externalApi}.</li>
-     *     <li>Um mecanismo de Retry com exponential backoff, também identificado como {@code externalApi}.</li>
+     *     <li>Um mecanismo de Retry com exponential backoff identificado como {@code externalApi}.</li>
+     *     <li>Um Circuit Breaker identificado como {@code externalApi} para falhas repetidas.</li>
      * </ul>
+     * O fallback é aplicado pelo Circuit Breaker depois das tentativas de retry falharem.
      * </p>
      *
      * @param message mensagem de criação de reserva.
      * @return {@link BookingStatusUpdatedMessage} com o novo estado.
      */
-    @CircuitBreaker(name = "externalApi", fallbackMethod = "fallbackProcessBooking")
-    @Retry(name = "externalApi")
+    @Retry(name = "externalApi", fallbackMethod = "fallbackProcessBooking")
+    @CircuitBreaker(name = "externalApi")
     public BookingStatusUpdatedMessage processBooking(BookingCreatedMessage message) {
         log.info("Iniciando chamada a API externa para Booking ID: {}", message.bookingId());
 

@@ -47,6 +47,12 @@ public class RabbitMQConfig {
     @Value("${booking.events.routing-key.status-updated:booking.status.updated}")
     private String bookingStatusUpdatedRoutingKey;
 
+    @Value("${booking.calendar.routing-key.block:calendar.block}")
+    private String calendarBlockRoutingKey;
+
+    @Value("${booking.calendar.queue.block:calendar.block.queue}")
+    private String calendarBlockQueueName;
+
     @Value("${booking.events.dlx:booking.dlx}")
     private String bookingDeadLetterExchangeName;
 
@@ -140,6 +146,22 @@ public class RabbitMQConfig {
                 .build();
     }
 
+    @Bean
+    public Queue calendarBlockQueue() {
+        return QueueBuilder
+                .durable(calendarBlockQueueName)
+                .withArgument("x-dead-letter-exchange", bookingDeadLetterExchangeName)
+                .withArgument("x-dead-letter-routing-key", calendarBlockRoutingKey + ".dlq")
+                .build();
+    }
+
+    @Bean
+    public Queue calendarBlockDlqQueue() {
+        return QueueBuilder
+                .durable(calendarBlockRoutingKey + ".dlq")
+                .build();
+    }
+
     /**
      * Associa a fila de atualização de estado à exchange de reservas.
      *
@@ -159,6 +181,22 @@ public class RabbitMQConfig {
                 .bind(bookingStatusUpdatedDlqQueue)
                 .to(bookingDeadLetterExchange)
                 .with(bookingStatusUpdatedDlqRoutingKey);
+    }
+
+    @Bean
+    public Binding calendarBlockBinding(Queue calendarBlockQueue, TopicExchange bookingExchange) {
+        return BindingBuilder
+                .bind(calendarBlockQueue)
+                .to(bookingExchange)
+                .with(calendarBlockRoutingKey);
+    }
+
+    @Bean
+    public Binding calendarBlockDlqBinding(Queue calendarBlockDlqQueue, TopicExchange bookingDeadLetterExchange) {
+        return BindingBuilder
+                .bind(calendarBlockDlqQueue)
+                .to(bookingDeadLetterExchange)
+                .with(calendarBlockRoutingKey + ".dlq");
     }
 
     /**

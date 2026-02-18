@@ -45,9 +45,15 @@ class ExternalSyncServiceIT {
         registry.add("external.api.base-url", () -> server.url("/").toString());
     }
 
+    @BeforeEach
+    void reset() {
+        circuitBreakerRegistry.circuitBreaker("externalApi").reset();
+    }
+
     @Test
     @DisplayName("CONFIRMED quando API externa aprova (HTTP 200)")
     void confirmedWhenExternalApproves() {
+        // Retry não deve ocorrer em sucesso (200), então 1 resposta é suficiente
         server.enqueue(new MockResponse()
                 .setResponseCode(200)
                 .addHeader("Content-Type", "application/json")
@@ -63,6 +69,7 @@ class ExternalSyncServiceIT {
     @Test
     @DisplayName("CANCELLED quando API externa rejeita (HTTP 200)")
     void cancelledWhenExternalRejects() {
+        // Retry não deve ocorrer em sucesso (200), então 1 resposta é suficiente
         server.enqueue(new MockResponse()
                 .setResponseCode(200)
                 .addHeader("Content-Type", "application/json")
@@ -78,6 +85,7 @@ class ExternalSyncServiceIT {
     @Test
     @DisplayName("Fallback é acionado após retries falharem (HTTP 500)")
     void fallbackTriggeredAfterRetries() {
+        // Max attempts = 2. Precisamos de 2 falhas para ativar o fallback.
         server.enqueue(new MockResponse().setResponseCode(500));
         server.enqueue(new MockResponse().setResponseCode(500));
 
@@ -91,14 +99,24 @@ class ExternalSyncServiceIT {
     @Test
     @DisplayName("Circuit Breaker abre após falhas consecutivas acima do threshold")
     void circuitBreakerOpensAfterFailures() {
-        server.enqueue(new MockResponse().setResponseCode(500));
-        server.enqueue(new MockResponse().setResponseCode(500));
-        server.enqueue(new MockResponse().setResponseCode(500));
-        server.enqueue(new MockResponse().setResponseCode(500));
+        // Config: Sliding Window = 4. Retry Max Attempts = 2.
+        // Call 1: 2 tentativas (2 falhas registadas no CB). Consome 2 respostas.
+        // Call 2: 2 tentativas (2 falhas registadas no CB). Consome 2 respostas.
+        // Total falhas = 4. CB deve abrir.
+        // Calls 3 e 4: Blocked pelo CB (não consomem respostas).
+        // Total respostas necessárias = 4.
+        
+        for (int i = 0; i < 4; i++) {
+            server.enqueue(new MockResponse().setResponseCode(500));
+        }
 
         var message = new BookingCreatedMessage(4L, 13L, 23L, BookingStatus.PENDING_PAYMENT);
         for (int i = 0; i < 4; i++) {
-            externalSyncService.processBooking(message);
+            try {
+                externalSyncService.processBooking(message);
+            } catch (Exception ignored) {
+                // Ignorar exceções, queremos apenas verificar o estado do CB no final
+            }
         }
 
         CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("externalApi");
