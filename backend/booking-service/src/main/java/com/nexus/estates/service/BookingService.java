@@ -134,7 +134,7 @@ public class BookingService
      * @return O DTO de resposta {@link BookingResponse} com os dados da reserva.
      * @throws RuntimeException Se a reserva não for encontrada na base de dados.
      */
-    public BookingResponse getBookingById(java.util.UUID id)
+    public BookingResponse getBookingById(Long id)
     {
         return bookingRepository.findById(id)
                 .map(bookingMapper::toResponse)
@@ -150,7 +150,7 @@ public class BookingService
      * @param propertyId O UUID da propriedade alvo.
      * @return Lista de {@link BookingResponse} contendo as reservas encontradas.
      */
-    public java.util.List<BookingResponse> getBookingsByProperty(java.util.UUID propertyId)
+    public java.util.List<BookingResponse> getBookingsByProperty(Long propertyId)
     {
         return bookingRepository.findByPropertyId(propertyId).stream()
                 .map(bookingMapper::toResponse)
@@ -163,7 +163,7 @@ public class BookingService
      * @param userId O UUID do utilizador.
      * @return Lista de {@link BookingResponse} com o histórico pessoal.
      */
-    public java.util.List<BookingResponse> getBookingsByUser(java.util.UUID userId)
+    public java.util.List<BookingResponse> getBookingsByUser(Long userId)
     {
         return bookingRepository.findByUserId(userId).stream()
                 .map(bookingMapper::toResponse)

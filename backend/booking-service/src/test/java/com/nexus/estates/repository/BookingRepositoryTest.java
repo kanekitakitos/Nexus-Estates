@@ -10,7 +10,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,11 +25,11 @@ class BookingRepositoryTest {
 
     @Test
     void shouldReturnTrueWhenBookingOverlaps() {
-        UUID propertyId = UUID.randomUUID();
+        Long propertyId = 100L;
         
         Booking booking = new Booking();
         booking.setPropertyId(propertyId);
-        booking.setUserId(UUID.randomUUID());
+        booking.setUserId(200L);
         booking.setCheckInDate(LocalDate.now().plusDays(2));
         booking.setCheckOutDate(LocalDate.now().plusDays(5));
         booking.setStatus(BookingStatus.CONFIRMED);
@@ -54,11 +53,11 @@ class BookingRepositoryTest {
 
     @Test
     void shouldReturnFalseWhenNoOverlap() {
-        UUID propertyId = UUID.randomUUID();
+        Long propertyId = 101L;
         
         Booking booking = new Booking();
         booking.setPropertyId(propertyId);
-        booking.setUserId(UUID.randomUUID());
+        booking.setUserId(201L);
         booking.setCheckInDate(LocalDate.now().plusDays(2));
         booking.setCheckOutDate(LocalDate.now().plusDays(5));
         booking.setStatus(BookingStatus.CONFIRMED);

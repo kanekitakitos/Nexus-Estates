@@ -10,7 +10,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * Representação persistente de uma Reserva no sistema.
@@ -42,8 +41,8 @@ public class Booking {
      * Gerado automaticamente pela estratégia da base de dados.
      */
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     // 🔗 Referências Externas (Microservices Decoupling)
     /**
@@ -54,14 +53,14 @@ public class Booking {
      * </p>
      */
     @Column(name = "property_id", nullable = false)
-    private UUID propertyId;
+    private Long propertyId;
 
     /**
      * Identificador do Utilizador (Hóspede).
      * <p>Referência lógica para o User Service.</p>
      */
     @Column(name = "user_id", nullable = false)
-    private UUID userId; // Quem fez a reserva (Guest)
+    private Long userId;
 
     // 📅 Dados da Estadia
     /** Data de início da ocupação. */

@@ -3,10 +3,13 @@ package com.nexus.estates.config;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,9 +18,12 @@ import org.springframework.context.annotation.Configuration;
  * Configuração central de infraestrutura para integração com RabbitMQ.
  *
  * <p>
- * Declara a exchange e as filas utilizadas pelo {@code booking-service},
- * bem como os bindings e o conversor de mensagens JSON partilhado pelo
- * {@link RabbitTemplate}.
+ * Declara a exchange principal de eventos de reserva, as filas de trabalho
+ * ({@code booking.created.queue}, {@code booking.status.updated.queue}) e as
+ * respetivas Dead Letter Queues (DLQ). Também expõe o {@link RabbitTemplate}
+ * configurado com conversor JSON e o container de listeners responsável por
+ * rejeitar mensagens com erro sem requeue, permitindo que o RabbitMQ as
+ * encaminhe automaticamente para as DLQs configuradas.
  * </p>
  *
  * @author Nexus Estates Team
@@ -41,6 +47,21 @@ public class RabbitMQConfig {
     @Value("${booking.events.routing-key.status-updated:booking.status.updated}")
     private String bookingStatusUpdatedRoutingKey;
 
+    @Value("${booking.events.dlx:booking.dlx}")
+    private String bookingDeadLetterExchangeName;
+
+    @Value("${booking.events.queue.created.dlq:booking.created.dlq}")
+    private String bookingCreatedDlqQueueName;
+
+    @Value("${booking.events.routing-key.created.dlq:booking.created.dlq}")
+    private String bookingCreatedDlqRoutingKey;
+
+    @Value("${booking.events.queue.status-updated.dlq:booking.status.updated.dlq}")
+    private String bookingStatusUpdatedDlqQueueName;
+
+    @Value("${booking.events.routing-key.status-updated.dlq:booking.status.updated.dlq}")
+    private String bookingStatusUpdatedDlqRoutingKey;
+
     /**
      * Cria a exchange de tópicos responsável pelos eventos de reserva.
      *
@@ -51,6 +72,11 @@ public class RabbitMQConfig {
         return new TopicExchange(bookingExchangeName);
     }
 
+    @Bean
+    public TopicExchange bookingDeadLetterExchange() {
+        return new TopicExchange(bookingDeadLetterExchangeName);
+    }
+
     /**
      * Declara a fila onde serão publicados os eventos de criação de reserva.
      *
@@ -58,7 +84,18 @@ public class RabbitMQConfig {
      */
     @Bean
     public Queue bookingCreatedQueue() {
-        return new Queue(bookingCreatedQueueName, true);
+        return QueueBuilder
+                .durable(bookingCreatedQueueName)
+                .withArgument("x-dead-letter-exchange", bookingDeadLetterExchangeName)
+                .withArgument("x-dead-letter-routing-key", bookingCreatedDlqRoutingKey)
+                .build();
+    }
+
+    @Bean
+    public Queue bookingCreatedDlqQueue() {
+        return QueueBuilder
+                .durable(bookingCreatedDlqQueueName)
+                .build();
     }
 
     /**
@@ -74,6 +111,14 @@ public class RabbitMQConfig {
                 .with(bookingCreatedRoutingKey);
     }
 
+    @Bean
+    public Binding bookingCreatedDlqBinding(Queue bookingCreatedDlqQueue, TopicExchange bookingDeadLetterExchange) {
+        return BindingBuilder
+                .bind(bookingCreatedDlqQueue)
+                .to(bookingDeadLetterExchange)
+                .with(bookingCreatedDlqRoutingKey);
+    }
+
     /**
      * Declara a fila que recebe atualizações de estado de reservas.
      *
@@ -81,7 +126,18 @@ public class RabbitMQConfig {
      */
     @Bean
     public Queue bookingStatusUpdatedQueue() {
-        return new Queue(bookingStatusUpdatedQueueName, true);
+        return QueueBuilder
+                .durable(bookingStatusUpdatedQueueName)
+                .withArgument("x-dead-letter-exchange", bookingDeadLetterExchangeName)
+                .withArgument("x-dead-letter-routing-key", bookingStatusUpdatedDlqRoutingKey)
+                .build();
+    }
+
+    @Bean
+    public Queue bookingStatusUpdatedDlqQueue() {
+        return QueueBuilder
+                .durable(bookingStatusUpdatedDlqQueueName)
+                .build();
     }
 
     /**
@@ -95,6 +151,14 @@ public class RabbitMQConfig {
                 .bind(bookingStatusUpdatedQueue)
                 .to(bookingExchange)
                 .with(bookingStatusUpdatedRoutingKey);
+    }
+
+    @Bean
+    public Binding bookingStatusUpdatedDlqBinding(Queue bookingStatusUpdatedDlqQueue, TopicExchange bookingDeadLetterExchange) {
+        return BindingBuilder
+                .bind(bookingStatusUpdatedDlqQueue)
+                .to(bookingDeadLetterExchange)
+                .with(bookingStatusUpdatedDlqRoutingKey);
     }
 
     /**
@@ -120,5 +184,15 @@ public class RabbitMQConfig {
         RabbitTemplate template = new RabbitTemplate(connectionFactory);
         template.setMessageConverter(jacksonMessageConverter);
         return template;
+    }
+
+    @Bean
+    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(ConnectionFactory connectionFactory,
+                                                                               MessageConverter jacksonMessageConverter) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setMessageConverter(jacksonMessageConverter);
+        factory.setDefaultRequeueRejected(false);
+        return factory;
     }
 }

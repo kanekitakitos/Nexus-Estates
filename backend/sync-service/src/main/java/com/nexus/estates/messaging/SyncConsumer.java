@@ -14,6 +14,12 @@ import org.springframework.stereotype.Component;
  * Consumidor principal de eventos no Sync Service.
  * Escuta mensagens de criação de reserva, aciona a integração externa e
  * publica o resultado de volta na fila de atualização de status.
+ * <p>
+ * Em caso de erro não tratado durante o processamento, a mensagem é rejeitada
+ * sem requeue pelo container configurado em {@link com.nexus.estates.config.RabbitMQConfig},
+ * permitindo que o RabbitMQ a encaminhe automaticamente para a Dead Letter Queue
+ * associada.
+ * </p>
  *
  * @author Nexus Estates Team
  * @version 1.0
