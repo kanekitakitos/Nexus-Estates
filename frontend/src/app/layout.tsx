@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { LightDarkSwitch } from "@/components/ui/lightDarkSwitch";
+import { ThemeProvider } from "@/components/themeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,11 +27,38 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        {children}
+        <ThemeProvider>
+        <header className="p-5 border-b gap-2 flex bg-card sticky top-0 z-10">
+          <div className="w-full h-full flex items-center justify-start">
+            <Button variant="ghost" className="font-extrabold text-lg"> 
+              <Link href={"/"}>
+                Nexus Estates
+              </Link>
+            </Button>
+            <Button variant="ghost" className="font-extrabold text-lg">
+              <Link href={"/login"}>
+                Login
+              </Link>
+            </Button>
+            <Button variant="ghost" className="font-extrabold text-lg">
+              <Link href={"/register"}>
+                Register
+              </Link>
+            </Button>
+          </div>
+          <div className="w-full h-full flex items-center justify-end">
+            <LightDarkSwitch />
+          </div>
+          
+        </header>
+        
+          {children}
+          
+        </ThemeProvider>
       </body>
     </html>
   );

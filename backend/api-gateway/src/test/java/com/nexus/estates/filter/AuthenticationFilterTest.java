@@ -34,7 +34,7 @@ class AuthenticationFilterTest {
 
     @Test
     void shouldPassThroughWhenRouteIsNotSecured() {
-        MockServerHttpRequest request = MockServerHttpRequest.get("/api/users/auth/login").build();
+        MockServerHttpRequest request = MockServerHttpRequest.get("/api/v1/users/auth/login").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
         when(filterChain.filter(exchange)).thenReturn(Mono.empty());
@@ -47,7 +47,7 @@ class AuthenticationFilterTest {
 
     @Test
     void shouldThrowExceptionWhenAuthHeaderIsMissingForSecuredRoute() {
-        MockServerHttpRequest request = MockServerHttpRequest.get("/api/bookings").build();
+        MockServerHttpRequest request = MockServerHttpRequest.get("/api/v1/bookings").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
         assertThrows(RuntimeException.class, () -> 
@@ -57,17 +57,22 @@ class AuthenticationFilterTest {
 
     @Test
     void shouldValidateTokenWhenAuthHeaderIsPresent() {
-        MockServerHttpRequest request = MockServerHttpRequest.get("/api/bookings")
+        MockServerHttpRequest request = MockServerHttpRequest.get("/api/v1/bookings")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
                 .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
-        when(filterChain.filter(exchange)).thenReturn(Mono.empty());
+        when(filterChain.filter(any())).thenReturn(Mono.empty());
         doNothing().when(jwtUtil).validateToken("valid-token");
+        io.jsonwebtoken.Claims claims = mock(io.jsonwebtoken.Claims.class);
+        when(claims.get("userId")).thenReturn(java.util.UUID.randomUUID().toString());
+        when(claims.get("role")).thenReturn("GUEST");
+        when(claims.getSubject()).thenReturn("user@example.com");
+        when(jwtUtil.getAllClaimsFromToken("valid-token")).thenReturn(claims);
 
         authenticationFilter.apply(new AuthenticationFilter.Config()).filter(exchange, filterChain);
 
         verify(jwtUtil).validateToken("valid-token");
-        verify(filterChain).filter(exchange);
+        verify(filterChain).filter(any());
     }
 }

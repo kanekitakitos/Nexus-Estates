@@ -25,7 +25,7 @@ import java.util.UUID;
  * @since 2026-02-13
  */
 @RestController
-@RequestMapping("/properties")
+@RequestMapping("/api/properties")
 public class PropertyController {
 
     private final PropertyService service;

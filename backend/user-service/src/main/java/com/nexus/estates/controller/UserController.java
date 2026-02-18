@@ -33,7 +33,7 @@ import java.util.UUID;
  */
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/api/users")
 public class UserController
 {
     /**

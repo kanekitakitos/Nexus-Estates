@@ -3,7 +3,7 @@ package com.nexus.estates.mapper;
 import com.nexus.estates.dto.BookingResponse;
 import com.nexus.estates.dto.CreateBookingRequest;
 import com.nexus.estates.entity.Booking;
-import com.nexus.estates.entity.BookingStatus;
+import com.nexus.estates.common.enums.BookingStatus;
 import org.springframework.stereotype.Component;
 
 /**
@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
  * </p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Component
 public class BookingMapper {

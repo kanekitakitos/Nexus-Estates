@@ -1,10 +1,9 @@
 package com.nexus.estates.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nexus.estates.controller.BookingController;
 import com.nexus.estates.dto.BookingResponse;
 import com.nexus.estates.dto.CreateBookingRequest;
-import com.nexus.estates.entity.BookingStatus;
+import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.exception.BookingConflictException;
 import com.nexus.estates.service.BookingService;
 import org.junit.jupiter.api.DisplayName;
@@ -73,7 +72,7 @@ class BookingControllerTest {
 
         when(bookingService.createBooking(any(CreateBookingRequest.class))).thenReturn(response);
 
-        mockMvc.perform(post("/api/v1/bookings")
+        mockMvc.perform(post("/api/bookings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -93,7 +92,7 @@ class BookingControllerTest {
                 0 // Invalid guest count
         );
 
-        mockMvc.perform(post("/api/v1/bookings")
+        mockMvc.perform(post("/api/bookings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
@@ -115,7 +114,7 @@ class BookingControllerTest {
         when(bookingService.createBooking(any(CreateBookingRequest.class)))
                 .thenThrow(new BookingConflictException("Property is already booked for these dates"));
 
-        mockMvc.perform(post("/api/v1/bookings")
+        mockMvc.perform(post("/api/bookings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
@@ -141,7 +140,7 @@ class BookingControllerTest {
 
         when(bookingService.getBookingById(bookingId)).thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/bookings/{id}", bookingId))
+        mockMvc.perform(get("/api/bookings/{id}", bookingId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(bookingId.toString()));
     }
@@ -165,7 +164,7 @@ class BookingControllerTest {
 
         when(bookingService.getBookingsByProperty(propertyId)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/api/v1/bookings/property/{propertyId}", propertyId))
+        mockMvc.perform(get("/api/bookings/property/{propertyId}", propertyId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].propertyId").value(propertyId.toString()));
     }
@@ -176,7 +175,7 @@ class BookingControllerTest {
         UUID propertyId = UUID.randomUUID();
         when(bookingService.getBookingsByProperty(propertyId)).thenReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/api/v1/bookings/property/{propertyId}", propertyId))
+        mockMvc.perform(get("/api/bookings/property/{propertyId}", propertyId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isEmpty());
     }
@@ -199,7 +198,7 @@ class BookingControllerTest {
 
         when(bookingService.getBookingsByUser(userId)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/api/v1/bookings/user/{userId}", userId))
+        mockMvc.perform(get("/api/bookings/user/{userId}", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].userId").value(userId.toString()));
     }

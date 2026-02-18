@@ -3,9 +3,10 @@ package com.nexus.estates.service;
 import com.nexus.estates.dto.BookingResponse;
 import com.nexus.estates.dto.CreateBookingRequest;
 import com.nexus.estates.entity.Booking;
-import com.nexus.estates.entity.BookingStatus;
+import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.exception.BookingConflictException;
 import com.nexus.estates.mapper.BookingMapper;
+import com.nexus.estates.messaging.BookingEventPublisher;
 import com.nexus.estates.repository.BookingRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,9 @@ class BookingServiceTest {
 
     @Mock
     private BookingMapper bookingMapper;
+
+    @Mock
+    private BookingEventPublisher bookingEventPublisher;
 
     @InjectMocks
     private BookingService bookingService;
@@ -79,6 +83,7 @@ class BookingServiceTest {
         assertThat(actualResponse).isNotNull();
         assertThat(actualResponse.totalPrice()).isEqualByComparingTo("300.00");
         verify(bookingRepository).save(any(Booking.class));
+        verify(bookingEventPublisher).publishBookingCreated(any());
     }
 
     @Test
@@ -149,6 +154,7 @@ class BookingServiceTest {
         bookingService.createBooking(request);
 
         verify(bookingRepository).save(bookingEntity);
+        verify(bookingEventPublisher).publishBookingCreated(any());
     }
 
     @Test

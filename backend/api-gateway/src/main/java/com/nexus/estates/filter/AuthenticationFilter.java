@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
  * </p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Component
 public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
@@ -32,6 +33,14 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    /**
+     * Classe de configuração para o filtro (Padrão Spring Cloud Gateway).
+     * Pode ser expandida para aceitar parâmetros no application.yml.
+     */
+    public static class Config {
+        // Configuração vazia por agora
+    }
 
     /**
      * Construtor padrão que regista a classe de configuração.
@@ -67,26 +76,16 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                 }
 
                 try {
-                    // 3. Valida a integridade criptográfica do Token
                     jwtUtil.validateToken(authHeader);
-
-                    // 4. Extração e Propagação de Contexto (TODO: Implementação Futura)
-                    // O código abaixo demonstra como extrair claims e injetar nos headers downstream.
-                    // Isso permite que os serviços de backend saibam "quem" é o utilizador sem revalidar o token.
-                    
-                    /*
-                    Claims claims = jwtUtil.getAllClaimsFromToken(authHeader);
-                    ServerHttpRequest request = exchange.getRequest()
+                    var claims = jwtUtil.getAllClaimsFromToken(authHeader);
+                    var request = exchange.getRequest()
                             .mutate()
-                            .header("X-User-Id", claims.get("userId", String.class))
-                            .header("X-User-Role", claims.get("role", String.class))
+                            .header("X-User-Id", String.valueOf(claims.get("userId")))
+                            .header("X-User-Role", String.valueOf(claims.get("role")))
+                            .header("X-User-Email", String.valueOf(claims.getSubject()))
                             .build();
                     return chain.filter(exchange.mutate().request(request).build());
-                    */
-
                 } catch (Exception e) {
-                    System.out.println("Acesso negado: " + e.getMessage());
-                    // Nota: Idealmente, isto deveria ser tratado por um GlobalExceptionHandler no Gateway
                     throw new RuntimeException("Acesso não autorizado: Token inválido");
                 }
             }
@@ -94,11 +93,4 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
         });
     }
 
-    /**
-     * Classe de configuração para o filtro (Padrão Spring Cloud Gateway).
-     * Pode ser expandida para aceitar parâmetros no application.yml.
-     */
-    public static class Config {
-        // Configuração vazia por agora
-    }
 }

@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
  * </p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
