@@ -4,7 +4,6 @@ import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.common.messaging.BookingStatusUpdatedMessage;
 import com.nexus.estates.service.ExternalSyncService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,8 +11,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -26,16 +27,14 @@ class SyncConsumerTest {
     @Mock
     private RabbitTemplate rabbitTemplate;
 
-    private SyncConsumer consumer;
-
-    @BeforeEach
-    void setUp() {
-        consumer = new SyncConsumer(externalSyncService, rabbitTemplate);
-    }
-
     @Test
     @DisplayName("Deve processar booking.created e publicar booking.status.updated")
     void shouldProcessBookingCreatedAndPublishStatusUpdated() {
+        SyncConsumer consumer = new SyncConsumer(externalSyncService, rabbitTemplate);
+
+        ReflectionTestUtils.setField(consumer, "bookingExchangeName", "booking.exchange");
+        ReflectionTestUtils.setField(consumer, "bookingStatusUpdatedRoutingKey", "booking.status.updated");
+
         BookingCreatedMessage input = new BookingCreatedMessage(
                 1L,
                 10L,
@@ -53,10 +52,11 @@ class SyncConsumerTest {
         consumer.handleBookingCreated(input);
 
         ArgumentCaptor<BookingStatusUpdatedMessage> captor = ArgumentCaptor.forClass(BookingStatusUpdatedMessage.class);
+
         verify(externalSyncService).processBooking(input);
         verify(rabbitTemplate).convertAndSend(
-                "booking.exchange",
-                "booking.status.updated",
+                eq("booking.exchange"),
+                eq("booking.status.updated"),
                 captor.capture()
         );
 
@@ -66,4 +66,3 @@ class SyncConsumerTest {
         assertThat(published.reason()).isEqualTo("ok");
     }
 }
-
