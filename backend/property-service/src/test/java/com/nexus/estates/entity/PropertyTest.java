@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -19,7 +18,7 @@ class PropertyTest {
     @Test
     void testPropertyData() {
 
-        UUID id = UUID.randomUUID();
+        Long id = 5L;
 
         Property property = new Property();
 

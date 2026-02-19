@@ -6,7 +6,6 @@ import com.nexus.estates.exception.AmenityNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Serviço responsável pela lógica de negócio das comodidades (amenities).
@@ -65,7 +64,7 @@ public class AmenityService {
      * @return a comodidade encontrada
      * @throws AmenityNotFoundException caso não exista nenhuma comodidade com o ID fornecido
      */
-    public Amenity findById(UUID id) {
+    public Amenity findById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new AmenityNotFoundException(id));
     }

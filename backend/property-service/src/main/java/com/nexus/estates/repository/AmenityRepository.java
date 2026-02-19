@@ -3,7 +3,6 @@ package com.nexus.estates.repository;
 import com.nexus.estates.entity.Amenity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.UUID;
 
 /**
  * Interface de repositório para a entidade {@link Amenity}.
@@ -15,5 +14,5 @@ import java.util.UUID;
  * @version 1.0
  * @since 2026-02-12
  */
-public interface AmenityRepository extends JpaRepository<Amenity, UUID> {
+public interface AmenityRepository extends JpaRepository<Amenity, Long> {
 }

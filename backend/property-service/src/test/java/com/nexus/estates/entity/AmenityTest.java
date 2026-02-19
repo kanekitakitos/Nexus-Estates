@@ -1,7 +1,6 @@
 package com.nexus.estates.entity;
 
 import org.junit.jupiter.api.Test;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -16,7 +15,7 @@ class AmenityTest {
     void testAmenityData() {
         // Arrange
         Amenity amenity = new Amenity();
-        UUID id = UUID.randomUUID();
+        Long id = 4L;
         String name = "Piscina Aquecida";
         AmenityCategory category = AmenityCategory.LEISURE;
 
