@@ -34,7 +34,7 @@ class AuthenticationFilterTest {
 
     @Test
     void shouldPassThroughWhenRouteIsNotSecured() {
-        MockServerHttpRequest request = MockServerHttpRequest.get("/api/v1/users/auth/login").build();
+        MockServerHttpRequest request = MockServerHttpRequest.get("/api/users/auth/login").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
         when(filterChain.filter(exchange)).thenReturn(Mono.empty());
