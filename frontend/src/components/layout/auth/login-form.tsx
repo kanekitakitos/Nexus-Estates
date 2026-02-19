@@ -1,20 +1,20 @@
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/forms/button"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/data-display/card"
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
   FieldSeparator,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/forms/field"
+import { Input } from "@/components/ui/forms/input"
 
 export function LoginForm({
   className,
@@ -93,3 +93,4 @@ export function LoginForm({
     </div>
   )
 }
+

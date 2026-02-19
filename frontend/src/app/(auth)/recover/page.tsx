@@ -1,19 +1,18 @@
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/forms/button"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/data-display/card"
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/forms/field"
+import { Input } from "@/components/ui/forms/input"
 
 export default function RecoverPage() {
     return (
@@ -42,10 +41,7 @@ export default function RecoverPage() {
           <Button className="w-full mt-6">Send Reset Link</Button>
         </CardContent>
       </Card>
-      <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
-      </FieldDescription>
+      <FieldDescription className="px-6 text-center"></FieldDescription>
     </div>
     )
 }
