@@ -45,4 +45,3 @@ class RabbitMQConfigTest {
         assertThat(args.get("x-dead-letter-routing-key")).isEqualTo("booking.status.updated.dlq");
     }
 }
-

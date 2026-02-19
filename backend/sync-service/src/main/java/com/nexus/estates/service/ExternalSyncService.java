@@ -94,7 +94,6 @@ public class ExternalSyncService {
      * @param ex      exceção que originou o fallback.
      * @return {@link BookingStatusUpdatedMessage} com estado CANCELLED e razão explicativa.
      */
-    @SuppressWarnings("unused")
     BookingStatusUpdatedMessage fallbackProcessBooking(BookingCreatedMessage message, Throwable ex) {
         log.error("Falha ao comunicar com API externa para Booking ID {}. Ativando fallback.",
                 message.bookingId(), ex);
