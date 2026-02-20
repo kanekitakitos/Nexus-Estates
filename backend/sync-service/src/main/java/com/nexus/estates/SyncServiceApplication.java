@@ -1,5 +1,7 @@
 package com.nexus.estates;
 
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.info.Info;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -14,6 +16,14 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @author Nexus Estates Team
  * @version 1.0
  */
+@OpenAPIDefinition(
+        info = @Info(
+                title = "Nexus Estates - Sync Service API",
+                version = "v1",
+                description = "API administrativa e de suporte responsável pelo processamento assíncrono de reservas "
+                        + "e integração com sistemas externos, incluindo infraestrutura de Dead Letter Queues."
+        )
+)
 @SpringBootApplication
 public class SyncServiceApplication {
     public static void main(String[] args) {

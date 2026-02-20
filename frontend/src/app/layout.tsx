@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { LightDarkSwitch } from "@/components/ui/lightDarkSwitch";
-import { ThemeProvider } from "@/components/themeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,34 +27,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <ThemeProvider>
-        <header className="p-5 border-b gap-2 flex bg-card sticky top-0 z-10">
-          <div className="w-full h-full flex items-center justify-start">
-            <Button variant="ghost" className="font-extrabold text-lg"> 
-              <Link href={"/"}>
-                Nexus Estates
-              </Link>
-            </Button>
-            <Button variant="ghost" className="font-extrabold text-lg">
-              <Link href={"/login"}>
-                Login
-              </Link>
-            </Button>
-            <Button variant="ghost" className="font-extrabold text-lg">
-              <Link href={"/register"}>
-                Register
-              </Link>
-            </Button>
-          </div>
-          <div className="w-full h-full flex items-center justify-end">
-            <LightDarkSwitch />
-          </div>
-          
-        </header>
-        
-          {children}
-          
-        </ThemeProvider>
+        {children}
       </body>
     </html>
   );

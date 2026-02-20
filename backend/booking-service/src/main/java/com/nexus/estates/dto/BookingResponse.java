@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.UUID;
 
 /**
  * DTO de resposta contendo os detalhes de uma reserva confirmada.
@@ -33,13 +32,13 @@ import java.util.UUID;
 )
 public record BookingResponse(
         @Schema(description = "Identificador único da reserva", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
-        UUID id,
+        Long id,
 
         @Schema(description = "Identificador da propriedade reservada", example = "0f8fad5b-d9cb-469f-a165-70867728950e")
-        UUID propertyId,
+        Long propertyId,
 
         @Schema(description = "Identificador do utilizador responsável pela reserva", example = "7c9e6679-7425-40de-944b-e07fc1f90ae7")
-        UUID userId,
+        Long userId,
 
         @Schema(description = "Data de check-in da reserva", example = "2026-02-15")
         LocalDate checkInDate,

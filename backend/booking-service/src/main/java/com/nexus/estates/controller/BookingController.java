@@ -15,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Controlador REST responsável pela orquestração das operações de reserva.
@@ -82,7 +81,7 @@ public class BookingController {
         CreateBookingRequest effective = request;
         try {
             if (userIdHeader != null) {
-                java.util.UUID uid = java.util.UUID.fromString(userIdHeader);
+                Long uid = Long.parseLong(userIdHeader);
                 effective = new CreateBookingRequest(request.propertyId(), uid, request.checkInDate(), request.checkOutDate(), request.guestCount());
             }
         } catch (Exception ignored) {}
@@ -111,7 +110,7 @@ public class BookingController {
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<BookingResponse> getBooking(@PathVariable UUID id) {
+    public ResponseEntity<BookingResponse> getBooking(@PathVariable Long id) {
         return ResponseEntity.ok(bookingService.getBookingById(id));
     }
 
@@ -137,7 +136,7 @@ public class BookingController {
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
     })
     @GetMapping("/property/{propertyId}")
-    public ResponseEntity<List<BookingResponse>> getByProperty(@PathVariable UUID propertyId) {
+    public ResponseEntity<List<BookingResponse>> getByProperty(@PathVariable Long propertyId) {
         return ResponseEntity.ok(bookingService.getBookingsByProperty(propertyId));
     }
 
@@ -160,7 +159,7 @@ public class BookingController {
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
     })
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<BookingResponse>> getByUser(@PathVariable UUID userId) {
+    public ResponseEntity<List<BookingResponse>> getByUser(@PathVariable Long userId) {
         return ResponseEntity.ok(bookingService.getBookingsByUser(userId));
     }
 
