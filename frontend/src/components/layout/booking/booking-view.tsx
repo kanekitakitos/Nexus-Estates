@@ -273,11 +273,6 @@ export function BookingView() {
 
     return (
         <div className="relative flex flex-col space-y-6 p-6">
-            <div className="pointer-events-none absolute inset-0 -z-10">
-                <div className="absolute inset-0 opacity-[0.35] bg-[radial-gradient(circle_at_0_0,rgba(255,149,0,0.25),transparent_55%),radial-gradient(circle_at_100%_0,rgba(255,255,255,0.14),transparent_55%)]" />
-                <div className="absolute inset-0 opacity-20 bg-[linear-gradient(120deg,rgba(0,0,0,0.09)_1px,transparent_1px),linear-gradient(210deg,rgba(0,0,0,0.06)_1px,transparent_1px)] [background-size:40px_40px]" />
-                <div className="absolute right-10 top-24 h-20 w-20 rounded-full border border-primary/40 bg-primary/10 shadow-[0_0_40px_rgba(255,149,0,0.6)] blur-[1px]" />
-            </div>
             <div className="flex flex-col space-y-2">
                 <h1 className="text-3xl font-bold tracking-tight">Find Your Next Stay</h1>
                 <p className="text-muted-foreground">

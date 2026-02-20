@@ -9,6 +9,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/layout/sidebar"
+import { BrutalGridBackground } from "@/components/ui/layout/brutal-grid-background"
 
 interface AppShellProps {
   children: React.ReactNode
@@ -24,8 +25,9 @@ export function AppShell({ children, header }: AppShellProps) {
         } as React.CSSProperties
       }
     >
+      <BrutalGridBackground />
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="bg-transparent">
         <header className="bg-background sticky top-0 flex shrink-0 items-center justify-between gap-2 border-b p-4">
           <div className="flex flex-1 items-center gap-2">
             <SidebarTrigger className="-ml-1" />
