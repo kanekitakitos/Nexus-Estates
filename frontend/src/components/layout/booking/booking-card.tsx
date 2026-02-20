@@ -1,10 +1,4 @@
-import {
-    Card,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/data-display/card"
+import { Card } from "@/components/ui/data-display/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/forms/button"
 import { MapPin, ArrowRight, Star } from "lucide-react"
@@ -31,7 +25,7 @@ export function BookingCard({ property, onBook }: BookingCardProps) {
     return (
         <div className="group relative [perspective:1200px]">
             <Card className="relative overflow-hidden rounded-xl border-4 border-foreground/90 bg-secondary shadow-[10px_10px_0_0_rgb(0,0,0)] transition-transform duration-300 [transform-style:preserve-3d] group-hover:-translate-y-1 group-hover:-translate-x-1">
-            <div className="relative aspect-[4/3] w-full overflow-hidden border-b-4 border-foreground">
+            <div className="relative aspect-[16/9] w-full overflow-hidden border-b-4 border-foreground">
                 <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,#000_1px,transparent_1.5px)] [background-size:8px_8px]" />
                 <img
                     src={property.imageUrl}
@@ -63,10 +57,7 @@ export function BookingCard({ property, onBook }: BookingCardProps) {
                     </h3>
                 </div>
             </div>
-            <div className="flex flex-col gap-4 p-6 pt-4 [transform:translateZ(20px)]">
-                <CardDescription className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-                    {property.description}
-                </CardDescription>
+            <div className="flex flex-col gap-3 px-5 pb-5 pt-3 [transform:translateZ(20px)]">
                 {property.tags && property.tags.length > 0 && (
                     <div className="relative mt-1 overflow-hidden">
                         <div className="pointer-events-none absolute right-0 top-0 h-full w-10 bg-gradient-to-l from-secondary to-transparent" />
@@ -85,15 +76,25 @@ export function BookingCard({ property, onBook }: BookingCardProps) {
                         </div>
                     </div>
                 )}
-                <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Starting from</span>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-2xl font-bold text-primary">
-                                ${property.price.toLocaleString()}
+                <div className="mt-2 flex items-end justify-between">
+                    <div className="flex flex-col gap-1">
+                        <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.2em]">
+                            Starting from
+                        </span>
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-xl font-bold text-primary">
+                                ${property.price}
                             </span>
-                            <span className="text-sm font-medium text-muted-foreground">/night</span>
+                            <span className="text-xs font-medium text-muted-foreground">
+                                /night
+                            </span>
                         </div>
+                        {property.rating && (
+                            <div className="mt-1 inline-flex items-center gap-1 rounded-none border-2 border-foreground bg-secondary px-2 py-0.5 text-[11px] font-bold text-amber-600 shadow-[3px_3px_0_0_rgb(0,0,0)]">
+                                <Star className="size-3 fill-current" />
+                                <span>{property.rating}</span>
+                            </div>
+                        )}
                     </div>
                     <Button 
                         onClick={() => onBook?.(property.id)} 
