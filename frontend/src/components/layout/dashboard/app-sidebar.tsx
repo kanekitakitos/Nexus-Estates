@@ -1,5 +1,3 @@
-"use client"
-
 import * as React from "react"
 import { Building2, Calendar, LayoutDashboard, Settings, Users } from "lucide-react"
 
@@ -28,7 +26,7 @@ const currentUser = {
   name: "Admin User",
   email: "admin@nexus-estates.com",
   avatar: "/avatars/shadcn.jpg",
-  role: "GUEST" as UserRole, // Change to "GUEST" to test guest view
+  role: "ADMIN" as UserRole, // Change to "GUEST" to test guest view
 }
 
 // Menu Items Configuration
