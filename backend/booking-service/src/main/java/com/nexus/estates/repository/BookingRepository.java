@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Interface de repositório para a entidade {@link Booking}.
@@ -22,7 +21,7 @@ import java.util.UUID;
  * @version 1.0
  */
 @Repository
-public interface BookingRepository extends JpaRepository<Booking, UUID> {
+public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     /**
      * Deteta sobreposições de agendamento para uma propriedade num intervalo de datas.
@@ -51,7 +50,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         )
     """)
     boolean existsOverlappingBooking(
-            @Param("propertyId") UUID propertyId,
+            @Param("propertyId") Long propertyId,
             @Param("checkIn") LocalDate checkIn,
             @Param("checkOut") LocalDate checkOut
     );
@@ -69,7 +68,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
      * @param propertyId identificador único (UUID) da propriedade
      * @return lista de reservas da propriedade (sem ordenação garantida)
      */
-    List<Booking> findByPropertyId(UUID propertyId);
+    List<Booking> findByPropertyId(Long propertyId);
 
     /**
      * Recupera o histórico de reservas efetuadas por um utilizador específico.
@@ -79,7 +78,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
      * @param userId identificador único (UUID) do utilizador
      * @return lista de reservas associadas ao utilizador (sem ordenação garantida)
      */
-    List<Booking> findByUserId(UUID userId);
+    List<Booking> findByUserId(Long userId);
 
     //* Outra forma de fazer a query, mas se ve horrivel
 //?    boolean existsByPropertyIdAndStatusInAndCheckInDateLessThanAndCheckOutDateGreaterThan(

@@ -12,7 +12,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.mockito.Mockito.verify;
 
@@ -54,9 +53,9 @@ class BookingEventPublisherTest {
     @Test
     void shouldPublishBookingCreatedEvent() {
         BookingCreatedMessage message = new BookingCreatedMessage(
-                UUID.randomUUID(),
-                UUID.randomUUID(),
-                UUID.randomUUID(),
+                1L,
+                10L,
+                20L,
                 BookingStatus.PENDING_PAYMENT
         );
 
@@ -67,7 +66,7 @@ class BookingEventPublisherTest {
 
     @Test
     void shouldHandleStatusUpdatedEventAndUpdateBooking() {
-        UUID bookingId = UUID.randomUUID();
+        Long bookingId = 2L;
         Booking booking = new Booking();
         booking.setId(bookingId);
 

@@ -18,7 +18,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -48,10 +47,10 @@ class BookingControllerTest {
     @Test
     @DisplayName("Should create booking successfully and return 201 Created")
     void shouldCreateBookingSuccessfully() throws Exception {
-        UUID bookingId = UUID.randomUUID();
+        Long bookingId = 1L;
         CreateBookingRequest request = new CreateBookingRequest(
-                UUID.randomUUID(),
-                UUID.randomUUID(),
+                10L,
+                20L,
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(5),
                 2
@@ -76,7 +75,7 @@ class BookingControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(bookingId.toString()))
+                .andExpect(jsonPath("$.id").value(bookingId))
                 .andExpect(jsonPath("$.status").value("PENDING_PAYMENT"));
     }
 
@@ -85,7 +84,7 @@ class BookingControllerTest {
     void shouldReturn400BadRequestWhenInputIsInvalid() throws Exception {
         // Request com data de check-in no passado e sem user ID
         CreateBookingRequest invalidRequest = new CreateBookingRequest(
-                UUID.randomUUID(),
+                10L,
                 null, // Missing User ID
                 LocalDate.now().minusDays(1), // Past date
                 LocalDate.now().plusDays(2),
@@ -104,8 +103,8 @@ class BookingControllerTest {
     @DisplayName("Should return 409 Conflict when booking dates overlap")
     void shouldReturn409ConflictWhenDatesOverlap() throws Exception {
         CreateBookingRequest request = new CreateBookingRequest(
-                UUID.randomUUID(),
-                UUID.randomUUID(),
+                10L,
+                20L,
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(5),
                 2
@@ -124,11 +123,11 @@ class BookingControllerTest {
     @Test
     @DisplayName("Should return booking details when ID exists")
     void shouldReturnBookingWhenIdExists() throws Exception {
-        UUID bookingId = UUID.randomUUID();
+        Long bookingId = 2L;
         BookingResponse response = new BookingResponse(
                 bookingId,
-                UUID.randomUUID(),
-                UUID.randomUUID(),
+                10L,
+                20L,
                 LocalDate.now(),
                 LocalDate.now().plusDays(2),
                 2,
@@ -142,17 +141,17 @@ class BookingControllerTest {
 
         mockMvc.perform(get("/api/bookings/{id}", bookingId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(bookingId.toString()));
+                .andExpect(jsonPath("$.id").value(bookingId));
     }
 
     @Test
     @DisplayName("Should return list of bookings for a property")
     void shouldReturnBookingsByProperty() throws Exception {
-        UUID propertyId = UUID.randomUUID();
+        Long propertyId = 10L;
         BookingResponse response = new BookingResponse(
-                UUID.randomUUID(),
+                3L,
                 propertyId,
-                UUID.randomUUID(),
+                20L,
                 LocalDate.now(),
                 LocalDate.now().plusDays(2),
                 2,
@@ -166,13 +165,13 @@ class BookingControllerTest {
 
         mockMvc.perform(get("/api/bookings/property/{propertyId}", propertyId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].propertyId").value(propertyId.toString()));
+                .andExpect(jsonPath("$[0].propertyId").value(propertyId));
     }
 
     @Test
     @DisplayName("Should return empty list when property has no bookings")
     void shouldReturnEmptyListForProperty() throws Exception {
-        UUID propertyId = UUID.randomUUID();
+        Long propertyId = 11L;
         when(bookingService.getBookingsByProperty(propertyId)).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/api/bookings/property/{propertyId}", propertyId))
@@ -183,10 +182,10 @@ class BookingControllerTest {
     @Test
     @DisplayName("Should return list of bookings for a user")
     void shouldReturnBookingsByUser() throws Exception {
-        UUID userId = UUID.randomUUID();
+        Long userId = 20L;
         BookingResponse response = new BookingResponse(
-                UUID.randomUUID(),
-                UUID.randomUUID(),
+                4L,
+                10L,
                 userId,
                 LocalDate.now(),
                 LocalDate.now().plusDays(2),
@@ -200,6 +199,6 @@ class BookingControllerTest {
 
         mockMvc.perform(get("/api/bookings/user/{userId}", userId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].userId").value(userId.toString()));
+                .andExpect(jsonPath("$[0].userId").value(userId));
     }
 }
