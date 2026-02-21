@@ -151,7 +151,7 @@
   --sidebar-ring: oklch(0.66 0.16 48);
 
   --color-brutal-bg: oklch(0.15 0.02 50); /* Dark bg */
-  --color-brutal-grid: rgba(255, 255, 255, 0.05);
+  --color-brutal-grid: rgba(235, 225, 205, 0.15); /* Beige with 15% opacity */
 }
 
 @layer base {
