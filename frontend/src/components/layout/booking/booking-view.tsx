@@ -276,8 +276,6 @@ export function BookingView() {
                 <div className="absolute -left-4 top-0 bottom-0 w-1 bg-foreground/10" />
                 <BookingList properties={filteredProperties} onBook={handleBook} />
             </div>
-
-            <BookingHowItWorks />
         </div>
     )
 }

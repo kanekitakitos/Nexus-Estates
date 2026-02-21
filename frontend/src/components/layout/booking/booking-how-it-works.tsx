@@ -1,8 +1,62 @@
-import { Users } from "lucide-react"
+import { Users, Search, CreditCard, PartyPopper } from "lucide-react"
+import { cn } from "@/lib/utils"
 
-export function BookingHowItWorks() {
+interface BookingHowItWorksProps {
+    mode?: "default" | "card"
+    className?: string
+}
+
+export function BookingHowItWorks({ mode = "default", className }: BookingHowItWorksProps) {
+    if (mode === "card") {
+        return (
+            <div className={cn(
+                "group relative h-full w-full overflow-hidden rounded-lg border-[3px] border-foreground bg-primary shadow-[5px_5px_0_0_rgb(0,0,0)] dark:shadow-[5px_5px_0_0_rgba(255,255,255,0.9)] transition-all hover:-translate-y-1 hover:shadow-[8px_8px_0_0_rgb(0,0,0)] dark:hover:shadow-[8px_8px_0_0_rgba(255,255,255,0.9)] flex flex-row items-center justify-between p-0",
+                className
+            )}>
+                {/* Left Section - Title & Icon */}
+                <div className="flex flex-col justify-between h-full p-6 w-1/3 border-r-[3px] border-foreground bg-primary z-10 relative">
+                    <div className="flex justify-between items-start mb-2">
+                        <div className="w-12 h-12 rounded-full border-[2px] border-foreground bg-background flex items-center justify-center shadow-[3px_3px_0_0_rgb(0,0,0)] dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.9)]">
+                            <Users className="w-6 h-6 text-foreground" />
+                        </div>
+                        <div className="bg-background border-[2px] border-foreground px-3 py-1 font-mono text-xs font-bold uppercase shadow-[3px_3px_0_0_rgb(0,0,0)] dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.9)] -rotate-3">
+                            Guide
+                        </div>
+                    </div>
+                    
+                    <h3 className="font-mono text-4xl font-black uppercase leading-[0.9] text-primary-foreground drop-shadow-[3px_3px_0_rgb(0,0,0)]">
+                        How it<br/>works
+                    </h3>
+                    
+                    <p className="font-mono text-xs font-medium text-primary-foreground/90 leading-tight mt-4">
+                        Simple, secure, and memorable stays await you.
+                    </p>
+                </div>
+
+                {/* Right Section - Steps */}
+                <div className="flex-1 grid grid-cols-3 h-full bg-background">
+                    <div className="flex flex-col items-center justify-center gap-4 border-r-[2px] border-foreground p-4 group/item hover:bg-secondary/50 transition-colors">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-none border-[2px] border-foreground bg-primary text-primary-foreground font-mono text-xl font-bold shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)] transition-transform group-hover/item:scale-110 group-hover/item:-rotate-3">1</div>
+                        <span className="font-mono text-xl font-bold text-foreground uppercase tracking-tight">Browse</span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center gap-4 border-r-[2px] border-foreground p-4 group/item hover:bg-secondary/50 transition-colors">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-none border-[2px] border-foreground bg-primary text-primary-foreground font-mono text-xl font-bold shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)] transition-transform group-hover/item:scale-110 group-hover/item:rotate-3">2</div>
+                        <span className="font-mono text-xl font-bold text-foreground uppercase tracking-tight">Book</span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center gap-4 p-4 group/item hover:bg-secondary/50 transition-colors">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-none border-[2px] border-foreground bg-primary text-primary-foreground font-mono text-xl font-bold shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)] transition-transform group-hover/item:scale-110 group-hover/item:-rotate-3">3</div>
+                        <span className="font-mono text-xl font-bold text-foreground uppercase tracking-tight">Enjoy</span>
+                    </div>
+                </div>
+
+                {/* Decorative elements */}
+                <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-background/10 rounded-full blur-2xl pointer-events-none" />
+            </div>
+        )
+    }
+
     return (
-        <section className="bg-card border-[2px] border-foreground p-8 md:p-12 flex flex-col md:flex-row items-center gap-12 mb-24 shadow-[5px_5px_0_0_rgb(0,0,0)] dark:shadow-[5px_5px_0_0_rgba(255,255,255,0.9)] -rotate-1 mx-4 md:mx-0 transition-transform hover:rotate-0 duration-300">
+        <section className={cn("bg-card border-[2px] border-foreground p-8 md:p-12 flex flex-col md:flex-row items-center gap-12 mb-24 shadow-[5px_5px_0_0_rgb(0,0,0)] dark:shadow-[5px_5px_0_0_rgba(255,255,255,0.9)] -rotate-1 mx-4 md:mx-0 transition-transform hover:rotate-0 duration-300", className)}>
             <div className="w-full md:w-1/3 flex justify-center">
                 <div className="relative">
                     <div className="w-48 h-48 rounded-full border-[2px] border-foreground flex items-center justify-center bg-primary shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)] animate-pulse-slow">

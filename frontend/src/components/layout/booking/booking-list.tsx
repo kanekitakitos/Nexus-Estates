@@ -1,4 +1,5 @@
 import { BookingCard, BookingProperty } from "./booking-card"
+import { BookingHowItWorks } from "./booking-how-it-works"
 
 interface BookingListProps {
     properties: BookingProperty[]
@@ -21,17 +22,32 @@ export function BookingList({ properties, onBook }: BookingListProps) {
 
     return (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-8 transition-[grid-template-columns,gap] duration-200 ease-[cubic-bezier(0.2,0.8,0.4,1)] pb-12">
-            {properties.map((property, index) => (
-                <div 
-                    key={property.id} 
-                    className={`${index % 2 === 0 ? 'rotate-1' : '-rotate-1'} hover:rotate-0 hover:z-10 transition-transform duration-300`}
-                >
-                    <BookingCard 
-                        property={property} 
-                        onBook={onBook} 
-                    />
-                </div>
-            ))}
+            {properties.map((property, index) => {
+                const card = (
+                    <div 
+                        key={property.id} 
+                        className={`${index % 2 === 0 ? 'rotate-1' : '-rotate-1'} hover:rotate-0 hover:z-10 transition-transform duration-300`}
+                    >
+                        <BookingCard 
+                            property={property} 
+                            onBook={onBook} 
+                        />
+                    </div>
+                )
+
+                if (index === 1) {
+                    return (
+                        <>
+                            <div key="how-it-works" className="col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-3 -rotate-1 hover:rotate-0 hover:z-10 transition-transform duration-300">
+                                <BookingHowItWorks mode="card" className="h-full w-full" />
+                            </div>
+                            {card}
+                        </>
+                    )
+                }
+
+                return card
+            })}
         </div>
     )
 }
