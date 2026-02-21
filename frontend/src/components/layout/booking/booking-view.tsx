@@ -3,21 +3,8 @@
 import { useMemo, useState } from "react"
 import { BookingList } from "./booking-list"
 import { BookingProperty } from "./booking-card"
-import { Button } from "@/components/ui/forms/button"
-import { Input } from "@/components/ui/forms/input"
-import { Label } from "@/components/ui/forms/label"
-import { Search, SlidersHorizontal, Filter, X } from "lucide-react"
-import { Separator } from "@/components/ui/layout/separator"
-import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-    SheetFooter,
-    SheetClose,
-} from "@/components/ui/overlay/sheet"
+import { BookingSearchBar } from "./booking-search-bar"
+import { BookingHowItWorks } from "./booking-how-it-works"
 
 // Mock Data
 const MOCK_PROPERTIES: BookingProperty[] = [
@@ -235,7 +222,8 @@ export function BookingView() {
     const [children, setChildren] = useState(0)
     const [maxPrice, setMaxPrice] = useState<number | "">("")
 
-    const filteredProperties = useMemo(() => {
+    const filteredProperties = useMemo(() => 
+        {
         let filtered = MOCK_PROPERTIES.filter(p => p.status === "AVAILABLE")
 
         if (searchTerm) {
@@ -250,10 +238,6 @@ export function BookingView() {
             filtered = filtered.filter(p => p.price <= Number(maxPrice))
         }
 
-        // Logic for adults/children would typically check capacity, 
-        // but for now we'll just simulate it or keep it prepared for when backend has capacity data.
-        // For this mock, we assume all properties fit at least 1 person.
-        
         return filtered
     }, [searchTerm, adults, children, maxPrice])
 
@@ -262,126 +246,38 @@ export function BookingView() {
         // Implement booking logic here
     }
 
-    const clearFilters = () => {
-        setAdults(1)
-        setChildren(0)
-        setMaxPrice("")
-        setSearchTerm("")
-    }
-
-    const activeFiltersCount = (maxPrice !== "" ? 1 : 0) + (adults > 1 ? 1 : 0) + (children > 0 ? 1 : 0)
-
     return (
-        <div className="relative flex flex-col space-y-6 p-6">
-            <div className="flex flex-col space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight">Find Your Next Stay</h1>
-                <p className="text-muted-foreground">
+        <div className="relative flex flex-col space-y-6 p-6 px-[150px] min-h-screen">
+            {/* Background Grid Pattern */}
+            <div className="absolute inset-0 z-[-1] bg-[size:40px_40px] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff12_1px,transparent_1px),linear-gradient(to_bottom,#ffffff12_1px,transparent_1px)]" />
+            
+            <div className="flex flex-col space-y-2 mb-8">
+                <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase mb-2">
+                    <span className="bg-primary text-primary-foreground px-2 inline-block -rotate-1 mr-2 shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)]">Find</span>
+                    <span className="inline-block rotate-1">Your</span>
+                    <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/70 underline decoration-4 decoration-primary underline-offset-4">Next Stay</span>
+                </h1>
+                <p className="text-xl text-muted-foreground font-mono max-w-2xl border-l-4 border-primary pl-4">
                     Explore our curated selection of premium properties available for your dates.
                 </p>
             </div>
             
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="relative w-full max-w-md flex gap-2">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            type="search"
-                            placeholder="Search locations..."
-                            className="pl-9"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    
-                    <Sheet>
-                        <SheetTrigger asChild>
-                            <Button variant="outline" className="gap-2">
-                                <SlidersHorizontal className="h-4 w-4" />
-                                Filters
-                                {activeFiltersCount > 0 && (
-                                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-                                        {activeFiltersCount}
-                                    </span>
-                                )}
-                            </Button>
-                        </SheetTrigger>
-                        <SheetContent side="right">
-                            <SheetHeader>
-                                <SheetTitle>Filters</SheetTitle>
-                                <SheetDescription>
-                                    Refine your search results.
-                                </SheetDescription>
-                            </SheetHeader>
-                            <div className="grid gap-6 py-6">
-                                <div className="space-y-2">
-                                    <Label>Price Range (Max Nightly)</Label>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm font-medium">$0</span>
-                                        <Input 
-                                            type="number" 
-                                            placeholder="Any" 
-                                            value={maxPrice}
-                                            onChange={(e) => setMaxPrice(e.target.value ? Number(e.target.value) : "")}
-                                            min={0}
-                                        />
-                                    </div>
-                                </div>
-                                <Separator />
-                                <div className="space-y-2">
-                                    <Label>Guests</Label>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                            <Label className="text-xs text-muted-foreground">Adults</Label>
-                                            <Input 
-                                                type="number" 
-                                                min={1} 
-                                                value={adults}
-                                                onChange={(e) => setAdults(parseInt(e.target.value) || 1)}
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <Label className="text-xs text-muted-foreground">Children</Label>
-                                            <Input 
-                                                type="number" 
-                                                min={0} 
-                                                value={children}
-                                                onChange={(e) => setChildren(parseInt(e.target.value) || 0)}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <SheetFooter className="flex-col gap-2 sm:flex-col">
-                                <SheetClose asChild>
-                                    <Button type="submit">Show {filteredProperties.length} properties</Button>
-                                </SheetClose>
-                                <Button variant="ghost" onClick={clearFilters} className="w-full">
-                                    Clear all filters
-                                </Button>
-                            </SheetFooter>
-                        </SheetContent>
-                    </Sheet>
-                </div>
+            <BookingSearchBar 
+                destination={searchTerm}
+                adults={adults}
+                childrenCount={children}
+                onDestinationChange={setSearchTerm}
+                onAdultsChange={setAdults}
+                onChildrenChange={setChildren}
+            />
+
+            <div className="relative">
+                <div className="absolute -left-4 top-0 bottom-0 w-1 bg-foreground/10" />
+                <BookingList properties={filteredProperties} onBook={handleBook} />
             </div>
 
-            {/* Active filters display (optional, simplified for now) */}
-            {activeFiltersCount > 0 && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Filter className="h-3 w-3" />
-                    <span>Active filters:</span>
-                    {maxPrice !== "" && <span className="rounded-full bg-muted px-2 py-0.5 text-xs">Max ${maxPrice}</span>}
-                    {adults > 1 && <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{adults} Adults</span>}
-                    {children > 0 && <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{children} Children</span>}
-                    <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full" onClick={clearFilters}>
-                        <X className="h-3 w-3" />
-                        <span className="sr-only">Clear filters</span>
-                    </Button>
-                </div>
-            )}
-
-            <div className="my-4 h-[1px] w-full bg-border" />
-
-            <BookingList properties={filteredProperties} onBook={handleBook} />
+            <BookingHowItWorks />
         </div>
     )
 }
