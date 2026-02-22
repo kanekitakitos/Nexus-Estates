@@ -7,6 +7,17 @@ import { BookingSearchBar } from "./booking-search-bar"
 import { BookingDetails } from "./booking-details"
 import { cn } from "@/lib/utils"
 
+const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-6 px-[150px] min-h-screen"
+const HERO_CONTAINER_STYLES = "flex flex-col space-y-2 mb-8 transition-all duration-500"
+const HERO_TITLE_STYLES = "text-5xl md:text-7xl font-black tracking-tighter uppercase mb-2"
+const HERO_PILL_PRIMARY_STYLES = "bg-primary text-primary-foreground px-2 inline-block -rotate-1 mr-2 shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)]"
+const HERO_UNDERLINE_TEXT_STYLES = "text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/70 underline decoration-4 decoration-primary underline-offset-4"
+const HERO_SUBTITLE_STYLES = "text-xl text-muted-foreground font-mono max-w-2xl border-l-4 border-primary pl-4"
+const SEARCH_WRAPPER_ANIMATION_LEAVE = "animate-fly-out-chaos-2 delay-100"
+const SEARCH_WRAPPER_ANIMATION_RETURN = "animate-fly-in-chaos-2 delay-100"
+const LIST_CONTAINER_STYLES = "relative"
+const LIST_DECORATOR_STYLES = "absolute -left-4 top-0 bottom-0 w-1 bg-foreground/10"
+
 // Mock Data
 const MOCK_PROPERTIES: BookingProperty[] = [
     {
@@ -222,10 +233,11 @@ export function BookingView() {
     const [isLeaving, setIsLeaving] = useState(false)
     const [isReturning, setIsReturning] = useState(false)
     
-    // Filters state
     const [adults, setAdults] = useState(1)
     const [children, setChildren] = useState(0)
     const [maxPrice, setMaxPrice] = useState<number | "">("")
+    const [checkInDate, setCheckInDate] = useState<Date | null>(null)
+    const [checkOutDate, setCheckOutDate] = useState<Date | null>(null)
 
     const filteredProperties = useMemo(() => 
         {
@@ -260,28 +272,17 @@ export function BookingView() {
         }
     }
 
-    // Gesture navigation for "Forward" (Re-open last viewed)
     useEffect(() => {
-        // Only active when NOT viewing a property
         if (selectedProperty) return
 
         let touchStartX = 0
         let touchStartY = 0
 
         const handleWheel = (e: WheelEvent) => {
-            // Check if horizontal scroll is dominant
             const isHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY)
             
-            // Only trigger if we have a last viewed property AND we are not currently animating
             if (isHorizontal && lastViewedPropertyId && !isLeaving && !isReturning) {
-                // Swipe Left-to-Right (deltaX > 20) -> Go FORWARD to last property
-                // This corresponds to pushing content to the left (moving forward in history)
                 if (e.deltaX > 20) {
-                     // Need to call handleBook, but it's inside component scope.
-                     // We can't access it easily if it depends on state that might change?
-                     // Actually handleBook is stable enough or we include it in deps.
-                     
-                     // Find the property again to be safe
                      const property = MOCK_PROPERTIES.find(p => p.id === lastViewedPropertyId)
                      if (property) {
                         setIsLeaving(true)
@@ -308,7 +309,6 @@ export function BookingView() {
             const deltaX = touchEndX - touchStartX
             const deltaY = touchEndY - touchStartY
 
-            // Swipe Left (deltaX < -50) -> Go FORWARD (content moves left)
             if (deltaX < -50 && Math.abs(deltaX) > Math.abs(deltaY) && lastViewedPropertyId && !isLeaving && !isReturning) {
                 handleBook(lastViewedPropertyId)
             }
@@ -327,72 +327,65 @@ export function BookingView() {
 
     const handleBack = () => {
         setIsReturning(true)
-        // Scroll to top immediately to ensure smooth entry animation
-        window.scrollTo({ top: 0, behavior: 'instant' })
         
         setTimeout(() => {
             setSelectedProperty(null)
-            // Animation class will be applied by isReturning state in the render
-            // Reset isReturning after animation completes
             setTimeout(() => {
                 setIsReturning(false)
             }, 1000)
         }, 800)
     }
 
-    // Check for returning state on mount
-    useEffect(() => {
-        if (isReturning) {
-            // Force re-flow or ensure classes are applied
-            window.scrollTo({ top: 0, behavior: 'instant' })
-        }
-    }, [isReturning])
-
     if (selectedProperty) {
-        // Pass isReturning to BookingDetails to trigger exit animation
-        return <BookingDetails property={selectedProperty} onBack={handleBack} isExiting={isReturning} />
+        return <BookingDetails 
+            property={selectedProperty} 
+            onBack={handleBack} 
+            isExiting={isReturning}
+            checkInDate={checkInDate}
+            checkOutDate={checkOutDate}
+        />
     }
 
     return (
-        <div className="relative flex flex-col space-y-6 p-6 px-[150px] min-h-screen overflow-hidden">
-            {/* Background Grid Pattern */}
-            <div className="absolute inset-0 z-[-1] bg-[size:40px_40px] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff12_1px,transparent_1px),linear-gradient(to_bottom,#ffffff12_1px,transparent_1px)]" />
-            
+        <div className={PAGE_CONTAINER_STYLES}>
             <div className={cn(
-                "flex flex-col space-y-2 mb-8 transition-all duration-500",
+                HERO_CONTAINER_STYLES,
                 isLeaving && "animate-fly-out-chaos-1",
                 isReturning && "animate-fly-in-chaos-1"
             )}>
-                <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase mb-2">
-                    <span className="bg-primary text-primary-foreground px-2 inline-block -rotate-1 mr-2 shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)]">Find</span>
+                <h1 className={HERO_TITLE_STYLES}>
+                    <span className={HERO_PILL_PRIMARY_STYLES}>Find</span>
                     <span className="inline-block rotate-1">Your</span>
                     <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/70 underline decoration-4 decoration-primary underline-offset-4">Next Stay</span>
+                    <span className={HERO_UNDERLINE_TEXT_STYLES}>Next Stay</span>
                 </h1>
-                <p className="text-xl text-muted-foreground font-mono max-w-2xl border-l-4 border-primary pl-4">
+                <p className={HERO_SUBTITLE_STYLES}>
                     Explore our curated selection of premium properties available for your dates.
                 </p>
             </div>
             
             <div className={cn(
-                isLeaving && "animate-fly-out-chaos-2 delay-100",
-                isReturning && "animate-fly-in-chaos-2 delay-100"
+                isLeaving && SEARCH_WRAPPER_ANIMATION_LEAVE,
+                isReturning && SEARCH_WRAPPER_ANIMATION_RETURN
             )}>
                 <BookingSearchBar 
                     destination={searchTerm}
+                    checkInDate={checkInDate}
+                    checkOutDate={checkOutDate}
                     adults={adults}
                     childrenCount={children}
+                    maxPrice={maxPrice}
                     onDestinationChange={setSearchTerm}
+                    onCheckInChange={setCheckInDate}
+                    onCheckOutChange={setCheckOutDate}
                     onAdultsChange={setAdults}
                     onChildrenChange={setChildren}
+                    onMaxPriceChange={setMaxPrice}
                 />
             </div>
 
-            <div className={cn(
-                "relative",
-                // Removed animation classes from here to apply them to individual items in BookingList
-            )}>
-                <div className="absolute -left-4 top-0 bottom-0 w-1 bg-foreground/10" />
+            <div className={cn(LIST_CONTAINER_STYLES)}>
+                <div className={LIST_DECORATOR_STYLES} />
                 <BookingList 
                     properties={filteredProperties} 
                     onBook={handleBook} 

@@ -1,6 +1,14 @@
 import { Users, Search, CreditCard, PartyPopper } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+const BRUTAL_CARD_SHADOW = "shadow-[5px_5px_0_0_rgb(0,0,0)] dark:shadow-[5px_5px_0_0_rgba(255,255,255,0.9)]"
+const BRUTAL_CARD_SHADOW_HOVER = "hover:shadow-[8px_8px_0_0_rgb(0,0,0)] dark:hover:shadow-[8px_8px_0_0_rgba(255,255,255,0.9)]"
+const BRUTAL_BADGE_SHADOW = "shadow-[3px_3px_0_0_rgb(0,0,0)] dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.9)]"
+const BRUTAL_LABEL_SHADOW = "shadow-[2px_2px_0_0_rgb(0,0,0)] dark:shadow-[2px_2px_0_0_rgba(255,255,255,0.9)]"
+const BRUTAL_SECTION_SHADOW = "shadow-[5px_5px_0_0_rgb(0,0,0)] dark:shadow-[5px_5px_0_0_rgba(255,255,255,0.9)]"
+const BRUTAL_SECTION_HEADER_SHADOW = "shadow-[3px_3px_0_0_rgb(0,0,0)] dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.9)]"
+const BRUTAL_STEP_BADGE_SHADOW = "shadow-[2px_2px_0_0_rgb(0,0,0)] dark:shadow-[2px_2px_0_0_rgba(255,255,255,0.9)]"
+
 interface BookingHowItWorksProps {
     mode?: "default" | "card"
     className?: string
@@ -10,16 +18,24 @@ export function BookingHowItWorks({ mode = "default", className }: BookingHowItW
     if (mode === "card") {
         return (
             <div className={cn(
-                "group relative h-full w-full overflow-hidden rounded-lg border-[3px] border-foreground bg-primary p-4 shadow-[5px_5px_0_0_rgb(0,0,0)] dark:shadow-[5px_5px_0_0_rgba(255,255,255,0.9)] transition-all hover:-translate-y-1 hover:shadow-[8px_8px_0_0_rgb(0,0,0)] dark:hover:shadow-[8px_8px_0_0_rgba(255,255,255,0.9)] flex flex-col justify-between",
+                "group relative h-full w-full overflow-hidden rounded-lg border-[3px] border-foreground bg-primary p-4 transition-all hover:-translate-y-1 flex flex-col justify-between",
+                BRUTAL_CARD_SHADOW,
+                BRUTAL_CARD_SHADOW_HOVER,
                 className
             )}>
                 {/* Header */}
                 <div className="flex flex-col gap-4">
                     <div className="flex justify-between items-start">
-                        <div className="w-10 h-10 rounded-full border-[2px] border-foreground bg-background flex items-center justify-center shadow-[3px_3px_0_0_rgb(0,0,0)] dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.9)]">
+                        <div className={cn(
+                            "w-10 h-10 rounded-full border-[2px] border-foreground bg-background flex items-center justify-center",
+                            BRUTAL_BADGE_SHADOW
+                        )}>
                             <Users className="w-5 h-5 text-foreground" />
                         </div>
-                        <div className="bg-background border-[2px] border-foreground px-2 py-0.5 font-mono text-[10px] font-bold uppercase shadow-[2px_2px_0_0_rgb(0,0,0)] dark:shadow-[2px_2px_0_0_rgba(255,255,255,0.9)] -rotate-3">
+                        <div className={cn(
+                            "bg-background border-[2px] border-foreground px-2 py-0.5 font-mono text-[10px] font-bold uppercase -rotate-3",
+                            BRUTAL_LABEL_SHADOW
+                        )}>
                             Guide
                         </div>
                     </div>
@@ -31,15 +47,24 @@ export function BookingHowItWorks({ mode = "default", className }: BookingHowItW
 
                 {/* Steps */}
                 <div className="flex flex-col gap-3 mt-4">
-                    <div className="flex items-center gap-3 group/item p-2 border-[2px] border-foreground bg-background hover:translate-x-1 transition-transform shadow-[3px_3px_0_0_rgb(0,0,0)]">
+                    <div className={cn(
+                        "flex items-center gap-3 group/item p-2 border-[2px] border-foreground bg-background hover:translate-x-1 transition-transform",
+                        BRUTAL_BADGE_SHADOW
+                    )}>
                         <div className="flex items-center justify-center w-6 h-6 border-[2px] border-foreground bg-primary text-primary-foreground font-mono text-xs font-bold">1</div>
                         <span className="font-mono text-sm font-bold text-foreground uppercase">Browse</span>
                     </div>
-                    <div className="flex items-center gap-3 group/item p-2 border-[2px] border-foreground bg-background hover:translate-x-1 transition-transform shadow-[3px_3px_0_0_rgb(0,0,0)]">
+                    <div className={cn(
+                        "flex items-center gap-3 group/item p-2 border-[2px] border-foreground bg-background hover:translate-x-1 transition-transform",
+                        BRUTAL_BADGE_SHADOW
+                    )}>
                         <div className="flex items-center justify-center w-6 h-6 border-[2px] border-foreground bg-primary text-primary-foreground font-mono text-xs font-bold">2</div>
                         <span className="font-mono text-sm font-bold text-foreground uppercase">Book</span>
                     </div>
-                    <div className="flex items-center gap-3 group/item p-2 border-[2px] border-foreground bg-background hover:translate-x-1 transition-transform shadow-[3px_3px_0_0_rgb(0,0,0)]">
+                    <div className={cn(
+                        "flex items-center gap-3 group/item p-2 border-[2px] border-foreground bg-background hover:translate-x-1 transition-transform",
+                        BRUTAL_BADGE_SHADOW
+                    )}>
                         <div className="flex items-center justify-center w-6 h-6 border-[2px] border-foreground bg-primary text-primary-foreground font-mono text-xs font-bold">3</div>
                         <span className="font-mono text-sm font-bold text-foreground uppercase">Enjoy</span>
                     </div>
@@ -52,25 +77,41 @@ export function BookingHowItWorks({ mode = "default", className }: BookingHowItW
     }
 
     return (
-        <section className={cn("bg-card border-[2px] border-foreground p-8 md:p-12 flex flex-col md:flex-row items-center gap-12 mb-24 shadow-[5px_5px_0_0_rgb(0,0,0)] dark:shadow-[5px_5px_0_0_rgba(255,255,255,0.9)] -rotate-1 mx-4 md:mx-0 transition-transform hover:rotate-0 duration-300", className)}>
+        <section className={cn(
+            "bg-card border-[2px] border-foreground p-8 md:p-12 flex flex-col md:flex-row items-center gap-12 mb-24 -rotate-1 mx-4 md:mx-0 transition-transform hover:rotate-0 duration-300",
+            BRUTAL_SECTION_SHADOW,
+            className
+        )}>
             <div className="w-full md:w-1/3 flex justify-center">
                 <div className="relative">
-                    <div className="w-48 h-48 rounded-full border-[2px] border-foreground flex items-center justify-center bg-primary shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)] animate-pulse-slow">
+                    <div className={cn(
+                        "w-48 h-48 rounded-full border-[2px] border-foreground flex items-center justify-center bg-primary animate-pulse-slow",
+                        BRUTAL_BADGE_SHADOW
+                    )}>
                         <Users size={80} strokeWidth={1} className="text-primary-foreground" />
                     </div>
-                    <div className="absolute -top-4 -right-4 w-16 h-16 bg-foreground text-background rounded-full flex items-center justify-center font-mono text-2xl font-bold rotate-12 border-[2px] border-background dark:border-foreground animate-bounce-slow shadow-[2px_2px_0_0_rgb(0,0,0)] dark:shadow-[2px_2px_0_0_rgba(255,255,255,0.9)]">
+                    <div className={cn(
+                        "absolute -top-4 -right-4 w-16 h-16 bg-foreground text-background rounded-full flex items-center justify-center font-mono text-2xl font-bold rotate-12 border-[2px] border-background dark:border-foreground animate-bounce-slow",
+                        BRUTAL_LABEL_SHADOW
+                    )}>
                         !
                     </div>
                 </div>
             </div>
             <div className="w-full md:w-2/3">
-                <h2 className="font-mono text-4xl md:text-5xl font-black uppercase mb-8 leading-none tracking-tight -skew-x-6 w-fit bg-secondary px-4 py-1 border-[2px] border-foreground shadow-[3px_3px_0_0_rgb(0,0,0)] dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.9)]">
+                <h2 className={cn(
+                    "font-mono text-4xl md:text-5xl font-black uppercase mb-8 leading-none tracking-tight -skew-x-6 w-fit bg-secondary px-4 py-1 border-[2px] border-foreground",
+                    BRUTAL_SECTION_HEADER_SHADOW
+                )}>
                     How it works
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div className="group hover:-translate-y-1 transition-transform duration-200">
                         <div className="flex items-center gap-2 mb-2">
-                            <span className="flex items-center justify-center w-8 h-8 border-[2px] border-foreground bg-foreground text-background font-mono text-sm font-bold shadow-[2px_2px_0_0_rgb(0,0,0)] dark:shadow-[2px_2px_0_0_rgba(255,255,255,0.9)] group-hover:translate-x-0.5 group-hover:translate-y-0.5 group-hover:shadow-none transition-all">1</span>
+                            <span className={cn(
+                                "flex items-center justify-center w-8 h-8 border-[2px] border-foreground bg-foreground text-background font-mono text-sm font-bold group-hover:translate-x-0.5 group-hover:translate-y-0.5 group-hover:shadow-none transition-all",
+                                BRUTAL_STEP_BADGE_SHADOW
+                            )}>1</span>
                             <div className="font-mono text-lg font-bold uppercase underline decoration-2 underline-offset-2">Browse</div>
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed font-mono">
@@ -79,7 +120,10 @@ export function BookingHowItWorks({ mode = "default", className }: BookingHowItW
                     </div>
                     <div className="group hover:-translate-y-1 transition-transform duration-200 delay-75">
                         <div className="flex items-center gap-2 mb-2">
-                            <span className="flex items-center justify-center w-8 h-8 border-[2px] border-foreground bg-foreground text-background font-mono text-sm font-bold shadow-[2px_2px_0_0_rgb(0,0,0)] dark:shadow-[2px_2px_0_0_rgba(255,255,255,0.9)] group-hover:translate-x-0.5 group-hover:translate-y-0.5 group-hover:shadow-none transition-all">2</span>
+                            <span className={cn(
+                                "flex items-center justify-center w-8 h-8 border-[2px] border-foreground bg-foreground text-background font-mono text-sm font-bold group-hover:translate-x-0.5 group-hover:translate-y-0.5 group-hover:shadow-none transition-all",
+                                BRUTAL_STEP_BADGE_SHADOW
+                            )}>2</span>
                             <div className="font-mono text-lg font-bold uppercase underline decoration-2 underline-offset-2">Book</div>
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed font-mono">
@@ -88,7 +132,10 @@ export function BookingHowItWorks({ mode = "default", className }: BookingHowItW
                     </div>
                     <div className="group hover:-translate-y-1 transition-transform duration-200 delay-150">
                         <div className="flex items-center gap-2 mb-2">
-                            <span className="flex items-center justify-center w-8 h-8 border-[2px] border-foreground bg-foreground text-background font-mono text-sm font-bold shadow-[2px_2px_0_0_rgb(0,0,0)] dark:shadow-[2px_2px_0_0_rgba(255,255,255,0.9)] group-hover:translate-x-0.5 group-hover:translate-y-0.5 group-hover:shadow-none transition-all">3</span>
+                            <span className={cn(
+                                "flex items-center justify-center w-8 h-8 border-[2px] border-foreground bg-foreground text-background font-mono text-sm font-bold group-hover:translate-x-0.5 group-hover:translate-y-0.5 group-hover:shadow-none transition-all",
+                                BRUTAL_STEP_BADGE_SHADOW
+                            )}>3</span>
                             <div className="font-mono text-lg font-bold uppercase underline decoration-2 underline-offset-2">Enjoy</div>
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed font-mono">

@@ -1,7 +1,7 @@
 "use client"
 
-import { Calendar, MapPin, Minus, Plus, Search, Users } from "lucide-react"
-import { useState } from "react"
+import { Calendar, DollarSign, MapPin, Minus, Plus, Search, Users, ChevronLeft, ChevronRight } from "lucide-react"
+import { useMemo, useState } from "react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/forms/button"
@@ -16,11 +16,116 @@ interface BookingSearchBarProps {
   guests?: string
   adults?: number
   childrenCount?: number
+  maxPrice?: number | ""
+  checkInDate?: Date | null
+  checkOutDate?: Date | null
   onDestinationChange?: (value: string) => void
   onGuestsChange?: (value: string) => void
   onAdultsChange?: (value: number) => void
   onChildrenChange?: (value: number) => void
+  onMaxPriceChange?: (value: number | "") => void
+  onCheckInChange?: (value: Date | null) => void
+  onCheckOutChange?: (value: Date | null) => void
   className?: string
+}
+
+function SingleDateCalendar({
+  value,
+  onChange,
+  minDate,
+}: {
+  value: Date | null
+  onChange: (d: Date) => void
+  minDate: Date
+}) {
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const [visibleMonth, setVisibleMonth] = useState<Date>(
+    value && value > minDate ? startOfDay(value) : startOfDay(minDate)
+  )
+
+  const daysOfWeek = ["M", "T", "W", "T", "F", "S", "S"]
+  const year = visibleMonth.getFullYear()
+  const month = visibleMonth.getMonth()
+  const firstDayOfMonth = new Date(year, month, 1)
+  const startOffset = (firstDayOfMonth.getDay() + 6) % 7
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7
+  const cells = useMemo(() => {
+    const arr: (Date | null)[] = []
+    for (let index = 0; index < totalCells; index += 1) {
+      const dayNumber = index - startOffset + 1
+      if (dayNumber < 1 || dayNumber > daysInMonth) {
+        arr.push(null)
+      } else {
+        arr.push(new Date(year, month, dayNumber))
+      }
+    }
+    return arr
+  }, [year, month, startOffset, daysInMonth, totalCells])
+
+  const monthLabel = visibleMonth.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  })
+
+  return (
+    <div className="w-80 space-y-3">
+      <div className="flex items-center justify-between">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          className="border-[2px] border-foreground bg-secondary hover:bg-secondary/80 shadow-[2px_2px_0_0_rgb(0,0,0)]"
+          onClick={() =>
+            setVisibleMonth(new Date(year, month - 1, 1))
+          }
+        >
+          <ChevronLeft className="h-3 w-3" />
+        </Button>
+        <span className="font-mono text-[11px] uppercase tracking-[0.18em]">
+          {monthLabel}
+        </span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          className="border-[2px] border-foreground bg-secondary hover:bg-secondary/80 shadow-[2px_2px_0_0_rgb(0,0,0)]"
+          onClick={() =>
+            setVisibleMonth(new Date(year, month + 1, 1))
+          }
+        >
+          <ChevronRight className="h-3 w-3" />
+        </Button>
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {daysOfWeek.map((d, i) => (
+          <div key={`${d}-${i}`} className="text-center font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            {d}
+          </div>
+        ))}
+        {cells.map((date, idx) => {
+          if (!date) return <div key={`empty-${idx}`} />
+          const disabled = startOfDay(date) < startOfDay(minDate)
+          const selected = value && startOfDay(date).getTime() === startOfDay(value).getTime()
+          return (
+            <button
+              key={date.toISOString()}
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange(date)}
+              className={cn(
+                "h-8 rounded-md border-[2px] border-foreground/40 bg-background/70 text-xs font-mono transition-all hover:-translate-y-[1px] hover:shadow-[2px_2px_0_0_rgb(0,0,0)]",
+                disabled && "opacity-40 cursor-not-allowed hover:translate-y-0 hover:shadow-none",
+                selected && "bg-primary text-primary-foreground border-foreground shadow-[2px_2px_0_0_rgb(0,0,0)]"
+              )}
+            >
+              {date.getDate()}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 export function BookingSearchBar({
@@ -28,13 +133,30 @@ export function BookingSearchBar({
   guests,
   adults = 1,
   childrenCount = 0,
+  maxPrice = "",
+  checkInDate = null,
+  checkOutDate = null,
   onDestinationChange,
   onGuestsChange,
   onAdultsChange,
   onChildrenChange,
+  onMaxPriceChange,
+  onCheckInChange,
+  onCheckOutChange,
   className,
 }: BookingSearchBarProps) {
   const [open, setOpen] = useState(false)
+  const [priceInput, setPriceInput] = useState(
+    maxPrice === "" ? "" : String(maxPrice)
+  )
+
+  const today = new Date()
+  const fmt = (d: Date | null) => {
+    if (!d) return "Select date"
+    const dd = String(d.getDate()).padStart(2, "0")
+    const mm = String(d.getMonth() + 1).padStart(2, "0")
+    return `${dd}/${mm}`
+  }
 
   const handleAdultsChange = (delta: number) => {
     const newValue = Math.max(1, adults + delta)
@@ -69,7 +191,7 @@ export function BookingSearchBar({
         className
       )}
     >
-      <div className="grid grid-cols-1 divide-y divide-white/20 md:grid-cols-3 md:divide-y-0 md:divide-x dark:divide-white/20">
+      <div className="grid grid-cols-1 divide-y divide-white/20 md:grid-cols-4 md:divide-y-0 md:divide-x dark:divide-white/20">
         {/* Destination */}
         <div className={SECTION_CONTAINER_STYLES}>
           <div className={LABEL_STYLES}>
@@ -95,15 +217,41 @@ export function BookingSearchBar({
             <span>Check-in / Check-out</span>
           </div>
           <div className={cn(INPUT_CONTAINER_STYLES, "justify-between")}>
-            <div className="flex items-center gap-2 font-mono text-[11px] uppercase text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>Select dates</span>
-            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="flex items-center gap-2 font-mono text-[11px] uppercase text-foreground outline-none">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>{fmt(checkInDate)}</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className={cn("w-auto border-[2px] border-foreground bg-background p-3", BRUTAL_SHADOW_SMALL)}>
+                <SingleDateCalendar
+                  value={checkInDate}
+                  minDate={today}
+                  onChange={(d) => {
+                    onCheckInChange?.(d)
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
             <span className="text-muted-foreground/70">—</span>
-            <div className="flex items-center gap-2 font-mono text-[11px] uppercase text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>Select dates</span>
-            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="flex items-center gap-2 font-mono text-[11px] uppercase text-foreground outline-none">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>{fmt(checkOutDate)}</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className={cn("w-auto border-[2px] border-foreground bg-background p-3", BRUTAL_SHADOW_SMALL)}>
+                <SingleDateCalendar
+                  value={checkOutDate}
+                  minDate={checkInDate ? new Date(checkInDate.getFullYear(), checkInDate.getMonth(), checkInDate.getDate() + 1) : today}
+                  onChange={(d) => {
+                    onCheckOutChange?.(d)
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
@@ -196,8 +344,64 @@ export function BookingSearchBar({
             </PopoverContent>
           </Popover>
         </div>
+
+        <div className={SECTION_CONTAINER_STYLES}>
+          <div className={cn(LABEL_STYLES, "relative overflow-hidden")}
+          >
+            <span className="absolute inset-0 bg-primary/90 -skew-x-6 origin-left" />
+            <div className="relative flex items-center gap-2">
+              <DollarSign className="h-3.5 w-3.5" />
+              <span className="relative z-10">Max Price</span>
+            </div>
+          </div>
+          <div className={cn(INPUT_CONTAINER_STYLES, "justify-between")}
+          >
+            <span className="font-mono text-[11px] uppercase text-muted-foreground">
+              Up to
+            </span>
+            <div className="relative">
+              <div className="absolute inset-0 translate-x-[3px] translate-y-[3px] border-[2px] border-foreground bg-foreground/10 -rotate-2" />
+              <div className="relative flex items-center gap-1 bg-background px-3 py-2 border-[2px] border-foreground rotate-[-2deg]">
+                <DollarSign className="h-3 w-3 text-muted-foreground" />
+                <input
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  className="w-20 bg-transparent font-mono text-xs uppercase outline-none"
+                  value={priceInput}
+                  onChange={(event) => setPriceInput(event.target.value)}
+                  onBlur={() => {
+                    if (!onMaxPriceChange) return
+                    if (priceInput === "") {
+                      onMaxPriceChange("")
+                      return
+                    }
+                    const parsed = Number(priceInput)
+                    if (!Number.isNaN(parsed)) {
+                      onMaxPriceChange(parsed)
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault()
+                      if (!onMaxPriceChange) return
+                      if (priceInput === "") {
+                        onMaxPriceChange("")
+                        return
+                      }
+                      const parsed = Number(priceInput)
+                      if (!Number.isNaN(parsed)) {
+                        onMaxPriceChange(parsed)
+                      }
+                    }
+                  }}
+                  placeholder="500"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
-

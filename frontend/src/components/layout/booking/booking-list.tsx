@@ -2,6 +2,11 @@ import { BookingCard, BookingProperty } from "./booking-card"
 import { BookingHowItWorks } from "./booking-how-it-works"
 import { cn } from "@/lib/utils"
 
+const EMPTY_STATE_CONTAINER_STYLES = "flex min-h-[400px] w-full flex-col items-center justify-center rounded-lg border-[3px] border-dashed border-foreground/30 p-8 text-center bg-secondary/20"
+const GRID_CONTAINER_STYLES = "grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-8 transition-[grid-template-columns,gap] duration-200 ease-[cubic-bezier(0.2,0.8,0.4,1)] pb-12"
+const CARD_ROTATION_BASE = "hover:rotate-0 hover:z-10 transition-transform duration-300"
+const HOW_IT_WORKS_ROTATION = "aspect-[4/5] rotate-2 hover:rotate-0 hover:z-10 transition-transform duration-300"
+
 interface BookingListProps {
     properties: BookingProperty[]
     onBook?: (id: string) => void
@@ -13,7 +18,7 @@ export function BookingList({ properties, onBook, isLeaving, isReturning }: Book
     if (properties.length === 0) {
         return (
             <div className={cn(
-                "flex min-h-[400px] w-full flex-col items-center justify-center rounded-lg border-[3px] border-dashed border-foreground/30 p-8 text-center bg-secondary/20",
+                EMPTY_STATE_CONTAINER_STYLES,
                 !isLeaving && "animate-in fade-in-50",
                 isLeaving && "animate-fly-out-chaos-3",
                 isReturning && "animate-fly-in-chaos-3"
@@ -29,7 +34,7 @@ export function BookingList({ properties, onBook, isLeaving, isReturning }: Book
     }
 
     return (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-8 transition-[grid-template-columns,gap] duration-200 ease-[cubic-bezier(0.2,0.8,0.4,1)] pb-12">
+        <div className={GRID_CONTAINER_STYLES}>
             {properties.map((property, index) => {
                 // Determine chaos animation based on index (modulo 4)
                 const chaosOutClass = index % 4 === 0 ? "animate-fly-out-chaos-1" :
@@ -51,7 +56,8 @@ export function BookingList({ properties, onBook, isLeaving, isReturning }: Book
                     <div 
                         key={property.id} 
                         className={cn(
-                            `${index % 2 === 0 ? 'rotate-1' : '-rotate-1'} hover:rotate-0 hover:z-10 transition-transform duration-300`,
+                            index % 2 === 0 ? "rotate-1" : "-rotate-1",
+                            CARD_ROTATION_BASE,
                             animationClass
                         )}
                         style={isLeaving || isReturning ? delayStyle : undefined}
@@ -69,7 +75,7 @@ export function BookingList({ properties, onBook, isLeaving, isReturning }: Book
                             <div 
                                 key="how-it-works" 
                                 className={cn(
-                                    "aspect-[4/5] rotate-2 hover:rotate-0 hover:z-10 transition-transform duration-300",
+                                    HOW_IT_WORKS_ROTATION,
                                     isLeaving ? "animate-fly-out-chaos-2" : (isReturning ? "animate-fly-in-chaos-2" : "")
                                 )}
                                 style={isLeaving || isReturning ? { animationDelay: "150ms" } : undefined}

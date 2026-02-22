@@ -89,11 +89,11 @@ export function BookingCard({ property, onBook }: BookingCardProps) {
                     <Button
                         onClick={() => onBook?.(property.id)}
                         className={cn(
-                            "flex h-8 w-12 items-center justify-center rounded-none border-[2px] border-foreground bg-primary text-primary-foreground transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none",
+                            "flex h-10 w-16 items-center justify-center rounded-none border-[2px] border-foreground bg-primary text-primary-foreground transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none",
                             BRUTAL_SHADOW_BUTTON
                         )}
                     >
-                        <ArrowRight className="h-4 w-4" />
+                        <ArrowRight className="h-5 w-5" />
                     </Button>
                 </div>
             </Card>
