@@ -24,7 +24,7 @@ import java.util.UUID;
  * </p>
  * <p>
  *     A lógica de autenticação (Login/Token) deve residir no {@code AuthController}.
- *     Este controlador foca-se na gstão do recurso {@code User}.
+ *     Este controlador foca-se na gestão do recurso {@code User}.
  * </p>
  *
  * @author Nexus Estates Team
