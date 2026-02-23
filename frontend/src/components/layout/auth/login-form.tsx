@@ -1,3 +1,5 @@
+"use client"
+
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/forms/button"
 import {
@@ -15,11 +17,66 @@ import {
   FieldSeparator,
 } from "@/components/ui/forms/field"
 import { Input } from "@/components/ui/forms/input"
+import { useState } from "react"
+import { usersAxios } from "@/lib/axiosAPI"
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  
+  const [isTryingLogin, setIsTryingLogin] = useState(false);
+
+
+  // TODO: Refactor implementation to simplify and improve error handling  
+  async function handleLogin() {
+    if (isTryingLogin) return; // Prevent multiple login attempts at the same time
+    
+    setIsTryingLogin(true);
+
+    var email = (document.getElementById("email") as HTMLInputElement).value
+    var password = (document.getElementById("password") as HTMLInputElement).value
+
+    await usersAxios.post("/auth/login", JSON.stringify({email, password}), {
+      headers: {
+        "Content-Type": "application/json"
+      }
+    })
+    .then(response => {
+      setIsTryingLogin(false);
+
+      if (response.status === 200) { // Assuming a successful login returns a 200 status code
+        console.log("Login efetuado!", response.data);
+        alert("Bem-vindo!");
+      }
+      else {
+        console.log("resposta:", response);
+      }
+    })
+    .catch(async (error) => {
+      setIsTryingLogin(false);
+
+      console.error("error:", error);
+      if (error.response) {
+        console.error("Mensagem do servidor:", error.response.data);
+          switch (error.response.status) {
+            case 401: alert("Email ou senha incorretos. Tente novamente."); break;
+            case 404: alert("Usuário não encontrado. Verifique seu email ou registre-se."); break;
+            default: alert("Erro no servidor. Status: " + error.response.status); break;
+          }
+      }
+      else if (error.request) {
+        console.error("Requisição feita, mas sem resposta:", error.request);
+        alert("Nenhuma resposta do servidor. Verifique sua conexão.");
+      }
+      else {
+        console.error("Erro ao configurar a requisição :", error.message);
+        alert("Erro ao configurar a requisição da mensagem: " + error.message);
+      }
+    });
+  }
+
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -77,7 +134,9 @@ export function LoginForm({
                 <Input id="password" type="password" required />
               </Field>
               <Field>
-                <Button type="submit">Login</Button>
+                <Button type="button" disabled={isTryingLogin} onClick={handleLogin}>
+                  {isTryingLogin ? "Trying to Login..." : "Login"}
+                </Button>
                 <FieldDescription className="text-center">
                   Don&apos;t have an account? <a href="/register">Sign up</a>
                 </FieldDescription>
@@ -86,11 +145,6 @@ export function LoginForm({
           </form>
         </CardContent>
       </Card>
-      <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
-      </FieldDescription>
-    </div>
+    </div> 
   )
 }
-

@@ -1,3 +1,5 @@
+"use client"
+
 import { Button } from "@/components/ui/forms/button"
 import {
   Card,
@@ -15,6 +17,7 @@ import {
 import { Input } from "@/components/ui/forms/input"
 
 export function RegisterForm() {
+
   return (
     <div className={"flex flex-col gap-6"}>
       <Card>
@@ -50,7 +53,9 @@ export function RegisterForm() {
               </Field>
             </FieldGroup>
           </form>
-          <Button className="w-full mt-6">Create Account</Button>
+          <Button type="submit" disabled={isTryingRegister} className="w-full mt-6" onClick={handleRegister}>
+            {isTryingRegister ? "Carregando..." : "Create Account"}
+          </Button>
         </CardContent>
       </Card>
       <FieldDescription className="px-6 text-center">
