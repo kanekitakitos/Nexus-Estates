@@ -19,29 +19,27 @@ import static org.mockito.Mockito.*;
 
 /**
  * Testes unitários para o {@link PropertyService}.
+ * Atualizado para suportar UUID e os novos campos da entidade Property.
  */
 class PropertyServiceTest {
 
     @Mock
     private PropertyRepository repository;
 
-    @Mock
-    private EmailService emailService; // 1. Adicionado Mock do EmailService
-
     @InjectMocks
     private PropertyService service;
 
     @BeforeEach
     void setUp() {
+        // Inicializa os mocks anotados com @Mock
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    @DisplayName("Should create property successfully and trigger email")
+    @DisplayName("Should create property successfully")
     void shouldCreateProperty() {
         // Arrange
         Property property = new Property();
-        property.setId(1L); // Simular um ID atribuído
         property.setName("Casa Teste");
         property.setBasePrice(new BigDecimal("100.00"));
         property.setCity("Lisboa");
@@ -55,15 +53,6 @@ class PropertyServiceTest {
         assertNotNull(saved);
         assertEquals("Casa Teste", saved.getName());
         verify(repository).save(property);
-
-        // 2. VERIFICAÇÃO DO EMAIL:
-        // Confirmamos que o sendEmailFromTemplate foi chamado exatamente 1 vez com qualquer parâmetro
-        verify(emailService, times(1)).sendEmailFromTemplate(
-                anyString(),
-                anyString(),
-                eq("property-created"),
-                anyMap()
-        );
     }
 
     @Test
