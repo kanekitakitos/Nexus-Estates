@@ -1,16 +1,24 @@
 package com.nexus.estates.controller;
 
+import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.service.PropertyService;
+import com.nexus.estates.service.CloudinaryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * REST Controller responsável pela gestão de propriedades.
@@ -22,50 +30,85 @@ import java.util.List;
  * @since 2026-02-13
  */
 @RestController
-@RequestMapping("/api/properties")
+@RequestMapping("/api/v1/properties")
 @Tag(name = "Property API", description = "Gestão de propriedades da Nexus Estates")
 public class PropertyController {
 
     private final PropertyService service;
+    private final CloudinaryService cloudinaryService;
 
     /**
      * Construtor do controller.
      *
      * @param service serviço responsável pela lógica de negócio das propriedades
+     * @param cloudinaryService serviço responsável pela integração com Cloudinary
      */
-    public PropertyController(PropertyService service) {
+    public PropertyController(PropertyService service, CloudinaryService cloudinaryService) {
         this.service = service;
+        this.cloudinaryService = cloudinaryService;
+    }
+
+    /**
+     * Gera parâmetros de upload para o Cloudinary de forma assíncrona.
+     *
+     * <p>Permite que o frontend faça upload de fotos diretamente para a cloud
+     * de forma segura, sem sobrecarregar a thread principal do servidor.</p>
+     *
+     * @return CompletableFuture com os parâmetros de autenticação
+     */
+    @Operation(summary = "Obter parâmetros de upload", description = "Gera uma assinatura segura para upload de fotos no Cloudinary. Requer role OWNER.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Parâmetros gerados com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado - Requer permissão de OWNER")
+    })
+    @GetMapping("/upload-params")
+    @PreAuthorize("hasRole('OWNER')")
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> getUploadParams() {
+        return CompletableFuture.supplyAsync(() ->
+                ResponseEntity.ok(cloudinaryService.getUploadParameters())
+        );
     }
 
     /**
      * Cria uma nova propriedade.
      *
-     * <p>Valida os campos obrigatórios antes de persistir:</p>
-     * <ul>
-     * <li>name</li>
-     * <li>basePrice</li>
-     * <li>maxGuests</li>
-     * </ul>
-     *
-     * @param property dados da propriedade a criar
-     * @return propriedade criada ou erro 400 caso falhem validações
+     * @param request dados da propriedade a criar via DTO
+     * @return propriedade criada com status 201 Created
      */
-    @Operation(summary = "Criar nova propriedade", description = "Cria uma propriedade e envia email de confirmação")
+    @Operation(summary = "Criar nova propriedade", description = "Cria uma propriedade e envia email de confirmação. Suporta múltiplos idiomas na descrição.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Propriedade criada com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Campos obrigatórios em falta")
+            @ApiResponse(responseCode = "201", description = "Propriedade criada com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos ou campos obrigatórios em falta")
     })
     @PostMapping
-    public ResponseEntity<Property> create(@RequestBody Property property) {
+    public ResponseEntity<Property> create(@Valid @RequestBody CreatePropertyRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
+    }
 
-        if (property.getName() == null ||
-                property.getBasePrice() == null ||
-                property.getMaxGuests() == null) {
-
-            return ResponseEntity.badRequest().build();
-        }
-
-        return ResponseEntity.ok(service.create(property));
+    /**
+     * Atualiza a lista de comodidades de uma propriedade.
+     *
+     * <p>Este endpoint permite associar ou remover características da propriedade
+     * (ex: WiFi, Piscina) de forma dinâmica.</p>
+     *
+     * @param id identificador único da propriedade
+     * @param amenityIds conjunto de IDs das comodidades a associar
+     * @return propriedade atualizada de forma assíncrona
+     */
+    @Operation(summary = "Atualizar comodidades", description = "Substitui as comodidades da casa pelos IDs fornecidos. Requer role OWNER.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Comodidades atualizadas com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Propriedade não encontrada"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
+    })
+    @PutMapping("/{id}/amenities")
+    @PreAuthorize("hasRole('OWNER')")
+    public CompletableFuture<ResponseEntity<Property>> updateAmenities(
+            @Parameter(description = "ID da propriedade") @PathVariable Long id,
+            @RequestBody Set<Long> amenityIds) {
+        return CompletableFuture.supplyAsync(() ->
+                ResponseEntity.ok(service.updateAmenities(id, amenityIds))
+        );
     }
 
     /**
@@ -85,7 +128,6 @@ public class PropertyController {
      *
      * @param id identificador da propriedade
      * @return propriedade encontrada
-     * @throws RuntimeException caso a propriedade não exista
      */
     @Operation(summary = "Obter propriedade por ID", description = "Retorna os detalhes de um imóvel específico")
     @ApiResponses(value = {
