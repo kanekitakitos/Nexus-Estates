@@ -13,7 +13,6 @@ import org.mockito.MockitoAnnotations;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -74,7 +73,7 @@ class PropertyServiceTest {
     @DisplayName("Should return property by ID when found")
     void shouldReturnPropertyById() {
         // Arrange
-        UUID id = UUID.randomUUID();
+        Long id = 1L;
         Property property = new Property();
         property.setId(id);
         property.setName("Apartamento");
@@ -95,7 +94,7 @@ class PropertyServiceTest {
     @DisplayName("Should throw PropertyNotFoundException when ID does not exist")
     void shouldThrowPropertyNotFoundExceptionWhenPropertyNotFound() {
         // Arrange
-        UUID id = UUID.randomUUID();
+        Long id = 9L;
         when(repository.findById(id)).thenReturn(Optional.empty());
 
         // Act & Assert

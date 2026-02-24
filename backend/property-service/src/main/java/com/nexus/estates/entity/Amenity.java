@@ -1,7 +1,7 @@
 package com.nexus.estates.entity;
 
 import jakarta.persistence.*;
-import java.util.UUID;
+
 
 /**
  * Entidade que representa uma Amenity (Comodidade ou Etiqueta) no sistema.
@@ -28,7 +28,7 @@ public class Amenity {
     /** Identificador único da comodidade (Chave Primária). */
     @Id
     @GeneratedValue
-    private UUID id;
+    private Long id;
 
     /** Nome descritivo da comodidade. Deve ser único no sistema. */
     @Column(nullable = false, unique = true)
@@ -44,14 +44,14 @@ public class Amenity {
     /**
      * @return o identificador único da comodidade
      */
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
     /**
      * @param id novo identificador para a comodidade
      */
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

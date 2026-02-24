@@ -12,7 +12,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -32,11 +31,11 @@ class PermissionServiceTest {
     private PermissionService service;
 
     private PropertyPermission permission;
-    private UUID permissionId;
+    private Long permissionId;
 
     @BeforeEach
     void setUp() {
-        permissionId = UUID.randomUUID();
+        permissionId = 7L;
         permission = new PropertyPermission();
         permission.setId(permissionId);
         permission.setAccessLevel(AccessLevel.PRIMARY_OWNER);
@@ -86,7 +85,7 @@ class PermissionServiceTest {
     @Test
     void shouldThrowExceptionWhenPermissionNotFound() {
         // Arrange
-        UUID randomId = UUID.randomUUID();
+        Long randomId = 1L;
         when(repository.findById(randomId)).thenReturn(Optional.empty());
 
         // Act & Assert
