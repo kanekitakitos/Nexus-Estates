@@ -21,21 +21,19 @@ function AppFooter() {
   const year = new Date().getFullYear()
 
   return (
-    <footer className="fixed inset-x-0 bottom-0 z-10 border-t-[2px] border-foreground/80 bg-secondary/95">
-      <div className="mx-auto flex h-5 max-w-6xl items-center justify-between gap-2 px-4 text-[10px]">
-        <div className="inline-flex items-center gap-2">
-          <span className="font-mono uppercase tracking-[0.18em]">
+    <footer className="fixed inset-x-0 bottom-0 z-10 border-t-[2px] border-foreground/80 bg-secondary/95 backdrop-blur-sm supports-[backdrop-filter]:bg-secondary/60 lg:pl-[var(--sidebar-width)]">
+      <div className="mx-auto flex h-auto min-h-[1.25rem] w-full max-w-7xl flex-col items-center justify-between gap-3 px-4 py-2 text-[9px] sm:text-[10px] md:flex-row md:gap-4 md:px-6 md:py-1">
+        <div className="inline-flex items-center gap-2 w-full justify-center md:w-auto md:justify-start">
+          <span className="font-mono uppercase tracking-[0.18em] text-center md:text-left whitespace-normal break-words leading-tight">
             Copyright © {year} Nexus Estates
           </span>
         </div>
-        <nav className="flex items-center gap-2 text-[9px] font-medium">
-          <span className="cursor-pointer hover:underline">Home</span>
-          <span className="cursor-pointer hover:underline">
-            <a href="/login">Login</a>
-          </span>
-          <span className="cursor-pointer hover:underline">About</span>
-          <span className="cursor-pointer hover:underline">Bookings</span>
-          <span className="cursor-pointer hover:underline">Contact</span>
+        <nav className="flex flex-wrap justify-center gap-3 font-medium md:justify-end md:gap-4">
+          <a href="/" className="cursor-pointer hover:underline hover:text-primary transition-colors">Home</a>
+          <a href="/login" className="cursor-pointer hover:underline hover:text-primary transition-colors">Login</a>
+          <a href="#" className="cursor-pointer hover:underline hover:text-primary transition-colors">About</a>
+          <a href="#" className="cursor-pointer hover:underline hover:text-primary transition-colors">Bookings</a>
+          <a href="#" className="cursor-pointer hover:underline hover:text-primary transition-colors">Contact</a>
         </nav>
       </div>
     </footer>

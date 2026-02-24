@@ -18,6 +18,14 @@ const badgeVariants = cva(
           "border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         link: "text-primary underline-offset-4 [a&]:hover:underline",
+        brutal:
+          "border-[2px] border-foreground bg-background px-2 py-0.5 md:px-2 md:py-1 text-[9px] md:text-[10px] font-bold uppercase shadow-[1.5px_1.5px_0_0_rgb(0,0,0)] dark:shadow-[1.5px_1.5px_0_0_rgba(255,255,255,0.9)]",
+        featured:
+          "bg-primary text-primary-foreground px-3 py-1 font-mono font-bold border-[2px] border-foreground shadow-[3px_3px_0_0_rgb(0,0,0)] text-xs md:text-sm rounded-none",
+        rating:
+          "bg-foreground text-background px-2 py-0.5 md:px-3 md:py-1 font-mono font-bold text-xs md:text-sm rounded-none gap-1",
+        amenity:
+          "border-[2px] border-foreground px-2 py-1 md:px-3 md:py-1.5 font-mono text-xs md:text-sm font-bold uppercase hover:bg-foreground hover:text-background transition-colors cursor-default shadow-[2px_2px_0_0_rgb(0,0,0)] rounded-none gap-2 bg-transparent text-foreground",
       },
     },
     defaultVariants: {

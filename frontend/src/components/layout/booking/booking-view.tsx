@@ -7,12 +7,12 @@ import { BookingSearchBar } from "./booking-search-bar"
 import { BookingDetails } from "./booking-details"
 import { cn } from "@/lib/utils"
 
-const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-6 px-[150px] min-h-screen"
+const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
 const HERO_CONTAINER_STYLES = "flex flex-col space-y-2 mb-8 transition-all duration-500"
-const HERO_TITLE_STYLES = "text-5xl md:text-7xl font-black tracking-tighter uppercase mb-2"
+const HERO_TITLE_STYLES = "text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter uppercase mb-2"
 const HERO_PILL_PRIMARY_STYLES = "bg-primary text-primary-foreground px-2 inline-block -rotate-1 mr-2 shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)]"
 const HERO_UNDERLINE_TEXT_STYLES = "text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/70 underline decoration-4 decoration-primary underline-offset-4"
-const HERO_SUBTITLE_STYLES = "text-xl text-muted-foreground font-mono max-w-2xl border-l-4 border-primary pl-4"
+const HERO_SUBTITLE_STYLES = "text-lg md:text-xl text-muted-foreground font-mono max-w-2xl border-l-4 border-primary pl-4"
 const SEARCH_WRAPPER_ANIMATION_LEAVE = "animate-fly-out-chaos-2 delay-100"
 const SEARCH_WRAPPER_ANIMATION_RETURN = "animate-fly-in-chaos-2 delay-100"
 const LIST_CONTAINER_STYLES = "relative"
@@ -309,7 +309,7 @@ export function BookingView() {
             const deltaX = touchEndX - touchStartX
             const deltaY = touchEndY - touchStartY
 
-            if (deltaX < -50 && Math.abs(deltaX) > Math.abs(deltaY) && lastViewedPropertyId && !isLeaving && !isReturning) {
+            if (deltaX < -30 && Math.abs(deltaX) > Math.abs(deltaY) && lastViewedPropertyId && !isLeaving && !isReturning) {
                 handleBook(lastViewedPropertyId)
             }
         }
@@ -368,7 +368,7 @@ export function BookingView() {
                 isLeaving && SEARCH_WRAPPER_ANIMATION_LEAVE,
                 isReturning && SEARCH_WRAPPER_ANIMATION_RETURN
             )}>
-                <BookingSearchBar 
+                <BookingSearchBar
                     destination={searchTerm}
                     checkInDate={checkInDate}
                     checkOutDate={checkOutDate}
@@ -386,7 +386,7 @@ export function BookingView() {
 
             <div className={cn(LIST_CONTAINER_STYLES)}>
                 <div className={LIST_DECORATOR_STYLES} />
-                <BookingList 
+                <BookingList
                     properties={filteredProperties} 
                     onBook={handleBook} 
                     isLeaving={isLeaving}

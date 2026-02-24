@@ -1,9 +1,9 @@
 import { BookingCard, BookingProperty } from "./booking-card"
 import { BookingHowItWorks } from "./booking-how-it-works"
+import { BrutalEmptyState } from "@/components/ui/data-display/card"
 import { cn } from "@/lib/utils"
 
-const EMPTY_STATE_CONTAINER_STYLES = "flex min-h-[400px] w-full flex-col items-center justify-center rounded-lg border-[3px] border-dashed border-foreground/30 p-8 text-center bg-secondary/20"
-const GRID_CONTAINER_STYLES = "grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-8 transition-[grid-template-columns,gap] duration-200 ease-[cubic-bezier(0.2,0.8,0.4,1)] pb-12"
+const GRID_CONTAINER_STYLES = "grid grid-cols-2 md:grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3 md:gap-8 transition-[grid-template-columns,gap] duration-200 ease-[cubic-bezier(0.2,0.8,0.4,1)] pb-12"
 const CARD_ROTATION_BASE = "hover:rotate-0 hover:z-10 transition-transform duration-300"
 const HOW_IT_WORKS_ROTATION = "aspect-[4/5] rotate-2 hover:rotate-0 hover:z-10 transition-transform duration-300"
 
@@ -17,8 +17,7 @@ interface BookingListProps {
 export function BookingList({ properties, onBook, isLeaving, isReturning }: BookingListProps) {
     if (properties.length === 0) {
         return (
-            <div className={cn(
-                EMPTY_STATE_CONTAINER_STYLES,
+            <BrutalEmptyState className={cn(
                 !isLeaving && "animate-in fade-in-50",
                 isLeaving && "animate-fly-out-chaos-3",
                 isReturning && "animate-fly-in-chaos-3"
@@ -29,7 +28,7 @@ export function BookingList({ properties, onBook, isLeaving, isReturning }: Book
                         We could not find any properties matching your criteria. Try adjusting your filters.
                     </p>
                 </div>
-            </div>
+            </BrutalEmptyState>
         )
     }
 
@@ -37,17 +36,23 @@ export function BookingList({ properties, onBook, isLeaving, isReturning }: Book
         <div className={GRID_CONTAINER_STYLES}>
             {properties.map((property, index) => {
                 // Determine chaos animation based on index (modulo 4)
-                const chaosOutClass = index % 4 === 0 ? "animate-fly-out-chaos-1" :
-                                      index % 4 === 1 ? "animate-fly-out-chaos-2" :
-                                      index % 4 === 2 ? "animate-fly-out-chaos-3" :
-                                      "animate-fly-out-chaos-4"
+                const outAnimations = [
+                    "animate-fly-out-chaos-1",
+                    "animate-fly-out-chaos-2",
+                    "animate-fly-out-chaos-3",
+                    "animate-fly-out-chaos-4"
+                ]
+                
+                const inAnimations = [
+                    "animate-fly-in-chaos-1",
+                    "animate-fly-in-chaos-2",
+                    "animate-fly-in-chaos-3",
+                    "animate-fly-in-chaos-4"
+                ]
 
-                const chaosInClass = index % 4 === 0 ? "animate-fly-in-chaos-1" :
-                                     index % 4 === 1 ? "animate-fly-in-chaos-2" :
-                                     index % 4 === 2 ? "animate-fly-in-chaos-3" :
-                                     "animate-fly-in-chaos-4"
-
-                const animationClass = isLeaving ? chaosOutClass : (isReturning ? chaosInClass : "")
+                const animationClass = isLeaving 
+                    ? outAnimations[index % 4] 
+                    : (isReturning ? inAnimations[index % 4] : "")
                 
                 // Add staggered delay
                 const delayStyle = { animationDelay: `${(index % 5) * 50}ms` }
