@@ -337,9 +337,9 @@ export function BookingView() {
     }
 
     if (selectedProperty) {
-        return <BookingDetails 
-            property={selectedProperty} 
-            onBack={handleBack} 
+        return <BookingDetails
+            property={selectedProperty}
+            onBack={handleBack}
             isExiting={isReturning}
             checkInDate={checkInDate}
             checkOutDate={checkOutDate}
@@ -363,7 +363,7 @@ export function BookingView() {
                     Explore our curated selection of premium properties available for your dates.
                 </p>
             </div>
-            
+
             <div className={cn(
                 isLeaving && SEARCH_WRAPPER_ANIMATION_LEAVE,
                 isReturning && SEARCH_WRAPPER_ANIMATION_RETURN
@@ -387,8 +387,8 @@ export function BookingView() {
             <div className={cn(LIST_CONTAINER_STYLES)}>
                 <div className={LIST_DECORATOR_STYLES} />
                 <BookingList
-                    properties={filteredProperties} 
-                    onBook={handleBook} 
+                    properties={filteredProperties}
+                    onBook={handleBook}
                     isLeaving={isLeaving}
                     isReturning={isReturning}
                 />

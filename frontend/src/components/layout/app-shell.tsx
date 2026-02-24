@@ -4,6 +4,7 @@ import * as React from "react"
 import { AppSidebar } from "@/components/layout/dashboard/app-sidebar"
 import { Separator } from "@/components/ui/layout/separator"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
+
 import {
   SidebarInset,
   SidebarProvider,
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/layout/sidebar"
 import { BrutalGridBackground } from "@/components/ui/layout/brutal-grid-background"
 import { cn } from "@/lib/utils"
+import ClickSpark from "@/components/ClickSpark"
 
 interface AppShellProps {
   children: React.ReactNode
@@ -42,6 +44,23 @@ function AppFooter() {
 
 export function AppShell({ children, header }: AppShellProps) {
   const [hideHeader, setHideHeader] = React.useState(false)
+  const [isDark, setIsDark] = React.useState(false)
+
+  React.useEffect(() => {
+    const updateTheme = () => {
+      setIsDark(document.documentElement.classList.contains("dark"))
+    }
+
+    updateTheme()
+
+    const observer = new MutationObserver(updateTheme)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    })
+
+    return () => observer.disconnect()
+  }, [])
 
   React.useEffect(() => {
     let lastY = window.scrollY
@@ -74,28 +93,30 @@ export function AppShell({ children, header }: AppShellProps) {
     >
       <BrutalGridBackground />
       <AppSidebar className="z-30" />
-      <SidebarInset className="bg-transparent">
-        <header
-          className={cn(
-            "bg-background sticky top-0 z-20 flex shrink-0 items-center justify-between gap-2 border-b p-4 transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.4,1)]",
-            hideHeader && "-translate-y-full"
-          )}
-        >
-          <div className="flex flex-1 items-center gap-2">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-[orientation=vertical]:h-4"
-            />
-            {header}
+      <ClickSpark sparkColor={isDark ? "#fff" : "#000"}>
+        <SidebarInset className="bg-transparent">
+          <header
+            className={cn(
+              "bg-background sticky top-0 z-20 flex shrink-0 items-center justify-between gap-2 border-b p-4 transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.4,1)]",
+              hideHeader && "-translate-y-full"
+            )}
+          >
+            <div className="flex flex-1 items-center gap-2">
+              <SidebarTrigger className="-ml-1" />
+              <Separator
+                orientation="vertical"
+                className="mr-2 data-[orientation=vertical]:h-4"
+              />
+              {header}
+            </div>
+            <AnimatedThemeToggler className="ml-2 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-card/80 text-foreground/80 shadow-sm transition-colors hover:bg-primary/10 hover:text-primary" />
+          </header>
+          <div className="flex min-h-[calc(100vh-56px)] flex-1 flex-col pb-10">
+            <div className="flex-1">{children}</div>
+            <AppFooter />
           </div>
-          <AnimatedThemeToggler className="ml-2 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-card/80 text-foreground/80 shadow-sm transition-colors hover:bg-primary/10 hover:text-primary" />
-        </header>
-        <div className="flex min-h-[calc(100vh-56px)] flex-1 flex-col pb-10">
-          <div className="flex-1">{children}</div>
-          <AppFooter />
-        </div>
-      </SidebarInset>
+        </SidebarInset>
+      </ClickSpark>
     </SidebarProvider>
   )
 }
