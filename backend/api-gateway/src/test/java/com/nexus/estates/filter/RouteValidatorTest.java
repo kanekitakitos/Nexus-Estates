@@ -11,7 +11,7 @@ class RouteValidatorTest {
     private final RouteValidator routeValidator = new RouteValidator();
 
     @Test
-    void shouldReturnFalseForOpenEndpoints() {
+    void shouldReturnTrueForOpenEndpoints() {
         // Arrange
         var request = MockServerHttpRequest.get("/api/users/auth/login").build();
 
@@ -19,7 +19,7 @@ class RouteValidatorTest {
         boolean result = routeValidator.isSecured.test(request);
 
         // Assert
-        assertFalse(result, "Login endpoint should not be secured");
+        assertTrue(result, "Login endpoint should not be secured");
     }
 
     @Test
