@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @version 1.2
  */
 @RestController
-@RequestMapping("/api/v1/users/auth")
+@RequestMapping("/api/users/auth")
 @RequiredArgsConstructor
 @Tag(name = "Autenticação", description = "Endpoints para login e registo de utilizadores")
 public class AuthController {
