@@ -151,7 +151,7 @@
   --sidebar-ring: oklch(0.66 0.16 48);
 
   --color-brutal-bg: oklch(0.15 0.02 50); /* Dark bg */
-  --color-brutal-grid: rgba(255, 255, 255, 0.05);
+  --color-brutal-grid: rgba(235, 225, 205, 0.15); /* Beige with 15% opacity */
 }
 
 @layer base {
@@ -189,4 +189,187 @@
 
 .tags-marquee:hover .tags-marquee-track {
   animation-play-state: running;
+}
+
+/* New Wind Animation - Chaos variations */
+@keyframes fly-out-left-chaos-1 {
+  0% {
+    transform: translateX(0) rotate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-150vw) rotate(-25deg) translateY(-20vh);
+    opacity: 0;
+  }
+}
+
+@keyframes fly-out-left-chaos-2 {
+  0% {
+    transform: translateX(0) rotate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-150vw) rotate(15deg) translateY(30vh);
+    opacity: 0;
+  }
+}
+
+@keyframes fly-out-left-chaos-3 {
+  0% {
+    transform: translateX(0) rotate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-150vw) rotate(-45deg) translateY(10vh);
+    opacity: 0;
+  }
+}
+
+@keyframes fly-out-left-chaos-4 {
+  0% {
+    transform: translateX(0) rotate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-150vw) rotate(30deg) translateY(-30vh);
+    opacity: 0;
+  }
+}
+
+.animate-fly-out-chaos-1 {
+  animation: fly-out-left-chaos-1 0.8s cubic-bezier(0.55, 0.055, 0.675, 0.19) both;
+}
+
+.animate-fly-out-chaos-2 {
+  animation: fly-out-left-chaos-2 0.9s cubic-bezier(0.6, 0.04, 0.98, 0.335) both;
+}
+
+.animate-fly-out-chaos-3 {
+  animation: fly-out-left-chaos-3 0.7s cubic-bezier(0.55, 0.085, 0.68, 0.53) both;
+}
+
+.animate-fly-out-chaos-4 {
+  animation: fly-out-left-chaos-4 0.85s cubic-bezier(0.55, 0.085, 0.68, 0.53) both;
+}
+
+/* Reverse Chaos (Fly In from Left) - For returning */
+@keyframes fly-in-left-chaos-1 {
+  0% {
+    transform: translateX(-150vw) rotate(-25deg) translateY(-20vh);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) rotate(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fly-in-left-chaos-2 {
+  0% {
+    transform: translateX(-150vw) rotate(15deg) translateY(30vh);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) rotate(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fly-in-left-chaos-3 {
+  0% {
+    transform: translateX(-150vw) rotate(-45deg) translateY(10vh);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) rotate(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fly-in-left-chaos-4 {
+  0% {
+    transform: translateX(-150vw) rotate(30deg) translateY(-30vh);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) rotate(0);
+    opacity: 1;
+  }
+}
+
+.animate-fly-in-chaos-1 {
+  animation: fly-in-left-chaos-1 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.animate-fly-in-chaos-2 {
+  animation: fly-in-left-chaos-2 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.animate-fly-in-chaos-3 {
+  animation: fly-in-left-chaos-3 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.animate-fly-in-chaos-4 {
+  animation: fly-in-left-chaos-4 0.85s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+/* Keep standard fly-out for container */
+@keyframes fly-out-left {
+  0% {
+    transform: translateX(0) rotate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-150vw) rotate(-5deg);
+    opacity: 0;
+  }
+}
+
+.animate-fly-out {
+  animation: fly-out-left 0.8s cubic-bezier(0.55, 0.055, 0.675, 0.19) forwards;
+}
+
+@keyframes fly-in-right {
+  0% {
+    transform: translateX(100vw);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-fly-in {
+  animation: fly-in-right 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes fly-out-right {
+  0% {
+    transform: translateX(0) rotate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(150vw) rotate(10deg);
+    opacity: 0;
+  }
+}
+
+.animate-fly-out-right {
+  animation: fly-out-right 0.8s cubic-bezier(0.55, 0.055, 0.675, 0.19) forwards;
+}
+
+@keyframes fly-in-left {
+  0% {
+    transform: translateX(-100vw);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-fly-in-left {
+  animation: fly-in-left 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
