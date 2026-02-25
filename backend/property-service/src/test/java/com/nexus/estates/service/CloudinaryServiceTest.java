@@ -32,7 +32,7 @@ class CloudinaryServiceTest {
     @BeforeEach
     void setUp() {
         // Usamos valores fictícios para validar apenas a lógica de geração de Map
-        cloudinaryService = new CloudinaryService("test_cloud", "test_key", "test_secret");
+        cloudinaryService = new CloudinaryService("test_cloud", "test_key", "test_secret", "nexus_estates/properties");
     }
 
     /**

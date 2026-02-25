@@ -17,11 +17,14 @@ import java.util.TreeMap;
 public class CloudinaryService {
 
     private final Cloudinary cloudinary;
+    private final String folderPath;
 
     public CloudinaryService(
             @Value("${cloudinary.cloud-name}") String cloudName,
             @Value("${cloudinary.api-key}") String apiKey,
-            @Value("${cloudinary.api-secret}") String apiSecret) {
+            @Value("${cloudinary.api-secret}") String apiSecret,
+            @Value("${cloudinary.folder:nexus_estates/properties}") String folderPath) {
+        this.folderPath = folderPath;
 
         this.cloudinary = new Cloudinary(ObjectUtils.asMap(
                 "cloud_name", cloudName,
@@ -40,7 +43,7 @@ public class CloudinaryService {
 
         Map<String, Object> params = new TreeMap<>();
         params.put("timestamp", timestamp);
-        params.put("folder", "nexus_estates/properties");
+        params.put("folder", folderPath);
 
         // Gera a assinatura digital
         String signature = cloudinary.apiSignRequest(params, cloudinary.config.apiSecret);
