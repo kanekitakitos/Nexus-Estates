@@ -35,7 +35,8 @@ const gateWayAxios = axios.create({
 aplicarConfiguracoes(gateWayAxios);
 
 const usersAxios = axios.create({
-    baseURL: apiGateWay + '/users'
+    baseURL: apiGateWay + '/users',
+    withCredentials: true
 });
 aplicarConfiguracoes(usersAxios);
 
