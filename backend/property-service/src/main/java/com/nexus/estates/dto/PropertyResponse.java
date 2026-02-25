@@ -3,6 +3,7 @@ package com.nexus.estates.dto;
 import com.nexus.estates.entity.Property;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 /**
  * DTO que representa a resposta de dados de uma propriedade.
@@ -12,7 +13,8 @@ import java.math.BigDecimal;
  *
  * @param id Identificador único da propriedade.
  * @param name Nome / título da propriedade.
- * @param description Descrição detalhada da propriedade.
+ * @param description Descrição detalhada da propriedade (Mapa de idiomas para JSONB).
+ * @param location Localização resumida ou região da propriedade.
  * @param city Cidade onde a propriedade está localizada.
  * @param address Endereço da propriedade.
  * @param basePrice Preço base por noite.
@@ -24,7 +26,8 @@ import java.math.BigDecimal;
 public record PropertyResponse(
         Long id,
         String name,
-        String description,
+        Map<String, String> description, // Alterado para Map para suportar JSONB
+        String location,                 // Adicionado campo location solicitado na tarefa
         String city,
         String address,
         BigDecimal basePrice,
@@ -42,6 +45,7 @@ public record PropertyResponse(
                 property.getId(),
                 property.getName(),
                 property.getDescription(),
+                property.getLocation(),
                 property.getCity(),
                 property.getAddress(),
                 property.getBasePrice(),
