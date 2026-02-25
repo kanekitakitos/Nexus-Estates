@@ -19,7 +19,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -45,15 +44,15 @@ class BookingServiceTest {
     @DisplayName("Should create booking successfully when no conflicts exist")
     void shouldCreateBookingSuccessfully() {
         CreateBookingRequest request = new CreateBookingRequest(
-                UUID.randomUUID(),
-                UUID.randomUUID(),
+                10L,
+                20L,
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(4),
                 2
         );
 
         Booking bookingEntity = new Booking();
-        bookingEntity.setId(UUID.randomUUID());
+        bookingEntity.setId(1L);
         
         Booking savedBooking = new Booking();
         savedBooking.setId(bookingEntity.getId());
@@ -90,8 +89,8 @@ class BookingServiceTest {
     @DisplayName("Should throw BookingConflictException when dates are occupied")
     void shouldThrowExceptionWhenDatesAreOccupied() {
         CreateBookingRequest request = new CreateBookingRequest(
-                UUID.randomUUID(),
-                UUID.randomUUID(),
+                10L,
+                20L,
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(5),
                 2
@@ -111,8 +110,8 @@ class BookingServiceTest {
     @DisplayName("Should throw IllegalArgumentException when check-out is before check-in")
     void shouldThrowExceptionWhenCheckOutIsBeforeCheckIn() {
         CreateBookingRequest request = new CreateBookingRequest(
-                UUID.randomUUID(),
-                UUID.randomUUID(),
+                10L,
+                20L,
                 LocalDate.now().plusDays(5),
                 LocalDate.now().plusDays(2), // Inválido: Sai antes de entrar
                 2
@@ -130,7 +129,7 @@ class BookingServiceTest {
     void shouldCalculateTotalPriceCorrectly() {
         // Cenário: 3 noites x 100.00 (preço fixo mockado) = 300.00
         CreateBookingRequest request = new CreateBookingRequest(
-                UUID.randomUUID(), UUID.randomUUID(),
+                10L, 20L,
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(4), // 3 noites
                 2
@@ -138,7 +137,7 @@ class BookingServiceTest {
 
         Booking bookingEntity = new Booking();
         Booking savedBooking = new Booking();
-        savedBooking.setId(UUID.randomUUID());
+        savedBooking.setId(2L);
         savedBooking.setTotalPrice(new BigDecimal("300.00")); // O que esperamos
 
         when(bookingRepository.existsOverlappingBooking(any(), any(), any())).thenReturn(false);
@@ -160,7 +159,7 @@ class BookingServiceTest {
     @Test
     @DisplayName("Should return booking when found by ID")
     void shouldReturnBookingById() {
-        UUID id = UUID.randomUUID();
+        Long id = 3L;
         Booking booking = new Booking();
         booking.setId(id);
         BookingResponse expectedResponse = mock(BookingResponse.class);
@@ -176,7 +175,7 @@ class BookingServiceTest {
     @Test
     @DisplayName("Should throw RuntimeException when booking not found by ID")
     void shouldThrowExceptionWhenBookingNotFound() {
-        UUID id = UUID.randomUUID();
+        Long id = 4L;
         when(bookingRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> bookingService.getBookingById(id))
@@ -187,7 +186,7 @@ class BookingServiceTest {
     @Test
     @DisplayName("Should return bookings by property")
     void shouldReturnBookingsByProperty() {
-        UUID propertyId = UUID.randomUUID();
+        Long propertyId = 10L;
         Booking booking = new Booking();
         BookingResponse response = mock(BookingResponse.class);
 
@@ -203,7 +202,7 @@ class BookingServiceTest {
     @Test
     @DisplayName("Should return bookings by user")
     void shouldReturnBookingsByUser() {
-        UUID userId = UUID.randomUUID();
+        Long userId = 20L;
         Booking booking = new Booking();
         BookingResponse response = mock(BookingResponse.class);
 

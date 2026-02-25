@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
-import java.util.UUID;
 
 /**
  * DTO que representa o payload para criação de uma nova reserva.
@@ -32,11 +31,11 @@ import java.util.UUID;
 public record CreateBookingRequest(
         @Schema(description = "Identificador único da propriedade a ser reservada", example = "0f8fad5b-d9cb-469f-a165-70867728950e")
         @NotNull(message = "Property ID is required")
-        UUID propertyId,
+        Long propertyId,
 
         @Schema(description = "Identificador único do utilizador que efetua a reserva", example = "7c9e6679-7425-40de-944b-e07fc1f90ae7")
         @NotNull(message = "User ID is required")
-        UUID userId,
+        Long userId,
 
         @Schema(description = "Data de check-in (hoje ou uma data futura)", example = "2026-02-15")
         @NotNull(message = "Check-in date is required")

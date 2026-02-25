@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * REST Controller responsável pela gestão de comodidades (amenities).
@@ -79,7 +78,7 @@ public class AmenityController {
      * @throws RuntimeException caso a comodidade não exista
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Amenity> getById(@PathVariable UUID id) {
+    public ResponseEntity<Amenity> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.findById(id));
     }
 }

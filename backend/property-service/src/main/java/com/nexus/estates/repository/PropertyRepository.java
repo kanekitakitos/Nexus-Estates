@@ -2,7 +2,7 @@ package com.nexus.estates.repository;
 
 import com.nexus.estates.entity.Property;
 import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.UUID;
+
 
 /**
  * Interface de repositório para a entidade {@link Property}.
@@ -12,5 +12,5 @@ import java.util.UUID;
  *
  * @author Nexus Estates Team
  */
-public interface PropertyRepository extends JpaRepository<Property, UUID> {
+public interface PropertyRepository extends JpaRepository<Property, Long> {
 }

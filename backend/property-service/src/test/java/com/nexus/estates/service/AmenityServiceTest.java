@@ -14,7 +14,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -34,11 +33,11 @@ class AmenityServiceTest {
     private AmenityService service;
 
     private Amenity amenity;
-    private UUID amenityId;
+    private Long amenityId;
 
     @BeforeEach
     void setUp() {
-        amenityId = UUID.randomUUID();
+        amenityId = 2L;
         amenity = new Amenity();
         amenity.setId(amenityId);
         amenity.setName("Piscina");
@@ -93,7 +92,7 @@ class AmenityServiceTest {
     @DisplayName("Should throw AmenityNotFoundException when ID does not exist")
     void shouldThrowAmenityNotFoundExceptionWhenIdDoesNotExist() {
         // Arrange
-        UUID idInexistente = UUID.randomUUID();
+        Long idInexistente = 6L;
         when(repository.findById(idInexistente)).thenReturn(Optional.empty());
 
         // Act & Assert

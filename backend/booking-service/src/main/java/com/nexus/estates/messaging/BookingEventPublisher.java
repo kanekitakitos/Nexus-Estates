@@ -21,6 +21,13 @@ import java.util.Optional;
  * camada de domínio e a infraestrutura de mensageria.
  * </p>
  *
+ * <p>
+ * Em conjunto com a configuração de filas e Dead Letter Queues definida em
+ * {@link com.nexus.estates.config.RabbitMQConfig}, garante que falhas de
+ * processamento de mensagens de atualização de estado podem ser encaminhadas
+ * para DLQ sem impactar o fluxo síncrono da API.
+ * </p>
+ *
  * @author Nexus Estates Team
  * @version 1.0
  */

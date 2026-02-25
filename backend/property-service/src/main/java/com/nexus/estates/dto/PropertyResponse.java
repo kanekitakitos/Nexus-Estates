@@ -3,7 +3,6 @@ package com.nexus.estates.dto;
 import com.nexus.estates.entity.Property;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 /**
  * DTO que representa a resposta de dados de uma propriedade.
@@ -23,7 +22,7 @@ import java.util.UUID;
  * @author Nexus Estates Team
  */
 public record PropertyResponse(
-        UUID id,
+        Long id,
         String name,
         String description,
         String city,

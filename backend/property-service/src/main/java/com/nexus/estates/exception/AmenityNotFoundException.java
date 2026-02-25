@@ -1,6 +1,5 @@
 package com.nexus.estates.exception;
 
-import java.util.UUID;
 
 /**
  * Exceção lançada quando uma Amenity não é encontrada.
@@ -9,7 +8,7 @@ import java.util.UUID;
  */
 public class AmenityNotFoundException extends RuntimeException {
 
-    public AmenityNotFoundException(UUID id) {
+    public AmenityNotFoundException(Long id) {
         super("Amenity with id " + id + " not found");
     }
 }

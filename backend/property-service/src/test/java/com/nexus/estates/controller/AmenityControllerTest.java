@@ -13,7 +13,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -44,14 +43,14 @@ class AmenityControllerTest {
     private ObjectMapper objectMapper;
 
     private Amenity validAmenity;
-    private UUID amenityId;
+    private Long amenityId;
 
     /**
      * Configuração inicial para cada teste.
      */
     @BeforeEach
     void setUp() {
-        amenityId = UUID.randomUUID();
+        amenityId = 5L;
         validAmenity = new Amenity();
         validAmenity.setId(amenityId);
         validAmenity.setName("Piscina");
