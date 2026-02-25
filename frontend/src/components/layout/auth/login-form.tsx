@@ -34,8 +34,8 @@ export function LoginForm({
   async function handleLogin() {
     if (isTryingLogin) return; // Prevent multiple login attempts at the same time
 
-    var email = (document.getElementById("email") as HTMLInputElement).value
-    var password = (document.getElementById("password") as HTMLInputElement).value
+    const email = (document.getElementById("email") as HTMLInputElement).value
+    const password = (document.getElementById("password") as HTMLInputElement).value
 
     if (!password || !email){
       toast.warning("Prenche todas as celulas");
