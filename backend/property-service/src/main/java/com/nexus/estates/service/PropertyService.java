@@ -6,7 +6,6 @@ import com.nexus.estates.repository.PropertyRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Serviço responsável pela lógica de negócio associada às propriedades.
@@ -59,7 +58,7 @@ public class PropertyService {
      * @return propriedade encontrada
      * @throws RuntimeException caso a propriedade não exista
      */
-    public Property findById(UUID id) {
+    public Property findById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new PropertyNotFoundException(id));
     }

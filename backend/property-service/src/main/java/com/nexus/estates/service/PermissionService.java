@@ -5,7 +5,6 @@ import com.nexus.estates.repository.PermissionRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Serviço responsável pela lógica de negócio das permissões de propriedade.
@@ -65,7 +64,7 @@ public class PermissionService {
      * @return a permissão encontrada
      * @throws RuntimeException caso a permissão não seja encontrada no repositório
      */
-    public PropertyPermission findById(UUID id) {
+    public PropertyPermission findById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Permission not found"));
     }
@@ -75,7 +74,7 @@ public class PermissionService {
      *
      * @param id identificador único (UUID) da permissão a remover
      */
-    public void delete(UUID id) {
+    public void delete(Long id) {
         repository.deleteById(id);
     }
 }

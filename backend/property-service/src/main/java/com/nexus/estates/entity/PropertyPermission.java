@@ -1,7 +1,7 @@
 package com.nexus.estates.entity;
 
 import jakarta.persistence.*;
-import java.util.UUID;
+
 
 /**
  * Entidade que representa as permissões de acesso às propriedades.
@@ -27,15 +27,15 @@ public class PropertyPermission {
     /** Identificador único da permissão (Chave Primária). */
     @Id
     @GeneratedValue
-    private UUID id;
+    private Long id;
 
     /** Identificador da propriedade à qual a permissão se refere. */
     @Column(name = "property_id", nullable = false)
-    private UUID propertyId;
+    private Long propertyId;
 
     /** Identificador do utilizador que detém a permissão. */
     @Column(name = "user_id", nullable = false)
-    private UUID userId;
+    private Long userId;
 
     /** Nível de acesso atribuído (ex: READ, WRITE, ADMIN). */
     @Enumerated(EnumType.STRING)
@@ -45,42 +45,42 @@ public class PropertyPermission {
     /**
      * @return o identificador único da permissão
      */
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
     /**
      * @param id novo identificador para a permissão
      */
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
     /**
      * @return o ID da propriedade associada
      */
-    public UUID getPropertyId() {
+    public Long getPropertyId() {
         return propertyId;
     }
 
     /**
      * @param propertyId novo ID da propriedade
      */
-    public void setPropertyId(UUID propertyId) {
+    public void setPropertyId(Long propertyId) {
         this.propertyId = propertyId;
     }
 
     /**
      * @return o ID do utilizador associado
      */
-    public UUID getUserId() {
+    public Long getUserId() {
         return userId;
     }
 
     /**
      * @param userId novo ID do utilizador
      */
-    public void setUserId(UUID userId) {
+    public void setUserId(Long userId) {
         this.userId = userId;
     }
 

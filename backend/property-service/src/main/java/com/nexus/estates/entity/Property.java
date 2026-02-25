@@ -2,7 +2,7 @@ package com.nexus.estates.entity;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
-import java.util.UUID;
+
 
 /**
  * Entidade que representa uma propriedade imobiliária no sistema.
@@ -24,8 +24,8 @@ public class Property {
      * <p>Gerado automaticamente pelo sistema.</p>
      */
     @Id
-    @GeneratedValue
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     /**
      * Nome / título da propriedade.
@@ -83,7 +83,7 @@ public class Property {
      *
      * @return ID da propriedade
      */
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
@@ -92,7 +92,7 @@ public class Property {
      *
      * @param id novo ID
      */
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
