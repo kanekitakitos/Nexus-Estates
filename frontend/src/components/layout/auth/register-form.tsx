@@ -54,7 +54,7 @@ export function RegisterForm() {
 
     setIsTryingRegister(true);
 
-    await usersAxios.put("/auth/register", JSON.stringify({email, password}), {
+    await usersAxios.post("/auth/register", JSON.stringify({email, password}), {
       headers: {
         "Content-Type": "application/json"
       }
