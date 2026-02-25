@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Interface de repositório para acesso aos dados da entidade {@link User}.
@@ -19,7 +18,7 @@ import java.util.UUID;
  * </p>
  *      <ul>
  *          <li>{@code save(User)} - Persistência e atualização.</li>
- *          <li>{@code findaById(UUID} - Recuperação por chave primária.</li>
+ *          <li>{@code findById(Long)} - Recuperação por chave primária.</li>
  *          <li>{@code findAll()} - Listagem completa.</li>
  *      </ul>
  *
@@ -28,9 +27,7 @@ import java.util.UUID;
  * @since 2026-02-15
  * @see org.springframework.data.jpa.repository.JpaRepository
  */
-
 @Repository
-public interface UserRepository extends JpaRepository<User, UUID> {
+public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
-
 }

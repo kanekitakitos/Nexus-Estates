@@ -1,8 +1,9 @@
 package com.nexus.estates.entity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
+import org.hibernate.envers.Audited;
 import lombok.*;
-import java.util.UUID;
 
 /**
  * Representação persistente de um Utilizador no sistema de Identidade.
@@ -24,26 +25,26 @@ import java.util.UUID;
  * @version 1.0
  * @since 2026-02-15
  */
-
 @Entity
 @Table(name = "users")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-
-public class User{
+@Audited
+@Schema(description = "Entidade que representa um utilizador do sistema")
+public class User {
 
     /**
-     * Identificador universal (UUID) do utilizador.
+     * Identificador único (Primary Key) do utilizador.
      * <p>
-     *     Gerado automaticamente pela estratégia da base de dados, garantindo unicidade
-     *     mesmo em ambientes distribuídos.
+     *     Gerado sequencialmente pela base de dados (IDENTITY).
      * </p>
      */
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "Identificador único do utilizador", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
+    private Long id;
 
     /**
      * Endereço de correio eletrónico do utilizador.
@@ -53,6 +54,7 @@ public class User{
      * </p>
      */
     @Column(nullable = false, unique = true)
+    @Schema(description = "Email do utilizador", example = "user@example.com")
     private String email;
 
     /**
@@ -63,6 +65,7 @@ public class User{
      * </p>
      */
     @Column(nullable = false)
+    @Schema(description = "Hash da password (não exposto em leituras)", hidden = true)
     private String password;
 
     /**
@@ -71,6 +74,7 @@ public class User{
      *     Opcional. Útil para notificações SMS ou contacto de emergência em reservas.
      * </p>
      */
+    @Schema(description = "Número de telefone", example = "+351912345678")
     private String phone;
 
     /**
@@ -82,5 +86,6 @@ public class User{
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Schema(description = "Papel do utilizador", example = "GUEST")
     private UserRole role;
 }
