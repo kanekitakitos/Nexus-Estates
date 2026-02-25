@@ -49,7 +49,7 @@ class PasswordResetControllerTest {
         doNothing().when(passwordResetService).initiatePasswordReset("user@example.com");
 
         // Act & Assert
-        mockMvc.perform(post("/api/v1/users/password/forgot")
+        mockMvc.perform(post("/api/users/auth/password/forgot")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -69,7 +69,7 @@ class PasswordResetControllerTest {
         doNothing().when(passwordResetService).resetPassword("valid-token", "newPass123");
 
         // Act & Assert
-        mockMvc.perform(post("/api/v1/users/password/reset")
+        mockMvc.perform(post("/api/users/auth/password/reset")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
