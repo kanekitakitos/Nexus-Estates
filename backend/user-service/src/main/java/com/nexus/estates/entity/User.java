@@ -2,6 +2,7 @@ package com.nexus.estates.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
+import org.hibernate.envers.Audited;
 import lombok.*;
 
 /**
@@ -30,6 +31,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Audited
 @Schema(description = "Entidade que representa um utilizador do sistema")
 public class User {
 
