@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/data-display/card"
+import { BrutalCard } from "@/components/ui/data-display/card"
 import {
   Field,
   FieldDescription,
@@ -23,7 +24,7 @@ export function RecoverForm({
     
     return (
         <div className={cn("flex flex-col gap-6", className)}>
-            <Card>
+            <BrutalCard>
                 <CardHeader className="text-center">
                 <CardTitle className="text-xl">Recover Account</CardTitle>
                 <CardDescription>
@@ -39,13 +40,14 @@ export function RecoverForm({
                         id="email"
                         type="email"
                         placeholder="m@example.com"
+                        variant={"brutal"}
                         required
                         />
                     </Field>
                     </FieldGroup>
                 </form>
-                <Button className="w-full mt-6" onClick={()=>console.log("TO IMPLEMENT!")}>Send Reset Link</Button>
+                <Button variant={"brutal"} className="w-full mt-6" onClick={()=>console.log("TO IMPLEMENT!")}>Send Reset Link</Button>
                 </CardContent>
-            </Card>
+            </BrutalCard>
         </div>
 )}
