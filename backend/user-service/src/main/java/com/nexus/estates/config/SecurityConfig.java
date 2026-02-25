@@ -31,6 +31,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Deixa passar Login e Registo sem token
                         .requestMatchers("/api/users/auth/**").permitAll()
+                        // Deixa passar endpoints de recuperação de password
+                        .requestMatchers("/api/v1/users/password/**").permitAll()
                         // Tudo o resto exige token válido
                         .anyRequest().authenticated()
                 )

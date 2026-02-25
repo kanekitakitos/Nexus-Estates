@@ -57,7 +57,7 @@ class JwtAuthenticationFilterTest {
     void shouldSetAuthenticationOnValidToken() throws Exception {
         when(request.getHeader("Authorization")).thenReturn("Bearer tok");
         when(jwtService.extractUsername("tok")).thenReturn("u@example.com");
-        User u = User.builder().id(UUID.randomUUID()).email("u@example.com").password("x").role(UserRole.GUEST).build();
+        User u = User.builder().id(124L).email("u@example.com").password("x").role(UserRole.GUEST).build();
         when(userRepository.findByEmail("u@example.com")).thenReturn(Optional.of(u));
         when(jwtService.isTokenValid("tok", "u@example.com")).thenReturn(true);
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");

@@ -22,7 +22,7 @@ import lombok.AllArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "Resposta contendo o token de autenticação e detalhes do utilizador")
-public class AuthResponde {
+public class AuthResponse {
 
     @Schema(description = "Token JWT para autenticação em pedidos subsequentes", example = "eyJhbGciOiJIUzI1NiJ9...")
     private String token;
