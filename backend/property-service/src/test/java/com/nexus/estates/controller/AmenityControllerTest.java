@@ -10,12 +10,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser; // Import necessário
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf; // Import necessário
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -31,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @since 2026-02-12
  */
 @WebMvcTest(AmenityController.class)
+@WithMockUser // Resolve o erro 401: Simula um utilizador autenticado para todos os testes
 class AmenityControllerTest {
 
     @Autowired
@@ -53,24 +57,26 @@ class AmenityControllerTest {
         amenityId = 5L;
         validAmenity = new Amenity();
         validAmenity.setId(amenityId);
-        validAmenity.setName("Piscina");
+        // Ajuste para Map (i18n)
+        validAmenity.setName(Map.of("pt", "Piscina", "en", "Pool"));
         validAmenity.setCategory(AmenityCategory.LEISURE);
     }
 
     /**
      * Testa a criação de uma comodidade com sucesso.
-     * * @throws Exception caso ocorra erro na simulação do pedido
+     * @throws Exception caso ocorra erro na simulação do pedido
      */
     @Test
     void shouldCreateAmenityWithSuccess() throws Exception {
         when(service.create(any(Amenity.class))).thenReturn(validAmenity);
 
         mockMvc.perform(post("/api/amenities")
+                        .with(csrf()) // Resolve o erro 403: Adiciona o token CSRF obrigatório em POST
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validAmenity)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(amenityId.toString()))
-                .andExpect(jsonPath("$.name").value("Piscina"));
+                .andExpect(jsonPath("$.id").value(amenityId))
+                .andExpect(jsonPath("$.name.pt").value("Piscina"));
     }
 
     /**
@@ -83,6 +89,7 @@ class AmenityControllerTest {
         invalidAmenity.setCategory(AmenityCategory.SAFETY);
 
         mockMvc.perform(post("/api/amenities")
+                        .with(csrf()) // Resolve o erro 403
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidAmenity)))
                 .andExpect(status().isBadRequest());
@@ -98,7 +105,7 @@ class AmenityControllerTest {
         mockMvc.perform(get("/api/amenities"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].name").value("Piscina"));
+                .andExpect(jsonPath("$[0].name.pt").value("Piscina"));
     }
 
     /**
@@ -110,7 +117,7 @@ class AmenityControllerTest {
 
         mockMvc.perform(get("/api/amenities/{id}", amenityId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(amenityId.toString()))
-                .andExpect(jsonPath("$.name").value("Piscina"));
+                .andExpect(jsonPath("$.id").value(amenityId))
+                .andExpect(jsonPath("$.name.pt").value("Piscina"));
     }
 }
