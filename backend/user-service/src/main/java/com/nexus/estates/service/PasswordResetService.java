@@ -1,7 +1,5 @@
 package com.nexus.estates.service;
 
-import com.nexus.estates.dto.ForgotPasswordRequest;
-import com.nexus.estates.dto.ResetPasswordRequest;
 import com.nexus.estates.entity.PasswordResetToken;
 import com.nexus.estates.entity.User;
 import com.nexus.estates.exception.InvalidTokenException;
@@ -30,41 +28,42 @@ public class PasswordResetService {
      * Inicia o processo de recuperação de password.
      * Gera um token único e guarda-o na base de dados.
      *
-     * @param request Pedido contendo o email do utilizador.
-     * @return O token gerado (em produção, este token seria enviado por email).
+     * @param email O email do utilizador que solicitou a recuperação.
      */
     @Transactional
-    public String forgotPassword(ForgotPasswordRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Utilizador não encontrado com este email."));
+    public void initiatePasswordReset(String email) {
+        // Se o utilizador não existir, não fazemos nada (security by obscurity)
+        // para não revelar quais emails estão registados.
+        userRepository.findByEmail(email).ifPresent(user -> {
+            // Remove tokens antigos se existirem
+            tokenRepository.deleteByUser(user);
 
-        // Remove tokens antigos se existirem
-        tokenRepository.deleteByUser(user);
+            // Gera token único
+            String token = UUID.randomUUID().toString();
 
-        // Gera token único
-        String token = UUID.randomUUID().toString();
+            // Cria e guarda o token com validade de 15 minutos
+            PasswordResetToken resetToken = PasswordResetToken.builder()
+                    .token(token)
+                    .user(user)
+                    .expiryDate(LocalDateTime.now().plusMinutes(15))
+                    .build();
 
-        // Cria e guarda o token com validade de 15 minutos
-        PasswordResetToken resetToken = PasswordResetToken.builder()
-                .token(token)
-                .user(user)
-                .expiryDate(LocalDateTime.now().plusMinutes(15))
-                .build();
+            tokenRepository.save(resetToken);
 
-        tokenRepository.save(resetToken);
-
-        // TODO: Enviar email com o token (simulado aqui retornando o token)
-        return token;
+            // TODO: Integrar com serviço de Email para enviar o token
+            System.out.println("Token de recuperação gerado para " + email + ": " + token);
+        });
     }
 
     /**
      * Redefine a password do utilizador usando um token válido.
      *
-     * @param request Pedido contendo o token e a nova password.
+     * @param token O token de recuperação recebido.
+     * @param newPassword A nova password a definir.
      */
     @Transactional
-    public void resetPassword(ResetPasswordRequest request) {
-        PasswordResetToken resetToken = tokenRepository.findByToken(request.getToken())
+    public void resetPassword(String token, String newPassword) {
+        PasswordResetToken resetToken = tokenRepository.findByToken(token)
                 .orElseThrow(() -> new InvalidTokenException("Token inválido ou não encontrado."));
 
         if (resetToken.isExpired()) {
@@ -73,7 +72,7 @@ public class PasswordResetService {
         }
 
         User user = resetToken.getUser();
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
         // Invalida o token após uso com sucesso

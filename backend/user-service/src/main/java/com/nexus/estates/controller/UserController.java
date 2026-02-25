@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.List;
@@ -48,12 +49,15 @@ public class UserController {
      * Recupera a lista completa de utilizadores registados no sistema.
      * <p>
      *     Útil para painéis de administração.
+     *     <b>Requer permissão de ADMIN.</b>
      * </p>
      * @return {@link List} contendo todos os objetos {@link User} persistidos.
      */
-    @Operation(summary = "Listar todos os utilizadores", description = "Retorna uma lista de todos os utilizadores registados.")
+    @Operation(summary = "Listar todos os utilizadores", description = "Retorna uma lista de todos os utilizadores registados. Requer role ADMIN.")
     @ApiResponse(responseCode = "200", description = "Lista recuperada com sucesso")
+    @ApiResponse(responseCode = "403", description = "Acesso negado")
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<User> getAllUsers(){
         return userRepository.findAll();
     }
@@ -63,16 +67,19 @@ public class UserController {
      * <p>
      *     Recebe os dados brutos, incluindo a password.
      *     <b>Atenção:</b> Para registo público seguro, usar {@code AuthController}.
+     *     <b>Requer permissão de ADMIN.</b>
      * </p>
      * @param user O objeto {@link User} construído a partir do JSON recebido.
      * @return O objeto {@link User} persistido, incluindo o ID gerado.
      */
-    @Operation(summary = "Criar utilizador (Admin)", description = "Cria um utilizador diretamente na base de dados.")
+    @Operation(summary = "Criar utilizador (Admin)", description = "Cria um utilizador diretamente na base de dados. Requer role ADMIN.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Utilizador criado com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos")
+            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
     })
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public User createUser(@RequestBody User user){
         // SEGURANÇA: Codificar a password antes de guardar
         user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -81,16 +88,21 @@ public class UserController {
 
     /**
      * Recupera os detalhes de um utilizador específico pelo seu identificador.
+     * <p>
+     *     <b>Requer permissão de ADMIN ou OWNER.</b>
+     * </p>
      * @param id Identificador único do utilizador (Long).
      * @return O objeto {@link User} correspondente.
      * @throws RuntimeException se o utilizador não for encontrado na base de dados
      */
-    @Operation(summary = "Obter utilizador por ID", description = "Retorna os detalhes de um utilizador específico.")
+    @Operation(summary = "Obter utilizador por ID", description = "Retorna os detalhes de um utilizador específico. Requer role ADMIN ou OWNER.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Utilizador encontrado"),
-            @ApiResponse(responseCode = "404", description = "Utilizador não encontrado")
+            @ApiResponse(responseCode = "404", description = "Utilizador não encontrado"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
     })
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
     public User getUserById(
             @Parameter(description = "ID do utilizador a pesquisar", required = true)
             @PathVariable Long id){

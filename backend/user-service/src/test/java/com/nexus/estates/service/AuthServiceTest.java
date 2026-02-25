@@ -1,10 +1,12 @@
 package com.nexus.estates.service;
 
-import com.nexus.estates.dto.AuthResponde;
+import com.nexus.estates.dto.AuthResponse;
 import com.nexus.estates.dto.LoginRequest;
 import com.nexus.estates.dto.RegisterRequest;
 import com.nexus.estates.entity.User;
 import com.nexus.estates.entity.UserRole;
+import com.nexus.estates.exception.EmailAlreadyRegisteredException;
+import com.nexus.estates.exception.InvalidCredentialsException;
 import com.nexus.estates.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,12 +53,11 @@ class AuthServiceTest {
         when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("plain")).thenReturn("hashed");
         
-        // Mock do save para retornar um User com ID numérico
         Long generatedId = 1L;
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User u = invocation.getArgument(0);
             return User.builder()
-                    .id(generatedId) // ID Long
+                    .id(generatedId)
                     .email(u.getEmail())
                     .password(u.getPassword())
                     .phone(u.getPhone())
@@ -67,7 +68,7 @@ class AuthServiceTest {
         when(jwtService.generateToken(any(User.class))).thenReturn("token");
 
         // Act
-        AuthResponde response = authService.register(registerRequest);
+        AuthResponse response = authService.register(registerRequest);
 
         // Assert
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
@@ -87,7 +88,7 @@ class AuthServiceTest {
     void shouldFailRegisterWhenEmailExists() {
         when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.of(User.builder().build()));
         
-        assertThrows(RuntimeException.class, () -> authService.register(registerRequest));
+        assertThrows(EmailAlreadyRegisteredException.class, () -> authService.register(registerRequest));
         
         verify(userRepository, never()).save(any());
     }
@@ -110,7 +111,7 @@ class AuthServiceTest {
         LoginRequest req = LoginRequest.builder().email("u@example.com").password("plain").build();
         
         // Act
-        AuthResponde response = authService.login(req);
+        AuthResponse response = authService.login(req);
 
         // Assert
         assertEquals(id, response.getId());
@@ -135,6 +136,6 @@ class AuthServiceTest {
         LoginRequest req = LoginRequest.builder().email("u@example.com").password("wrong").build();
         
         // Act & Assert
-        assertThrows(RuntimeException.class, () -> authService.login(req));
+        assertThrows(InvalidCredentialsException.class, () -> authService.login(req));
     }
 }

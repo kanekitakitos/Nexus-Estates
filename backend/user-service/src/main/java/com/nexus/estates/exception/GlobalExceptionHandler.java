@@ -5,6 +5,7 @@ import com.nexus.estates.common.dto.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -88,5 +89,25 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ApiResponse<Object>> handleInvalidCredentials(InvalidCredentialsException ex, HttpServletRequest request) {
         return buildErrorResponse(ex, HttpStatus.UNAUTHORIZED, request, null);
+    }
+
+    /**
+     * Trata exceções de acesso negado (403 Forbidden).
+     * <p>
+     *     Ocorre quando um utilizador autenticado tenta aceder a um recurso
+     *     para o qual não tem permissão (ex: @PreAuthorize falha).
+     * </p>
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(AccessDeniedException ex, HttpServletRequest request) {
+        return buildErrorResponse(ex, HttpStatus.FORBIDDEN, request, null);
+    }
+
+    /**
+     * Trata exceções de token inválido ou expirado (400 Bad Request).
+     */
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidTokenException(InvalidTokenException ex, HttpServletRequest request) {
+        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, request, null);
     }
 }

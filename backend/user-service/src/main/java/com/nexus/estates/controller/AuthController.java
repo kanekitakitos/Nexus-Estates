@@ -8,7 +8,6 @@ import com.nexus.estates.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -39,11 +38,11 @@ public class AuthController {
 
     @Operation(summary = "Registar novo utilizador", description = "Cria uma nova conta de utilizador e retorna um token JWT.")
     @ApiResponses(value = {
-            @SwaggerApiResponse(responseCode = "200", description = "Utilizador registado com sucesso",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Utilizador registado com sucesso",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))),
-            @SwaggerApiResponse(responseCode = "400", description = "Dados de entrada inválidos (erro de validação)",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados de entrada inválidos (erro de validação)",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))),
-            @SwaggerApiResponse(responseCode = "409", description = "Email já registado",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Email já registado",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))),
     })
     @PostMapping("/register")
@@ -54,13 +53,13 @@ public class AuthController {
 
     @Operation(summary = "Login de utilizador", description = "Autentica as credenciais e retorna um token JWT.")
     @ApiResponses(value = {
-            @SwaggerApiResponse(responseCode = "200", description = "Login efetuado com sucesso",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Login efetuado com sucesso",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))),
-            @SwaggerApiResponse(responseCode = "400", description = "Dados de entrada inválidos (erro de validação)",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados de entrada inválidos (erro de validação)",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))),
-            @SwaggerApiResponse(responseCode = "401", description = "Credenciais inválidas",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Credenciais inválidas",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))),
-            @SwaggerApiResponse(responseCode = "404", description = "Utilizador não encontrado",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Utilizador não encontrado",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class)))
     })
     @PostMapping("/login")

@@ -1,7 +1,5 @@
 package com.nexus.estates.service;
 
-import com.nexus.estates.dto.ForgotPasswordRequest;
-import com.nexus.estates.dto.ResetPasswordRequest;
 import com.nexus.estates.entity.PasswordResetToken;
 import com.nexus.estates.entity.User;
 import com.nexus.estates.exception.InvalidTokenException;
@@ -44,7 +42,7 @@ class PasswordResetServiceTest {
     @BeforeEach
     void setUp() {
         user = User.builder()
-                .id(1L) // ID agora é Long
+                .id(1L)
                 .email("test@example.com")
                 .password("oldPassword")
                 .build();
@@ -63,79 +61,74 @@ class PasswordResetServiceTest {
     }
 
     @Test
-    void forgotPassword_ShouldGenerateToken_WhenUserExists() {
+    void initiatePasswordReset_ShouldGenerateToken_WhenUserExists() {
         // Arrange
-        ForgotPasswordRequest request = new ForgotPasswordRequest();
-        request.setEmail("test@example.com");
-
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        String email = "test@example.com";
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
         
         // Act
-        String token = passwordResetService.forgotPassword(request);
+        passwordResetService.initiatePasswordReset(email);
 
         // Assert
-        assertNotNull(token);
-        verify(tokenRepository).deleteByUser(user); // Garante que tokens antigos são apagados
-        verify(tokenRepository).save(any(PasswordResetToken.class)); // Garante que o novo token é salvo
+        verify(tokenRepository).deleteByUser(user);
+        verify(tokenRepository).save(any(PasswordResetToken.class));
     }
 
     @Test
-    void forgotPassword_ShouldThrowException_WhenUserNotFound() {
+    void initiatePasswordReset_ShouldDoNothing_WhenUserNotFound() {
         // Arrange
-        ForgotPasswordRequest request = new ForgotPasswordRequest();
-        request.setEmail("unknown@example.com");
+        String email = "unknown@example.com";
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
-        when(userRepository.findByEmail("unknown@example.com")).thenReturn(Optional.empty());
+        // Act
+        passwordResetService.initiatePasswordReset(email);
 
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> passwordResetService.forgotPassword(request));
+        // Assert
         verify(tokenRepository, never()).save(any());
     }
 
     @Test
     void resetPassword_ShouldUpdatePassword_WhenTokenIsValid() {
         // Arrange
-        ResetPasswordRequest request = new ResetPasswordRequest();
-        request.setToken("valid-token-uuid");
-        request.setNewPassword("newStrongPassword");
+        String token = "valid-token-uuid";
+        String newPassword = "newStrongPassword";
 
-        when(tokenRepository.findByToken("valid-token-uuid")).thenReturn(Optional.of(validToken));
-        when(passwordEncoder.encode("newStrongPassword")).thenReturn("encodedNewPassword");
+        when(tokenRepository.findByToken(token)).thenReturn(Optional.of(validToken));
+        when(passwordEncoder.encode(newPassword)).thenReturn("encodedNewPassword");
 
         // Act
-        passwordResetService.resetPassword(request);
+        passwordResetService.resetPassword(token, newPassword);
 
         // Assert
-        assertEquals("encodedNewPassword", user.getPassword()); // Verifica se a password foi atualizada no objeto User
-        verify(userRepository).save(user); // Verifica se o user atualizado foi salvo
-        verify(tokenRepository).delete(validToken); // Verifica se o token foi invalidado após uso
+        assertEquals("encodedNewPassword", user.getPassword());
+        verify(userRepository).save(user);
+        verify(tokenRepository).delete(validToken);
     }
 
     @Test
     void resetPassword_ShouldThrowException_WhenTokenIsExpired() {
         // Arrange
-        ResetPasswordRequest request = new ResetPasswordRequest();
-        request.setToken("expired-token-uuid");
-        request.setNewPassword("newPassword");
+        String token = "expired-token-uuid";
+        String newPassword = "newPassword";
 
-        when(tokenRepository.findByToken("expired-token-uuid")).thenReturn(Optional.of(expiredToken));
+        when(tokenRepository.findByToken(token)).thenReturn(Optional.of(expiredToken));
 
         // Act & Assert
-        assertThrows(InvalidTokenException.class, () -> passwordResetService.resetPassword(request));
+        assertThrows(InvalidTokenException.class, () -> passwordResetService.resetPassword(token, newPassword));
         
-        verify(tokenRepository).delete(expiredToken); // Deve apagar o token expirado
-        verify(userRepository, never()).save(any()); // NÃO deve salvar o user
+        verify(tokenRepository).delete(expiredToken);
+        verify(userRepository, never()).save(any());
     }
 
     @Test
     void resetPassword_ShouldThrowException_WhenTokenNotFound() {
         // Arrange
-        ResetPasswordRequest request = new ResetPasswordRequest();
-        request.setToken("invalid-token");
+        String token = "invalid-token";
+        String newPassword = "newPassword";
 
-        when(tokenRepository.findByToken("invalid-token")).thenReturn(Optional.empty());
+        when(tokenRepository.findByToken(token)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(InvalidTokenException.class, () -> passwordResetService.resetPassword(request));
+        assertThrows(InvalidTokenException.class, () -> passwordResetService.resetPassword(token, newPassword));
     }
 }

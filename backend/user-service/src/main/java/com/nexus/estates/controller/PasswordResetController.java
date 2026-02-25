@@ -1,61 +1,73 @@
 package com.nexus.estates.controller;
 
+import com.nexus.estates.common.dto.ApiResponse;
 import com.nexus.estates.dto.ForgotPasswordRequest;
 import com.nexus.estates.dto.ResetPasswordRequest;
 import com.nexus.estates.service.PasswordResetService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Controlador REST responsável pela recuperação de passwords.
+ * Controlador REST para gestão de recuperação de palavras-passe.
  * <p>
- *     Fornece endpoints para iniciar o processo de recuperação e redefinir a password.
+ *     Disponibiliza endpoints públicos para iniciar o processo de recuperação (envio de email)
+ *     e para efetivar a alteração da password através de um token seguro.
  * </p>
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
+ * @since 2026-02-15
  */
 @RestController
 @RequestMapping("/api/v1/users/password")
 @RequiredArgsConstructor
-@Tag(name = "Recuperação de Password", description = "Endpoints para recuperação e redefinição de password")
+@Tag(name = "Recuperação de Password", description = "Endpoints para reset de password (esqueci-me da senha)")
 public class PasswordResetController {
 
     private final PasswordResetService passwordResetService;
 
     /**
-     * Inicia o processo de recuperação de password.
+     * Inicia o processo de recuperação de password enviando um email com o token.
      *
      * @param request DTO contendo o email do utilizador.
-     * @return ResponseEntity com mensagem de sucesso (e token simulado).
+     * @return Resposta de sucesso genérica (para evitar enumeração de utilizadores).
      */
-    @Operation(summary = "Iniciar recuperação de password", description = "Gera um token de recuperação e envia por email (simulado).")
+    @Operation(summary = "Solicitar recuperação de password", description = "Envia um email com um link/token para redefinir a password.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Token gerado com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Utilizador não encontrado")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Pedido aceite (email enviado se existir)",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Email inválido",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class)))
     })
     @PostMapping("/forgot")
-    public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
-        String token = passwordResetService.forgotPassword(request);
-        return ResponseEntity.ok("Token gerado com sucesso: " + token);
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.initiatePasswordReset(request.getEmail());
+        return ResponseEntity.ok(ApiResponse.success(null, "Se o email existir, as instruções foram enviadas."));
     }
 
     /**
-     * Redefine a password do utilizador.
+     * Redefine a password do utilizador utilizando um token válido.
      *
      * @param request DTO contendo o token e a nova password.
-     * @return ResponseEntity com mensagem de sucesso.
+     * @return Resposta de sucesso.
      */
-    @Operation(summary = "Redefinir password", description = "Redefine a password do utilizador usando um token válido.")
+    @Operation(summary = "Redefinir password", description = "Altera a password do utilizador mediante apresentação de um token válido.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Password redefinida com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Token inválido ou expirado")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Password alterada com sucesso",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Token inválido ou expirado",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class)))
     })
     @PostMapping("/reset")
-    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
-        passwordResetService.resetPassword(request);
-        return ResponseEntity.ok("Password redefinida com sucesso.");
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(ApiResponse.success(null, "Password alterada com sucesso."));
     }
 }

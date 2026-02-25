@@ -3,6 +3,7 @@ package com.nexus.estates.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -14,6 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity // Habilita @PreAuthorize
 public class SecurityConfig {
 
     @Autowired
@@ -31,6 +33,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Deixa passar Login e Registo sem token
                         .requestMatchers("/api/users/auth/**").permitAll()
+                        .requestMatchers("/api/v1/users/auth/**").permitAll()
                         // Deixa passar endpoints de recuperação de password
                         .requestMatchers("/api/v1/users/password/**").permitAll()
                         // Tudo o resto exige token válido
