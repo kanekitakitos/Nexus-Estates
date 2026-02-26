@@ -31,11 +31,13 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+
                         // Deixa passar Login e Registo sem token
                         .requestMatchers("/api/users/auth/**").permitAll()
-                        .requestMatchers("/api/v1/users/auth/**").permitAll()
+
                         // Deixa passar endpoints de recuperação de password
-                        .requestMatchers("/api/v1/users/password/**").permitAll()
+                        .requestMatchers("/api/users/auth/password/**").permitAll()
+
                         // Tudo o resto exige token válido
                         .anyRequest().authenticated()
                 )

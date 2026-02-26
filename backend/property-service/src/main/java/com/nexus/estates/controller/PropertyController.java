@@ -30,7 +30,7 @@ import java.util.concurrent.CompletableFuture;
  * @since 2026-02-13
  */
 @RestController
-@RequestMapping("/api/v1/properties")
+@RequestMapping("/api/properties")
 @Tag(name = "Property API", description = "Gestão de propriedades da Nexus Estates")
 public class PropertyController {
 
@@ -56,7 +56,7 @@ public class PropertyController {
      *
      * @return CompletableFuture com os parâmetros de autenticação
      */
-    @Operation(summary = "Obter parâmetros de upload", description = "Gera uma assinatura segura para upload de fotos no Cloudinary. Requer role OWNER.")
+    @Operation(summary = "Obter parâmetros de upload (inclui upload_url e expires_at)", description = "Gera assinatura segura e devolve upload_url para o endpoint de upload do Cloudinary, além de expires_at (15 min) para o Frontend concluir o upload direto. Requer role OWNER.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Parâmetros gerados com sucesso"),
             @ApiResponse(responseCode = "403", description = "Acesso negado - Requer permissão de OWNER")

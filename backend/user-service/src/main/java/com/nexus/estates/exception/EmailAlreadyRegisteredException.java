@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  *
  * @author Nexus Estates Team
  * @version 1.0
+ * @see com.nexus.estates.exception.GlobalExceptionHandler
  */
 @ResponseStatus(HttpStatus.CONFLICT)
 public class EmailAlreadyRegisteredException extends RuntimeException {

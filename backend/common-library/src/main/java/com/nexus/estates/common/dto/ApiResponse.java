@@ -1,6 +1,7 @@
 package com.nexus.estates.common.dto;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -69,6 +70,34 @@ public class ApiResponse<T> {
                         .message(message)
                         .timestamp(LocalDateTime.now())
                         .build())
+                .build();
+    }
+
+    /**
+     * Cria uma resposta de erro padronizada com detalhes completos.
+     *
+     * @param status Código HTTP numérico.
+     * @param error Texto curto do status HTTP (ex: "Bad Request").
+     * @param message Mensagem detalhada do erro.
+     * @param path Rota que originou o erro.
+     * @param validationErrors Mapa opcional de erros de validação.
+     * @param <T> O tipo genérico (geralmente Void em erros).
+     * @return Uma instância de {@link ApiResponse} configurada para falha.
+     */
+    public static <T> ApiResponse<T> error(int status, String error, String message, String path, Map<String, String> validationErrors) {
+        ErrorResponse.ErrorResponseBuilder err = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(status)
+                .error(error)
+                .message(message)
+                .path(path);
+        if (validationErrors != null && !validationErrors.isEmpty()) {
+            err.validationErrors(validationErrors);
+        }
+        return ApiResponse.<T>builder()
+                .success(false)
+                .message(message)
+                .error(err.build())
                 .build();
     }
 }
