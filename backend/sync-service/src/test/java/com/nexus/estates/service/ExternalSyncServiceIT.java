@@ -6,8 +6,13 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.QueueDispatcher;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -19,41 +24,53 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles("test")
+// Desliga o JPA para garantir que o contexto do Spring arranca sem BD
+@EnableAutoConfiguration(exclude = {
+        DataSourceAutoConfiguration.class,
+        DataSourceTransactionManagerAutoConfiguration.class,
+        HibernateJpaAutoConfiguration.class
+})
 class ExternalSyncServiceIT {
 
     private static MockWebServer server;
 
-    @Autowired
+
     private ExternalSyncService externalSyncService;
 
     @Autowired
     private CircuitBreakerRegistry circuitBreakerRegistry;
 
-    @BeforeAll
-    static void setup() throws IOException {
+    @DynamicPropertySource
+    static void registerProps(DynamicPropertyRegistry registry) throws IOException {
+        // Arranca o servidor ANTES do contexto Spring carregar
         server = new MockWebServer();
         server.start();
+
+        registry.add("external.api.base-url", () -> server.url("/").toString());
+
+        // Sobrescreve o waitDuration para 10ms dinamicamente para não bloquear a thread
+        registry.add("resilience4j.retry.instances.externalApi.waitDuration", () -> "10ms");
     }
 
     @AfterAll
     static void tearDown() throws IOException {
-        server.shutdown();
-    }
-
-    @DynamicPropertySource
-    static void registerProps(DynamicPropertyRegistry registry) {
-        registry.add("external.api.base-url", () -> server.url("/").toString());
+        if (server != null) {
+            server.shutdown();
+        }
     }
 
     @BeforeEach
     void reset() {
-        circuitBreakerRegistry.circuitBreaker("externalApi").reset();
+        // 1. Injeta um Dispatcher novo para purgar qualquer MockResponse enfileirado no teste anterior
+        server.setDispatcher(new QueueDispatcher());
+
+        // 2. Garante que o circuito está fechado e pronto para o próximo teste
+        circuitBreakerRegistry.circuitBreaker("externalApi").transitionToClosedState();
     }
 
     @Test
     @DisplayName("CONFIRMED quando API externa aprova (HTTP 200)")
     void confirmedWhenExternalApproves() {
-        // Retry não deve ocorrer em sucesso (200), então 1 resposta é suficiente
         server.enqueue(new MockResponse()
                 .setResponseCode(200)
                 .addHeader("Content-Type", "application/json")
@@ -69,7 +86,6 @@ class ExternalSyncServiceIT {
     @Test
     @DisplayName("CANCELLED quando API externa rejeita (HTTP 200)")
     void cancelledWhenExternalRejects() {
-        // Retry não deve ocorrer em sucesso (200), então 1 resposta é suficiente
         server.enqueue(new MockResponse()
                 .setResponseCode(200)
                 .addHeader("Content-Type", "application/json")
@@ -85,7 +101,7 @@ class ExternalSyncServiceIT {
     @Test
     @DisplayName("Fallback é acionado após retries falharem (HTTP 500)")
     void fallbackTriggeredAfterRetries() {
-        // Max attempts = 2. Precisamos de 2 falhas para ativar o fallback.
+        // Precisamos de 2 falhas (maxAttempts=2) para acionar o fallback
         server.enqueue(new MockResponse().setResponseCode(500));
         server.enqueue(new MockResponse().setResponseCode(500));
 
@@ -99,28 +115,18 @@ class ExternalSyncServiceIT {
     @Test
     @DisplayName("Circuit Breaker abre após falhas consecutivas acima do threshold")
     void circuitBreakerOpensAfterFailures() {
-        // Config: Sliding Window = 4. Retry Max Attempts = 2.
-        // Call 1: 2 tentativas (2 falhas registadas no CB). Consome 2 respostas.
-        // Call 2: 2 tentativas (2 falhas registadas no CB). Consome 2 respostas.
-        // Total falhas = 4. CB deve abrir.
-        // Calls 3 e 4: Blocked pelo CB (não consomem respostas).
-        // Total respostas necessárias = 4.
-        
-        for (int i = 0; i < 4; i++) {
+        // Enfileira 8 respostas 500 (4 chamadas * 2 tentativas)
+        for (int i = 0; i < 8; i++) {
             server.enqueue(new MockResponse().setResponseCode(500));
         }
 
         var message = new BookingCreatedMessage(4L, 13L, 23L, BookingStatus.PENDING_PAYMENT);
+
         for (int i = 0; i < 4; i++) {
-            try {
-                externalSyncService.processBooking(message);
-            } catch (Exception ignored) {
-                // Ignorar exceções, queremos apenas verificar o estado do CB no final
-            }
+            externalSyncService.processBooking(message);
         }
 
         CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("externalApi");
         assertThat(cb.getState()).isEqualTo(CircuitBreaker.State.OPEN);
     }
 }
-

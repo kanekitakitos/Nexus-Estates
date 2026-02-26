@@ -4,6 +4,8 @@ import com.nexus.estates.dto.BookingResponse;
 import com.nexus.estates.dto.CreateBookingRequest;
 import com.nexus.estates.entity.Booking;
 import com.nexus.estates.exception.BookingConflictException;
+import com.nexus.estates.exception.InvalidRefundException;
+import com.nexus.estates.exception.PaymentProcessingException;
 import com.nexus.estates.mapper.BookingMapper;
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.messaging.BookingEventPublisher;
@@ -33,6 +35,7 @@ public class BookingService
     private final BookingRepository bookingRepository;
     private final BookingMapper bookingMapper;
     private final BookingEventPublisher bookingEventPublisher;
+    private final BookingPaymentService bookingPaymentService;
 
     /**
      * Construtor padrão para injeção de dependências.
@@ -40,12 +43,14 @@ public class BookingService
      * @param bookingRepository Interface de acesso aos dados persistidos.
      * @param bookingMapper Componente de transformação de objetos.
      * @param bookingEventPublisher Componente responsável pela publicação de eventos de reserva.
+     * @param bookingPaymentService Serviço para processamento de pagamentos.
      */
-    public BookingService(BookingRepository bookingRepository, BookingMapper bookingMapper, BookingEventPublisher bookingEventPublisher)
+    public BookingService(BookingRepository bookingRepository, BookingMapper bookingMapper, BookingEventPublisher bookingEventPublisher, BookingPaymentService bookingPaymentService)
     {
         this.bookingRepository = bookingRepository;
         this.bookingMapper = bookingMapper;
         this.bookingEventPublisher = bookingEventPublisher;
+        this.bookingPaymentService = bookingPaymentService;
     }
 
     /**
@@ -168,5 +173,60 @@ public class BookingService
         return bookingRepository.findByUserId(userId).stream()
                 .map(bookingMapper::toResponse)
                 .toList();
+    }
+
+    /**
+     * Cria uma intenção de pagamento para uma reserva.
+     * 
+     * <p>Esta método permite que o utilizador inicie o processo de pagamento
+     * sem concluir imediatamente. Útil para fluxos de checkout em múltiplos passos.</p>
+     * 
+     * @param bookingId ID da reserva
+     * @param paymentMethod Método de pagamento escolhido
+     * @return Detalhes da intenção de pagamento criada
+     * @throws PaymentProcessingException se houver erro no processamento
+     */
+    @Transactional
+    public com.nexus.estates.dto.payment.PaymentIntent createPaymentIntent(Long bookingId, com.nexus.estates.dto.payment.PaymentMethod paymentMethod) {
+        return bookingPaymentService.createPaymentIntent(bookingId, paymentMethod);
+    }
+
+    /**
+     * Confirma um pagamento e atualiza o status da reserva.
+     * 
+     * <p>Após a confirmação bem-sucedida, a reserva é marcada como confirmada
+     * e um evento de atualização é publicado.</p>
+     * 
+     * @param bookingId ID da reserva
+     * @param paymentIntentId ID da intenção de pagamento a confirmar
+     * @return Confirmação do pagamento
+     * @throws PaymentProcessingException se houver erro na confirmação
+     */
+    @Transactional
+    public com.nexus.estates.dto.payment.PaymentConfirmation confirmPayment(Long bookingId, String paymentIntentId) {
+        java.util.Map<String, Object> metadata = java.util.Map.of(
+                "bookingId", bookingId.toString(),
+                "confirmedAt", java.time.LocalDateTime.now().toString()
+        );
+        
+        return bookingPaymentService.confirmPayment(paymentIntentId, metadata);
+    }
+
+    /**
+     * Processa um reembolso para uma reserva.
+     * 
+     * <p>Permite reembolsos parciais ou totais, dependendo da política
+     * de cancelamento e do provedor de pagamento.</p>
+     * 
+     * @param bookingId ID da reserva
+     * @param amount Valor do reembolso (null para reembolso total)
+     * @param reason Motivo do reembolso
+     * @return Resultado do reembolso
+     * @throws InvalidRefundException se o reembolso for inválido
+     * @throws PaymentProcessingException se houver erro no processamento
+     */
+    @Transactional
+    public com.nexus.estates.dto.payment.RefundResult processRefund(Long bookingId, java.math.BigDecimal amount, String reason) {
+        return bookingPaymentService.processRefund(bookingId, amount, reason);
     }
 }

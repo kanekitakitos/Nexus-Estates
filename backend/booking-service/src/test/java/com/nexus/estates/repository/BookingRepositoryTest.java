@@ -34,7 +34,7 @@ class BookingRepositoryTest {
         booking.setCheckOutDate(LocalDate.now().plusDays(5));
         booking.setStatus(BookingStatus.CONFIRMED);
         booking.setTotalPrice(BigDecimal.TEN);
-        booking.setGuestCount(1);
+        booking.setGuests(1);
         
         entityManager.persist(booking);
         entityManager.flush();
@@ -62,7 +62,7 @@ class BookingRepositoryTest {
         booking.setCheckOutDate(LocalDate.now().plusDays(5));
         booking.setStatus(BookingStatus.CONFIRMED);
         booking.setTotalPrice(BigDecimal.TEN);
-        booking.setGuestCount(1);
+        booking.setGuests(1);
         
         entityManager.persist(booking);
         entityManager.flush();

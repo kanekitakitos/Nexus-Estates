@@ -33,7 +33,7 @@ public class BookingMapper {
                 .userId(request.userId())
                 .checkInDate(request.checkInDate())
                 .checkOutDate(request.checkOutDate())
-                .guestCount(request.guestCount())
+                .guests(request.guestCount())
                 .status(BookingStatus.PENDING_PAYMENT) // Estado inicial obrigatório
                 .build();
     }
@@ -51,7 +51,7 @@ public class BookingMapper {
                 booking.getUserId(),
                 booking.getCheckInDate(),
                 booking.getCheckOutDate(),
-                booking.getGuestCount(),
+                booking.getGuests(),
                 booking.getTotalPrice(),
                 booking.getCurrency(),
                 booking.getStatus()

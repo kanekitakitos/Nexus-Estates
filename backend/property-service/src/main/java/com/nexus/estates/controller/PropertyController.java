@@ -70,7 +70,7 @@ public class PropertyController {
     }
 
     /**
-     * Cria uma nova propriedade.
+     * Cria uma propriedade.
      *
      * @param request dados da propriedade a criar via DTO
      * @return propriedade criada com status 201 Created
