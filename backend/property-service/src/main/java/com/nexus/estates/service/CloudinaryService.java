@@ -56,6 +56,10 @@ public class CloudinaryService implements ImageStorageService {
         // Adiciona o tempo de expiração para o frontend saber até quando o URL é válido
         params.put("expires_at", timestamp + (expirationMinutes * 60));
 
+        // Endpoint explícito de upload para o Frontend (processo completo client-side)
+        String uploadUrl = "https://api.cloudinary.com/v1_1/" + cloudinary.config.cloudName + "/auto/upload";
+        params.put("upload_url", uploadUrl);
+
         return params;
     }
 }

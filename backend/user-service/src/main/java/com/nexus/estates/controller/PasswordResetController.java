@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.*;
  * @since 2026-02-15
  */
 @RestController
-@RequestMapping("/api/v1/users/password")
+@RequestMapping("/api/users/auth/password")
 @RequiredArgsConstructor
 @Tag(name = "Recuperação de Password", description = "Endpoints para reset de password (esqueci-me da senha)")
 public class PasswordResetController {

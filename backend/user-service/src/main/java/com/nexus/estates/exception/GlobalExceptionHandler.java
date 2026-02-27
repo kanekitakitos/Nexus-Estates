@@ -1,7 +1,6 @@
 package com.nexus.estates.exception;
 
 import com.nexus.estates.common.dto.ApiResponse;
-import com.nexus.estates.common.dto.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,59 +10,49 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Controlador global para tratamento de exceções na aplicação.
+ * Handler global de exceções do User Service.
  * <p>
- * Utiliza {@link RestControllerAdvice} para intercetar exceções e formatá-las
- * numa resposta HTTP consistente, utilizando o wrapper {@link ApiResponse}.
+ * - Centraliza o tratamento de erros e garante respostas consistentes
+ *   usando a common-library ({@link com.nexus.estates.common.dto.ApiResponse}).
+ * - Para erros de validação, agrega mensagens por campo.
+ * - Para exceções conhecidas, mapeia para o HttpStatus correspondente.
  * </p>
  *
  * @author Nexus Estates Team
- * @version 1.2
+ * @version 1.0
+ * @see com.nexus.estates.common.dto.ApiResponse
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
-     * Constrói uma resposta de erro padronizada.
+     * Constrói uma resposta padronizada de erro com detalhes completos.
+     * Usa ApiResponse.error(status, error, message, path, validationErrors).
      *
-     * @param ex A exceção original.
-     * @param status O status HTTP a ser retornado.
-     * @param request O pedido HTTP que causou o erro.
-     * @param validationErrors Um mapa opcional de erros de validação.
-     * @return Um {@link ResponseEntity} contendo o {@link ApiResponse} de erro.
+     * @param ex exceção original
+     * @param status código HTTP a devolver
+     * @param request pedido HTTP que originou o erro
+     * @param validationErrors mapa de erros de validação (opcional)
+     * @return ResponseEntity com ApiResponse de erro
      */
     private <T> ResponseEntity<ApiResponse<T>> buildErrorResponse(Exception ex, HttpStatus status, HttpServletRequest request, Map<String, String> validationErrors) {
-        ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(status.value())
-                .error(status.getReasonPhrase())
-                .message(validationErrors != null ? "Um ou mais campos são inválidos." : ex.getMessage())
-                .path(request.getRequestURI());
-
-        if (validationErrors != null) {
-            errorBuilder.validationErrors(validationErrors);
-        }
-
-        ApiResponse<T> apiResponse = ApiResponse.<T>builder()
-                .success(false)
-                .message(validationErrors != null ? "Erro de validação" : ex.getMessage())
-                .error(errorBuilder.build())
-                .build();
-
+        ApiResponse<T> apiResponse = ApiResponse.error(
+                status.value(),
+                status.getReasonPhrase(),
+                validationErrors != null ? "Erro de validação" : ex.getMessage(),
+                request.getRequestURI(),
+                validationErrors
+        );
         return new ResponseEntity<>(apiResponse, status);
     }
 
     /**
-     * Trata exceções de validação de DTOs (Bean Validation).
-     *
-     * @param ex A exceção {@link MethodArgumentNotValidException}.
-     * @param request O pedido HTTP.
-     * @return Um ResponseEntity com status 400 (Bad Request) e os detalhes dos campos inválidos.
+     * Trata erros de validação (Bean Validation) e devolve 400 com
+     * o mapa de campos inválidos.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> handleValidationExceptions(MethodArgumentNotValidException ex, HttpServletRequest request) {
@@ -76,38 +65,29 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, request, errors);
     }
 
-    @ExceptionHandler(EmailAlreadyRegisteredException.class)
-    public ResponseEntity<ApiResponse<Object>> handleEmailAlreadyRegistered(EmailAlreadyRegisteredException ex, HttpServletRequest request) {
-        return buildErrorResponse(ex, HttpStatus.CONFLICT, request, null);
-    }
-
-    @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleUserNotFound(UserNotFoundException ex, HttpServletRequest request) {
-        return buildErrorResponse(ex, HttpStatus.NOT_FOUND, request, null);
-    }
-
-    @ExceptionHandler(InvalidCredentialsException.class)
-    public ResponseEntity<ApiResponse<Object>> handleInvalidCredentials(InvalidCredentialsException ex, HttpServletRequest request) {
-        return buildErrorResponse(ex, HttpStatus.UNAUTHORIZED, request, null);
-    }
-
     /**
-     * Trata exceções de acesso negado (403 Forbidden).
-     * <p>
-     *     Ocorre quando um utilizador autenticado tenta aceder a um recurso
-     *     para o qual não tem permissão (ex: @PreAuthorize falha).
-     * </p>
+     * Trata exceções conhecidas e mapeia para o HttpStatus apropriado:
+     * - EmailAlreadyRegisteredException → 409 CONFLICT
+     * - UserNotFoundException → 404 NOT_FOUND
+     * - InvalidCredentialsException → 401 UNAUTHORIZED
+     * - InvalidTokenException → 400 BAD_REQUEST
+     * - AccessDeniedException → 403 FORBIDDEN
      */
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(AccessDeniedException ex, HttpServletRequest request) {
-        return buildErrorResponse(ex, HttpStatus.FORBIDDEN, request, null);
-    }
-
-    /**
-     * Trata exceções de token inválido ou expirado (400 Bad Request).
-     */
-    @ExceptionHandler(InvalidTokenException.class)
-    public ResponseEntity<ApiResponse<Object>> handleInvalidTokenException(InvalidTokenException ex, HttpServletRequest request) {
-        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, request, null);
+    @ExceptionHandler({
+            EmailAlreadyRegisteredException.class,
+            UserNotFoundException.class,
+            InvalidCredentialsException.class,
+            InvalidTokenException.class,
+            AccessDeniedException.class
+    })
+    public ResponseEntity<ApiResponse<Object>> handleKnownExceptions(Exception ex, HttpServletRequest request) {
+        HttpStatus status =
+                ex instanceof EmailAlreadyRegisteredException ? HttpStatus.CONFLICT :
+                ex instanceof UserNotFoundException ? HttpStatus.NOT_FOUND :
+                ex instanceof InvalidCredentialsException ? HttpStatus.UNAUTHORIZED :
+                ex instanceof InvalidTokenException ? HttpStatus.BAD_REQUEST :
+                ex instanceof AccessDeniedException ? HttpStatus.FORBIDDEN :
+                HttpStatus.INTERNAL_SERVER_ERROR;
+        return buildErrorResponse(ex, status, request, null);
     }
 }

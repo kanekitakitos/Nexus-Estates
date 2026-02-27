@@ -60,16 +60,31 @@ public class RabbitMQConfig {
     private String bookingStatusUpdatedDlqRoutingKey;
 
     @Bean
+    /**
+     * Exchange principal para eventos de reservas.
+     *
+     * @return exchange do tipo {@link TopicExchange} para publicação/roteamento de eventos
+     */
     public TopicExchange bookingExchange() {
         return new TopicExchange(bookingExchangeName);
     }
 
     @Bean
+    /**
+     * Dead Letter Exchange (DLX) utilizada para mensagens rejeitadas.
+     *
+     * @return exchange do tipo {@link TopicExchange} para encaminhamento de DLQs
+     */
     public TopicExchange bookingDeadLetterExchange() {
         return new TopicExchange(bookingDeadLetterExchangeName);
     }
 
     @Bean
+    /**
+     * Fila para eventos de criação de reservas com DLQ configurada.
+     *
+     * @return fila durável com argumentos de DLX e routing-key de DLQ
+     */
     public Queue bookingCreatedQueue() {
         return QueueBuilder
                 .durable(bookingCreatedQueueName)
@@ -79,6 +94,11 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    /**
+     * Dead Letter Queue para eventos de criação de reservas.
+     *
+     * @return fila durável dedicada a DLQ de booking.created
+     */
     public Queue bookingCreatedDlqQueue() {
         return QueueBuilder
                 .durable(bookingCreatedDlqQueueName)
@@ -86,6 +106,13 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    /**
+     * Binding entre a fila de criação de reservas e a exchange principal.
+     *
+     * @param bookingCreatedQueue fila alvo
+     * @param bookingExchange exchange fonte
+     * @return binding configurado com routing-key específica
+     */
     public Binding bookingCreatedBinding(Queue bookingCreatedQueue, TopicExchange bookingExchange) {
         return BindingBuilder
                 .bind(bookingCreatedQueue)
@@ -94,6 +121,13 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    /**
+     * Binding entre a DLQ de criação de reservas e a Dead Letter Exchange.
+     *
+     * @param bookingCreatedDlqQueue fila DLQ
+     * @param bookingDeadLetterExchange DLX
+     * @return binding de DLQ com routing-key dedicada
+     */
     public Binding bookingCreatedDlqBinding(Queue bookingCreatedDlqQueue, TopicExchange bookingDeadLetterExchange) {
         return BindingBuilder
                 .bind(bookingCreatedDlqQueue)
@@ -102,6 +136,11 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    /**
+     * Fila para eventos de atualização de estado de reservas com DLQ configurada.
+     *
+     * @return fila durável com argumentos de DLX e routing-key de DLQ
+     */
     public Queue bookingStatusUpdatedQueue() {
         return QueueBuilder
                 .durable(bookingStatusUpdatedQueueName)
@@ -111,6 +150,11 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    /**
+     * Dead Letter Queue para eventos de atualização de estado.
+     *
+     * @return fila durável dedicada a DLQ de booking.status.updated
+     */
     public Queue bookingStatusUpdatedDlqQueue() {
         return QueueBuilder
                 .durable(bookingStatusUpdatedDlqQueueName)
@@ -118,6 +162,13 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    /**
+     * Binding entre a fila de atualização de estado e a exchange principal.
+     *
+     * @param bookingStatusUpdatedQueue fila alvo
+     * @param bookingExchange exchange fonte
+     * @return binding configurado com routing-key específica
+     */
     public Binding bookingStatusUpdatedBinding(Queue bookingStatusUpdatedQueue, TopicExchange bookingExchange) {
         return BindingBuilder
                 .bind(bookingStatusUpdatedQueue)
@@ -126,6 +177,13 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    /**
+     * Binding entre a DLQ de atualização de estado e a Dead Letter Exchange.
+     *
+     * @param bookingStatusUpdatedDlqQueue fila DLQ
+     * @param bookingDeadLetterExchange DLX
+     * @return binding de DLQ com routing-key dedicada
+     */
     public Binding bookingStatusUpdatedDlqBinding(Queue bookingStatusUpdatedDlqQueue, TopicExchange bookingDeadLetterExchange) {
         return BindingBuilder
                 .bind(bookingStatusUpdatedDlqQueue)
@@ -134,11 +192,23 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    /**
+     * Conversor de mensagens para JSON usando Jackson.
+     *
+     * @return {@link Jackson2JsonMessageConverter} para serialização/deserialização
+     */
     public MessageConverter jacksonMessageConverter() {
         return new Jackson2JsonMessageConverter();
     }
 
     @Bean
+    /**
+     * Template de acesso ao RabbitMQ com conversor JSON por defeito.
+     *
+     * @param connectionFactory fábrica de conexões ao broker
+     * @param jacksonMessageConverter conversor de mensagem
+     * @return {@link RabbitTemplate} configurado
+     */
     public RabbitTemplate rabbitTemplate(org.springframework.amqp.rabbit.connection.ConnectionFactory connectionFactory,
                                          MessageConverter jacksonMessageConverter) {
         RabbitTemplate template = new RabbitTemplate(connectionFactory);
@@ -147,6 +217,13 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    /**
+     * Fábrica de containers para listeners com política de rejeição sem requeue.
+     *
+     * @param connectionFactory fábrica de conexões ao broker
+     * @param jacksonMessageConverter conversor de mensagens
+     * @return {@link SimpleRabbitListenerContainerFactory} ajustada para DLQ
+     */
     public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(org.springframework.amqp.rabbit.connection.ConnectionFactory connectionFactory,
                                                                                MessageConverter jacksonMessageConverter) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();

@@ -16,7 +16,7 @@ import java.util.Map;
 /**
  * Serviço especializado no processamento e envio de comunicações eletrónicas.
  * Utiliza o JavaMailSender para o protocolo SMTP e Thymeleaf para renderização de HTML.
- * * @author Equipa Nexus Estates
+ * @author Equipa Nexus Estates
  * @version 1.0
  */
 @Service
@@ -31,7 +31,7 @@ public class EmailService {
      * Envia um e-mail baseado num template HTML de forma assíncrona.
      * O método utiliza o executor do Spring para não bloquear a thread principal
      * de consumo de mensagens do RabbitMQ.
-     * * @param to           Endereço de e-mail do destinatário.
+     * @param to           Endereço de e-mail do destinatário.
      * @param subject      Assunto da mensagem.
      * @param templateName Nome do ficheiro HTML em src/main/resources/templates/emails/.
      * @param variables    Mapa de objetos para preenchimento dos campos dinâmicos no Thymeleaf.
