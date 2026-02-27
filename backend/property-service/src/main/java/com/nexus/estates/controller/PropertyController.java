@@ -3,7 +3,7 @@ package com.nexus.estates.controller;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.service.PropertyService;
-import com.nexus.estates.service.CloudinaryService;
+import com.nexus.estates.service.ImageStorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -30,33 +30,33 @@ import java.util.concurrent.CompletableFuture;
  * @since 2026-02-13
  */
 @RestController
-@RequestMapping("/api/properties")
+@RequestMapping("/api/v1/properties")
 @Tag(name = "Property API", description = "Gestão de propriedades da Nexus Estates")
 public class PropertyController {
 
     private final PropertyService service;
-    private final CloudinaryService cloudinaryService;
+    private final ImageStorageService imageStorageService;
 
     /**
      * Construtor do controller.
      *
      * @param service serviço responsável pela lógica de negócio das propriedades
-     * @param cloudinaryService serviço responsável pela integração com Cloudinary
+     * @param imageStorageService serviço responsável pela integração com armazenamento de imagens
      */
-    public PropertyController(PropertyService service, CloudinaryService cloudinaryService) {
+    public PropertyController(PropertyService service, ImageStorageService imageStorageService) {
         this.service = service;
-        this.cloudinaryService = cloudinaryService;
+        this.imageStorageService = imageStorageService;
     }
 
     /**
-     * Gera parâmetros de upload para o Cloudinary de forma assíncrona.
+     * Gera parâmetros de upload para o serviço de armazenamento de forma assíncrona.
      *
      * <p>Permite que o frontend faça upload de fotos diretamente para a cloud
      * de forma segura, sem sobrecarregar a thread principal do servidor.</p>
      *
      * @return CompletableFuture com os parâmetros de autenticação
      */
-    @Operation(summary = "Obter parâmetros de upload (inclui upload_url e expires_at)", description = "Gera assinatura segura e devolve upload_url para o endpoint de upload do Cloudinary, além de expires_at (15 min) para o Frontend concluir o upload direto. Requer role OWNER.")
+    @Operation(summary = "Obter parâmetros de upload", description = "Gera uma assinatura segura para upload de fotos. Requer role OWNER.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Parâmetros gerados com sucesso"),
             @ApiResponse(responseCode = "403", description = "Acesso negado - Requer permissão de OWNER")
@@ -65,7 +65,7 @@ public class PropertyController {
     @PreAuthorize("hasRole('OWNER')")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> getUploadParams() {
         return CompletableFuture.supplyAsync(() ->
-                ResponseEntity.ok(cloudinaryService.getUploadParameters())
+                ResponseEntity.ok(imageStorageService.getUploadParameters())
         );
     }
 
