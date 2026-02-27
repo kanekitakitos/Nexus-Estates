@@ -11,15 +11,16 @@ import com.nexus.estates.messaging.BookingEventPublisher;
 import com.nexus.estates.repository.BookingRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import com.nexus.estates.client.Proxy;
 
 import java.math.BigDecimal;
 
 /**
  * Serviço de domínio responsável pela execução da lógica de negócio de Reservas.
- * <p>
- * Implementa o padrão <i>Transaction Script</i> para garantir a integridade das operações
- * de reserva. Gerencia validações de domínio, cálculos financeiros e interação com a camada de dados.
- * </p>
+ *
+ * <p>Implementa o padrão <i>Transaction Script</i> para garantir a integridade e atomicidade
+ * das operações de reserva. Este serviço orquestra validações de domínio, cálculos financeiros,
+ * comunicação com serviços externos e persistência de dados.</p>
  *
  * @see BookingRepository
  * @author Nexus Estates Team
@@ -34,31 +35,35 @@ public class BookingService
     private final BookingEventPublisher bookingEventPublisher;
     private final BookingPaymentService bookingPaymentService;
 
+    private final Proxy api;
+
     /**
      * Construtor padrão para injeção de dependências.
      *
-     * @param bookingRepository Interface de acesso aos dados persistidos.
+     * @param bookingRepository ‘Interface’ de acesso aos dados persistidos.
      * @param bookingEventPublisher Componente responsável pela publicação de eventos de reserva.
      * @param bookingPaymentService Serviço para processamento de pagamentos.
+     * @param api Facade para comunicação com microservices externos (Propriedades, Utilizadores).
      */
-    public BookingService(BookingRepository bookingRepository, BookingEventPublisher bookingEventPublisher, BookingPaymentService bookingPaymentService)
+    public BookingService(BookingRepository bookingRepository, BookingEventPublisher bookingEventPublisher, BookingPaymentService bookingPaymentService,Proxy api)
     {
         this.bookingRepository = bookingRepository;
 
         this.bookingEventPublisher = bookingEventPublisher;
         this.bookingPaymentService = bookingPaymentService;
+
+        this.api = api;
     }
 
     /**
      * Executa o fluxo de criação de uma reserva de forma atómica.
-     * <p>
-     * <b>Regras de Negócio:</b>
-     * <ol>
-     *   <li>A data de check-out deve ser estritamente posterior à data de check-in.</li>
-     *   <li>A propriedade não pode ter reservas confirmadas ou pendentes que coincidam com o período solicitado.</li>
-     *   <li>O preço total é calculado com base na tarifa diária (mock) e duração da estadia.</li>
-     * </ol>
-     * </p>
+     *
+     * <p><b>Regras de Negócio aplicadas:</b></p>
+     * <ul>
+     *   <li>Validação temporal: Check-out deve ser posterior ao Check-in.</li>
+     *   <li>Verificação de disponibilidade: Impede sobreposição de reservas (Double Booking).</li>
+     *   <li>Cálculo financeiro: Determina o custo total com base na tarifa obtida externamente.</li>
+     * </ul>
      *
      * @param request O pedido de criação contendo os dados validados.
      * @return A resposta contendo os dados da reserva persistida.
@@ -122,7 +127,9 @@ public class BookingService
      */
     private BigDecimal calculateTotalPrice(CreateBookingRequest request)
     {
-            BigDecimal pricePerNight = new BigDecimal("100.00");
+                                        // Entramos no api para outros modulos
+                                        // usamos especificamente o cliente de property
+            BigDecimal pricePerNight = api.propertyClient().getPropertyPrice(request.userId());
             long days = request.checkOutDate().toEpochDay() - request.checkInDate().toEpochDay();
         return pricePerNight.multiply(BigDecimal.valueOf(days));
     }
