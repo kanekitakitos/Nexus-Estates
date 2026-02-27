@@ -1,14 +1,18 @@
 package com.nexus.estates.dto.payment;
 
 /**
- * Enum que representa os diferentes métodos de pagamento suportados.
+ * Enum que representa os diferentes métodos de pagamento suportados pelo sistema.
+ * <p>
+ * Fornece uma abstração comum para normalizar os métodos de pagamento entre diferentes
+ * provedores (Stripe, PayPal, etc.), facilitando a lógica de negócio e a persistência.
+ * </p>
  * 
- * Cada provedor pode suportar diferentes métodos, e este enum
- * fornece uma abstração comum para todos eles.
+ * @author Nexus Estates Team
+ * @version 1.0
  */
 public enum PaymentMethod {
     /**
-     * Cartão de crédito.
+     * Cartão de crédito (Visa, Mastercard, Amex, etc.).
      */
     CREDIT_CARD,
     
@@ -18,52 +22,52 @@ public enum PaymentMethod {
     DEBIT_CARD,
     
     /**
-     * Transferência bancária (SEPA, ACH, etc.).
+     * Transferência bancária direta (SEPA, ACH, Wire).
      */
     BANK_TRANSFER,
     
     /**
-     * Boleto bancário (Brasil).
+     * Boleto bancário (método comum no Brasil).
      */
     BOLETO,
     
     /**
-     * Multibanco (Portugal).
+     * Multibanco (método comum em Portugal).
      */
     MULTIBANCO,
     
     /**
-     * PayPal.
+     * PayPal (carteira digital).
      */
     PAYPAL,
     
     /**
-     * Apple Pay.
+     * Apple Pay (carteira digital).
      */
     APPLE_PAY,
     
     /**
-     * Google Pay.
+     * Google Pay (carteira digital).
      */
     GOOGLE_PAY,
     
     /**
-     * MB Way (Portugal).
+     * MB Way (pagamento móvel em Portugal).
      */
     MB_WAY,
     
     /**
-     * Cartão de crédito/débito pré-pago.
+     * Cartão pré-pago.
      */
     PREPAID_CARD,
     
     /**
-     * Criptomoeda.
+     * Criptomoedas (Bitcoin, Ethereum, etc.).
      */
     CRYPTOCURRENCY,
     
     /**
-     * Método desconhecido ou não mapeado.
+     * Método de pagamento não reconhecido ou não mapeado especificamente.
      */
     UNKNOWN
 }

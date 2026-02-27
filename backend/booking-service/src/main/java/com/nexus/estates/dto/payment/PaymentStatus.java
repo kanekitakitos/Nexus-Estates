@@ -1,59 +1,63 @@
 package com.nexus.estates.dto.payment;
 
 /**
- * Enum que representa os possíveis status de um pagamento.
+ * Enum que representa os possíveis estados do ciclo de vida de um pagamento.
+ * <p>
+ * Utilizado para rastrear o progresso de transações financeiras desde a iniciação
+ * até a conclusão, falha ou reembolso.
+ * </p>
  * 
- * Os status cobrem todo o ciclo de vida de um pagamento,
- * desde a criação até a conclusão ou falha.
+ * @author Nexus Estates Team
+ * @version 1.0
  */
 public enum PaymentStatus {
     /**
-     * Pagamento criado mas aguardando confirmação ou ação do utilizador.
+     * O pagamento foi criado mas aguarda ação do usuário ou confirmação inicial.
      */
     PENDING,
     
     /**
-     * Pagamento está sendo processado pelo provedor.
+     * O pagamento está sendo processado pelo provedor (estado transitório).
      */
     PROCESSING,
     
     /**
-     * Pagamento foi bem sucedido e está completo.
+     * O pagamento foi autorizado e capturado com sucesso.
      */
     SUCCEEDED,
     
     /**
-     * Pagamento falhou por algum motivo.
+     * O pagamento falhou devido a erro, recusa ou expiração.
      */
     FAILED,
     
     /**
-     * Pagamento foi cancelado antes da conclusão.
+     * O pagamento foi cancelado antes de ser concluído.
      */
     CANCELLED,
     
     /**
-     * Pagamento requer ação adicional do utilizador (ex: 3D Secure).
+     * O pagamento requer uma ação adicional do usuário (ex: autenticação 3D Secure).
      */
     REQUIRES_ACTION,
     
     /**
-     * Pagamento foi autorizado mas aguardando captura.
+     * O pagamento foi autorizado mas aguarda captura manual ou automática.
      */
     REQUIRES_CAPTURE,
     
     /**
-     * Pagamento foi parcialmente reembolsado.
+     * O pagamento foi parcialmente reembolsado.
      */
     PARTIALLY_REFUNDED,
     
     /**
-     * Pagamento foi totalmente reembolsado.
+     * O pagamento foi totalmente reembolsado.
      */
     FULLY_REFUNDED,
     
     /**
-     * Status desconhecido ou não mapeado.
+     * O estado do pagamento é desconhecido ou não mapeado.
      */
     UNKNOWN
 }

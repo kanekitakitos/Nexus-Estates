@@ -4,11 +4,11 @@ import com.nexus.estates.dto.payment.*;
 import com.nexus.estates.entity.Booking;
 import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.exception.PaymentNotFoundException;
-import com.nexus.estates.exception.PaymentProcessingException;
 import com.nexus.estates.messaging.BookingEventPublisher;
 import com.nexus.estates.repository.BookingRepository;
 import com.nexus.estates.common.messaging.BookingUpdatedMessage;
 import com.nexus.estates.common.messaging.BookingCancelledMessage;
+import com.nexus.estates.service.interfaces.PaymentGatewayProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,29 +49,22 @@ class BookingPaymentServiceTest {
         PaymentMethod paymentMethod = PaymentMethod.CREDIT_CARD;
         Booking booking = createTestBooking(bookingId, BookingStatus.PENDING_PAYMENT);
         
-        PaymentIntent expectedIntent = new PaymentIntent(
+        PaymentResponse.Intent expectedIntent = new PaymentResponse.Intent(
             "pi_123",
-            "Stripe",
+            "client_secret_123",
             new BigDecimal("300.00"),
             "EUR",
-            bookingId.toString(),
             PaymentStatus.PENDING,
-            "client_secret_123",
-            LocalDateTime.now(),
-            null,
-            Map.of(),
-            null,
-            false,
-            null
+            Map.of()
         );
 
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
         when(paymentGatewayProvider.createPaymentIntent(any(), any(), any(), any())).thenReturn(expectedIntent);
 
-        PaymentIntent result = bookingPaymentService.createPaymentIntent(bookingId, paymentMethod);
+        PaymentResponse result = bookingPaymentService.createPaymentIntent(bookingId, paymentMethod);
 
         assertThat(result).isNotNull();
-        assertThat(result.id()).isEqualTo("pi_123");
+        assertThat(result.transactionId()).isEqualTo("pi_123");
         verify(paymentGatewayProvider).createPaymentIntent(
             eq(new BigDecimal("300.00")),
             eq("EUR"),
@@ -118,19 +111,18 @@ class BookingPaymentServiceTest {
         String paymentIntentId = "pi_123";
         Map<String, Object> metadata = Map.of("bookingId", "1");
         
-        PaymentConfirmation confirmation = new PaymentConfirmation(
+        PaymentResponse.Success confirmation = new PaymentResponse.Success(
             paymentIntentId,
             paymentIntentId,
+            new BigDecimal("300.00"),
+            "EUR",
             PaymentStatus.SUCCEEDED,
             LocalDateTime.now(),
-            "auth_code",
             "receipt_url",
-            metadata,
+            "auth_code",
             BigDecimal.ZERO,
-            "card",
-            "4242",
-            "visa",
-            false
+            new PaymentResponse.PaymentMethodDetails("card", "4242", "visa"),
+            metadata
         );
         
         Booking booking = createTestBooking(1L, BookingStatus.PENDING_PAYMENT);
@@ -138,9 +130,10 @@ class BookingPaymentServiceTest {
         when(paymentGatewayProvider.confirmPaymentIntent(paymentIntentId, metadata)).thenReturn(confirmation);
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
 
-        PaymentConfirmation result = bookingPaymentService.confirmPayment(paymentIntentId, metadata);
+        PaymentResponse result = bookingPaymentService.confirmPayment(paymentIntentId, metadata);
 
         assertThat(result).isNotNull();
+        assertThat(result).isInstanceOf(PaymentResponse.Success.class);
         assertThat(result.status()).isEqualTo(PaymentStatus.SUCCEEDED);
         verify(eventPublisher).publishBookingUpdated(any(BookingUpdatedMessage.class));
     }
@@ -152,28 +145,24 @@ class BookingPaymentServiceTest {
         PaymentMethod paymentMethod = PaymentMethod.CREDIT_CARD;
         Booking booking = createTestBooking(bookingId, BookingStatus.PENDING_PAYMENT);
         
-        PaymentResult expectedResult = new PaymentResult(
+        PaymentResponse.Success expectedResult = new PaymentResponse.Success(
             "tx_123",
             "tx_123",
             new BigDecimal("300.00"),
             "EUR",
             PaymentStatus.SUCCEEDED,
             LocalDateTime.now(),
-            "auth_code",
             "receipt_url",
-            Map.of(),
-            null,
-            null,
+            "auth_code",
             BigDecimal.ZERO,
-            "card",
-            false,
-            null
+            new PaymentResponse.PaymentMethodDetails("card", "4242", "visa"),
+            Map.of()
         );
 
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
         when(paymentGatewayProvider.processDirectPayment(any(), any(), any(), any(), any())).thenReturn(expectedResult);
 
-        PaymentResult result = bookingPaymentService.processDirectPayment(bookingId, paymentMethod);
+        PaymentResponse result = bookingPaymentService.processDirectPayment(bookingId, paymentMethod);
 
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(PaymentStatus.SUCCEEDED);
@@ -235,7 +224,7 @@ class BookingPaymentServiceTest {
     void shouldGetTransactionDetailsSuccessfully() {
         String transactionId = "tx_123";
         
-        TransactionDetails expectedDetails = new TransactionDetails(
+        TransactionInfo expectedDetails = new TransactionInfo(
             transactionId,
             transactionId,
             new BigDecimal("300.00"),
@@ -244,27 +233,25 @@ class BookingPaymentServiceTest {
             LocalDateTime.now(),
             LocalDateTime.now(),
             "booking_1",
-            "cust_123",
-            "test@test.com",
-            "Test User",
+            Optional.of("cust_123"),
+            Optional.of("test@test.com"),
+            Optional.of("Test User"),
             PaymentMethod.CREDIT_CARD,
-            "card",
-            "4242",
-            "visa",
-            "auth_code",
-            "receipt_url",
+            new PaymentResponse.PaymentMethodDetails("card", "4242", "visa"),
+            Optional.of("auth_code"),
+            Optional.of("receipt_url"),
+            Optional.of(BigDecimal.ZERO),
             BigDecimal.ZERO,
-            BigDecimal.ZERO,
-            null,
-            null,
-            Map.of(),
             true,
-            new BigDecimal("300.00")
+            Optional.of(new BigDecimal("300.00")),
+            Optional.empty(),
+            Optional.empty(),
+            Map.of()
         );
 
         when(paymentGatewayProvider.getTransactionDetails(transactionId)).thenReturn(expectedDetails);
 
-        TransactionDetails result = bookingPaymentService.getTransactionDetails(transactionId);
+        TransactionInfo result = bookingPaymentService.getTransactionDetails(transactionId);
 
         assertThat(result).isNotNull();
         assertThat(result.transactionId()).isEqualTo(transactionId);

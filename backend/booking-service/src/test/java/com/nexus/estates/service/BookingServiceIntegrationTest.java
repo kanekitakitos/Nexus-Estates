@@ -2,7 +2,7 @@ package com.nexus.estates.service;
 
 import com.nexus.estates.dto.BookingResponse;
 import com.nexus.estates.dto.CreateBookingRequest;
-import com.nexus.estates.dto.payment.PaymentConfirmation;
+import com.nexus.estates.dto.payment.PaymentResponse;
 import com.nexus.estates.dto.payment.PaymentStatus;
 import com.nexus.estates.dto.payment.RefundResult;
 import com.nexus.estates.dto.payment.RefundStatus;
@@ -89,19 +89,18 @@ class BookingServiceIntegrationTest {
         Long bookingId = 1L;
         String paymentIntentId = "pi_123456";
         
-        PaymentConfirmation confirmation = new PaymentConfirmation(
+        PaymentResponse.Success confirmation = new PaymentResponse.Success(
             paymentIntentId,
             paymentIntentId,
+            new BigDecimal("300.00"),
+            "EUR",
             PaymentStatus.SUCCEEDED,
             LocalDateTime.now(),
-            "auth_code",
             "receipt_url",
-            Map.of(),
+            "auth_code",
             BigDecimal.ZERO,
-            "card",
-            "4242",
-            "visa",
-            false
+            new PaymentResponse.PaymentMethodDetails("card", "4242", "visa"),
+            Map.of()
         );
 
         // Mock comportamentos
@@ -109,7 +108,7 @@ class BookingServiceIntegrationTest {
                 .thenReturn(confirmation);
 
         // Act
-        PaymentConfirmation result = bookingService.confirmPayment(bookingId, paymentIntentId);
+        PaymentResponse result = bookingService.confirmPayment(bookingId, paymentIntentId);
 
         // Assert
         assertThat(result.status()).isEqualTo(PaymentStatus.SUCCEEDED);

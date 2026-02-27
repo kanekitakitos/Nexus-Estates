@@ -3,7 +3,6 @@ package com.nexus.estates.service;
 import com.nexus.estates.dto.payment.*;
 import com.nexus.estates.exception.PaymentProcessingException;
 import com.stripe.exception.StripeException;
-import com.stripe.model.PaymentIntentCollection;
 import com.stripe.model.Refund;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,7 +14,6 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -58,13 +56,16 @@ class StripePaymentProviderTest {
             paymentIntentMock.when(() -> com.stripe.model.PaymentIntent.create(any(com.stripe.param.PaymentIntentCreateParams.class)))
                     .thenReturn(stripePaymentIntent);
 
-            PaymentIntent result = stripePaymentProvider.createPaymentIntent(amount, currency, referenceId, metadata);
+            PaymentResponse result = stripePaymentProvider.createPaymentIntent(amount, currency, referenceId, metadata);
 
             assertThat(result).isNotNull();
-            assertThat(result.id()).isEqualTo("pi_123456");
-            assertThat(result.status()).isEqualTo(PaymentStatus.PENDING);
-            assertThat(result.currency()).isEqualTo("eur");
-            assertThat(result.amount()).isEqualByComparingTo(amount);
+            assertThat(result).isInstanceOf(PaymentResponse.Intent.class);
+            PaymentResponse.Intent intent = (PaymentResponse.Intent) result;
+            assertThat(intent.transactionId()).isEqualTo("pi_123456");
+            assertThat(intent.status()).isEqualTo(PaymentStatus.PENDING);
+            assertThat(intent.currency()).isEqualTo("eur");
+            assertThat(intent.amount()).isEqualByComparingTo(amount);
+            assertThat(intent.clientSecret()).isEqualTo("secret_123");
 
             ArgumentCaptor<com.stripe.param.PaymentIntentCreateParams> paramsCaptor = 
                     ArgumentCaptor.forClass(com.stripe.param.PaymentIntentCreateParams.class);
@@ -115,11 +116,15 @@ class StripePaymentProviderTest {
 
             when(confirmedIntent.getId()).thenReturn(paymentIntentId);
             when(confirmedIntent.getStatus()).thenReturn("succeeded");
-            // Removed unused stubbings for currency and amount as they are not checked in PaymentConfirmation result for this method
+            when(confirmedIntent.getCurrency()).thenReturn("eur");
+            when(confirmedIntent.getAmount()).thenReturn(30000L);
+            when(confirmedIntent.getReceiptEmail()).thenReturn("receipt_url");
+            when(confirmedIntent.getMetadata()).thenReturn(Map.of());
 
-            PaymentConfirmation result = stripePaymentProvider.confirmPaymentIntent(paymentIntentId, metadata);
+            PaymentResponse result = stripePaymentProvider.confirmPaymentIntent(paymentIntentId, metadata);
 
             assertThat(result).isNotNull();
+            assertThat(result).isInstanceOf(PaymentResponse.Success.class);
             assertThat(result.transactionId()).isEqualTo(paymentIntentId);
             assertThat(result.status()).isEqualTo(PaymentStatus.SUCCEEDED);
         }
@@ -141,7 +146,7 @@ class StripePaymentProviderTest {
             paymentIntentMock.when(() -> com.stripe.model.PaymentIntent.retrieve(paymentIntentId))
                     .thenReturn(stripePaymentIntent);
 
-            TransactionDetails result = stripePaymentProvider.getTransactionDetails(paymentIntentId);
+            TransactionInfo result = stripePaymentProvider.getTransactionDetails(paymentIntentId);
 
             assertThat(result).isNotNull();
             assertThat(result.transactionId()).isEqualTo(paymentIntentId);
@@ -205,7 +210,7 @@ class StripePaymentProviderTest {
             paymentIntentMock.when(() -> com.stripe.model.PaymentIntent.retrieve(transactionId))
                     .thenReturn(stripePaymentIntent);
 
-            TransactionDetails result = stripePaymentProvider.getTransactionDetails(transactionId);
+            TransactionInfo result = stripePaymentProvider.getTransactionDetails(transactionId);
 
             assertThat(result).isNotNull();
             assertThat(result.transactionId()).isEqualTo(transactionId);
@@ -238,10 +243,12 @@ class StripePaymentProviderTest {
             paymentIntentMock.when(() -> com.stripe.model.PaymentIntent.create(any(com.stripe.param.PaymentIntentCreateParams.class)))
                     .thenReturn(stripePaymentIntent);
 
-            PaymentIntent result = stripePaymentProvider.createPaymentIntent(amount, currency, referenceId, metadata);
+            PaymentResponse result = stripePaymentProvider.createPaymentIntent(amount, currency, referenceId, metadata);
 
-            assertThat(result.amount()).isEqualByComparingTo(amount);
-            assertThat(result.currency()).isEqualTo("usd");
+            assertThat(result).isInstanceOf(PaymentResponse.Intent.class);
+            PaymentResponse.Intent intent = (PaymentResponse.Intent) result;
+            assertThat(intent.amount()).isEqualByComparingTo(amount);
+            assertThat(intent.currency()).isEqualTo("usd");
 
             ArgumentCaptor<com.stripe.param.PaymentIntentCreateParams> paramsCaptor = 
                     ArgumentCaptor.forClass(com.stripe.param.PaymentIntentCreateParams.class);

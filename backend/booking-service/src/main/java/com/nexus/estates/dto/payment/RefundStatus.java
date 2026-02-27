@@ -1,39 +1,42 @@
 package com.nexus.estates.dto.payment;
 
 /**
- * Enum que representa os possíveis status de um reembolso.
+ * Enum que representa os possíveis estados do ciclo de vida de um reembolso.
+ * <p>
+ * Utilizado para rastrear o progresso de estornos financeiros.
+ * </p>
  * 
- * Os status cobrem todo o ciclo de vida de um reembolso,
- * desde o pedido até a conclusão ou falha.
+ * @author Nexus Estates Team
+ * @version 1.0
  */
 public enum RefundStatus {
     /**
-     * Reembolso foi solicitado mas ainda não processado.
+     * O reembolso foi solicitado e está na fila para processamento.
      */
     PENDING,
     
     /**
-     * Reembolso está sendo processado pelo provedor.
+     * O reembolso está sendo processado pelo provedor.
      */
     PROCESSING,
     
     /**
-     * Reembolso foi bem sucedido e está completo.
+     * O reembolso foi concluído com sucesso e o valor devolvido.
      */
     SUCCEEDED,
     
     /**
-     * Reembolso falhou por algum motivo.
+     * O reembolso falhou devido a erro, recusa ou expiração.
      */
     FAILED,
     
     /**
-     * Reembolso foi cancelado antes da conclusão.
+     * O reembolso foi cancelado antes de ser concluído.
      */
     CANCELLED,
     
     /**
-     * Status desconhecido ou não mapeado.
+     * O estado do reembolso é desconhecido ou não mapeado.
      */
     UNKNOWN
 }

@@ -56,32 +56,16 @@ public record CreateBookingRequest(
 ) {
 
 
-        /**
+    /**
      * Converte um pedido de criação de reserva numa entidade {@link Booking}.
      * <p>
      * Define o estado inicial da reserva como {@code PENDING_PAYMENT}.
      * </p>
      *
-     * @param request O DTO com os dados do pedido.
      * @return A entidade {@link Booking} pronta a ser persistida (sem ID gerado ainda).
      */
-    public Booking toEntity(CreateBookingRequest request) {
-        return Booking.builder()
-                .propertyId(request.propertyId())
-                .userId(request.userId())
-                .checkInDate(request.checkInDate())
-                .checkOutDate(request.checkOutDate())
-                .guests(request.guestCount())
-                .status(BookingStatus.PENDING_PAYMENT) // Estado inicial obrigatório
-                .build();
-    }
-
-
-
-
-
-        public Booking toEntity()
-        {
+    public Booking toEntity()
+    {
                 return Booking.builder()
                         .propertyId(this.propertyId())
                         .userId(this.userId())
@@ -90,5 +74,5 @@ public record CreateBookingRequest(
                         .guests(this.guestCount())
                         .status(BookingStatus.PENDING_PAYMENT) // Estado inicial obrigatório
                         .build();
-        }
+    }
 }

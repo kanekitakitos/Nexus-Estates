@@ -7,6 +7,7 @@ import com.nexus.estates.exception.PaymentNotFoundException;
 import com.nexus.estates.exception.PaymentProcessingException;
 import com.nexus.estates.messaging.BookingEventPublisher;
 import com.nexus.estates.repository.BookingRepository;
+import com.nexus.estates.service.interfaces.PaymentGatewayProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +25,7 @@ import java.util.Optional;
  * </p>
  *
  * @author Nexus Estates Team
- * @version 1.0
+ * @version 1.1
  * @see PaymentGatewayProvider
  * @see BookingRepository
  * @see BookingEventPublisher
@@ -61,13 +62,13 @@ public class BookingPaymentService {
      *
      * @param bookingId O ID da reserva para a qual o pagamento será criado.
      * @param paymentMethod O método de pagamento selecionado pelo usuário.
-     * @return Um objeto {@link PaymentIntent} contendo os detalhes para prosseguir com o pagamento.
+     * @return Um objeto {@link PaymentResponse} contendo os detalhes para prosseguir com o pagamento.
      * @throws PaymentProcessingException Se ocorrer um erro ao comunicar com o gateway de pagamento.
      * @throws IllegalArgumentException Se a reserva não for encontrada.
      * @throws IllegalStateException Se a reserva não estiver em um estado válido para pagamento.
      */
     @Transactional
-    public PaymentIntent createPaymentIntent(Long bookingId, PaymentMethod paymentMethod) {
+    public PaymentResponse createPaymentIntent(Long bookingId, PaymentMethod paymentMethod) {
         Booking booking = findBookingById(bookingId);
         
         validateBookingForPayment(booking);
@@ -75,17 +76,17 @@ public class BookingPaymentService {
         Map<String, Object> metadata = createPaymentMetadata(booking);
         
         try {
-            PaymentIntent intent = paymentGatewayProvider.createPaymentIntent(
+            PaymentResponse response = paymentGatewayProvider.createPaymentIntent(
                 booking.getTotalPrice(),
                 "EUR",
                 booking.getId().toString(),
                 metadata
             );
             
-            booking.setPaymentIntentId(intent.id());
+            booking.setPaymentIntentId(response.transactionId());
             bookingRepository.save(booking);
             
-            return intent;
+            return response;
         } catch (Exception e) {
             throw new PaymentProcessingException(
                 "Failed to create payment intent for booking " + bookingId,
@@ -106,23 +107,23 @@ public class BookingPaymentService {
      *
      * @param paymentIntentId O ID da intenção de pagamento a ser confirmada.
      * @param metadata Metadados adicionais fornecidos durante a confirmação.
-     * @return Um objeto {@link PaymentConfirmation} com o resultado da operação.
+     * @return Um objeto {@link PaymentResponse} com o resultado da operação.
      * @throws PaymentProcessingException Se ocorrer um erro durante a confirmação do pagamento.
      */
     @Transactional
-    public PaymentConfirmation confirmPayment(String paymentIntentId, Map<String, Object> metadata) {
+    public PaymentResponse confirmPayment(String paymentIntentId, Map<String, Object> metadata) {
         try {
-            PaymentConfirmation confirmation = paymentGatewayProvider.confirmPaymentIntent(paymentIntentId, metadata);
+            PaymentResponse response = paymentGatewayProvider.confirmPaymentIntent(paymentIntentId, metadata);
             
-            if (confirmation.status() == PaymentStatus.SUCCEEDED) {
+            if (response instanceof PaymentResponse.Success success) {
                 String bookingIdStr = (String) metadata.get("bookingId");
                 if (bookingIdStr != null) {
                     Long bookingId = Long.parseLong(bookingIdStr);
-                    updateBookingStatusAfterPayment(bookingId, confirmation.transactionId());
+                    updateBookingStatusAfterPayment(bookingId, success.transactionId());
                 }
             }
             
-            return confirmation;
+            return response;
         } catch (Exception e) {
             throw new PaymentProcessingException(
                 "Failed to confirm payment intent " + paymentIntentId,
@@ -142,13 +143,13 @@ public class BookingPaymentService {
      *
      * @param bookingId O ID da reserva a ser paga.
      * @param paymentMethod O método de pagamento a ser utilizado.
-     * @return Um objeto {@link PaymentResult} com o resultado do processamento.
+     * @return Um objeto {@link PaymentResponse} com o resultado do processamento.
      * @throws PaymentProcessingException Se ocorrer um erro no processamento do pagamento.
      * @throws IllegalArgumentException Se a reserva não for encontrada.
      * @throws IllegalStateException Se a reserva não estiver elegível para pagamento.
      */
     @Transactional
-    public PaymentResult processDirectPayment(Long bookingId, PaymentMethod paymentMethod) {
+    public PaymentResponse processDirectPayment(Long bookingId, PaymentMethod paymentMethod) {
         Booking booking = findBookingById(bookingId);
         
         validateBookingForPayment(booking);
@@ -156,7 +157,7 @@ public class BookingPaymentService {
         Map<String, Object> metadata = createPaymentMetadata(booking);
         
         try {
-            PaymentResult result = paymentGatewayProvider.processDirectPayment(
+            PaymentResponse response = paymentGatewayProvider.processDirectPayment(
                 booking.getTotalPrice(),
                 "EUR",
                 booking.getId().toString(),
@@ -164,11 +165,11 @@ public class BookingPaymentService {
                 metadata
             );
             
-            if (result.status() == PaymentStatus.SUCCEEDED) {
-                updateBookingStatusAfterPayment(bookingId, result.transactionId());
+            if (response instanceof PaymentResponse.Success success) {
+                updateBookingStatusAfterPayment(bookingId, success.transactionId());
             }
             
-            return result;
+            return response;
         } catch (Exception e) {
             throw new PaymentProcessingException(
                 "Failed to process direct payment for booking " + bookingId,
@@ -240,10 +241,10 @@ public class BookingPaymentService {
      * Obtém os detalhes de uma transação específica.
      *
      * @param transactionId O ID da transação.
-     * @return Um objeto {@link TransactionDetails} com as informações completas da transação.
+     * @return Um objeto {@link TransactionInfo} com as informações completas da transação.
      * @throws PaymentNotFoundException Se a transação não for encontrada.
      */
-    public TransactionDetails getTransactionDetails(String transactionId) {
+    public TransactionInfo getTransactionDetails(String transactionId) {
         try {
             return paymentGatewayProvider.getTransactionDetails(transactionId);
         } catch (Exception e) {

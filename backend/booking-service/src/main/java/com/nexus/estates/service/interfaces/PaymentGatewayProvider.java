@@ -1,4 +1,4 @@
-package com.nexus.estates.service;
+package com.nexus.estates.service.interfaces;
 
 import com.nexus.estates.dto.payment.*;
 import com.nexus.estates.exception.InvalidRefundException;
@@ -6,6 +6,7 @@ import com.nexus.estates.exception.PaymentNotFoundException;
 import com.nexus.estates.exception.PaymentProcessingException;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -16,6 +17,10 @@ import java.util.Optional;
  * Esta interface define o contrato padrão que qualquer integração de pagamento (Stripe, PayPal, Adyen, etc.)
  * deve implementar para ser utilizada pelo sistema Nexus Estates. O objetivo é permitir a troca ou
  * adição de novos provedores sem alterar a lógica central do serviço de reservas.
+ * </p>
+ * <p>
+ * Utiliza {@link PaymentResponse} (Sealed Interface) para garantir tratamento exaustivo e seguro
+ * das respostas de pagamento, permitindo o uso de <i>Pattern Matching</i> no Java 17+.
  * </p>
  * 
  * <h2>Fluxos Suportados:</h2>
@@ -28,6 +33,9 @@ import java.util.Optional;
  * 
  * @author Nexus Estates Team
  * @version 1.0
+ * @see PaymentResponse
+ * @see TransactionInfo
+ * @see RefundResult
  */
 public interface PaymentGatewayProvider {
 
@@ -42,10 +50,10 @@ public interface PaymentGatewayProvider {
      * @param currency Código ISO 4217 da moeda (ex: "EUR", "USD").
      * @param referenceId ID de referência interno do sistema (ex: ID da reserva) para conciliação.
      * @param metadata Dados adicionais flexíveis para serem armazenados no provedor (ex: ID do usuário, tipo de serviço).
-     * @return Objeto {@link PaymentIntent} contendo o ID da intenção e o segredo do cliente (client_secret).
+     * @return {@link PaymentResponse} (geralmente do tipo {@link PaymentResponse.Intent}) contendo o ID da intenção e segredos.
      * @throws PaymentProcessingException se houver erro de comunicação ou validação no provedor.
      */
-    PaymentIntent createPaymentIntent(BigDecimal amount, String currency, String referenceId, Map<String, Object> metadata);
+    PaymentResponse createPaymentIntent(BigDecimal amount, String currency, String referenceId, Map<String, Object> metadata);
 
     /**
      * Confirma uma intenção de pagamento previamente criada.
@@ -56,10 +64,15 @@ public interface PaymentGatewayProvider {
      * 
      * @param paymentIntentId ID da intenção de pagamento gerado no passo de criação.
      * @param metadata Dados adicionais para confirmação, se necessário.
-     * @return Objeto {@link PaymentConfirmation} com o status final do pagamento (ex: SUCCEEDED).
-     * @throws PaymentProcessingException se a confirmação falhar ou for recusada.
+     * @return {@link PaymentResponse} que pode ser:
+     *         <ul>
+     *           <li>{@link PaymentResponse.Success}: Se o pagamento foi concluído.</li>
+     *           <li>{@link PaymentResponse.Failure}: Se o pagamento foi recusado.</li>
+     *           <li>{@link PaymentResponse.RequiresAction}: Se for necessária mais interação (ex: 3D Secure).</li>
+     *         </ul>
+     * @throws PaymentProcessingException se a confirmação falhar devido a erro técnico.
      */
-    PaymentConfirmation confirmPaymentIntent(String paymentIntentId, Map<String, Object> metadata);
+    PaymentResponse confirmPaymentIntent(String paymentIntentId, Map<String, Object> metadata);
 
     /**
      * Processa um pagamento direto em uma única etapa.
@@ -73,15 +86,16 @@ public interface PaymentGatewayProvider {
      * @param referenceId ID de referência interno.
      * @param paymentMethod Método de pagamento escolhido (ex: CREDIT_CARD).
      * @param metadata Dados adicionais.
-     * @return Objeto {@link PaymentResult} com o ID da transação e status.
+     * @return {@link PaymentResponse} com o resultado da operação (Sucesso ou Falha).
      * @throws PaymentProcessingException se o pagamento for recusado ou houver erro.
      */
-    PaymentResult processDirectPayment(BigDecimal amount, String currency, String referenceId, PaymentMethod paymentMethod, Map<String, Object> metadata);
+    PaymentResponse processDirectPayment(BigDecimal amount, String currency, String referenceId, PaymentMethod paymentMethod, Map<String, Object> metadata);
 
     /**
      * Processa o reembolso de uma transação existente.
      * <p>
      * Permite estornar valores totais ou parciais para o método de pagamento original.
+     * Mantém o retorno de {@link RefundResult} pois é um fluxo distinto do pagamento.
      * </p>
      * 
      * @param transactionId ID da transação original no provedor (ex: payment_intent_id).
@@ -103,10 +117,10 @@ public interface PaymentGatewayProvider {
      * </p>
      * 
      * @param transactionId ID da transação no provedor.
-     * @return Objeto {@link TransactionDetails} com todas as informações da transação.
+     * @return Objeto {@link TransactionInfo} com todas as informações da transação.
      * @throws PaymentNotFoundException se a transação não for encontrada no provedor.
      */
-    TransactionDetails getTransactionDetails(String transactionId);
+    TransactionInfo getTransactionDetails(String transactionId);
 
     /**
      * Verifica o status atual de uma transação.
@@ -129,9 +143,9 @@ public interface PaymentGatewayProvider {
      * </p>
      * 
      * @param referenceId ID de referência interno (ex: bookingId).
-     * @return Lista de {@link TransactionSummary} com resumos das transações encontradas.
+     * @return Lista de {@link TransactionInfo} com os detalhes das transações encontradas.
      */
-    java.util.List<TransactionSummary> getTransactionsByReference(String referenceId);
+    List<TransactionInfo> getTransactionsByReference(String referenceId);
 
     /**
      * Valida se um método de pagamento é suportado pela implementação atual do provedor.

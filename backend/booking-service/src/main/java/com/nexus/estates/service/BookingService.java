@@ -179,11 +179,11 @@ public class BookingService
      * 
      * @param bookingId ID da reserva
      * @param paymentMethod Método de pagamento escolhido
-     * @return Detalhes da intenção de pagamento criada
+     * @return Detalhes da intenção de pagamento criada ({@link com.nexus.estates.dto.payment.PaymentResponse})
      * @throws PaymentProcessingException se houver erro no processamento
      */
     @Transactional
-    public com.nexus.estates.dto.payment.PaymentIntent createPaymentIntent(Long bookingId, com.nexus.estates.dto.payment.PaymentMethod paymentMethod) {
+    public com.nexus.estates.dto.payment.PaymentResponse createPaymentIntent(Long bookingId, com.nexus.estates.dto.payment.PaymentMethod paymentMethod) {
         return bookingPaymentService.createPaymentIntent(bookingId, paymentMethod);
     }
 
@@ -195,11 +195,11 @@ public class BookingService
      * 
      * @param bookingId ID da reserva
      * @param paymentIntentId ID da intenção de pagamento a confirmar
-     * @return Confirmação do pagamento
+     * @return Confirmação do pagamento ({@link com.nexus.estates.dto.payment.PaymentResponse})
      * @throws PaymentProcessingException se houver erro na confirmação
      */
     @Transactional
-    public com.nexus.estates.dto.payment.PaymentConfirmation confirmPayment(Long bookingId, String paymentIntentId) {
+    public com.nexus.estates.dto.payment.PaymentResponse confirmPayment(Long bookingId, String paymentIntentId) {
         java.util.Map<String, Object> metadata = java.util.Map.of(
                 "bookingId", bookingId.toString(),
                 "confirmedAt", java.time.LocalDateTime.now().toString()

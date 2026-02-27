@@ -61,7 +61,12 @@ public record BookingResponse(
         BookingStatus status
 ) {
 
-
+    /**
+     * Construtor de conveniência para converter uma entidade {@link Booking} diretamente 
+     * para o formato de resposta {@link BookingResponse}.
+     *
+     * @param booking A entidade de domínio contendo os dados persistidos da reserva.
+     */
     public BookingResponse(Booking booking) {
         this(booking.getId(), booking.getPropertyId(), booking.getUserId(), booking.getCheckInDate(), booking.getCheckOutDate(), booking.getGuests(), booking.getTotalPrice(), booking.getCurrency(), booking.getStatus());
     }

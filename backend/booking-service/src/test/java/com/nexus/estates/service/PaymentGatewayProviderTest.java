@@ -1,6 +1,7 @@
 package com.nexus.estates.service;
 
 import com.nexus.estates.dto.payment.*;
+import com.nexus.estates.service.interfaces.PaymentGatewayProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,32 +32,28 @@ class PaymentGatewayProviderTest {
         String referenceId = "booking-123";
         Map<String, Object> metadata = Map.of("propertyId", "10", "userId", "20");
         
-        PaymentIntent expectedIntent = new PaymentIntent(
+        PaymentResponse.Intent expectedIntent = new PaymentResponse.Intent(
             "pi_123456",
-            "Stripe",
+            "client_secret_123",
             amount,
             currency,
-            referenceId,
             PaymentStatus.PENDING,
-            "client_secret_123",
-            LocalDateTime.now(),
-            null,
-            metadata,
-            null,
-            false,
-            null
+            metadata
         );
         
         when(paymentGatewayProvider.createPaymentIntent(amount, currency, referenceId, metadata))
             .thenReturn(expectedIntent);
         
-        PaymentIntent result = paymentGatewayProvider.createPaymentIntent(amount, currency, referenceId, metadata);
+        PaymentResponse result = paymentGatewayProvider.createPaymentIntent(amount, currency, referenceId, metadata);
         
         assertThat(result).isNotNull();
-        assertThat(result.id()).isEqualTo("pi_123456");
-        assertThat(result.status()).isEqualTo(PaymentStatus.PENDING);
-        assertThat(result.currency()).isEqualTo(currency);
-        assertThat(result.amount()).isEqualByComparingTo(amount);
+        assertThat(result).isInstanceOf(PaymentResponse.Intent.class);
+        
+        PaymentResponse.Intent intent = (PaymentResponse.Intent) result;
+        assertThat(intent.transactionId()).isEqualTo("pi_123456");
+        assertThat(intent.status()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(intent.currency()).isEqualTo(currency);
+        assertThat(intent.amount()).isEqualByComparingTo(amount);
         
         verify(paymentGatewayProvider).createPaymentIntent(amount, currency, referenceId, metadata);
     }
@@ -67,28 +64,32 @@ class PaymentGatewayProviderTest {
         String paymentIntentId = "pi_123456";
         Map<String, Object> metadata = Map.of("cardToken", "tok_visa");
         
-        PaymentConfirmation confirmedIntent = new PaymentConfirmation(
+        PaymentResponse.Success confirmedIntent = new PaymentResponse.Success(
             paymentIntentId,
             paymentIntentId,
+            new BigDecimal("300.00"),
+            "EUR",
             PaymentStatus.SUCCEEDED,
             LocalDateTime.now(),
-            "auth_code",
             "receipt_url",
-            metadata,
+            "auth_code",
             BigDecimal.ZERO,
-            "card",
-            "4242",
-            "visa",
-            false
+            new PaymentResponse.PaymentMethodDetails("card", "4242", "visa"),
+            metadata
         );
         
         when(paymentGatewayProvider.confirmPaymentIntent(paymentIntentId, metadata))
             .thenReturn(confirmedIntent);
         
-        PaymentConfirmation result = paymentGatewayProvider.confirmPaymentIntent(paymentIntentId, metadata);
+        PaymentResponse result = paymentGatewayProvider.confirmPaymentIntent(paymentIntentId, metadata);
         
         assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(PaymentStatus.SUCCEEDED);
+        assertThat(result).isInstanceOf(PaymentResponse.Success.class);
+        
+        PaymentResponse.Success success = (PaymentResponse.Success) result;
+        assertThat(success.status()).isEqualTo(PaymentStatus.SUCCEEDED);
+        assertThat(success.transactionId()).isEqualTo(paymentIntentId);
+        
         verify(paymentGatewayProvider).confirmPaymentIntent(paymentIntentId, metadata);
     }
 
@@ -132,7 +133,7 @@ class PaymentGatewayProviderTest {
     void shouldRetrieveTransactionSuccessfully() {
         String transactionId = "txn_123456";
         
-        TransactionDetails transaction = new TransactionDetails(
+        TransactionInfo transaction = new TransactionInfo(
             transactionId,
             transactionId,
             new BigDecimal("300.00"),
@@ -141,28 +142,26 @@ class PaymentGatewayProviderTest {
             LocalDateTime.now(),
             LocalDateTime.now(),
             "booking-123",
-            "cust_123",
-            "test@test.com",
-            "Test User",
+            Optional.of("cust_123"),
+            Optional.of("test@test.com"),
+            Optional.of("Test User"),
             PaymentMethod.CREDIT_CARD,
-            "card",
-            "4242",
-            "visa",
-            "auth_code",
-            "receipt_url",
+            new PaymentResponse.PaymentMethodDetails("card", "4242", "visa"),
+            Optional.of("auth_code"),
+            Optional.of("receipt_url"),
+            Optional.of(BigDecimal.ZERO),
             BigDecimal.ZERO,
-            BigDecimal.ZERO,
-            null,
-            null,
-            Map.of(),
             true,
-            new BigDecimal("300.00")
+            Optional.of(new BigDecimal("300.00")),
+            Optional.empty(),
+            Optional.empty(),
+            Map.of()
         );
         
         when(paymentGatewayProvider.getTransactionDetails(transactionId))
             .thenReturn(transaction);
         
-        TransactionDetails result = paymentGatewayProvider.getTransactionDetails(transactionId);
+        TransactionInfo result = paymentGatewayProvider.getTransactionDetails(transactionId);
         
         assertThat(result).isNotNull();
         assertThat(result.transactionId()).isEqualTo(transactionId);
@@ -175,38 +174,60 @@ class PaymentGatewayProviderTest {
     void shouldRetrieveTransactionsByReference() {
         String referenceId = "booking-123";
         
-        TransactionSummary transaction1 = new TransactionSummary(
+        TransactionInfo transaction1 = new TransactionInfo(
             "txn_111",
             "txn_111",
             new BigDecimal("300.00"),
             "EUR",
             PaymentStatus.SUCCEEDED,
             LocalDateTime.now().minusHours(2),
+            LocalDateTime.now().minusHours(2),
             referenceId,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
             PaymentMethod.CREDIT_CARD,
-            "4242",
-            "visa",
-            BigDecimal.ZERO
+            new PaymentResponse.PaymentMethodDetails("card", "4242", "visa"),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.of(BigDecimal.ZERO),
+            BigDecimal.ZERO,
+            true,
+            Optional.of(new BigDecimal("300.00")),
+            Optional.empty(),
+            Optional.empty(),
+            Map.of()
         );
         
-        TransactionSummary transaction2 = new TransactionSummary(
+        TransactionInfo transaction2 = new TransactionInfo(
             "txn_222",
             "txn_222",
             new BigDecimal("150.00"),
             "EUR",
             PaymentStatus.SUCCEEDED,
             LocalDateTime.now().minusHours(1),
+            LocalDateTime.now().minusHours(1),
             referenceId,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
             PaymentMethod.CREDIT_CARD,
-            "4242",
-            "visa",
-            BigDecimal.ZERO
+            new PaymentResponse.PaymentMethodDetails("card", "4242", "visa"),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.of(BigDecimal.ZERO),
+            BigDecimal.ZERO,
+            true,
+            Optional.of(new BigDecimal("150.00")),
+            Optional.empty(),
+            Optional.empty(),
+            Map.of()
         );
 
         when(paymentGatewayProvider.getTransactionsByReference(referenceId))
             .thenReturn(List.of(transaction1, transaction2));
         
-        List<TransactionSummary> result = paymentGatewayProvider.getTransactionsByReference(referenceId);
+        List<TransactionInfo> result = paymentGatewayProvider.getTransactionsByReference(referenceId);
         
         assertThat(result).hasSize(2);
         assertThat(result.get(0).referenceId()).isEqualTo(referenceId);

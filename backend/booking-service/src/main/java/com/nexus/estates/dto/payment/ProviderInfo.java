@@ -4,10 +4,28 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Informações sobre o provedor de pagamento.
+ * DTO contendo metadados e informações de capacidade sobre um provedor de pagamento.
+ * <p>
+ * Utilizado para expor as funcionalidades suportadas pela implementação atual do gateway,
+ * permitindo que o frontend adapte a interface (ex: mostrar ou esconder opção de reembolso parcial).
+ * </p>
  * 
- * Contém metadados sobre o provedor, incluindo
- * nome, versão, capacidades e métodos suportados.
+ * @param name Nome do provedor (ex: "Stripe").
+ * @param version Versão da integração ou da API do provedor.
+ * @param description Descrição amigável do provedor.
+ * @param supportedPaymentMethods Lista de métodos de pagamento suportados.
+ * @param supportedCurrencies Lista de moedas suportadas (códigos ISO).
+ * @param capabilities Mapa de capacidades adicionais (ex: "3ds": true).
+ * @param supportsRefunds Indica se o provedor suporta reembolsos.
+ * @param supportsPartialRefunds Indica se o provedor suporta reembolsos parciais.
+ * @param supportsWebhooks Indica se a integração utiliza webhooks.
+ * @param webhookUrl URL do endpoint de webhook configurado (opcional).
+ * @param apiVersion Versão da API do provedor utilizada.
+ * @param environment Ambiente de execução (ex: "sandbox", "production").
+ * 
+ * @author Nexus Estates Team
+ * @version 1.0
+ * @see PaymentMethod
  */
 public record ProviderInfo(
     String name,
@@ -24,37 +42,34 @@ public record ProviderInfo(
     String environment
 ) {
     /**
-     * Verifica se suporta reembolsos.
-     * 
-     * @return true se suporta reembolsos, false caso contrário
+     * Verifica se o provedor suporta operações de reembolso.
+     * @return true se suportado.
      */
     public boolean supportsRefunds() {
         return supportsRefunds;
     }
 
     /**
-     * Verifica se suporta reembolsos parciais.
-     * 
-     * @return true se suporta reembolsos parciais, false caso contrário
+     * Verifica se o provedor suporta reembolsos parciais.
+     * @return true se suportado.
      */
     public boolean supportsPartialRefunds() {
         return supportsPartialRefunds;
     }
 
     /**
-     * Verifica se suporta webhooks.
-     * 
-     * @return true se suporta webhooks, false caso contrário
+     * Verifica se a integração com o provedor utiliza webhooks para atualizações de estado.
+     * @return true se utiliza webhooks.
      */
     public boolean supportsWebhooks() {
         return supportsWebhooks;
     }
 
     /**
-     * Verifica se suporta um método de pagamento específico.
+     * Verifica se um método de pagamento específico é suportado por este provedor.
      * 
-     * @param paymentMethod Método de pagamento a verificar
-     * @return true se suportado, false caso contrário
+     * @param paymentMethod O método a verificar.
+     * @return true se o método estiver na lista de suportados.
      */
     public boolean supportsPaymentMethod(PaymentMethod paymentMethod) {
         return supportedPaymentMethods != null && supportedPaymentMethods.contains(paymentMethod);
