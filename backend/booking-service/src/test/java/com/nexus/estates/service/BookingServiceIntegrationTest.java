@@ -8,7 +8,6 @@ import com.nexus.estates.dto.payment.RefundResult;
 import com.nexus.estates.dto.payment.RefundStatus;
 import com.nexus.estates.entity.Booking;
 import com.nexus.estates.common.enums.BookingStatus;
-import com.nexus.estates.mapper.BookingMapper;
 import com.nexus.estates.messaging.BookingEventPublisher;
 import com.nexus.estates.repository.BookingRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -22,7 +21,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,9 +31,6 @@ class BookingServiceIntegrationTest {
 
     @Mock
     private BookingRepository bookingRepository;
-
-    @Mock
-    private BookingMapper bookingMapper;
 
     @Mock
     private BookingEventPublisher bookingEventPublisher;
@@ -58,38 +53,21 @@ class BookingServiceIntegrationTest {
                 2
         );
 
-        Booking bookingEntity = new Booking();
-        bookingEntity.setId(1L);
-        bookingEntity.setPropertyId(request.propertyId());
-        bookingEntity.setUserId(request.userId());
-        bookingEntity.setCheckInDate(request.checkInDate());
-        bookingEntity.setCheckOutDate(request.checkOutDate());
-        bookingEntity.setGuests(request.guestCount());
-        bookingEntity.setStatus(BookingStatus.PENDING_PAYMENT);
-        bookingEntity.setTotalPrice(new BigDecimal("300.00"));
-
+        // Criamos o objeto que o repositório irá retornar
         Booking savedBooking = new Booking();
-        savedBooking.setId(bookingEntity.getId());
+        savedBooking.setId(1L);
+        savedBooking.setPropertyId(request.propertyId());
+        savedBooking.setUserId(request.userId());
+        savedBooking.setCheckInDate(request.checkInDate());
+        savedBooking.setCheckOutDate(request.checkOutDate());
+        savedBooking.setGuests(request.guestCount());
         savedBooking.setTotalPrice(new BigDecimal("300.00"));
+        savedBooking.setCurrency("EUR");
         savedBooking.setStatus(BookingStatus.PENDING_PAYMENT);
-
-        BookingResponse expectedResponse = new BookingResponse(
-                savedBooking.getId(),
-                request.propertyId(),
-                request.userId(),
-                request.checkInDate(),
-                request.checkOutDate(),
-                request.guestCount(),
-                new BigDecimal("300.00"),
-                "EUR",
-                BookingStatus.PENDING_PAYMENT
-        );
 
         // Mock comportamentos
         when(bookingRepository.existsOverlappingBooking(any(), any(), any())).thenReturn(false);
-        when(bookingMapper.toEntity(request)).thenReturn(bookingEntity);
         when(bookingRepository.save(any(Booking.class))).thenReturn(savedBooking);
-        when(bookingMapper.toResponse(savedBooking)).thenReturn(expectedResponse);
 
         // Act
         BookingResponse actualResponse = bookingService.createBooking(request);

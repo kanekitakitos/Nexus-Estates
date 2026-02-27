@@ -6,7 +6,6 @@ import com.nexus.estates.entity.Booking;
 import com.nexus.estates.exception.BookingConflictException;
 import com.nexus.estates.exception.InvalidRefundException;
 import com.nexus.estates.exception.PaymentProcessingException;
-import com.nexus.estates.mapper.BookingMapper;
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.messaging.BookingEventPublisher;
 import com.nexus.estates.repository.BookingRepository;
@@ -23,7 +22,6 @@ import java.math.BigDecimal;
  * </p>
  *
  * @see BookingRepository
- * @see BookingMapper
  * @author Nexus Estates Team
  * @version 1.0
  */
@@ -33,7 +31,6 @@ public class BookingService
 
 
     private final BookingRepository bookingRepository;
-    private final BookingMapper bookingMapper;
     private final BookingEventPublisher bookingEventPublisher;
     private final BookingPaymentService bookingPaymentService;
 
@@ -41,14 +38,13 @@ public class BookingService
      * Construtor padrão para injeção de dependências.
      *
      * @param bookingRepository Interface de acesso aos dados persistidos.
-     * @param bookingMapper Componente de transformação de objetos.
      * @param bookingEventPublisher Componente responsável pela publicação de eventos de reserva.
      * @param bookingPaymentService Serviço para processamento de pagamentos.
      */
-    public BookingService(BookingRepository bookingRepository, BookingMapper bookingMapper, BookingEventPublisher bookingEventPublisher, BookingPaymentService bookingPaymentService)
+    public BookingService(BookingRepository bookingRepository, BookingEventPublisher bookingEventPublisher, BookingPaymentService bookingPaymentService)
     {
         this.bookingRepository = bookingRepository;
-        this.bookingMapper = bookingMapper;
+
         this.bookingEventPublisher = bookingEventPublisher;
         this.bookingPaymentService = bookingPaymentService;
     }
@@ -90,14 +86,14 @@ public class BookingService
 
 
         // 3. Converter DTO para Entidade
-        Booking booking = bookingMapper.toEntity(request);
+        Booking booking = request.toEntity();
 
         // 4. Calcular Preço
         booking.setTotalPrice(this.calculateTotalPrice(request));
 
         Booking savedBooking = bookingRepository.save(booking);
 
-        BookingResponse response = bookingMapper.toResponse(savedBooking);
+        BookingResponse response = new BookingResponse(savedBooking);
 
         BookingCreatedMessage message = new BookingCreatedMessage(
                 savedBooking.getId(),
@@ -142,7 +138,7 @@ public class BookingService
     public BookingResponse getBookingById(Long id)
     {
         return bookingRepository.findById(id)
-                .map(bookingMapper::toResponse)
+                .map(BookingResponse::new)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + id));
     }
 
@@ -158,7 +154,7 @@ public class BookingService
     public java.util.List<BookingResponse> getBookingsByProperty(Long propertyId)
     {
         return bookingRepository.findByPropertyId(propertyId).stream()
-                .map(bookingMapper::toResponse)
+                .map(BookingResponse::new)
                 .toList();
     }
 
@@ -171,7 +167,7 @@ public class BookingService
     public java.util.List<BookingResponse> getBookingsByUser(Long userId)
     {
         return bookingRepository.findByUserId(userId).stream()
-                .map(bookingMapper::toResponse)
+                .map(BookingResponse::new)
                 .toList();
     }
 
