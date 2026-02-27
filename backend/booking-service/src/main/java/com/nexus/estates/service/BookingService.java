@@ -177,7 +177,7 @@ public class BookingService
      * <p>Esta método permite que o utilizador inicie o processo de pagamento
      * sem concluir imediatamente. Útil para fluxos de checkout em múltiplos passos.</p>
      * 
-     * @param bookingId ID da reserva
+     * @param bookingId ‘ID’ da reserva
      * @param paymentMethod Método de pagamento escolhido
      * @return Detalhes da intenção de pagamento criada ({@link com.nexus.estates.dto.payment.PaymentResponse})
      * @throws PaymentProcessingException se houver erro no processamento
@@ -193,8 +193,8 @@ public class BookingService
      * <p>Após a confirmação bem-sucedida, a reserva é marcada como confirmada
      * e um evento de atualização é publicado.</p>
      * 
-     * @param bookingId ID da reserva
-     * @param paymentIntentId ID da intenção de pagamento a confirmar
+     * @param bookingId ‘ID’ da reserva
+     * @param paymentIntentId ‘ID’ da intenção de pagamento a confirmar
      * @return Confirmação do pagamento ({@link com.nexus.estates.dto.payment.PaymentResponse})
      * @throws PaymentProcessingException se houver erro na confirmação
      */
@@ -214,7 +214,7 @@ public class BookingService
      * <p>Permite reembolsos parciais ou totais, dependendo da política
      * de cancelamento e do provedor de pagamento.</p>
      * 
-     * @param bookingId ID da reserva
+     * @param bookingId ‘ID’ da reserva
      * @param amount Valor do reembolso (null para reembolso total)
      * @param reason Motivo do reembolso
      * @return Resultado do reembolso

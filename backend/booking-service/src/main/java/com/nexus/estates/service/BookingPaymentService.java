@@ -65,7 +65,7 @@ public class BookingPaymentService {
      * @return Um objeto {@link PaymentResponse} contendo os detalhes para prosseguir com o pagamento.
      * @throws PaymentProcessingException Se ocorrer um erro ao comunicar com o gateway de pagamento.
      * @throws IllegalArgumentException Se a reserva não for encontrada.
-     * @throws IllegalStateException Se a reserva não estiver em um estado válido para pagamento.
+     * @throws IllegalStateException Se a reserva não estiver num estado válido para pagamento.
      */
     @Transactional
     public PaymentResponse createPaymentIntent(Long bookingId, PaymentMethod paymentMethod) {
