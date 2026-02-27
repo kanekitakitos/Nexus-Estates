@@ -370,7 +370,7 @@ public class BookingPaymentService {
                 booking.getId(),
                 booking.getPropertyId(),
                 booking.getUserId(),
-                BookingStatus.CONFIRMED.name(),
+                BookingStatus.CONFIRMED,
                 "Payment confirmed - Transaction: " + transactionId
             );
             eventPublisher.publishBookingUpdated(message);

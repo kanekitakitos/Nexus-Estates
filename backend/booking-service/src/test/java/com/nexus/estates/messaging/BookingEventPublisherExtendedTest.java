@@ -55,7 +55,7 @@ class BookingEventPublisherExtendedTest {
                 1L,
                 10L,
                 20L,
-                BookingStatus.CONFIRMED.name(),
+                BookingStatus.CONFIRMED,
                 "Updated check-in details"
         );
 
