@@ -24,11 +24,11 @@ import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 public class WebClientConfig {
 
     // Lê o URL do application.properties (fallback para localhost:8082)
-    @Value("${property.service.url}")
+    @Value("${property.service.url:http://localhost:8082}")
     private String propertyServiceUrl;
 
     // Lê o URL do application.properties (fallback para localhost:8083)
-    @Value("${user.service.url}")
+    @Value("${user.service.url:http://localhost:8083}")
     private String userServiceUrl;
 
     /**
