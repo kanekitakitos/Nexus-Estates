@@ -1,5 +1,7 @@
 package com.nexus.estates.service;
 
+import com.nexus.estates.client.NexusClients;
+import com.nexus.estates.client.Proxy;
 import com.nexus.estates.dto.BookingResponse;
 import com.nexus.estates.dto.CreateBookingRequest;
 import com.nexus.estates.entity.Booking;
@@ -36,6 +38,15 @@ class BookingServiceTest {
     @Mock
     private BookingPaymentService bookingPaymentService;
 
+    @Mock
+    private Proxy api;
+
+    @Mock
+    private NexusClients.PropertyClient propertyClient;
+
+    @Mock
+    private NexusClients.UserClient userClient;
+
     @InjectMocks
     private BookingService bookingService;
 
@@ -62,6 +73,12 @@ class BookingServiceTest {
         savedBooking.setCurrency("EUR");
         savedBooking.setStatus(BookingStatus.PENDING_PAYMENT);
 
+        // Configurar Mocks do Proxy
+        when(api.userClient()).thenReturn(userClient);
+        when(userClient.getUserEmail(request.userId())).thenReturn("test@nexus.com");
+        when(api.propertyClient()).thenReturn(propertyClient);
+        when(propertyClient.getPropertyPrice(request.propertyId())).thenReturn(new BigDecimal("100.00"));
+
         when(bookingRepository.existsOverlappingBooking(any(), any(), any())).thenReturn(false);
         when(bookingRepository.save(any(Booking.class))).thenReturn(savedBooking);
 
@@ -83,6 +100,10 @@ class BookingServiceTest {
                 LocalDate.now().plusDays(5),
                 2
         );
+
+        // Configurar Mock do UserClient (necessário pois a validação ocorre antes da verificação de datas)
+        when(api.userClient()).thenReturn(userClient);
+        when(userClient.getUserEmail(request.userId())).thenReturn("test@nexus.com");
 
         // Ensinar o Mock a dizer "Sim, já existe reserva"
         when(bookingRepository.existsOverlappingBooking(any(), any(), any())).thenReturn(true);
@@ -133,6 +154,12 @@ class BookingServiceTest {
         savedBooking.setTotalPrice(new BigDecimal("300.00")); // O que esperamos
         savedBooking.setCurrency("EUR");
         savedBooking.setStatus(BookingStatus.PENDING_PAYMENT);
+
+        // Configurar Mocks do Proxy para cálculo de preço
+        when(api.userClient()).thenReturn(userClient);
+        when(userClient.getUserEmail(request.userId())).thenReturn("test@nexus.com");
+        when(api.propertyClient()).thenReturn(propertyClient);
+        when(propertyClient.getPropertyPrice(request.propertyId())).thenReturn(new BigDecimal("100.00"));
 
         when(bookingRepository.existsOverlappingBooking(any(), any(), any())).thenReturn(false);
         when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> {

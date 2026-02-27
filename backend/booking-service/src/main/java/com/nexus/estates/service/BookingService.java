@@ -78,6 +78,15 @@ public class BookingService
         if (!request.checkOutDate().isAfter(request.checkInDate()))
             throw new IllegalArgumentException("Check-out date must be after check-in date");
 
+        // 1.5 Validação: Utilizador Registado vs Guest
+        if (request.userId() != null) {
+            try {
+                api.userClient().getUserEmail(request.userId());
+            } catch (Exception e) {
+                throw new IllegalArgumentException("O utilizador informado não existe ou o serviço está indisponível.", e);
+            }
+        }
+
 
         // 2. Verificar Disponibilidade
         boolean isOccupied = bookingRepository.existsOverlappingBooking(
@@ -129,8 +138,17 @@ public class BookingService
     {
                                         // Entramos no api para outros modulos
                                         // usamos especificamente o cliente de property
-            BigDecimal pricePerNight = api.propertyClient().getPropertyPrice(request.userId());
-            long days = request.checkOutDate().toEpochDay() - request.checkInDate().toEpochDay();
+        BigDecimal pricePerNight;
+        try {
+            // CORREÇÃO: Usar propertyId em vez de userId
+            pricePerNight = api.propertyClient().getPropertyPrice(request.propertyId());
+        } catch (Exception e) {
+            throw new RuntimeException("Falha ao obter o preço da propriedade no serviço externo.", e);
+        }
+
+        if (pricePerNight == null) throw new IllegalStateException("O serviço de propriedades retornou um preço nulo.");
+
+        long days = request.checkOutDate().toEpochDay() - request.checkInDate().toEpochDay();
         return pricePerNight.multiply(BigDecimal.valueOf(days));
     }
 
