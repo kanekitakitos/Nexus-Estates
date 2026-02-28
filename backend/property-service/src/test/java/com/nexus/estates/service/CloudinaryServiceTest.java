@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CloudinaryServiceTest {
 
     /** Instância do serviço a ser testado. */
-    private CloudinaryService cloudinaryService;
+    private ImageStorageService imageStorageService;
 
     /**
      * Configuração inicial executada antes de cada teste.
@@ -32,7 +32,7 @@ class CloudinaryServiceTest {
     @BeforeEach
     void setUp() {
         // Usamos valores fictícios para validar apenas a lógica de geração de Map
-        cloudinaryService = new CloudinaryService("test_cloud", "test_key", "test_secret", "nexus_estates/properties");
+        imageStorageService = new CloudinaryService("test_cloud", "test_key", "test_secret", "nexus_estates/properties");
     }
 
     /**
@@ -44,7 +44,7 @@ class CloudinaryServiceTest {
     @DisplayName("Deve gerar todos os parâmetros de upload obrigatórios")
     void shouldGenerateRequiredParameters() {
         // Act: Solicita a geração do mapa de parâmetros
-        Map<String, Object> params = cloudinaryService.getUploadParameters();
+        Map<String, Object> params = imageStorageService.getUploadParameters();
 
         // Assert: Valida a presença e consistência das chaves de segurança
         assertNotNull(params, "O mapa de parâmetros não deve ser nulo");
@@ -66,7 +66,7 @@ class CloudinaryServiceTest {
     @DisplayName("Deve definir o tempo de expiração para exatamente 15 minutos")
     void shouldSetCorrectExpiration() {
         // Act
-        Map<String, Object> params = cloudinaryService.getUploadParameters();
+        Map<String, Object> params = imageStorageService.getUploadParameters();
 
         long timestamp = (long) params.get("timestamp");
         long expiresAt = (long) params.get("expires_at");

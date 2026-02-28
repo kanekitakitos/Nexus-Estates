@@ -14,7 +14,7 @@ import java.util.TreeMap;
  * de imagens diretamente para a nuvem.</p>
  */
 @Service
-public class CloudinaryService {
+public class CloudinaryService implements ImageStorageService {
 
     private final Cloudinary cloudinary;
     private final String folderPath;
@@ -37,6 +37,7 @@ public class CloudinaryService {
      * Gera os parâmetros de autenticação para upload direto (Presigned).
      * @return Mapa com os dados de autenticação e expiração
      */
+    @Override
     public Map<String, Object> getUploadParameters() {
         long timestamp = System.currentTimeMillis() / 1000L;
         int expirationMinutes = 15; // Critério de aceitação

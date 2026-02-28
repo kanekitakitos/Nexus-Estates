@@ -4,7 +4,7 @@ import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.service.PropertyService;
-import com.nexus.estates.service.CloudinaryService; // Importar o novo serviço
+import com.nexus.estates.service.ImageStorageService; // Importar a interface
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,7 +21,7 @@ import static org.mockito.Mockito.*;
 class PropertyControllerTest {
 
     private PropertyService propertyService;
-    private CloudinaryService cloudinaryService;
+    private ImageStorageService imageStorageService; // Usar a interface
     private PropertyController controller;
     private PropertyRepository repository;
 
@@ -29,10 +29,10 @@ class PropertyControllerTest {
     void setUp() {
         // Inicializamos os mocks e o controller antes de cada teste
         propertyService = mock(PropertyService.class);
-        cloudinaryService = mock(CloudinaryService.class);
+        imageStorageService = mock(ImageStorageService.class); // Mock da interface
         repository = mock(PropertyRepository.class);
 
-        controller = new PropertyController(propertyService, cloudinaryService,repository);
+        controller = new PropertyController(propertyService, imageStorageService,repository);
     }
 
     @Test
@@ -63,7 +63,7 @@ class PropertyControllerTest {
     void shouldReturnUploadParameters() throws ExecutionException, InterruptedException {
         // Arrange
         Map<String, Object> mockParams = Map.of("signature", "123", "timestamp", "456");
-        when(cloudinaryService.getUploadParameters()).thenReturn(mockParams);
+        when(imageStorageService.getUploadParameters()).thenReturn(mockParams);
 
         // Act
         CompletableFuture<org.springframework.http.ResponseEntity<Map<String, Object>>> futureResponse = controller.getUploadParams();
@@ -72,6 +72,6 @@ class PropertyControllerTest {
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(mockParams, response.getBody());
-        verify(cloudinaryService, times(1)).getUploadParameters();
+        verify(imageStorageService, times(1)).getUploadParameters();
     }
 }
