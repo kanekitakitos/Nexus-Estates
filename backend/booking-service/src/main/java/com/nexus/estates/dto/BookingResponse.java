@@ -1,6 +1,8 @@
 package com.nexus.estates.dto;
 
 import com.nexus.estates.common.enums.BookingStatus;
+import com.nexus.estates.entity.Booking;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -57,4 +59,15 @@ public record BookingResponse(
 
         @Schema(description = "Estado atual da reserva ao longo do seu ciclo de vida")
         BookingStatus status
-) {}
+) {
+
+    /**
+     * Construtor de conveniência para converter uma entidade {@link Booking} diretamente 
+     * para o formato de resposta {@link BookingResponse}.
+     *
+     * @param booking A entidade de domínio contendo os dados persistidos da reserva.
+     */
+    public BookingResponse(Booking booking) {
+        this(booking.getId(), booking.getPropertyId(), booking.getUserId(), booking.getCheckInDate(), booking.getCheckOutDate(), booking.getGuests(), booking.getTotalPrice(), booking.getCurrency(), booking.getStatus());
+    }
+}

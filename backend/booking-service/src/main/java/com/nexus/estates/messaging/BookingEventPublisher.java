@@ -2,6 +2,8 @@ package com.nexus.estates.messaging;
 
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.common.messaging.BookingStatusUpdatedMessage;
+import com.nexus.estates.common.messaging.BookingUpdatedMessage;
+import com.nexus.estates.common.messaging.BookingCancelledMessage;
 import com.nexus.estates.entity.Booking;
 import com.nexus.estates.repository.BookingRepository;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -38,6 +40,8 @@ public class BookingEventPublisher {
     private final BookingRepository bookingRepository;
     private final String bookingExchangeName;
     private final String bookingCreatedRoutingKey;
+    private final String bookingUpdatedRoutingKey;
+    private final String bookingCancelledRoutingKey;
 
     /**
      * Construtor principal utilizado pelo Spring para injeção de dependências.
@@ -50,11 +54,15 @@ public class BookingEventPublisher {
     public BookingEventPublisher(RabbitTemplate rabbitTemplate,
                                  BookingRepository bookingRepository,
                                  @Value("${booking.events.exchange:booking.exchange}") String bookingExchangeName,
-                                 @Value("${booking.events.routing-key.created:booking.created}") String bookingCreatedRoutingKey) {
+                                 @Value("${booking.events.routing-key.created:booking.created}") String bookingCreatedRoutingKey,
+                                 @Value("${booking.events.routing-key.updated:booking.updated}") String bookingUpdatedRoutingKey,
+                                 @Value("${booking.events.routing-key.cancelled:booking.cancelled}") String bookingCancelledRoutingKey) {
         this.rabbitTemplate = rabbitTemplate;
         this.bookingRepository = bookingRepository;
         this.bookingExchangeName = bookingExchangeName;
         this.bookingCreatedRoutingKey = bookingCreatedRoutingKey;
+        this.bookingUpdatedRoutingKey = bookingUpdatedRoutingKey;
+        this.bookingCancelledRoutingKey = bookingCancelledRoutingKey;
     }
 
     /**
@@ -64,6 +72,24 @@ public class BookingEventPublisher {
      */
     public void publishBookingCreated(BookingCreatedMessage message) {
         rabbitTemplate.convertAndSend(bookingExchangeName, bookingCreatedRoutingKey, message);
+    }
+
+    /**
+     * Publica um evento indicando que uma reserva foi atualizada.
+     *
+     * @param message payload imutável contendo os dados da atualização.
+     */
+    public void publishBookingUpdated(BookingUpdatedMessage message) {
+        rabbitTemplate.convertAndSend(bookingExchangeName, bookingUpdatedRoutingKey, message);
+    }
+
+    /**
+     * Publica um evento indicando que uma reserva foi cancelada.
+     *
+     * @param message payload imutável contendo os dados do cancelamento.
+     */
+    public void publishBookingCancelled(BookingCancelledMessage message) {
+        rabbitTemplate.convertAndSend(bookingExchangeName, bookingCancelledRoutingKey, message);
     }
 
     /**

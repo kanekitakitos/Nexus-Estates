@@ -73,7 +73,7 @@ public class Booking {
 
     /** Número de hóspedes incluídos na reserva. */
     @Column(name = "guest_count", nullable = false)
-    private int guestCount;
+    private int guests;
 
     /**
      * Valor monetário total da reserva.
@@ -94,6 +94,12 @@ public class Booking {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BookingStatus status;
+
+    /**
+     * ID da intenção de pagamento do provedor de pagamento.
+     */
+    @Column(name = "payment_intent_id")
+    private String paymentIntentId;
 
     //  Auditoria
     /** Timestamp de criação do registo (UTC). Imutável. */

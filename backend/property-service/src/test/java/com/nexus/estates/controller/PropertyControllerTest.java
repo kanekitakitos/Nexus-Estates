@@ -2,6 +2,7 @@ package com.nexus.estates.controller;
 
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Property;
+import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.service.PropertyService;
 import com.nexus.estates.service.ImageStorageService; // Importar a interface
 import org.junit.jupiter.api.BeforeEach;
@@ -22,13 +23,16 @@ class PropertyControllerTest {
     private PropertyService propertyService;
     private ImageStorageService imageStorageService; // Usar a interface
     private PropertyController controller;
+    private PropertyRepository repository;
 
     @BeforeEach
     void setUp() {
         // Inicializamos os mocks e o controller antes de cada teste
         propertyService = mock(PropertyService.class);
         imageStorageService = mock(ImageStorageService.class); // Mock da interface
-        controller = new PropertyController(propertyService, imageStorageService);
+        repository = mock(PropertyRepository.class);
+
+        controller = new PropertyController(propertyService, imageStorageService,repository);
     }
 
     @Test

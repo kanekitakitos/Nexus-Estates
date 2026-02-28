@@ -2,6 +2,7 @@ package com.nexus.estates.controller;
 
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Property;
+import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.service.PropertyService;
 import com.nexus.estates.service.ImageStorageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -9,12 +10,14 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +38,8 @@ import java.util.concurrent.CompletableFuture;
 public class PropertyController {
 
     private final PropertyService service;
+    private final PropertyRepository repository;
+
     private final ImageStorageService imageStorageService;
 
     /**
@@ -43,9 +48,10 @@ public class PropertyController {
      * @param service serviço responsável pela lógica de negócio das propriedades
      * @param imageStorageService serviço responsável pela integração com armazenamento de imagens
      */
-    public PropertyController(PropertyService service, ImageStorageService imageStorageService) {
+    public PropertyController(PropertyService service, ImageStorageService imageStorageService, PropertyRepository repository) {
         this.service = service;
         this.imageStorageService = imageStorageService;
+        this.repository = repository;
     }
 
     /**
@@ -70,7 +76,7 @@ public class PropertyController {
     }
 
     /**
-     * Cria uma nova propriedade.
+     * Cria uma propriedade.
      *
      * @param request dados da propriedade a criar via DTO
      * @return propriedade criada com status 201 Created
@@ -139,5 +145,12 @@ public class PropertyController {
             @Parameter(description = "ID único da propriedade", example = "1")
             @PathVariable Long id) {
         return ResponseEntity.ok(service.findById(id));
+    }
+
+
+
+    public BigDecimal getPriceById(Long id) {
+        return repository.findPriceById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Propriedade não encontrada com o ID: " + id));
     }
 }

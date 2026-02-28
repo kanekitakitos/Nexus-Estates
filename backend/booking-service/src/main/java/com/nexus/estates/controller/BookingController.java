@@ -50,7 +50,7 @@ public class BookingController {
     /**
      * Inicia o processo de criação de uma nova reserva.
      * <p>
-     * Este endpoint é idempotente em caso de falha, mas não em caso de sucesso (cria novos recursos).
+     * Este endpoint é idempotente em caso de falha, mas não em caso de sucesso (cria recursos).
      * </p>
      *
      * @param request Objeto de transferência de dados (DTO) contendo os detalhes da reserva.

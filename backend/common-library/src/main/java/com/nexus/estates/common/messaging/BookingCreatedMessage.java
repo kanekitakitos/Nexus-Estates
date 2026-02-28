@@ -1,5 +1,4 @@
 package com.nexus.estates.common.messaging;
-
 import com.nexus.estates.common.enums.BookingStatus;
 
 /**
