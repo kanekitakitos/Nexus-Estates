@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/feedback/sonner-brutal"
+import { ChatProvider } from "@/features/chat/ChatProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,8 +29,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <Toaster position="top-right"/>
-        {children}
+          <Toaster position="top-right"/>
+          <div className="min-h-screen">
+            <ChatProvider>
+              {children}
+            </ChatProvider>
+          </div>
       </body>
     </html>
   );
