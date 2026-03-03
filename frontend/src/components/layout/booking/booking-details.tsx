@@ -22,18 +22,38 @@ interface BookingDetailsProps {
     checkOutDate?: Date | null
 }
 
+/**
+ * Componente de Detalhes da Propriedade (Booking Details).
+ * 
+ * Responsável por apresentar a visão completa de uma propriedade selecionada.
+ * Este componente orquestra vários subcomponentes para exibir:
+ * 1. Galeria de imagens interativa.
+ * 2. Informações principais (título, localização, preço, avaliação).
+ * 3. Descrição detalhada e especificações (hóspedes, quartos, área).
+ * 4. Lista de amenidades e botão de ação principal.
+ * 5. Calendário de disponibilidade e cálculo de custos.
+ * 
+ * Além disso, gerencia a navegação de retorno através de botões e gestos (swipe/wheel).
+ * 
+ * @param property - Objeto contendo todos os dados da propriedade a ser exibida.
+ * @param onBack - Função de callback para retornar à listagem anterior.
+ * @param isExiting - Booleano que controla a animação de saída (fly-out) quando o utilizador volta.
+ * @param checkInDate - Data de check-in pré-selecionada (opcional, vinda da busca).
+ * @param checkOutDate - Data de check-out pré-selecionada (opcional, vinda da busca).
+ */
 export function BookingDetails({ property, onBack, isExiting, checkInDate = null, checkOutDate = null }: BookingDetailsProps) {
     const handleBack = useCallback(() => {
         onBack()
     }, [onBack])
 
-    // Custom hook handles gestures (swipe/wheel)
+    // Hook personalizado para detetar gestos de navegação (voltar)
     useSwipeBack(handleBack)
 
     return (
         <div className={cn(
             PAGE_CONTAINER_STYLES,
-            isExiting ? "animate-fly-out-right" : "animate-fly-in"
+            // Aplica animações de entrada (fly-in) ou saída (fly-out) baseadas no estado
+            isExiting ? "animate-fly-out-right fill-mode-forwards" : "animate-fly-in fill-mode-forwards"
         )}>
             <div className="mb-4">
                 <Button 
@@ -50,79 +70,25 @@ export function BookingDetails({ property, onBack, isExiting, checkInDate = null
             </div>
 
             <div className="space-y-6">
+                {/* Galeria de Imagens */}
                 <PropertyGallery property={property} />
 
                 <div className="space-y-6">
-                    <BrutalShard rotate="primary">
-                        <div className="flex flex-col space-y-6">
-                            <div>
-                                <div className="flex items-center gap-2 mb-2">
-                                    <MapPin className="h-5 w-5 text-primary" />
-                                    <span className="font-mono text-sm md:text-lg font-bold text-muted-foreground uppercase">{property.location}</span>
-                                </div>
-                                <h1 className="text-3xl md:text-4xl lg:text-6xl font-black uppercase leading-[0.9] tracking-tight mb-4 text-foreground drop-shadow-[2px_2px_0_rgba(0,0,0,0.1)]">
-                                    {property.title}
-                                </h1>
-                                <div className="flex items-center gap-4">
-                                    <Badge variant="rating">
-                                        <Star className="h-4 w-4 fill-current" />
-                                        <span>{property.rating}</span>
-                                    </Badge>
-                                    <div className="h-px w-12 bg-foreground/30" />
-                                    <span className={PRICE_TEXT_STYLES}>
-                                        ${property.price}<span className="text-sm text-muted-foreground">/night</span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </BrutalShard>
+                    {/* Cartão de Cabeçalho (Título, Preço, Avaliação) */}
+                    <PropertyHeaderCard property={property} />
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <BrutalShard rotate="secondary">
-                            <div className="border-t-[3px] border-b-[3px] border-foreground py-6 space-y-4">
-                                <p className="font-mono text-base md:text-lg leading-relaxed text-muted-foreground">
-                                    {property.description}
-                                </p>
-                                
-                                <div className="grid grid-cols-2 gap-3 md:gap-4 mt-6">
-                                    {[
-                                        { icon: Users, label: "2 Guests" },
-                                        { icon: Home, label: "1 Bedroom" },
-                                        { icon: Maximize, label: "85 m²" }
-                                    ].map((item, i) => (
-                                        <div key={i} className={SUMMARY_CARD_STYLES}>
-                                            <item.icon className="h-4 w-4 md:h-5 md:w-5" />
-                                            <span className="font-mono font-bold uppercase text-xs md:text-sm">{item.label}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </BrutalShard>
+                        {/* Cartão de Descrição e Detalhes (Hóspedes, Quartos, Área) */}
+                        <PropertyDescriptionCard property={property} />
 
-                        <BrutalShard rotate="primary">
-                            <div className="space-y-4">
-                                <h3 className="font-mono text-xl font-black uppercase border-l-4 border-primary pl-3">Amenities</h3>
-                                <div className="flex flex-wrap gap-3">
-                                    {property.tags?.map((tag) => (
-                                        <Badge key={tag} variant="amenity">
-                                            <Check className="h-3 w-3" />
-                                            {tag}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="mt-8">
-                                <Button variant="brutal" className="w-full h-14 md:h-16 text-lg md:text-xl font-black uppercase tracking-wider shadow-[6px_6px_0_0_rgb(0,0,0)] dark:shadow-[6px_6px_0_0_rgba(255,255,255,0.9)]">
-                                    Book Now
-                                </Button>
-                            </div>
-                        </BrutalShard>
+                        {/* Cartão de Amenidades e Ação de Reserva */}
+                        <PropertyActionCard property={property} />
                     </div>
                 </div>
             </div>
 
             <div className="mt-10">
+                {/* Calendário de Seleção de Datas e Resumo de Preços */}
                 <DateRangeCalendar
                     pricePerNight={property.price}
                     defaultValue={
@@ -131,9 +97,11 @@ export function BookingDetails({ property, onBack, isExiting, checkInDate = null
                         : undefined
                     }
                     onConfirmBooking={({ range, totalPrice, nights }) => {
+                        // TODO: Integrar com o backend de reservas
                         alert(`Booking Confirmed! Total: €${totalPrice} for ${nights} nights`)
                     }}
                     onContactOwner={({ range }) => {
+                        // TODO: Abrir modal de contato ou redirecionar para chat
                         alert("Contact owner feature coming soon")
                     }}
                 />
@@ -144,7 +112,113 @@ export function BookingDetails({ property, onBack, isExiting, checkInDate = null
 
 // --- Sub-components & Hooks ---
 
+/**
+ * Subcomponente: Cabeçalho da Propriedade.
+ * 
+ * Exibe as informações mais críticas para a decisão do utilizador:
+ * - Localização e Título.
+ * - Avaliação (Rating).
+ * - Preço por noite.
+ * 
+ * Utiliza o componente `BrutalShard` para manter a consistência visual do design system.
+ */
+function PropertyHeaderCard({ property }: { property: BookingProperty }) {
+    return (
+        <BrutalShard rotate="primary">
+            <div className="flex flex-col space-y-6">
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <MapPin className="h-5 w-5 text-primary" />
+                        <span className="font-mono text-sm md:text-lg font-bold text-muted-foreground uppercase">{property.location}</span>
+                    </div>
+                    <h1 className="text-3xl md:text-4xl lg:text-6xl font-black uppercase leading-[0.9] tracking-tight mb-4 text-foreground drop-shadow-[2px_2px_0_rgba(0,0,0,0.1)]">
+                        {property.title}
+                    </h1>
+                    <div className="flex items-center gap-4">
+                        <Badge variant="rating">
+                            <Star className="h-4 w-4 fill-current" />
+                            <span>{property.rating}</span>
+                        </Badge>
+                        <div className="h-px w-12 bg-foreground/30" />
+                        <span className={PRICE_TEXT_STYLES}>
+                            ${property.price}<span className="text-sm text-muted-foreground">/night</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </BrutalShard>
+    )
+}
+
+/**
+ * Subcomponente: Descrição e Especificações.
+ * 
+ * Apresenta o texto descritivo da propriedade e um grid de ícones
+ * resumindo as características físicas (capacidade, quartos, metragem).
+ */
+function PropertyDescriptionCard({ property }: { property: BookingProperty }) {
+    return (
+        <BrutalShard rotate="secondary">
+            <div className="border-t-[3px] border-b-[3px] border-foreground py-6 space-y-4">
+                <p className="font-mono text-base md:text-lg leading-relaxed text-muted-foreground">
+                    {property.description}
+                </p>
+                
+                <div className="grid grid-cols-2 gap-3 md:gap-4 mt-6">
+                    {[
+                        { icon: Users, label: "2 Guests" },
+                        { icon: Home, label: "1 Bedroom" },
+                        { icon: Maximize, label: "85 m²" }
+                    ].map((item, i) => (
+                        <div key={i} className={SUMMARY_CARD_STYLES}>
+                            <item.icon className="h-4 w-4 md:h-5 md:w-5" />
+                            <span className="font-mono font-bold uppercase text-xs md:text-sm">{item.label}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </BrutalShard>
+    )
+}
+
+/**
+ * Subcomponente: Ações e Amenidades.
+ * 
+ * Lista as tags de amenidades (ex: Wi-Fi, Piscina) e contém o botão
+ * de chamada para ação (CTA) principal "Book Now".
+ */
+function PropertyActionCard({ property }: { property: BookingProperty }) {
+    return (
+        <BrutalShard rotate="primary">
+            <div className="space-y-4">
+                <h3 className="font-mono text-xl font-black uppercase border-l-4 border-primary pl-3">Amenities</h3>
+                <div className="flex flex-wrap gap-3">
+                    {property.tags?.map((tag) => (
+                        <Badge key={tag} variant="amenity">
+                            <Check className="h-3 w-3" />
+                            {tag}
+                        </Badge>
+                    ))}
+                </div>
+            </div>
+
+            <div className="mt-8">
+                <Button variant="brutal" className="w-full h-14 md:h-16 text-lg md:text-xl font-black uppercase tracking-wider shadow-[6px_6px_0_0_rgb(0,0,0)] dark:shadow-[6px_6px_0_0_rgba(255,255,255,0.9)]">
+                    Book Now
+                </Button>
+            </div>
+        </BrutalShard>
+    )
+}
+
+/**
+ * Subcomponente: Galeria de Imagens.
+ * 
+ * Exibe a imagem principal em destaque e uma lista de miniaturas.
+ * Inclui funcionalidade de rotação automática (slideshow) a cada 6 segundos.
+ */
 function PropertyGallery({ property }: { property: BookingProperty }) {
+    // TODO: Substituir URLs hardcoded por imagens reais da propriedade quando disponíveis na API
     const galleryImages = [
         property.imageUrl,
         "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=1200&auto=format&fit=crop",
@@ -153,6 +227,7 @@ function PropertyGallery({ property }: { property: BookingProperty }) {
 
     const [activeImageIndex, setActiveImageIndex] = useState(0)
 
+    // Efeito para rotação automática das imagens
     useEffect(() => {
         if (galleryImages.length <= 1) return
         const intervalId = window.setInterval(() => {
@@ -188,6 +263,15 @@ function PropertyGallery({ property }: { property: BookingProperty }) {
     )
 }
 
+/**
+ * Hook de Navegação por Gestos (Back Navigation).
+ * 
+ * Permite que o utilizador volte para a listagem usando gestos naturais:
+ * 1. Scroll horizontal para a esquerda (trackpad).
+ * 2. Swipe para a direita (touchscreen).
+ * 
+ * @param onBack - Função a ser executada quando o gesto de voltar é detetado.
+ */
 function useSwipeBack(onBack: () => void) {
     useEffect(() => {
         let touchStartX = 0
@@ -195,6 +279,7 @@ function useSwipeBack(onBack: () => void) {
 
         const handleWheel = (e: WheelEvent) => {
             const isHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY)
+            // Deteta scroll para a esquerda (voltar)
             if (isHorizontal && e.deltaX < -20) {
                 onBack()
             }
@@ -211,6 +296,7 @@ function useSwipeBack(onBack: () => void) {
             const deltaX = touchEndX - touchStartX
             const deltaY = touchEndY - touchStartY
 
+            // Deteta swipe para a direita (voltar)
             if (deltaX > 50 && Math.abs(deltaX) > Math.abs(deltaY)) {
                 onBack()
             }

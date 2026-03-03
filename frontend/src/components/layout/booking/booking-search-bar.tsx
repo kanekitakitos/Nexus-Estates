@@ -10,7 +10,6 @@ import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
   PopoverContent,
-  BrutalPopoverContent,
   PopoverTrigger,
 } from "@/components/ui/overlay/popover"
 import {
@@ -39,6 +38,32 @@ interface BookingSearchBarProps {
   className?: string
 }
 
+/**
+ * Barra de Pesquisa de Reservas (Booking Search Bar).
+ * 
+ * Componente central para filtragem de propriedades.
+ * Implementa um design modular onde cada critério de busca (Destino, Datas, Hóspedes, Preço)
+ * é uma seção independente.
+ * 
+ * Características:
+ * - Inputs estilizados com ícones.
+ * - Seletores de data (Date Picker) com validação de intervalo.
+ * - Contador de hóspedes (Adultos/Crianças) em popover.
+ * - Input numérico para preço máximo.
+ * 
+ * @param destination - Valor atual do filtro de destino.
+ * @param adults - Número de adultos selecionados.
+ * @param childrenCount - Número de crianças selecionadas.
+ * @param maxPrice - Preço máximo definido pelo utilizador.
+ * @param checkInDate - Data de início da estadia.
+ * @param checkOutDate - Data de fim da estadia.
+ * @param onDestinationChange - Callback para atualização do destino.
+ * @param onAdultsChange - Callback para atualização do número de adultos.
+ * @param onChildrenChange - Callback para atualização do número de crianças.
+ * @param onMaxPriceChange - Callback para atualização do preço máximo.
+ * @param onCheckInChange - Callback para atualização da data de check-in.
+ * @param onCheckOutChange - Callback para atualização da data de check-out.
+ */
 export function BookingSearchBar({
   destination,
   guests,
@@ -62,103 +87,188 @@ export function BookingSearchBar({
   return (
     <SearchBar className={className}>
       <SearchBarContent>
-        {/* Destination */}
-        <SearchBarSection className="col-span-2 md:col-span-1">
-          <SearchBarLabel>
-            <MapPin className="h-3 w-3 md:h-3.5 md:w-3.5" />
-            <span>Destination</span>
-          </SearchBarLabel>
-          <SearchBarInputContainer>
-            <Search className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full bg-transparent font-mono text-[10px] md:text-xs uppercase outline-none placeholder:text-muted-foreground/70"
-              value={destination ?? ""}
-              onChange={(event) => onDestinationChange?.(event.target.value)}
-            />
-          </SearchBarInputContainer>
-        </SearchBarSection>
+        {/* Seção 1: Destino */}
+        <DestinationSection destination={destination} onChange={onDestinationChange} />
+        
+        {/* Seção 2: Datas (Check-in / Check-out) */}
+        <DatesSection 
+          checkInDate={checkInDate}
+          checkOutDate={checkOutDate}
+          onCheckInChange={(date) => {
+            setCheckInDate(date)
+            onCheckInChange?.(date)
+          }}
+          onCheckOutChange={(date) => {
+            setCheckOutDate(date)
+            onCheckOutChange?.(date)
+          }}
+        />
 
-        {/* Check-in/out */}
-        <SearchBarSection className="col-span-2 md:col-span-1">
-          <SearchBarLabel>
-            <CalendarIcon className="h-3 w-3 md:h-3.5 md:w-3.5" />
-            <span>Dates</span>
-          </SearchBarLabel>
-          <SearchBarInputContainer className="justify-between">
-            <DatePicker
-              date={checkInDate}
-              onSelect={(date) => {
-                setCheckInDate(date ?? null)
-                onCheckInChange?.(date ?? null)
-                if (date && checkOutDate && date >= checkOutDate) {
-                  setCheckOutDate(null)
-                  onCheckOutChange?.(null)
-                }
-              }}
-              disabled={(date) => date < new Date()}
-            />
-            <span className="text-muted-foreground/70 text-[10px]">—</span>
-            <DatePicker
-              date={checkOutDate}
-              onSelect={(date) => {
-                setCheckOutDate(date ?? null)
-                onCheckOutChange?.(date ?? null)
-              }}
-              disabled={(date) => (checkInDate && date < checkInDate) || date < new Date()}
-            />
-          </SearchBarInputContainer>
-        </SearchBarSection>
+        {/* Seção 3: Hóspedes */}
+        <GuestsSection 
+          adults={adults}
+          childrenCount={childrenCount}
+          onAdultsChange={onAdultsChange}
+          onChildrenChange={onChildrenChange}
+        />
 
-        {/* Guests */}
-        <SearchBarSection>
-          <SearchBarLabel>
-            <Users className="h-3 w-3 md:h-3.5 md:w-3.5" />
-            <span>Guests</span>
-          </SearchBarLabel>
-          <GuestSelector 
-            adults={adults}
-            childrenCount={childrenCount}
-            onAdultsChange={onAdultsChange}
-            onChildrenChange={onChildrenChange}
-          />
-        </SearchBarSection>
-
-        <SearchBarSection>
-          <SearchBarLabel className="relative overflow-hidden">
-            <span className="absolute inset-0 bg-primary/90 -skew-x-6 origin-left" />
-            <div className="relative flex items-center gap-2">
-              <DollarSign className="h-3 w-3 md:h-3.5 md:w-3.5" />
-              <span className="relative z-10">Max Price</span>
-            </div>
-          </SearchBarLabel>
-          <SearchBarInputContainer className="justify-between">
-            <span className="font-mono text-[9px] md:text-[11px] uppercase text-muted-foreground">
-              Up to
-            </span>
-            <PriceInput value={maxPrice} onChange={onMaxPriceChange} />
-          </SearchBarInputContainer>
-        </SearchBarSection>
+        {/* Seção 4: Preço Máximo */}
+        <PriceSection maxPrice={maxPrice} onMaxPriceChange={onMaxPriceChange} />
       </SearchBarContent>
     </SearchBar>
   )
 }
 
+// --- Sub-components ---
+
+/**
+ * Subcomponente: Seção de Destino.
+ * Input de texto simples para filtrar por localização ou nome da propriedade.
+ */
+function DestinationSection({ destination, onChange }: { destination?: string, onChange?: (val: string) => void }) {
+  return (
+    <SearchBarSection className="col-span-2 md:col-span-1">
+      <SearchBarLabel>
+        <MapPin className="h-3 w-3 md:h-3.5 md:w-3.5" />
+        <span>Destination</span>
+      </SearchBarLabel>
+      <SearchBarInputContainer>
+        <Search className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Search..."
+          className="w-full bg-transparent font-mono text-[10px] md:text-xs uppercase outline-none placeholder:text-muted-foreground/70"
+          value={destination ?? ""}
+          onChange={(event) => onChange?.(event.target.value)}
+        />
+      </SearchBarInputContainer>
+    </SearchBarSection>
+  )
+}
+
+/**
+ * Subcomponente: Seção de Datas.
+ * Contém dois seletores de data (DatePickers) para definir o intervalo da estadia.
+ * Garante que a data de check-out seja posterior à de check-in.
+ */
+function DatesSection({ 
+  checkInDate, 
+  checkOutDate, 
+  onCheckInChange, 
+  onCheckOutChange 
+}: { 
+  checkInDate: Date | null, 
+  checkOutDate: Date | null, 
+  onCheckInChange: (d: Date | null) => void, 
+  onCheckOutChange: (d: Date | null) => void 
+}) {
+  return (
+    <SearchBarSection className="col-span-2 md:col-span-1">
+      <SearchBarLabel>
+        <CalendarIcon className="h-3 w-3 md:h-3.5 md:w-3.5" />
+        <span>Dates</span>
+      </SearchBarLabel>
+      <SearchBarInputContainer className="justify-between">
+        <DatePicker
+          date={checkInDate}
+          onSelect={(date) => {
+            onCheckInChange(date ?? null)
+            // Reseta o check-out se a nova data de check-in for inválida em relação ao check-out atual
+            if (date && checkOutDate && date >= checkOutDate) {
+              onCheckOutChange(null)
+            }
+          }}
+          disabled={(date) => date < new Date()}
+          placeholder="Check-in"
+        />
+        <span className="text-muted-foreground/70 text-[10px]">—</span>
+        <DatePicker
+          date={checkOutDate}
+          onSelect={(date) => onCheckOutChange(date ?? null)}
+          disabled={(date) => (checkInDate ? date < checkInDate : date < new Date())}
+          placeholder="Check-out"
+        />
+      </SearchBarInputContainer>
+    </SearchBarSection>
+  )
+}
+
+/**
+ * Subcomponente: Seção de Hóspedes.
+ * Exibe o total de hóspedes e abre um popover para ajuste detalhado (Adultos/Crianças).
+ */
+function GuestsSection({ 
+  adults, 
+  childrenCount, 
+  onAdultsChange, 
+  onChildrenChange 
+}: { 
+  adults: number, 
+  childrenCount: number, 
+  onAdultsChange?: (v: number) => void, 
+  onChildrenChange?: (v: number) => void 
+}) {
+  return (
+    <SearchBarSection>
+      <SearchBarLabel>
+        <Users className="h-3 w-3 md:h-3.5 md:w-3.5" />
+        <span>Guests</span>
+      </SearchBarLabel>
+      <GuestSelector 
+        adults={adults}
+        childrenCount={childrenCount}
+        onAdultsChange={onAdultsChange}
+        onChildrenChange={onChildrenChange}
+      />
+    </SearchBarSection>
+  )
+}
+
+/**
+ * Subcomponente: Seção de Preço.
+ * Input numérico para definir o orçamento máximo por noite.
+ */
+function PriceSection({ maxPrice, onMaxPriceChange }: { maxPrice: number | "", onMaxPriceChange?: (v: number | "") => void }) {
+  return (
+    <SearchBarSection>
+      <SearchBarLabel className="relative overflow-hidden">
+        <span className="absolute inset-0 bg-primary/90 -skew-x-6 origin-left" />
+        <div className="relative flex items-center gap-2">
+          <DollarSign className="h-3 w-3 md:h-3.5 md:w-3.5" />
+          <span className="relative z-10">Max Price</span>
+        </div>
+      </SearchBarLabel>
+      <SearchBarInputContainer className="justify-between">
+        <span className="font-mono text-[9px] md:text-[11px] uppercase text-muted-foreground">
+          Up to
+        </span>
+        <PriceInput value={maxPrice} onChange={onMaxPriceChange} />
+      </SearchBarInputContainer>
+    </SearchBarSection>
+  )
+}
+
+// --- Helper Components ---
+
 interface DatePickerProps {
   date: Date | null
   onSelect: (date: Date | undefined) => void
   disabled: (date: Date) => boolean
+  placeholder?: string
 }
 
-function DatePicker({ date, onSelect, disabled }: DatePickerProps) {
+/**
+ * Componente Auxiliar: Seletor de Data (Date Picker).
+ * Wrapper em torno do componente Calendar do shadcn/ui dentro de um Popover.
+ */
+function DatePicker({ date, onSelect, disabled, placeholder = "Date" }: DatePickerProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <div className="flex items-center gap-1.5 md:gap-2 font-mono text-[10px] md:text-[11px] uppercase text-foreground outline-none cursor-pointer">
+        <button className="flex items-center gap-1.5 md:gap-2 font-mono text-[10px] md:text-[11px] uppercase text-foreground outline-none cursor-pointer hover:text-primary transition-colors">
           <CalendarIcon className="h-3 w-3 md:h-3.5 md:w-3.5 text-muted-foreground" />
-          <span>{date ? format(date, "dd/MM") : "Date"}</span>
-        </div>
+          <span>{date ? format(date, "dd/MM") : placeholder}</span>
+        </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
@@ -180,6 +290,10 @@ interface GuestSelectorProps {
   onChildrenChange?: (value: number) => void
 }
 
+/**
+ * Componente Auxiliar: Seletor de Hóspedes.
+ * Popover contendo contadores para Adultos e Crianças.
+ */
 function GuestSelector({ adults, childrenCount, onAdultsChange, onChildrenChange }: GuestSelectorProps) {
   const [open, setOpen] = useState(false)
   const totalGuests = adults + childrenCount
@@ -212,34 +326,50 @@ function GuestSelector({ adults, childrenCount, onAdultsChange, onChildrenChange
           </span>
         </div>
       </PopoverTrigger>
-      <BrutalPopoverContent className="w-80">
+      <PopoverContent className="w-80 p-4 border-2 border-foreground shadow-[4px_4px_0_0_rgb(0,0,0)]">
         <div className="grid gap-4">
-          {[
-            { label: "Adults", sub: "Ages 13+", count: adults, onChange: handleAdultsChange, min: 1 },
-            { label: "Children", sub: "Ages 2-12", count: childrenCount, onChange: handleChildrenChange, min: 0 }
-          ].map((type, index, array) => (
-            <div key={type.label}>
-              <div className="flex items-center justify-between">
-                <div className="grid gap-0.5">
-                  <span className="font-mono text-sm font-bold uppercase">{type.label}</span>
-                  <span className="text-xs text-muted-foreground">{type.sub}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Button variant="brutal" size="icon" className="h-8 w-8" onClick={() => type.onChange(-1)} disabled={type.count <= type.min}>
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                  <span className="w-4 text-center font-mono text-sm font-bold">{type.count}</span>
-                  <Button variant="brutal" size="icon" className="h-8 w-8" onClick={() => type.onChange(1)}>
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-              {index < array.length - 1 && <div className="h-[1px] w-full bg-border mt-4" />}
-            </div>
-          ))}
+          <GuestCounter 
+            label="Adults" 
+            sub="Ages 13+" 
+            count={adults} 
+            onChange={handleAdultsChange} 
+            min={1} 
+          />
+          <div className="h-[1px] w-full bg-border" />
+          <GuestCounter 
+            label="Children" 
+            sub="Ages 2-12" 
+            count={childrenCount} 
+            onChange={handleChildrenChange} 
+            min={0} 
+          />
         </div>
-      </BrutalPopoverContent>
+      </PopoverContent>
     </Popover>
+  )
+}
+
+/**
+ * Componente Auxiliar: Contador de Hóspedes.
+ * Linha individual com rótulo e botões de incremento/decremento.
+ */
+function GuestCounter({ label, sub, count, onChange, min }: { label: string, sub: string, count: number, onChange: (d: number) => void, min: number }) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="grid gap-0.5">
+        <span className="font-mono text-sm font-bold uppercase">{label}</span>
+        <span className="text-xs text-muted-foreground">{sub}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <Button variant="brutal" size="icon" className="h-8 w-8" onClick={() => onChange(count - 1)} disabled={count <= min}>
+          <Minus className="h-3 w-3" />
+        </Button>
+        <span className="w-4 text-center font-mono text-sm font-bold">{count}</span>
+        <Button variant="brutal" size="icon" className="h-8 w-8" onClick={() => onChange(count + 1)}>
+          <Plus className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
   )
 }
 
@@ -248,6 +378,11 @@ interface PriceInputProps {
   onChange?: (value: number | "") => void
 }
 
+/**
+ * Componente Auxiliar: Input de Preço.
+ * Campo numérico estilizado com rotação e ícone de dólar.
+ * Lida com a conversão de string para número e validação básica.
+ */
 function PriceInput({ value, onChange }: PriceInputProps) {
   const [localValue, setLocalValue] = useState(value === "" ? "" : String(value))
 

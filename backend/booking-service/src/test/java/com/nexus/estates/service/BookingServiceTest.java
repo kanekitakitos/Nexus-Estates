@@ -1,11 +1,12 @@
 package com.nexus.estates.service;
 
+import com.nexus.estates.client.NexusClients;
+import com.nexus.estates.client.Proxy;
 import com.nexus.estates.dto.BookingResponse;
 import com.nexus.estates.dto.CreateBookingRequest;
 import com.nexus.estates.entity.Booking;
 import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.exception.BookingConflictException;
-import com.nexus.estates.mapper.BookingMapper;
 import com.nexus.estates.messaging.BookingEventPublisher;
 import com.nexus.estates.repository.BookingRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -32,10 +33,19 @@ class BookingServiceTest {
     private BookingRepository bookingRepository;
 
     @Mock
-    private BookingMapper bookingMapper;
+    private BookingEventPublisher bookingEventPublisher;
 
     @Mock
-    private BookingEventPublisher bookingEventPublisher;
+    private BookingPaymentService bookingPaymentService;
+
+    @Mock
+    private Proxy api;
+
+    @Mock
+    private NexusClients.PropertyClient propertyClient;
+
+    @Mock
+    private NexusClients.UserClient userClient;
 
     @InjectMocks
     private BookingService bookingService;
@@ -51,31 +61,26 @@ class BookingServiceTest {
                 2
         );
 
-        Booking bookingEntity = new Booking();
-        bookingEntity.setId(1L);
-        
+        // Criamos o objeto que o repositório irá retornar com os dados necessários
         Booking savedBooking = new Booking();
-        savedBooking.setId(bookingEntity.getId());
+        savedBooking.setId(1L);
+        savedBooking.setPropertyId(request.propertyId());
+        savedBooking.setUserId(request.userId());
+        savedBooking.setCheckInDate(request.checkInDate());
+        savedBooking.setCheckOutDate(request.checkOutDate());
+        savedBooking.setGuests(request.guestCount());
         savedBooking.setTotalPrice(new BigDecimal("300.00"));
+        savedBooking.setCurrency("EUR");
+        savedBooking.setStatus(BookingStatus.PENDING_PAYMENT);
 
-        BookingResponse expectedResponse = new BookingResponse(
-                savedBooking.getId(),
-                request.propertyId(),
-                request.userId(),
-                request.checkInDate(),
-                request.checkOutDate(),
-                request.guestCount(),
-                new BigDecimal("300.00"),
-                "EUR",
-                BookingStatus.PENDING_PAYMENT
-
-        );
-
+        // Configurar Mocks do Proxy
+        when(api.userClient()).thenReturn(userClient);
+        when(userClient.getUserEmail(request.userId())).thenReturn("test@nexus.com");
+        when(api.propertyClient()).thenReturn(propertyClient);
+        when(propertyClient.getPropertyPrice(request.propertyId())).thenReturn(new BigDecimal("100.00"));
 
         when(bookingRepository.existsOverlappingBooking(any(), any(), any())).thenReturn(false);
-        when(bookingMapper.toEntity(request)).thenReturn(bookingEntity);
         when(bookingRepository.save(any(Booking.class))).thenReturn(savedBooking);
-        when(bookingMapper.toResponse(savedBooking)).thenReturn(expectedResponse);
 
         BookingResponse actualResponse = bookingService.createBooking(request);
 
@@ -95,6 +100,10 @@ class BookingServiceTest {
                 LocalDate.now().plusDays(5),
                 2
         );
+
+        // Configurar Mock do UserClient (necessário pois a validação ocorre antes da verificação de datas)
+        when(api.userClient()).thenReturn(userClient);
+        when(userClient.getUserEmail(request.userId())).thenReturn("test@nexus.com");
 
         // Ensinar o Mock a dizer "Sim, já existe reserva"
         when(bookingRepository.existsOverlappingBooking(any(), any(), any())).thenReturn(true);
@@ -135,24 +144,34 @@ class BookingServiceTest {
                 2
         );
 
-        Booking bookingEntity = new Booking();
         Booking savedBooking = new Booking();
         savedBooking.setId(2L);
+        savedBooking.setPropertyId(request.propertyId());
+        savedBooking.setUserId(request.userId());
+        savedBooking.setCheckInDate(request.checkInDate());
+        savedBooking.setCheckOutDate(request.checkOutDate());
+        savedBooking.setGuests(request.guestCount());
         savedBooking.setTotalPrice(new BigDecimal("300.00")); // O que esperamos
+        savedBooking.setCurrency("EUR");
+        savedBooking.setStatus(BookingStatus.PENDING_PAYMENT);
+
+        // Configurar Mocks do Proxy para cálculo de preço
+        when(api.userClient()).thenReturn(userClient);
+        when(userClient.getUserEmail(request.userId())).thenReturn("test@nexus.com");
+        when(api.propertyClient()).thenReturn(propertyClient);
+        when(propertyClient.getPropertyPrice(request.propertyId())).thenReturn(new BigDecimal("100.00"));
 
         when(bookingRepository.existsOverlappingBooking(any(), any(), any())).thenReturn(false);
-        when(bookingMapper.toEntity(request)).thenReturn(bookingEntity);
         when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> {
             Booking b = invocation.getArgument(0);
             // Verifica se o serviço calculou o preço antes de salvar
             assertThat(b.getTotalPrice()).isEqualByComparingTo(new BigDecimal("300.00"));
             return savedBooking;
         });
-        when(bookingMapper.toResponse(any())).thenReturn(mock(BookingResponse.class));
 
         bookingService.createBooking(request);
 
-        verify(bookingRepository).save(bookingEntity);
+        verify(bookingRepository).save(any(Booking.class));
         verify(bookingEventPublisher).publishBookingCreated(any());
     }
 
@@ -162,14 +181,20 @@ class BookingServiceTest {
         Long id = 3L;
         Booking booking = new Booking();
         booking.setId(id);
-        BookingResponse expectedResponse = mock(BookingResponse.class);
+        booking.setPropertyId(10L);
+        booking.setUserId(20L);
+        booking.setCheckInDate(LocalDate.now());
+        booking.setCheckOutDate(LocalDate.now().plusDays(1));
+        booking.setGuests(2);
+        booking.setTotalPrice(new BigDecimal("100.00"));
+        booking.setCurrency("EUR");
+        booking.setStatus(BookingStatus.CONFIRMED);
 
         when(bookingRepository.findById(id)).thenReturn(Optional.of(booking));
-        when(bookingMapper.toResponse(booking)).thenReturn(expectedResponse);
 
         BookingResponse actualResponse = bookingService.getBookingById(id);
 
-        assertThat(actualResponse).isEqualTo(expectedResponse);
+        assertThat(actualResponse.id()).isEqualTo(id);
     }
 
     @Test
@@ -188,15 +213,22 @@ class BookingServiceTest {
     void shouldReturnBookingsByProperty() {
         Long propertyId = 10L;
         Booking booking = new Booking();
-        BookingResponse response = mock(BookingResponse.class);
+        booking.setId(1L);
+        booking.setPropertyId(propertyId);
+        booking.setUserId(20L);
+        booking.setCheckInDate(LocalDate.now());
+        booking.setCheckOutDate(LocalDate.now().plusDays(1));
+        booking.setGuests(2);
+        booking.setTotalPrice(new BigDecimal("100.00"));
+        booking.setCurrency("EUR");
+        booking.setStatus(BookingStatus.CONFIRMED);
 
         when(bookingRepository.findByPropertyId(propertyId)).thenReturn(List.of(booking));
-        when(bookingMapper.toResponse(booking)).thenReturn(response);
 
         List<BookingResponse> results = bookingService.getBookingsByProperty(propertyId);
 
         assertThat(results).hasSize(1);
-        assertThat(results.get(0)).isEqualTo(response);
+        assertThat(results.get(0).propertyId()).isEqualTo(propertyId);
     }
 
     @Test
@@ -204,14 +236,21 @@ class BookingServiceTest {
     void shouldReturnBookingsByUser() {
         Long userId = 20L;
         Booking booking = new Booking();
-        BookingResponse response = mock(BookingResponse.class);
+        booking.setId(1L);
+        booking.setPropertyId(10L);
+        booking.setUserId(userId);
+        booking.setCheckInDate(LocalDate.now());
+        booking.setCheckOutDate(LocalDate.now().plusDays(1));
+        booking.setGuests(2);
+        booking.setTotalPrice(new BigDecimal("100.00"));
+        booking.setCurrency("EUR");
+        booking.setStatus(BookingStatus.CONFIRMED);
 
         when(bookingRepository.findByUserId(userId)).thenReturn(List.of(booking));
-        when(bookingMapper.toResponse(booking)).thenReturn(response);
 
         List<BookingResponse> results = bookingService.getBookingsByUser(userId);
 
         assertThat(results).hasSize(1);
-        assertThat(results.get(0)).isEqualTo(response);
+        assertThat(results.get(0).userId()).isEqualTo(userId);
     }
 }

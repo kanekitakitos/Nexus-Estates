@@ -5,6 +5,7 @@ import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.common.messaging.BookingStatusUpdatedMessage;
 import com.nexus.estates.repository.BookingRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -14,23 +15,10 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import java.util.Optional;
 
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class BookingEventPublisherTest {
-
-
-//    $body = @{
-//        propertyId  = "0f8fad5b-d9cb-469f-a165-70867728950e"
-//        userId      = "7c9e6679-7425-40de-944b-e07fc1f90ae7"
-//        checkInDate = "2030-01-10"
-//        checkOutDate= "2030-01-15"
-//        guestCount  = 2
-//    } | ConvertTo-Json
-//
-//    Invoke-RestMethod -Method Post `
-//            -Uri "http://localhost:8081/api/v1/bookings" `
-//            -ContentType "application/json" `
-//            -Body $body
 
     @Mock
     private RabbitTemplate rabbitTemplate;
@@ -40,13 +28,15 @@ class BookingEventPublisherTest {
 
     private BookingEventPublisher bookingEventPublisher;
 
-    @org.junit.jupiter.api.BeforeEach
+    @BeforeEach
     void setUp() {
         bookingEventPublisher = new BookingEventPublisher(
                 rabbitTemplate,
                 bookingRepository,
                 "booking.exchange",
-                "booking.created"
+                "booking.created",
+                "booking.updated",
+                "booking.cancelled"
         );
     }
 
@@ -76,7 +66,7 @@ class BookingEventPublisherTest {
                 "paid"
         );
 
-        org.mockito.Mockito.when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         bookingEventPublisher.handleStatusUpdated(message);
 

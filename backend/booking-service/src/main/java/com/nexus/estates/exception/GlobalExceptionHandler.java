@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 /**
  * Manipulador global de exceções para a API.
  * <p>
- * Intercepta exceções lançadas pelos controladores e converte-as em respostas HTTP padronizadas
+ * Interceta exceções lançadas pelos controladores e converte-as em respostas HTTP padronizadas
  * utilizando o formato {@link ErrorResponse} da common-library.
  * </p>
  *

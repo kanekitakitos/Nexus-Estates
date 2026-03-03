@@ -1,10 +1,12 @@
 package com.nexus.estates.service;
 
-import com.nexus.estates.dto.AuthResponde;
+import com.nexus.estates.dto.AuthResponse;
 import com.nexus.estates.dto.LoginRequest;
 import com.nexus.estates.dto.RegisterRequest;
 import com.nexus.estates.entity.User;
 import com.nexus.estates.entity.UserRole;
+import com.nexus.estates.exception.EmailAlreadyRegisteredException;
+import com.nexus.estates.exception.InvalidCredentialsException;
 import com.nexus.estates.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -48,29 +49,36 @@ class AuthServiceTest {
 
     @Test
     void shouldRegisterWithDefaultGuestRoleAndReturnToken() {
+        // Arrange
         when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("plain")).thenReturn("hashed");
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        UUID id = UUID.randomUUID();
+        
+        Long generatedId = 1L;
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User u = invocation.getArgument(0);
             return User.builder()
-                    .id(id)
+                    .id(generatedId)
                     .email(u.getEmail())
                     .password(u.getPassword())
                     .phone(u.getPhone())
                     .role(u.getRole())
                     .build();
         });
+        
         when(jwtService.generateToken(any(User.class))).thenReturn("token");
 
-        AuthResponde response = authService.register(registerRequest);
+        // Act
+        AuthResponse response = authService.register(registerRequest);
 
+        // Assert
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
+        
         User saved = userCaptor.getValue();
         assertEquals("hashed", saved.getPassword());
         assertEquals(UserRole.GUEST, saved.getRole());
-        assertEquals(id, response.getId());
+        
+        assertEquals(generatedId, response.getId());
         assertEquals("new@example.com", response.getEmail());
         assertEquals("GUEST", response.getRole());
         assertEquals("token", response.getToken());
@@ -79,26 +87,33 @@ class AuthServiceTest {
     @Test
     void shouldFailRegisterWhenEmailExists() {
         when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.of(User.builder().build()));
-        assertThrows(RuntimeException.class, () -> authService.register(registerRequest));
+        
+        assertThrows(EmailAlreadyRegisteredException.class, () -> authService.register(registerRequest));
+        
         verify(userRepository, never()).save(any());
     }
 
     @Test
     void shouldLoginSuccessfullyAndReturnToken() {
-        UUID id = UUID.randomUUID();
+        // Arrange
+        Long id = 100L;
         User existing = User.builder()
                 .id(id)
                 .email("u@example.com")
                 .password("hashed")
                 .role(UserRole.GUEST)
                 .build();
+                
         when(userRepository.findByEmail("u@example.com")).thenReturn(Optional.of(existing));
         when(passwordEncoder.matches("plain", "hashed")).thenReturn(true);
         when(jwtService.generateToken(existing)).thenReturn("tok");
 
         LoginRequest req = LoginRequest.builder().email("u@example.com").password("plain").build();
-        AuthResponde response = authService.login(req);
+        
+        // Act
+        AuthResponse response = authService.login(req);
 
+        // Assert
         assertEquals(id, response.getId());
         assertEquals("u@example.com", response.getEmail());
         assertEquals("GUEST", response.getRole());
@@ -107,15 +122,20 @@ class AuthServiceTest {
 
     @Test
     void shouldFailLoginWhenWrongPassword() {
+        // Arrange
         User existing = User.builder()
-                .id(UUID.randomUUID())
+                .id(50L)
                 .email("u@example.com")
                 .password("hashed")
                 .role(UserRole.GUEST)
                 .build();
+                
         when(userRepository.findByEmail("u@example.com")).thenReturn(Optional.of(existing));
         when(passwordEncoder.matches("wrong", "hashed")).thenReturn(false);
+        
         LoginRequest req = LoginRequest.builder().email("u@example.com").password("wrong").build();
-        assertThrows(RuntimeException.class, () -> authService.login(req));
+        
+        // Act & Assert
+        assertThrows(InvalidCredentialsException.class, () -> authService.login(req));
     }
 }

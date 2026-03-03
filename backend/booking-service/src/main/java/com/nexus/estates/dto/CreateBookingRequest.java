@@ -8,6 +8,9 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 
+import com.nexus.estates.common.enums.BookingStatus;
+import com.nexus.estates.entity.Booking;
+
 /**
  * DTO que representa o payload para criação de uma nova reserva.
  * <p>
@@ -50,4 +53,26 @@ public record CreateBookingRequest(
         @Schema(description = "Número total de hóspedes para a reserva", example = "2", minimum = "1")
         @Min(value = 1, message = "At least 1 guest is required")
         int guestCount
-) {}
+) {
+
+
+    /**
+     * Converte um pedido de criação de reserva numa entidade {@link Booking}.
+     * <p>
+     * Define o estado inicial da reserva como {@code PENDING_PAYMENT}.
+     * </p>
+     *
+     * @return A entidade {@link Booking} pronta a ser persistida (sem ID gerado ainda).
+     */
+    public Booking toEntity()
+    {
+                return Booking.builder()
+                        .propertyId(this.propertyId())
+                        .userId(this.userId())
+                        .checkInDate(this.checkInDate())
+                        .checkOutDate(this.checkOutDate())
+                        .guests(this.guestCount())
+                        .status(BookingStatus.PENDING_PAYMENT) // Estado inicial obrigatório
+                        .build();
+    }
+}

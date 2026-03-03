@@ -43,6 +43,13 @@ public class DlqAdminController {
     private final String bookingCreatedDlqQueueName;
     private final String bookingStatusUpdatedDlqQueueName;
 
+    /**
+     * Construtor com injeção das dependências e nomes de filas DLQ.
+     *
+     * @param rabbitTemplate template partilhado para operações AMQP
+     * @param bookingCreatedDlqQueueName nome da DLQ de criação de reservas
+     * @param bookingStatusUpdatedDlqQueueName nome da DLQ de alteração de estado
+     */
     public DlqAdminController(RabbitTemplate rabbitTemplate,
                               @Value("${booking.events.queue.created.dlq:booking.created.dlq}") String bookingCreatedDlqQueueName,
                               @Value("${booking.events.queue.status-updated.dlq:booking.status.updated.dlq}") String bookingStatusUpdatedDlqQueueName) {
@@ -65,6 +72,13 @@ public class DlqAdminController {
                     )
             )
     })
+    /**
+     * Drena mensagens da DLQ de reservas criadas até um limite dado.
+     *
+     * @param limit número máximo de mensagens a consumir da DLQ
+     * @return lista de {@link BookingCreatedMessage} drenadas
+     * @see com.nexus.estates.config.RabbitMQConfig
+     */
     public ResponseEntity<List<BookingCreatedMessage>> drainBookingCreatedDlq(
             @Parameter(
                     description = "Número máximo de mensagens a ler da DLQ",
@@ -98,6 +112,13 @@ public class DlqAdminController {
                     )
             )
     })
+    /**
+     * Drena mensagens da DLQ de atualizações de estado de reservas até um limite dado.
+     *
+     * @param limit número máximo de mensagens a consumir da DLQ
+     * @return lista de {@link BookingStatusUpdatedMessage} drenadas
+     * @see com.nexus.estates.config.RabbitMQConfig
+     */
     public ResponseEntity<List<BookingStatusUpdatedMessage>> drainBookingStatusUpdatedDlq(
             @Parameter(
                     description = "Número máximo de mensagens a ler da DLQ",

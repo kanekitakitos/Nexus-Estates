@@ -1,9 +1,8 @@
 package com.nexus.estates.entity;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-
 import java.math.BigDecimal;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -12,19 +11,24 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * <p>Valida o correto funcionamento dos getters e setters.</p>
  */
-@WebMvcTest(Property.class)
 class PropertyTest {
 
     @Test
     void testPropertyData() {
 
         Long id = 5L;
+        // Criamos o mapa de descrição para simular o JSONB
+        Map<String, String> descriptions = Map.of(
+                "pt", "Centro da cidade",
+                "en", "City center"
+        );
 
         Property property = new Property();
 
         property.setId(id);
         property.setName("Apartamento");
-        property.setDescription("Centro da cidade");
+        property.setDescription(descriptions); // Agora passamos o Map
+        property.setLocation("Lisboa Centro"); // Adicionado para bater com a nova Entity
         property.setCity("Lisboa");
         property.setAddress("Av. da Liberdade");
         property.setBasePrice(new BigDecimal("150.00"));
@@ -33,7 +37,8 @@ class PropertyTest {
 
         assertEquals(id, property.getId());
         assertEquals("Apartamento", property.getName());
-        assertEquals("Centro da cidade", property.getDescription());
+        assertEquals(descriptions, property.getDescription());
+        assertEquals("Lisboa Centro", property.getLocation());
         assertEquals("Lisboa", property.getCity());
         assertEquals("Av. da Liberdade", property.getAddress());
         assertEquals(new BigDecimal("150.00"), property.getBasePrice());

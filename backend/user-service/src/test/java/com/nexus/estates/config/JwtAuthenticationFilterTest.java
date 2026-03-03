@@ -13,14 +13,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,22 +55,46 @@ class JwtAuthenticationFilterTest {
     void shouldSetAuthenticationOnValidToken() throws Exception {
         when(request.getHeader("Authorization")).thenReturn("Bearer tok");
         when(jwtService.extractUsername("tok")).thenReturn("u@example.com");
-        User u = User.builder().id(UUID.randomUUID()).email("u@example.com").password("x").role(UserRole.GUEST).build();
+        User u = User.builder().id(124L).email("u@example.com").password("x").role(UserRole.GUEST).build();
         when(userRepository.findByEmail("u@example.com")).thenReturn(Optional.of(u));
         when(jwtService.isTokenValid("tok", "u@example.com")).thenReturn(true);
-        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
-        when(request.getSession(false)).thenReturn(null);
+        
         filter.doFilterInternal(request, response, filterChain);
-        assertNotNull(SecurityContextHolder.getContext().getAuthentication());
+        
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        assertNotNull(auth);
+        assertEquals("ROLE_GUEST", auth.getAuthorities().iterator().next().getAuthority());
         verify(filterChain).doFilter(request, response);
     }
 
     @Test
-    void shouldReturn401OnInvalidToken() throws Exception {
+    void shouldPrioritizeXUserRoleHeader() throws Exception {
+        when(request.getHeader("Authorization")).thenReturn("Bearer tok");
+        when(request.getHeader("X-User-Role")).thenReturn("ADMIN"); // Gateway diz que é ADMIN
+        
+        when(jwtService.extractUsername("tok")).thenReturn("u@example.com");
+        User u = User.builder().id(124L).email("u@example.com").password("x").role(UserRole.GUEST).build(); // DB diz que é GUEST
+        when(userRepository.findByEmail("u@example.com")).thenReturn(Optional.of(u));
+        when(jwtService.isTokenValid("tok", "u@example.com")).thenReturn(true);
+        
+        filter.doFilterInternal(request, response, filterChain);
+        
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        assertNotNull(auth);
+        // Deve ter assumido o role do header (ADMIN) e não da DB (GUEST)
+        assertEquals("ROLE_ADMIN", auth.getAuthorities().iterator().next().getAuthority());
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    void shouldContinueChainOnInvalidToken() throws Exception {
         when(request.getHeader("Authorization")).thenReturn("Bearer tok");
         when(jwtService.extractUsername("tok")).thenThrow(new RuntimeException("bad"));
+        
         filter.doFilterInternal(request, response, filterChain);
+        
         assertNull(SecurityContextHolder.getContext().getAuthentication());
-        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        // O filtro deve continuar a cadeia, deixando o SecurityConfig decidir se bloqueia ou não
+        verify(filterChain).doFilter(request, response);
     }
 }

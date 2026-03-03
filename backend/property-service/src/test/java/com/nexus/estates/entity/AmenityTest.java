@@ -1,6 +1,7 @@
 package com.nexus.estates.entity;
 
 import org.junit.jupiter.api.Test;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -16,17 +17,23 @@ class AmenityTest {
         // Arrange
         Amenity amenity = new Amenity();
         Long id = 4L;
-        String name = "Piscina Aquecida";
+        // Agora definimos um mapa com as traduções para simular o JSONB
+        Map<String, String> names = Map.of(
+                "pt", "Piscina Aquecida",
+                "en", "Heated Pool"
+        );
         AmenityCategory category = AmenityCategory.LEISURE;
 
         // Act
         amenity.setId(id);
-        amenity.setName(name);
+        amenity.setName(names);
         amenity.setCategory(category);
 
         // Assert
-        assertEquals(id, amenity.getId(), "O ID deve corresponder ao UUID gerado.");
-        assertEquals("Piscina Aquecida", amenity.getName(), "O nome deve ser igual ao definido.");
+        assertEquals(id, amenity.getId(), "O ID deve corresponder ao gerado.");
+        assertNotNull(amenity.getName());
+        assertEquals("Piscina Aquecida", amenity.getName().get("pt"), "O nome em PT deve ser igual ao definido.");
+        assertEquals("Heated Pool", amenity.getName().get("en"), "O nome em EN deve ser igual ao definido.");
         assertEquals(AmenityCategory.LEISURE, amenity.getCategory(), "A categoria deve ser LEISURE.");
     }
 

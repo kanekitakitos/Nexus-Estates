@@ -1,8 +1,12 @@
 package com.nexus.estates.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
-
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Entidade que representa uma propriedade imobiliária no sistema.
@@ -36,13 +40,19 @@ public class Property {
     private String name;
 
     /**
-     * Descrição detalhada da propriedade.
+     * Descrição detalhada da propriedade suportando múltiplos idiomas.
      *
-     * <p>Pode conter informações adicionais como características,
-     * comodidades ou observações relevantes.</p>
+     * <p>Armazenada como JSONB para permitir chaves de idioma (ex: pt, en).</p>
      */
-    @Column(columnDefinition = "TEXT")
-    private String description;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private Map<String, String> description;
+
+    /**
+     * Localização resumida ou região da propriedade.
+     */
+    @Column(nullable = false)
+    private String location;
 
     /**
      * Cidade onde a propriedade está localizada.
@@ -77,6 +87,36 @@ public class Property {
      */
     @Column(nullable = false)
     private Boolean isActive = true;
+
+    /**
+     * Conjunto de comodidades associadas à propriedade.
+     *
+     * <p>Relação Many-to-Many que utiliza uma tabela de junção para mapear
+     * características como WiFi, Piscina, etc.</p>
+     */
+    @ManyToMany
+    @JoinTable(
+            name = "property_amenities",
+            joinColumns = @JoinColumn(name = "property_id"),
+            inverseJoinColumns = @JoinColumn(name = "amenity_id")
+    )
+    private Set<Amenity> amenities = new HashSet<>();
+
+    /* Getters & Setters */
+
+    /**
+     * @return conjunto de comodidades da propriedade
+     */
+    public Set<Amenity> getAmenities() {
+        return amenities;
+    }
+
+    /**
+     * @param amenities novo conjunto de comodidades
+     */
+    public void setAmenities(Set<Amenity> amenities) {
+        this.amenities = amenities;
+    }
 
     /**
      * Obtém o identificador da propriedade.
@@ -115,21 +155,39 @@ public class Property {
     }
 
     /**
-     * Obtém a descrição da propriedade.
+     * Obtém a descrição da propriedade (Mapa de idiomas).
      *
-     * @return descrição da propriedade
+     * @return mapa de descrições
      */
-    public String getDescription() {
+    public Map<String, String> getDescription() {
         return description;
     }
 
     /**
      * Define a descrição da propriedade.
      *
-     * @param description nova descrição
+     * @param description novo mapa de descrições
      */
-    public void setDescription(String description) {
+    public void setDescription(Map<String, String> description) {
         this.description = description;
+    }
+
+    /**
+     * Obtém a localização da propriedade.
+     *
+     * @return localização
+     */
+    public String getLocation() {
+        return location;
+    }
+
+    /**
+     * Define a localização da propriedade.
+     *
+     * @param location nova localização
+     */
+    public void setLocation(String location) {
+        this.location = location;
     }
 
     /**

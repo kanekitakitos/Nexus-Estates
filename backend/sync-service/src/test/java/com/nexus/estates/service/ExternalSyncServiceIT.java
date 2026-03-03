@@ -30,7 +30,8 @@ class ExternalSyncServiceIT {
     private CircuitBreakerRegistry circuitBreakerRegistry;
 
     @BeforeAll
-    static void setup() throws IOException {
+    static void init() throws IOException {
+        // Inicia o servidor uma vez para obter a porta
         server = new MockWebServer();
         server.start();
     }
@@ -46,14 +47,22 @@ class ExternalSyncServiceIT {
     }
 
     @BeforeEach
-    void reset() {
+    void reset() throws IOException {
+        // Reset do Circuit Breaker
         circuitBreakerRegistry.circuitBreaker("externalApi").reset();
+        
+        // Hack para limpar o MockWebServer:
+        // Como não há método clear(), e não queremos reiniciar para não mudar a porta,
+        // vamos despachar todas as requisições pendentes (se houver) ou simplesmente
+        // garantir que os testes são atómicos.
+        // Uma abordagem melhor é usar um Dispatcher novo para cada teste.
+        
+        server.setDispatcher(new okhttp3.mockwebserver.QueueDispatcher());
     }
 
     @Test
     @DisplayName("CONFIRMED quando API externa aprova (HTTP 200)")
     void confirmedWhenExternalApproves() {
-        // Retry não deve ocorrer em sucesso (200), então 1 resposta é suficiente
         server.enqueue(new MockResponse()
                 .setResponseCode(200)
                 .addHeader("Content-Type", "application/json")
@@ -69,7 +78,6 @@ class ExternalSyncServiceIT {
     @Test
     @DisplayName("CANCELLED quando API externa rejeita (HTTP 200)")
     void cancelledWhenExternalRejects() {
-        // Retry não deve ocorrer em sucesso (200), então 1 resposta é suficiente
         server.enqueue(new MockResponse()
                 .setResponseCode(200)
                 .addHeader("Content-Type", "application/json")
@@ -85,7 +93,6 @@ class ExternalSyncServiceIT {
     @Test
     @DisplayName("Fallback é acionado após retries falharem (HTTP 500)")
     void fallbackTriggeredAfterRetries() {
-        // Max attempts = 2. Precisamos de 2 falhas para ativar o fallback.
         server.enqueue(new MockResponse().setResponseCode(500));
         server.enqueue(new MockResponse().setResponseCode(500));
 
@@ -99,28 +106,19 @@ class ExternalSyncServiceIT {
     @Test
     @DisplayName("Circuit Breaker abre após falhas consecutivas acima do threshold")
     void circuitBreakerOpensAfterFailures() {
-        // Config: Sliding Window = 4. Retry Max Attempts = 2.
-        // Call 1: 2 tentativas (2 falhas registadas no CB). Consome 2 respostas.
-        // Call 2: 2 tentativas (2 falhas registadas no CB). Consome 2 respostas.
-        // Total falhas = 4. CB deve abrir.
-        // Calls 3 e 4: Blocked pelo CB (não consomem respostas).
-        // Total respostas necessárias = 4.
-        
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 8; i++) {
             server.enqueue(new MockResponse().setResponseCode(500));
         }
 
         var message = new BookingCreatedMessage(4L, 13L, 23L, BookingStatus.PENDING_PAYMENT);
+        
         for (int i = 0; i < 4; i++) {
             try {
                 externalSyncService.processBooking(message);
-            } catch (Exception ignored) {
-                // Ignorar exceções, queremos apenas verificar o estado do CB no final
-            }
+            } catch (Exception ignored) {}
         }
 
         CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("externalApi");
         assertThat(cb.getState()).isEqualTo(CircuitBreaker.State.OPEN);
     }
 }
-
