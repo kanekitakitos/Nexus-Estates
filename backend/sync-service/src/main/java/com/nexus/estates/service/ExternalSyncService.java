@@ -105,6 +105,39 @@ public class ExternalSyncService {
     }
 
     /**
+     * Método genérico para enviar dados para uma API externa.
+     * Protegido por Circuit Breaker e Retry.
+     *
+     * @param uri URI relativa ou absoluta do endpoint.
+     * @param payload Objeto a ser enviado no corpo da requisição.
+     * @return true se a requisição for bem-sucedida (2xx), false caso contrário.
+     */
+    @Retry(name = "externalApi", fallbackMethod = "fallbackPostToExternalApi")
+    @CircuitBreaker(name = "externalApi")
+    public boolean postToExternalApi(String uri, Object payload) {
+        try {
+            externalApiRestClient
+                    .post()
+                    .uri(uri)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+            return true;
+        } catch (Exception e) {
+            log.error("Erro ao comunicar com API externa em {}: {}", uri, e.getMessage());
+            throw e; // Relança para ativar o Retry/CircuitBreaker
+        }
+    }
+
+    /**
+     * Fallback para o método genérico postToExternalApi.
+     */
+    boolean fallbackPostToExternalApi(String uri, Object payload, Throwable ex) {
+        log.error("Fallback ativado para chamada a {}. Motivo: {}", uri, ex.getMessage());
+        return false;
+    }
+
+    /**
      * DTO interno utilizado para mapear a resposta da API externa.
      */
     public record ExternalSyncResult(
