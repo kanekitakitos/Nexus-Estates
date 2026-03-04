@@ -47,7 +47,7 @@ export interface EditableFieldsI extends Pick<BookingProperty, "title" | "descri
  * // salva um field do estado
  * @property savePropertyDataAll: () => void // salva o estado
  * @property revertToSavedData: () => void //volta para o estado salvado
- * @property cancelFieldEdit: (field: EditableFieldsI) => void //remove as alterações a um field
+ * @property revertField: (field: EditableFieldsI) => void //remove as alterações a um field
  * * Edição de Campo
  * @property setEditField:(field: EditableFieldsI | null) => void // define o field a ser editado
  */
@@ -64,7 +64,7 @@ export interface PropertyEditContext {
     savePropertyDataAll: () => void; // salva TODOS os dados
     revertToSavedData: () => void; // restaura TODOS os dados
     revertFields: (fieldSet: (keyof EditableFieldsI)[]) => void; // restaura dados dos fields no Set
-    cancelFieldEdit: (field: keyof EditableFieldsI) => void; // restaura os dados de um field
+    revertField: (field: keyof EditableFieldsI) => void; // restaura os dados de um field
 
     // Edição de campo
     setEditField: (field: keyof EditableFieldsI | null) => void;   
@@ -135,7 +135,7 @@ export function PropertyEdit2({ property : initialProperty, onBack, isExiting, c
         },
         editField : editField,
         setEditField : setEditField,
-        cancelFieldEdit(field) {
+        revertField(field) {
             setProperty(prevData => ({...prevData, [field]: propertySaved[field]}))
         },
         updateTags(idx, value) {
@@ -189,18 +189,18 @@ export function PropertyEdit2({ property : initialProperty, onBack, isExiting, c
 
             <div className="space-y-6">
                 {/* Galeria de Imagens */}
-                <PropertyGallery property={property} />
+                <PropertyGallery property={propertySaved} />
 
                 <div className="space-y-6">
                     {/* Cartão de Cabeçalho (Título, Preço, Avaliação) */}
-                    <PropertyHeaderCard property={property} />
+                    <PropertyHeaderCard property={propertySaved} />
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Cartão de Descrição e Detalhes (Hóspedes, Quartos, Área) */}
-                        <PropertyDescriptionCard property={property} />
+                        <PropertyDescriptionCard property={propertySaved} />
 
                         {/* Cartão de Amenidades e Ação de Reserva */}
-                        <PropertyActionCard property={property} />
+                        <PropertyActionCard property={propertySaved} />
                     </div>
                 </div>
             </div>
@@ -208,7 +208,7 @@ export function PropertyEdit2({ property : initialProperty, onBack, isExiting, c
             <div className="mt-10">
                 {/* Calendário de Seleção de Datas e Resumo de Preços */}
                 <DateRangeCalendar
-                    pricePerNight={property.price}
+                    pricePerNight={propertySaved.price}
                     defaultValue={
                         checkInDate && checkOutDate 
                         ? { from: checkInDate, to: checkOutDate } 
