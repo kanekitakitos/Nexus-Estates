@@ -1,7 +1,9 @@
 package com.nexus.estates.controller;
 
-import com.nexus.estates.service.ChatPlatform;
+import com.nexus.estates.client.Proxy;
+import com.nexus.estates.service.interfaces.ChatPlatform;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,11 +13,13 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Controller responsável por fornecer autenticação para serviços de sincronização em tempo real.
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/sync/auth")
 @RequiredArgsConstructor
 public class SyncAuthController {
 
+    private final Proxy proxy;
     private final ChatPlatform chatPlatform;
 
     /**
@@ -36,16 +40,28 @@ public class SyncAuthController {
         //    autenticado tem permissão para acessar o chat da reserva com o `bookingId` fornecido.
 
         // Simulação: Usando um ID de usuário fixo para fins de desenvolvimento.
-        String userId = "simulated-user-id-from-jwt";
-        String channelId = "booking-chat:" + bookingId;
+        Long authenticatedUserId = 1L;
 
-        Object token = chatPlatform.generateClientToken(userId, channelId);
+        try {
+            // Comunica com o user-service via Proxy para obter detalhes do usuário (ex: email).
+            // Isso valida a existência do usuário e obtém sua identidade oficial para o chat.
+            String userEmail = proxy.userClient().getUserEmail(authenticatedUserId);
+            
+            // Define o canal de chat específico para esta reserva
+            String channelId = "booking-chat:" + bookingId;
 
-        if (token != null) {
-            return ResponseEntity.ok(token);
-        } else {
-            // Em produção, é melhor logar o erro e retornar uma resposta genérica.
-            return ResponseEntity.status(500).body("Error generating authentication token.");
+            // Gera o token de acesso ao Ably com permissões restritas
+            Object token = chatPlatform.generateClientToken(userEmail, channelId);
+
+            if (token != null) {
+                return ResponseEntity.ok(token);
+            } else {
+                log.error("Falha ao gerar token Ably para usuário {}", userEmail);
+                return ResponseEntity.status(500).body("Error generating authentication token.");
+            }
+        } catch (Exception e) {
+            log.error("Erro ao comunicar com user-service ou gerar token: {}", e.getMessage());
+            return ResponseEntity.status(403).body("Access denied or user not found.");
         }
     }
 }

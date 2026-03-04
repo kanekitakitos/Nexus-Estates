@@ -1,5 +1,6 @@
 package com.nexus.estates.service;
 
+import com.nexus.estates.service.interfaces.ChatPlatform;
 import io.ably.lib.rest.AblyRest;
 import io.ably.lib.rest.Auth.TokenParams;
 import io.ably.lib.types.AblyException;

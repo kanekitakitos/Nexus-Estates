@@ -7,6 +7,7 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpServerErrorException;
@@ -29,6 +30,7 @@ import org.springframework.web.client.RestClient;
 @RequiredArgsConstructor
 public class ExternalSyncService {
 
+    @Autowired
     private final RestClient externalApiRestClient;
 
     /**

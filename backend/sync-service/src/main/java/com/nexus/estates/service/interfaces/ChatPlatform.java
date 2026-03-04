@@ -1,4 +1,6 @@
-package com.nexus.estates.service;
+package com.nexus.estates.service.interfaces;
+
+import com.nexus.estates.service.AblySyncService;
 
 /**
  * Interface que define o contrato para integração com plataformas de chat e mensagens em tempo real.
