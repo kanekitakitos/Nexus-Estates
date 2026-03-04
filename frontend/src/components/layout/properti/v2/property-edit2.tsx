@@ -311,8 +311,8 @@ function PropertyActionCard({ property }: { property: BookingProperty }) {
             <div className="space-y-4">
                 <h3 className="font-mono text-xl font-black uppercase border-l-4 border-primary pl-3">Amenities</h3>
                 <div className="flex flex-wrap gap-3">
-                    {property.tags?.map((tag) => (
-                        <Badge key={tag} variant="amenity">
+                    {property.tags?.map((tag, index) => (
+                        <Badge key={`${tag}-${index}`} variant="amenity">
                             <Check className="h-3 w-3" />
                             {tag}
                         </Badge>
@@ -339,6 +339,8 @@ function PropertyActionCard({ property }: { property: BookingProperty }) {
 function PropertyGallery({ property }: { property: BookingProperty }) {
     const galleryImages = [
         property.imageUrl,
+        "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=1200&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=1200&auto=format&fit=crop",
         "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=1200&auto=format&fit=crop",
         "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=1200&auto=format&fit=crop",
         "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=1200&auto=format&fit=crop",
