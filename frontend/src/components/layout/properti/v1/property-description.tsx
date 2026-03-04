@@ -3,7 +3,7 @@ import { ArrowLeft, MapPin, Star, Users, Home, Maximize, Check, Key } from "luci
 import { Button } from "@/components/ui/forms/button"
 import { Badge } from "@/components/ui/badge"
 import { BrutalShard } from "@/components/ui/data-display/card"
-import { BookingProperty } from "../booking/booking-card"
+import { BookingProperty } from "../../booking/booking-card"
 import { cn } from "@/lib/utils"
 
 
@@ -13,7 +13,6 @@ import { PropertyEditContext  } from "./property-edit"
 
 
 const SUMMARY_CARD_STYLES = "flex items-center gap-2 md:gap-3 border-[2px] border-foreground p-2 md:p-3 bg-secondary/30"
-
 
 export function PropertyDescription({context} :{context : PropertyEditContext}){
 
@@ -29,6 +28,7 @@ export function PropertyDescription({context} :{context : PropertyEditContext}){
 
     const [cardsSave, setCardsSave] = useState<CardItem[]>(cards);
     const [dataChange, setDataChange] = useState<Set<number>>(new Set());
+    const [descriptionChange, setDescriptionChange] = useState(false)
     const [indexEdit, setIndexEdit] = useState<number>(-999);
 
 
@@ -63,7 +63,7 @@ export function PropertyDescription({context} :{context : PropertyEditContext}){
                                 className="font-mono font-bold uppercase text-xs md:text-sm"
                                 value={item.label}
                                 autoFocus
-                                onChange={change => {onLabelChange(change.target.value); dataChange.add(index)}}
+                                onChange={change => {onLabelChange(change.target.value); dataChange.add(index);console.log("adfsdsacadscnhgf"); console.log(dataChange)}}
                                 onBlur={() => {context.setEditField(null);}}
                             />
                         :   <span className="font-mono font-bold uppercase text-xs md:text-sm">{item.label}</span>
@@ -85,7 +85,7 @@ export function PropertyDescription({context} :{context : PropertyEditContext}){
     return(
         <BrutalShard id="infoCard">
             <div className="border-t-[3px] border-b-[3px] border-foreground py-6 space-y-4">
-                <div id="Sadsadds" onClick={()=>context.setEditField("description")}>
+                <div id="Sadsadds" onClick={()=>{context.setEditField("description")}}>
                     {context.editField == "description"
                         ?   <textarea 
                                 className="font-mono text-base md:text-lg leading-relaxed text-muted-foreground w-full resize-none px-2"
@@ -93,27 +93,41 @@ export function PropertyDescription({context} :{context : PropertyEditContext}){
                                 autoFocus
                                 onChange={change => {
                                         context.updateProperty("description", change.target.value)
-                                        dataChange.add(-1)
+                                        setDescriptionChange(true)
                                         
+                                        console.log("OnChage ---------------")
+                                        console.log(dataChange)
+                                        alert("onchage")
 
                                         // Auto-resize
                                         const el = change.target as HTMLTextAreaElement
                                         el.style.height = "auto"
                                         el.style.height = `${el.scrollHeight}px`
                                     }}
-                                onBlur={() => context.setEditField(null)}
+                                onBlur={() => {
+                                    context.setEditField(null);
+                                    dataChange.delete(-1)
+
+                                    console.log("Blur ---------------")
+                                    console.log(dataChange)
+                                    alert("Blur")
+
+
+                                }}
                             />
                         :   <p className="font-mono text-base md:text-lg leading-relaxed text-muted-foreground whitespace-pre-line">
                                 {context.property.description}
                             </p>
                     }
-                    {dataChange.has(-1)
+                    { descriptionChange
                         ?    <div className="grid grid-cols-2 gap-3 md:gap-4 mt-1 mb-10">
                                 <Button 
                                     variant={"brutal"} 
                                     onClick={()=>{
                                                 context.cancelFieldEdit("description");
-                                                dataChange.delete(-1)
+                                                setDescriptionChange(false)
+                                                dataChange.clear()
+                                                setCards(cardsSave)
                                             }}
                                         >
                                         REVERT 
@@ -122,11 +136,9 @@ export function PropertyDescription({context} :{context : PropertyEditContext}){
                                     variant={"brutal"} 
                                     onClick={()=>{
                                                 context.savePropertyData("description", context.property.description);
-                                                dataChange.forEach((index)=>{
-                                                    if (index < 0) return;
-                                                    
-                                                    return;
-                                                })
+                                                setDescriptionChange(false)
+                                                setCardsSave(cards)
+                                                dataChange.clear()
                                             }}
                                         >
                                         SAVE

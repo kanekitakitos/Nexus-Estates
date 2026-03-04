@@ -10,7 +10,8 @@ import {
   BreadcrumbPage, 
   BreadcrumbSeparator 
 } from "@/components/ui/navigation/breadcrumb"
-import { PropertyEdit } from "@/components/layout/properti/property-edit"
+import { PropertyEdit } from "@/components/layout/properti/v1/property-edit"
+import { PropertyEdit2  } from "@/components/layout/properti/v2/property-edit2"
 
 import { BookingProperty } from "@/components/layout/booking/booking-card"
 
@@ -44,7 +45,7 @@ export default function Home() {
 
   return (
     <AppShell header={header}>
-      <PropertyEdit property={ prop } onBack={()=>{}} />
+      <PropertyEdit2 property={ prop } onBack={()=>{}} />
     </AppShell>
   )
 }

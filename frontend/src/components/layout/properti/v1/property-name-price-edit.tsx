@@ -2,7 +2,7 @@ import { ArrowLeft, MapPin, Star, Users, Home, Maximize, Check, Computer } from 
 import { Button } from "@/components/ui/forms/button"
 import { Badge } from "@/components/ui/badge"
 import { BrutalShard } from "@/components/ui/data-display/card"
-import { BookingProperty } from "../booking/booking-card"
+import { BookingProperty } from "../../booking/booking-card"
 import { use, useState } from "react"
 import { cn } from "@/lib/utils"
 import React from "react"
