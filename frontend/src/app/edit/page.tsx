@@ -11,10 +11,11 @@ import {
   BreadcrumbSeparator 
 } from "@/components/ui/navigation/breadcrumb"
 import { PropertyEdit } from "@/components/layout/properti/v1/property-edit"
-import { PropertyEdit2  } from "@/components/layout/properti/v2/property-edit2"
-import { PropertyList  } from "@/components/layout/properti/v2/property-list"
+import { PropertyEdit2  } from "@/components/layout/properti/property-edit2"
+import { PropertyList  } from "@/components/layout/properti/property-list"
 
 import { BookingProperty } from "@/components/layout/booking/booking-card"
+import { PropertyView } from "@/components/layout/properti/property-view"
 
 const prop : BookingProperty =     {
         id: "18",
@@ -46,7 +47,7 @@ export default function Home() {
 
   return (
     <AppShell header={header}>
-      <PropertyList onBack={()=>{}} />
+      <PropertyView />
     </AppShell>
   )
 }
