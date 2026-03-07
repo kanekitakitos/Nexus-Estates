@@ -46,7 +46,7 @@ export default function Home() {
 
   return (
     <AppShell header={header}>
-      <PropertyList onBack={()=>{}} />
+      <PropertyEdit2 property={prop} onBack={()=>{}} />
     </AppShell>
   )
 }
