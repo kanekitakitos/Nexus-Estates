@@ -55,7 +55,6 @@ export interface PropertyEditContext {
     // Estados
     property: BookingProperty;
     propertySaved: BookingProperty;
-    editField: keyof EditableFieldsI | null;
     
     // Funções de update
     updateProperty: <K extends keyof EditableFieldsI>(field: K, value: EditableFieldsI[K]) => void; //atualiza o estado atual 
@@ -64,10 +63,7 @@ export interface PropertyEditContext {
     savePropertyDataAll: () => void; // salva TODOS os dados
     revertToSavedData: () => void; // restaura TODOS os dados
     revertFields: (fieldSet: (keyof EditableFieldsI)[]) => void; // restaura dados dos fields no Set
-    revertField: (field: keyof EditableFieldsI) => void; // restaura os dados de um field
-
-    // Edição de campo
-    setEditField: (field: keyof EditableFieldsI | null) => void;   
+    revertField: (field: keyof EditableFieldsI) => void; // restaura os dados de um field 
 }
 
 
@@ -133,8 +129,6 @@ export function PropertyEdit2({ property : initialProperty, onBack, isExiting, c
                 };
             });
         },
-        editField : editField,
-        setEditField : setEditField,
         revertField(field) {
             setProperty(prevData => ({...prevData, [field]: propertySaved[field]}))
         },
@@ -146,11 +140,6 @@ export function PropertyEdit2({ property : initialProperty, onBack, isExiting, c
                 ) as string[]
             }));
         }
-
-
-
-
-
     }
 
 
