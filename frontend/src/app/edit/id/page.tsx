@@ -10,10 +10,7 @@ import {
   BreadcrumbPage, 
   BreadcrumbSeparator 
 } from "@/components/ui/navigation/breadcrumb"
-import { PropertyEdit } from "@/components/layout/properti/v1/property-edit"
 import { PropertyEdit2  } from "@/components/layout/properti/property-edit2"
-import { PropertyList  } from "@/components/layout/properti/property-list"
-
 import { BookingProperty } from "@/components/layout/booking/booking-card"
 
 const prop : BookingProperty =     {
