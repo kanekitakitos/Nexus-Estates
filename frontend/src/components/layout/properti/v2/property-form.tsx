@@ -167,21 +167,27 @@ export function PropertyEditForm({context, onClose, open} :  {context : Property
                                     context.property.tags?.map(
                                         (tag, index)=>(
                                             
-                                            <BrutalShard key={index} className="p-0 md:p-0 lg:p-0">
-                                            {                
-                                                                
-                                                <BrutalInput 
-                                                    key={index}
-                                                    value={tag} 
+                                            <BrutalShard key={`${index}`} className="p-0 md:p-0 lg:p-0 flex flex-row">
+                                                                     
+                                                <BrutalInput
+                                                    value={`${tag}`} 
                                                     className={INPUT_STYLE}
                                                     onChange={(e) => {context.updateTags(index, e.target.value); setAmenetiesChange(true)}}
                                                 >
                                                 </BrutalInput>
-                                                
-                                            }
-                                            </BrutalShard>
-                                            
 
+                                                <BrutalButton 
+                                                    className="bg-destructive"
+                                                    type="button"
+                                                    onClick={()=>{
+                                                        const newTags = context.property.tags?.filter((_, i) => i !== index) || [];
+                                                        context.updateProperty("tags", newTags)
+                                                        setAmenetiesChange(true)
+                                                        }}>
+                                                        X
+                                                </BrutalButton>
+
+                                            </BrutalShard>
                                         )
                                     )
                                 }
