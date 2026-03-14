@@ -6,6 +6,7 @@ import com.nexus.estates.exception.InvalidTokenException;
 import com.nexus.estates.repository.PasswordResetTokenRepository;
 import com.nexus.estates.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,7 +21,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Suite de testes unitários para o serviço {@link PasswordResetService}.
+ * <p>
+ * Valida a lógica de negócio do ciclo de vida de recuperação de passwords,
+ * cobrindo a geração de tokens, validação de expiração e atualização de credenciais.
+ * </p>
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
+ */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("Testes de Unidade: Password Reset Service (Business Logic)")
 class PasswordResetServiceTest {
 
     @Mock
@@ -39,6 +51,10 @@ class PasswordResetServiceTest {
     private PasswordResetToken validToken;
     private PasswordResetToken expiredToken;
 
+    /**
+     * Configuração do cenário base para os testes.
+     * Prepara utilizadores e tokens (válidos e expirados) para simular estados da BD.
+     */
     @BeforeEach
     void setUp() {
         user = User.builder()
@@ -60,75 +76,94 @@ class PasswordResetServiceTest {
                 .build();
     }
 
+    /**
+     * Testa o início do processo de recuperação para um utilizador existente.
+     * <p>
+     * <b>Expectativa:</b> Limpar tokens antigos e gravar um novo token UUID.
+     * </p>
+     */
     @Test
+    @DisplayName("Deve gerar novo token quando o email do utilizador existe")
     void initiatePasswordReset_ShouldGenerateToken_WhenUserExists() {
-        // Arrange
         String email = "test@example.com";
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        
-        // Act
+
         passwordResetService.initiatePasswordReset(email);
 
-        // Assert
         verify(tokenRepository).deleteByUser(user);
         verify(tokenRepository).save(any(PasswordResetToken.class));
     }
 
+    /**
+     * Testa o início do processo para um email inexistente.
+     * <p>
+     * <b>Expectativa:</b> Silêncio operacional (nada é gravado) para evitar leak de informação.
+     * </p>
+     */
     @Test
+    @DisplayName("Não deve fazer nada quando o email não está registado (Privacy)")
     void initiatePasswordReset_ShouldDoNothing_WhenUserNotFound() {
-        // Arrange
         String email = "unknown@example.com";
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
-        // Act
         passwordResetService.initiatePasswordReset(email);
 
-        // Assert
         verify(tokenRepository, never()).save(any());
     }
 
+    /**
+     * Valida a redefinição final com um token saudável.
+     * <p>
+     * <b>Expectativa:</b> Password atualizada, gravada e token eliminado da BD.
+     * </p>
+     */
     @Test
+    @DisplayName("Deve atualizar a password e remover o token quando este é válido")
     void resetPassword_ShouldUpdatePassword_WhenTokenIsValid() {
-        // Arrange
         String token = "valid-token-uuid";
         String newPassword = "newStrongPassword";
 
         when(tokenRepository.findByToken(token)).thenReturn(Optional.of(validToken));
         when(passwordEncoder.encode(newPassword)).thenReturn("encodedNewPassword");
 
-        // Act
         passwordResetService.resetPassword(token, newPassword);
 
-        // Assert
         assertEquals("encodedNewPassword", user.getPassword());
         verify(userRepository).save(user);
         verify(tokenRepository).delete(validToken);
     }
 
+    /**
+     * Valida a rejeição de tokens fora de prazo.
+     * <p>
+     * <b>Expectativa:</b> Lançar exceção e garantir que a password original não foi alterada.
+     * </p>
+     */
     @Test
+    @DisplayName("Deve lançar exceção e apagar o token quando este já expirou")
     void resetPassword_ShouldThrowException_WhenTokenIsExpired() {
-        // Arrange
         String token = "expired-token-uuid";
         String newPassword = "newPassword";
 
         when(tokenRepository.findByToken(token)).thenReturn(Optional.of(expiredToken));
 
-        // Act & Assert
         assertThrows(InvalidTokenException.class, () -> passwordResetService.resetPassword(token, newPassword));
-        
+
         verify(tokenRepository).delete(expiredToken);
         verify(userRepository, never()).save(any());
     }
 
+    /**
+     * Valida a tentativa de uso de um token que não existe na BD.
+     */
     @Test
+    @DisplayName("Deve lançar exceção quando o token fornecido não existe")
     void resetPassword_ShouldThrowException_WhenTokenNotFound() {
-        // Arrange
         String token = "invalid-token";
         String newPassword = "newPassword";
 
         when(tokenRepository.findByToken(token)).thenReturn(Optional.empty());
 
-        // Act & Assert
         assertThrows(InvalidTokenException.class, () -> passwordResetService.resetPassword(token, newPassword));
     }
 }

@@ -1,5 +1,6 @@
 package com.nexus.estates.entity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -20,6 +21,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "properties")
+@Schema(description = "Entidade principal que representa um imóvel no sistema")
 public class Property {
 
     /**
@@ -29,6 +31,7 @@ public class Property {
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "ID único do imóvel", example = "101")
     private Long id;
 
     /**
@@ -37,6 +40,7 @@ public class Property {
      * <p>Representa a designação principal do imóvel.</p>
      */
     @Column(nullable = false)
+    @Schema(description = "Título do anúncio", example = "Villa Mar Azul")
     private String name;
 
     /**
@@ -46,24 +50,28 @@ public class Property {
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
+    @Schema(description = "Descrição detalhada em múltiplos idiomas", example = "{\"pt\": \"Vista mar...\"}")
     private Map<String, String> description;
 
     /**
      * Localização resumida ou região da propriedade.
      */
     @Column(nullable = false)
+    @Schema(description = "Região ou localização resumida", example = "Algarve")
     private String location;
 
     /**
      * Cidade onde a propriedade está localizada.
      */
     @Column(nullable = false)
+    @Schema(description = "Cidade", example = "Lagos")
     private String city;
 
     /**
      * Endereço completo da propriedade.
      */
     @Column(nullable = false)
+    @Schema(description = "Morada completa", example = "Rua da Praia, 45")
     private String address;
 
     /**
@@ -72,12 +80,14 @@ public class Property {
      * <p>Representa o valor monetário base associado ao imóvel.</p>
      */
     @Column(nullable = false, precision = 10, scale = 2)
+    @Schema(description = "Preço base por noite", example = "150.00")
     private BigDecimal basePrice;
 
     /**
      * Número máximo de hóspedes permitidos.
      */
     @Column(nullable = false)
+    @Schema(description = "Capacidade máxima de hóspedes", example = "4")
     private Integer maxGuests;
 
     /**
@@ -86,6 +96,7 @@ public class Property {
      * <p>Indica se a propriedade está ativa na plataforma.</p>
      */
     @Column(nullable = false)
+    @Schema(description = "Estado do anúncio (Ativo/Inativo)", example = "true")
     private Boolean isActive = true;
 
     /**
@@ -100,6 +111,7 @@ public class Property {
             joinColumns = @JoinColumn(name = "property_id"),
             inverseJoinColumns = @JoinColumn(name = "amenity_id")
     )
+    @Schema(description = "Lista de comodidades associadas")
     private Set<Amenity> amenities = new HashSet<>();
 
     /* Getters & Setters */

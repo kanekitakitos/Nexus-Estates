@@ -30,14 +30,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Testes unitários para o controlador de utilizadores (UserController).
+ * Suite de testes para a camada Web do controlador {@link UserController}.
  * <p>
- * Verifica as permissões de acesso (RBAC) e o retorno dos dados.
- * Importa o JwtAuthenticationFilter para satisfazer as dependências do SecurityConfig.
+ * O foco principal desta classe é validar as políticas de Autorização (RBAC).
+ * Utiliza o {@link MockMvc} para simular chamadas HTTP e verifica se os
+ * diferentes perfis de utilizador (ADMIN, OWNER, GUEST) possuem as permissões
+ * corretas definidas no {@link SecurityConfig}.
  * </p>
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
  */
 @WebMvcTest(UserController.class)
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class})
+@DisplayName("Testes Web: User Controller (Segurança e RBAC)")
 class UserControllerTest {
 
     @Autowired
@@ -55,8 +61,15 @@ class UserControllerTest {
     @MockBean
     private JwtService jwtService;
 
+    /**
+     * Valida o acesso à listagem total de utilizadores.
+     * <p>
+     * <b>Cenário:</b> Utilizador autenticado com role ADMIN.<br>
+     * <b>Expectativa:</b> Status 200 OK e retorno da lista serializada.
+     * </p>
+     */
     @Test
-    @DisplayName("Should return list of users when user has ADMIN role")
+    @DisplayName("Deve permitir listar utilizadores quando o role é ADMIN")
     @WithMockUser(roles = "ADMIN")
     void shouldReturnListWhenAdmin() throws Exception {
         User user = User.builder()
@@ -73,16 +86,29 @@ class UserControllerTest {
                 .andExpect(jsonPath("$[0].role").value("ADMIN"));
     }
 
+    /**
+     * Valida a restrição de segurança para utilizadores comuns.
+     * <p>
+     * <b>Cenário:</b> Utilizador autenticado com role GUEST tenta listar utilizadores.<br>
+     * <b>Expectativa:</b> Status 403 Forbidden.
+     * </p>
+     */
     @Test
-    @DisplayName("Should return 403 Forbidden when GUEST tries to list users")
+    @DisplayName("Deve retornar 403 Forbidden quando GUEST tenta listar utilizadores")
     @WithMockUser(roles = "GUEST")
     void shouldReturnForbiddenWhenGuestListsUsers() throws Exception {
         mockMvc.perform(get("/api/users"))
                 .andExpect(status().isForbidden());
     }
 
+    /**
+     * Valida a criação de novos utilizadores por um administrador.
+     * <p>
+     * Verifica se o fluxo de encriptação de password é invocado antes da persistência.
+     * </p>
+     */
     @Test
-    @DisplayName("Should create user successfully when ADMIN")
+    @DisplayName("Deve criar utilizador com sucesso quando autenticado como ADMIN")
     @WithMockUser(roles = "ADMIN")
     void shouldCreateUserWhenAdmin() throws Exception {
         User inputUser = User.builder()
@@ -102,7 +128,7 @@ class UserControllerTest {
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
         mockMvc.perform(post("/api/users")
-                        .with(csrf()) // Necessário para métodos POST/PUT em testes com segurança
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(inputUser)))
                 .andExpect(status().isOk())
@@ -110,8 +136,15 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.email").value("new@nexus.com"));
     }
 
+    /**
+     * Valida a impossibilidade de um OWNER criar utilizadores.
+     * <p>
+     * Demonstra que a hierarquia de permissões impede que utilizadores com role OWNER
+     * realizem operações administrativas de gestão de contas.
+     * </p>
+     */
     @Test
-    @DisplayName("Should return 403 Forbidden when OWNER tries to create user")
+    @DisplayName("Deve retornar 403 Forbidden quando OWNER tenta criar utilizador")
     @WithMockUser(roles = "OWNER")
     void shouldReturnForbiddenWhenOwnerCreatesUser() throws Exception {
         User inputUser = User.builder()
@@ -127,8 +160,11 @@ class UserControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    /**
+     * Valida a consulta individual por ID.
+     */
     @Test
-    @DisplayName("Should return user details when OWNER requests by ID")
+    @DisplayName("Deve retornar detalhes do utilizador quando OWNER solicita por ID")
     @WithMockUser(roles = "OWNER")
     void shouldReturnUserByIdWhenOwner() throws Exception {
         Long userId = 5L;
@@ -145,8 +181,11 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.email").value("owner@nexus.com"));
     }
 
+    /**
+     * Valida o bloqueio de consulta por ID para perfis GUEST.
+     */
     @Test
-    @DisplayName("Should return 403 Forbidden when GUEST requests user by ID")
+    @DisplayName("Deve retornar 403 Forbidden quando GUEST solicita utilizador por ID")
     @WithMockUser(roles = "GUEST")
     void shouldReturnForbiddenWhenGuestRequestsUserById() throws Exception {
         mockMvc.perform(get("/api/users/1"))
