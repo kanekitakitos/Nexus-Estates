@@ -1,3 +1,11 @@
+/**
+ * @description
+ *  Componente de autenticação que fornece a interface de login.
+ *  Tambem implementa a logica para a componente se comunicar com o serviço users.
+ * 
+ * @version 1.0
+ */
+
 "use client"
 
 import { cn } from "@/lib/utils"
@@ -22,6 +30,14 @@ import { useState } from "react"
 import { usersAxios } from "@/lib/axiosAPI"
 import { toast } from "sonner"
 
+
+/**
+ * componente do formulario de login
+ * 
+ * @returns {JSX.Element} O formulário de login estruturado com suporte de Toasts para fornecer estados dos erros.
+ * 
+ * @version 1.0
+ */
 export function LoginForm({
   className,
   ...props
@@ -29,22 +45,34 @@ export function LoginForm({
   
   const [isTryingLogin, setIsTryingLogin] = useState(false);
 
-
-  // TODO: Refactor implementation to simplify and improve error handling  
+  /**
+   * Processa a autenticação do utilizador.
+   * * @async
+   * 
+   * @returns {Promise<void>} Uma promessa que se resolve após a tentativa de autenticação, 
+   * independentemente do sucesso (erros são tratados via toast).
+   * 
+   * @version 1.0.1
+   * @todo
+   * * Refactor implementation to simplify and improve error handling.
+   * * Replace use of document.getElementById() for States
+   */
   async function handleLogin() {
     if (isTryingLogin) return; // Prevent multiple login attempts at the same time
 
     const email = (document.getElementById("email") as HTMLInputElement).value
     const password = (document.getElementById("password") as HTMLInputElement).value
 
+    // email or password not filled
     if (!password || !email){
-      toast.warning("Prenche todas as celulas");
-      
+      toast.warning("Preenche todas as celulas");
       return
     }
 
+    // defines the state to prevent multiple calls at the same time.
     setIsTryingLogin(true);
 
+    // use Axios to communicate with the service.
     await usersAxios.post("/auth/login", JSON.stringify({email, password}), {
       headers: {
         "Content-Type": "application/json"
@@ -67,11 +95,12 @@ export function LoginForm({
       console.error("error:", error);
       if (error.response) {
         console.error("Mensagem do servidor:", error.response.data);
-          switch (error.response.status) {
-            case 401: toast.error("Email ou senha incorretos. Tente novamente."); break;
-            case 404: toast.error("Usuário não encontrado. Verifique seu email ou registre-se."); break;
-            default: toast.error("Erro no servidor. Status: " + error.response.status); break;
-          }
+
+        switch (error.response.status) {
+          case 401: toast.error("Email ou senha incorretos. Tente novamente."); break;
+          case 404: toast.error("Usuário não encontrado. Verifique seu email ou registre-se."); break;
+          default: toast.error("Erro no servidor. Status: " + error.response.status); break;
+        }
       }
       else if (error.request) {
         console.error("Requisição feita, mas sem resposta:", error.request);
@@ -85,15 +114,18 @@ export function LoginForm({
   }
 
 
+  // Codigo html da JSX.Element
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <BrutalCard>
+
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Welcome back</CardTitle>
           <CardDescription>
             Enter your email and password to sign in to your account
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           <form>
             <FieldGroup>
@@ -101,6 +133,7 @@ export function LoginForm({
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input variant="brutal" id="email" type="email" placeholder="m@example.com" required/>
               </Field>
+
               <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">Password</FieldLabel>
@@ -113,6 +146,7 @@ export function LoginForm({
                 </div>
                 <Input variant="brutal" id="password" type="password" required />
               </Field>
+
               <Field>
                 <Button variant="brutal" type="button" disabled={isTryingLogin} onClick={handleLogin}>
                   {isTryingLogin ? "Trying to Login..." : "Login"}
@@ -121,9 +155,11 @@ export function LoginForm({
                   Don&apos;t have an account? <a href="/register">Sign up</a>
                 </FieldDescription>
               </Field>
+
             </FieldGroup>
           </form>
         </CardContent>
+
       </BrutalCard>
     </div> 
   )

@@ -1,3 +1,11 @@
+/**
+ * @description
+ *  Componente para registro de um novo utilizador.
+ *  Tambem implementa a logica para a componente se comunicar com o serviço users.
+ * 
+ * @version 1.0
+ */
+
 "use client"
 
 import { Button } from "@/components/ui/forms/button"
@@ -20,24 +28,42 @@ import { useState } from "react";
 import { usersAxios } from "@/lib/axiosAPI";
 import { toast } from "sonner"
 
+
+/**
+ * componente do formulario para registro de um novo utilizador
+ * 
+ * @returns {JSX.Element} O formulário com suporte de Toasts para fornecer estados dos erros.
+ * 
+ * @version 1.0
+ */
 export function RegisterForm() {
 
   const [isTryingRegister, setIsTryingRegister] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
 
-  // TODO: Refactor implementation to simplify and improve error handling  
+  /**
+   * Processa a tentatica de registro de um novo utilizador.
+   * * @async
+   * 
+   * @returns {Promise<void>} Uma promessa que se resolve após a tentativa de autenticação, 
+   * independentemente do sucesso (erros são tratados via toast).
+   * 
+   * @version 1.0.1
+   * @todo
+   * * Refactor implementation to simplify and improve error handling.
+   * * Replace use of document.getElementById() for States
+   */
   async function handleRegister() {
     if (isTryingRegister) return; // Prevent multiple register attempts at the same time
-
 
     const email = (document.getElementById("email") as HTMLInputElement).value
     const password = (document.getElementById("password") as HTMLInputElement).value
     const passwordConfirm = (document.getElementById("confirm-password") as HTMLInputElement).value
 
+    // email or password or passwordConfirm not filled
     if (!password || !passwordConfirm || !email){
       setPasswordError(true)
       toast.warning("Prenche todas as celulas");
-      
       return
     }
 
@@ -52,8 +78,11 @@ export function RegisterForm() {
       return;
     }
 
+    // defines the state to prevent multiple calls at the same time.
     setIsTryingRegister(true);
 
+
+    // use Axios to communicate with the service.
     await usersAxios.post("/auth/register", JSON.stringify({email, password}), {
       headers: {
         "Content-Type": "application/json"
@@ -91,16 +120,23 @@ export function RegisterForm() {
     setIsTryingRegister(false);
   }
 
+
+  // Codigo html da JSX.Element
   return (
     <div className={"flex flex-col gap-6"}>
       <BrutalCard>
+
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Create New Account</CardTitle>
+          <CardTitle className="text-xl">
+            Create New Account
+          </CardTitle>
           <CardDescription>
             Enter your email and password to create your account
           </CardDescription>
         </CardHeader>
+
         <CardContent>
+
           <form>
             <FieldGroup>
               <Field>
@@ -113,6 +149,7 @@ export function RegisterForm() {
                   required
                 />
               </Field>
+
               <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">New Password</FieldLabel>
@@ -124,6 +161,7 @@ export function RegisterForm() {
                   required 
                 />
               </Field>
+
               <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
@@ -137,15 +175,14 @@ export function RegisterForm() {
               </Field>
             </FieldGroup>
           </form>
+
           <Button variant={"brutal"} type="submit" disabled={isTryingRegister} className="w-full mt-6" onClick={handleRegister}>
             {isTryingRegister ? "Carregando..." : "Create Account"}
           </Button>
+
         </CardContent>
+
       </BrutalCard>
-      <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
-      </FieldDescription>
     </div>
   )
 }
