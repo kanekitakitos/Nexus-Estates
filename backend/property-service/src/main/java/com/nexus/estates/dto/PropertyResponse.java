@@ -1,6 +1,7 @@
 package com.nexus.estates.dto;
 
 import com.nexus.estates.entity.Property;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -23,15 +24,33 @@ import java.util.Map;
  *
  * @author Nexus Estates Team
  */
+@Schema(description = "Resposta detalhada de uma propriedade imobiliária")
 public record PropertyResponse(
+        @Schema(description = "ID único da propriedade", example = "1")
         Long id,
+
+        @Schema(description = "Título do anúncio", example = "Villa Sol")
         String name,
+
+        @Schema(description = "Descrição em múltiplos idiomas", example = "{\"pt\": \"Casa de férias...\"}")
         Map<String, String> description, // Alterado para Map para suportar JSONB
+
+        @Schema(description = "Localização resumida", example = "Albufeira")
         String location,                 // Adicionado campo location solicitado na tarefa
+
+        @Schema(description = "Cidade", example = "Faro")
         String city,
+
+        @Schema(description = "Endereço completo", example = "Rua das Flores, 123")
         String address,
+
+        @Schema(description = "Preço base por noite", example = "200.00")
         BigDecimal basePrice,
+
+        @Schema(description = "Capacidade máxima de hóspedes", example = "6")
         Integer maxGuests,
+
+        @Schema(description = "Estado do anúncio (Ativo/Inativo)", example = "true")
         Boolean isActive
 ) {
 
