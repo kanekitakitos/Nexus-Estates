@@ -33,7 +33,7 @@ import java.util.concurrent.CompletableFuture;
  * @since 2026-02-13
  */
 @RestController
-@RequestMapping("/api/v1/properties")
+@RequestMapping("/api/properties")
 @Tag(name = "Property API", description = "Gestão de propriedades da Nexus Estates")
 public class PropertyController {
 

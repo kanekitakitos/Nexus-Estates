@@ -36,7 +36,11 @@ public class RouteValidator {
             "/api/v1/properties/search",
             "/swagger-ui",
             "/swagger-ui.html",
-            "/v3/api-docs"
+            "/v3/api-docs",
+            "/webjars",
+            "/swagger-resources",
+            "/configuration/ui",
+            "/configuration/security"
     );
 
     /**

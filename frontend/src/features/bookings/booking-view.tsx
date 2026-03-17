@@ -17,7 +17,7 @@ import { BookingProperty } from "./components/booking-card"
 import { BookingSearchBar } from "./components/booking-search-bar"
 import { BookingDetails } from "./components/booking-details"
 import { cn } from "@/lib/utils"
-import { propertiesAxios } from "@/lib/axiosAPI"
+import { PropertyService } from "@/services/property.service"
 import { toast } from "sonner"
 
 const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
@@ -54,20 +54,7 @@ export function BookingView() {
         const fetchProperties = async () => {
             try {
                 setIsLoading(true)
-                const response = await propertiesAxios.get("/")
-                // Mapeia a resposta da API para o formato esperado pelo componente (BookingProperty)
-                const mappedData: BookingProperty[] = response.data.map((p: any) => ({
-                    id: p.id,
-                    title: p.title,
-                    description: p.description,
-                    location: p.address,
-                    price: p.price_per_night,
-                    imageUrl: p.image_url || "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1000&auto=format&fit=crop",
-                    status: p.status === "ACTIVE" ? "AVAILABLE" : p.status,
-                    rating: p.rating || 0,
-                    featured: p.featured || false,
-                    tags: p.tags || []
-                }))
+                const mappedData = await PropertyService.getAllProperties()
                 setProperties(mappedData)
             } catch (error) {
                 console.error("Erro ao carregar propriedades:", error)

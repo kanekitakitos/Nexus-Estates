@@ -46,6 +46,12 @@ public class EmailLog {
     private String subject;
 
     /**
+     * Corpo do email enviado.
+     */
+    @Column(columnDefinition = "TEXT")
+    private String body;
+
+    /**
      * Status final do envio (SUCCESS ou FAILED).
      */
     @Enumerated(EnumType.STRING)

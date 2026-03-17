@@ -100,12 +100,11 @@ public class Property {
     private Boolean isActive = true;
 
     /**
-     * Conjunto de comodidades associadas à propriedade.
+     * Lista de comodidades associadas à propriedade.
      *
-     * <p>Relação Many-to-Many que utiliza uma tabela de junção para mapear
-     * características como WiFi, Piscina, etc.</p>
+     * <p>Relação Many-to-Many com a entidade Amenity.</p>
      */
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "property_amenities",
             joinColumns = @JoinColumn(name = "property_id"),
@@ -114,181 +113,25 @@ public class Property {
     @Schema(description = "Lista de comodidades associadas")
     private Set<Amenity> amenities = new HashSet<>();
 
-    /* Getters & Setters */
-
-    /**
-     * @return conjunto de comodidades da propriedade
-     */
-    public Set<Amenity> getAmenities() {
-        return amenities;
-    }
-
-    /**
-     * @param amenities novo conjunto de comodidades
-     */
-    public void setAmenities(Set<Amenity> amenities) {
-        this.amenities = amenities;
-    }
-
-    /**
-     * Obtém o identificador da propriedade.
-     *
-     * @return ID da propriedade
-     */
-    public Long getId() {
-        return id;
-    }
-
-    /**
-     * Define o identificador da propriedade.
-     *
-     * @param id novo ID
-     */
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    /**
-     * Obtém o nome da propriedade.
-     *
-     * @return nome da propriedade
-     */
-    public String getName() {
-        return name;
-    }
-
-    /**
-     * Define o nome da propriedade.
-     *
-     * @param name novo nome
-     */
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    /**
-     * Obtém a descrição da propriedade (Mapa de idiomas).
-     *
-     * @return mapa de descrições
-     */
-    public Map<String, String> getDescription() {
-        return description;
-    }
-
-    /**
-     * Define a descrição da propriedade.
-     *
-     * @param description novo mapa de descrições
-     */
-    public void setDescription(Map<String, String> description) {
-        this.description = description;
-    }
-
-    /**
-     * Obtém a localização da propriedade.
-     *
-     * @return localização
-     */
-    public String getLocation() {
-        return location;
-    }
-
-    /**
-     * Define a localização da propriedade.
-     *
-     * @param location nova localização
-     */
-    public void setLocation(String location) {
-        this.location = location;
-    }
-
-    /**
-     * Obtém a cidade da propriedade.
-     *
-     * @return cidade
-     */
-    public String getCity() {
-        return city;
-    }
-
-    /**
-     * Define a cidade da propriedade.
-     *
-     * @param city nova cidade
-     */
-    public void setCity(String city) {
-        this.city = city;
-    }
-
-    /**
-     * Obtém o endereço da propriedade.
-     *
-     * @return endereço
-     */
-    public String getAddress() {
-        return address;
-    }
-
-    /**
-     * Define o endereço da propriedade.
-     *
-     * @param address novo endereço
-     */
-    public void setAddress(String address) {
-        this.address = address;
-    }
-
-    /**
-     * Obtém o preço base da propriedade.
-     *
-     * @return preço base
-     */
-    public BigDecimal getBasePrice() {
-        return basePrice;
-    }
-
-    /**
-     * Define o preço base da propriedade.
-     *
-     * @param basePrice novo preço base
-     */
-    public void setBasePrice(BigDecimal basePrice) {
-        this.basePrice = basePrice;
-    }
-
-    /**
-     * Obtém o número máximo de hóspedes.
-     *
-     * @return limite de hóspedes
-     */
-    public Integer getMaxGuests() {
-        return maxGuests;
-    }
-
-    /**
-     * Define o número máximo de hóspedes.
-     *
-     * @param maxGuests novo limite
-     */
-    public void setMaxGuests(Integer maxGuests) {
-        this.maxGuests = maxGuests;
-    }
-
-    /**
-     * Verifica se a propriedade está ativa.
-     *
-     * @return estado do anúncio
-     */
-    public Boolean getIsActive() {
-        return isActive;
-    }
-
-    /**
-     * Define o estado da propriedade.
-     *
-     * @param active novo estado
-     */
-    public void setIsActive(Boolean active) {
-        isActive = active;
-    }
+    // Getters e Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public Map<String, String> getDescription() { return description; }
+    public void setDescription(Map<String, String> description) { this.description = description; }
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+    public BigDecimal getBasePrice() { return basePrice; }
+    public void setBasePrice(BigDecimal basePrice) { this.basePrice = basePrice; }
+    public Integer getMaxGuests() { return maxGuests; }
+    public void setMaxGuests(Integer maxGuests) { this.maxGuests = maxGuests; }
+    public Boolean getIsActive() { return isActive; }
+    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+    public Set<Amenity> getAmenities() { return amenities; }
+    public void setAmenities(Set<Amenity> amenities) { this.amenities = amenities; }
 }
