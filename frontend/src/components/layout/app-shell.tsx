@@ -14,11 +14,19 @@ import { BrutalGridBackground } from "@/components/ui/layout/brutal-grid-backgro
 import { cn } from "@/lib/utils"
 import ClickSpark from "@/components/ClickSpark"
 
+/**
+ * @prop children - React.ReactNode
+ * @prop header? - React.ReactNode
+ */
 interface AppShellProps {
   children: React.ReactNode
   header?: React.ReactNode
 }
 
+/**
+ * Componete para o rodapé fixo da aplicação.
+ * Contem informação e links rapidos para navegação.
+ */
 function AppFooter() {
   const year = new Date().getFullYear()
 
@@ -42,26 +50,47 @@ function AppFooter() {
   )
 }
 
+/**
+ * Gere as componetes que servem de "casca" das paginas.
+ * Lida com as alteração do tema de "dark" e "light".
+ * 
+ * @param children - conteodo das paginas que vão estar envolvidas por esta componete
+ * @param header - componete que servirá como cabeçalho das paginas
+ * @returns JSX.Element
+ */
 export function AppShell({ children, header }: AppShellProps) {
   const [hideHeader, setHideHeader] = React.useState(false)
   const [isDark, setIsDark] = React.useState(false)
 
+  /**
+   * Sincroniza o estado local 'isDark' com a classe presente no elemento raiz (html).
+   * Essencial para informar as componentes que dependem da cor do tema
+   */
   React.useEffect(() => {
+    
+    // função que verifica se o tema atual é "dark" e salva no state isDark
     const updateTheme = () => {
       setIsDark(document.documentElement.classList.contains("dark"))
     }
 
     updateTheme()
 
+    // observador do DOM, que executará updateTheme sempre q detetar uma mudança
     const observer = new MutationObserver(updateTheme)
+
+    // configura o observer para observar os atributos do elemento "class"
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ["class"],
     })
 
+    // garante a morte do observer
     return () => observer.disconnect()
   }, [])
 
+  /**
+   * Recolhe informação para saber se o Header deve aparecer ou não.
+   */
   React.useEffect(() => {
     let lastY = window.scrollY
 
@@ -83,6 +112,7 @@ export function AppShell({ children, header }: AppShellProps) {
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
+
   return (
     <SidebarProvider
       style={
@@ -92,9 +122,15 @@ export function AppShell({ children, header }: AppShellProps) {
       }
     >
       <BrutalGridBackground />
+
       <AppSidebar className="z-30" />
+
+      {/* Adição do ClickSpark, (só aparece na "view" da pagina, não na sidebar, header ou footer) */}
       <ClickSpark sparkColor={isDark ? "#fff" : "#000"}>
+
+        {/* SidebarInset formata o conteodo para que ele se ajuste á presença da sidebar */}
         <SidebarInset className="bg-transparent">
+
           <header
             className={cn(
               "bg-background sticky top-0 z-20 flex shrink-0 items-center justify-between gap-2 border-b p-4 transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.4,1)]",
@@ -102,6 +138,7 @@ export function AppShell({ children, header }: AppShellProps) {
             )}
           >
             <div className="flex flex-1 items-center gap-2">
+              {/* botão para abrir ou fechar sidebar */}
               <SidebarTrigger className="-ml-1" />
               <Separator
                 orientation="vertical"
@@ -111,12 +148,18 @@ export function AppShell({ children, header }: AppShellProps) {
             </div>
             <AnimatedThemeToggler className="ml-2 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-card/80 text-foreground/80 shadow-sm transition-colors hover:bg-primary/10 hover:text-primary" />
           </header>
+
           <div className="flex min-h-[calc(100vh-56px)] flex-1 flex-col pb-10">
-            <div className="flex-1">{children}</div>
+            <div className="flex-1">
+              {children}
+            </div>
             <AppFooter />
           </div>
+
         </SidebarInset>
+
       </ClickSpark>
+
     </SidebarProvider>
   )
 }
