@@ -1,65 +1,107 @@
 /**
  * @description
- * Ficheiro onde, a partir da ferramenta Axios, o frontEnd pode comunicar com serviços, a partir de operações HTTP
+ * Configuração central do Axios para comunicação com o API Gateway do Nexus Estates.
+ * Implementa interceptores para gestão de JWT, tratamento de erros global e suporte a SSR.
  */
 
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { toast } from 'sonner';
+
+// URL base do API Gateway (Porta 8080)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
 /**
- * Aplica interceptores para lidar com o token do login no localStorage
- * @param apiAxios - AxiosInstance
+ * Instância principal para chamadas ao Gateway
  */
-function aplicarConfiguracoes(apiAxios: AxiosInstance) {
-    // configuração do interceptor do pedido enviado
-    apiAxios.interceptors.request.use(
-        (config) => {
+const api = axios.create({
+    baseURL: API_BASE_URL,
+    timeout: 10000,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+/**
+ * Interceptor de Pedido: Injeta o Token JWT se existir
+ */
+api.interceptors.request.use(
+    (config: InternalAxiosRequestConfig) => {
+        // Verifica se estamos no lado do cliente antes de aceder ao localStorage
+        if (typeof window !== 'undefined') {
             const token = localStorage.getItem('token');
-            if (token) {
+            if (token && config.headers) {
                 config.headers.Authorization = `Bearer ${token}`;
             }
-            return config;
-        },
-        (error) => {
-            return Promise.reject(error);
-    })
+        }
+        return config;
+    },
+    (error: AxiosError) => {
+        return Promise.reject(error);
+    }
+);
 
-    // configuração do interceptor do resposta recebida
-    apiAxios.interceptors.response.use(
-        (response) => response, // se for sucesso, apenas retorna a resposta
-        (error) => {
-            console.error('Erro na resposta da API:', error);
-            if (error.response) {
-                console.error('Resposta de erro do servidor:', error.response.data);
-            }   
-            localStorage.removeItem('token'); // Remove o token do localStorage em caso de erro (ex: token expirado)
-            return Promise.reject(error);
-        })
-}
+/**
+ * Interceptor de Resposta: Tratamento de Erros Global
+ */
+api.interceptors.response.use(
+    (response) => response,
+    (error: AxiosError) => {
+        const status = error.response?.status;
+        const data = error.response?.data as any;
 
-//caminho para o apiGateWay
-const apiGateWay = 'http://localhost:8080/api/v1'
+        // Erro de Autenticação (401)
+        if (status === 401) {
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('token');
+                // Opcional: Redirecionar para login se não estiver numa rota pública
+                if (!window.location.pathname.includes('/login')) {
+                    window.location.href = '/login?expired=true';
+                }
+            }
+        }
 
+        // Erro de Permissão (403)
+        if (status === 403) {
+            toast.error('Não tem permissão para realizar esta ação.');
+        }
 
-//pré-configurações do axios, para comunicar com serviços especificos
-const gateWayAxios = axios.create({
-    baseURL: apiGateWay
+        // Erros de Servidor (500+)
+        if (status && status >= 500) {
+            toast.error('Erro no servidor. Tente novamente mais tarde.');
+        }
+
+        // Log de erro para debug em desenvolvimento
+        if (process.env.NODE_ENV === 'development') {
+            console.error(`[API Error ${status}]:`, data?.message || error.message);
+        }
+
+        return Promise.reject(error);
+    }
+);
+
+/**
+ * Instâncias especializadas para manter compatibilidade com o código existente
+ */
+export const gateWayAxios = api;
+
+export const usersAxios = axios.create({
+    baseURL: `${API_BASE_URL}/users`,
+    withCredentials: true,
 });
-aplicarConfiguracoes(gateWayAxios);
+// Aplicar os mesmos interceptores da instância principal
+usersAxios.interceptors.request = api.interceptors.request as any;
+usersAxios.interceptors.response = api.interceptors.response as any;
 
-const usersAxios = axios.create({
-    baseURL: apiGateWay + '/users',
-    withCredentials: true
+export const propertiesAxios = axios.create({
+    baseURL: `${API_BASE_URL}/properties`,
 });
-aplicarConfiguracoes(usersAxios);
+propertiesAxios.interceptors.request = api.interceptors.request as any;
+propertiesAxios.interceptors.response = api.interceptors.response as any;
 
-const propertiesAxios = axios.create({
-    baseURL: apiGateWay + '/properties'
+export const bookingsAxios = axios.create({
+    baseURL: `${API_BASE_URL}/bookings`,
 });
-aplicarConfiguracoes(propertiesAxios);
+bookingsAxios.interceptors.request = api.interceptors.request as any;
+bookingsAxios.interceptors.response = api.interceptors.response as any;
 
-const bookingsAxios = axios.create({
-    baseURL: apiGateWay + '/bookings'
-});
-aplicarConfiguracoes(bookingsAxios);
-
-export { gateWayAxios, usersAxios, propertiesAxios, bookingsAxios };
+export default api;
