@@ -30,7 +30,7 @@ class SyncConsumerTest {
     @Test
     @DisplayName("Deve processar booking.created e publicar booking.status.updated")
     void shouldProcessBookingCreatedAndPublishStatusUpdated() {
-        SyncConsumer consumer = new SyncConsumer(externalSyncService, rabbitTemplate);
+        BookingEventListener consumer = new BookingEventListener(externalSyncService, rabbitTemplate);
 
         ReflectionTestUtils.setField(consumer, "bookingExchangeName", "booking.exchange");
         ReflectionTestUtils.setField(consumer, "bookingStatusUpdatedRoutingKey", "booking.status.updated");

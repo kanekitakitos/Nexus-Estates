@@ -30,7 +30,7 @@ import org.springframework.web.client.RestClient;
 @RequiredArgsConstructor
 public class ExternalSyncService {
 
-    @Autowired
+
     private final RestClient externalApiRestClient;
 
     /**

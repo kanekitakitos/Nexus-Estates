@@ -2,6 +2,7 @@ package com.nexus.estates.controller;
 
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.common.messaging.BookingStatusUpdatedMessage;
+import com.nexus.estates.config.rabbitMQConfig.BookingRabbitConfig;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -77,7 +78,7 @@ public class DlqAdminController {
      *
      * @param limit número máximo de mensagens a consumir da DLQ
      * @return lista de {@link BookingCreatedMessage} drenadas
-     * @see com.nexus.estates.config.RabbitMQConfig
+     * @see BookingRabbitConfig
      */
     public ResponseEntity<List<BookingCreatedMessage>> drainBookingCreatedDlq(
             @Parameter(
@@ -117,7 +118,7 @@ public class DlqAdminController {
      *
      * @param limit número máximo de mensagens a consumir da DLQ
      * @return lista de {@link BookingStatusUpdatedMessage} drenadas
-     * @see com.nexus.estates.config.RabbitMQConfig
+     * @see BookingRabbitConfig
      */
     public ResponseEntity<List<BookingStatusUpdatedMessage>> drainBookingStatusUpdatedDlq(
             @Parameter(

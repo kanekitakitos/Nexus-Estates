@@ -1,4 +1,4 @@
-package com.nexus.estates.config;
+package com.nexus.estates.config.rabbitMQConfig;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Configuration;
  * @version 1.0
  */
 @Configuration
-public class RabbitMQConfig {
+public class BookingRabbitConfig {
 
     @Value("${booking.events.exchange:booking.exchange}")
     private String bookingExchangeName;

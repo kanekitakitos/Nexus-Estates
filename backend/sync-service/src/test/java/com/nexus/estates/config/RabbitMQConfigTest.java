@@ -1,5 +1,6 @@
 package com.nexus.estates.config;
 
+import com.nexus.estates.config.rabbitMQConfig.BookingRabbitConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Queue;
@@ -15,7 +16,7 @@ class RabbitMQConfigTest {
     @Test
     @DisplayName("booking.created.queue deve ser durável e apontar para a DLQ correta")
     void bookingCreatedQueueHasDlqConfigured() {
-        RabbitMQConfig config = new RabbitMQConfig();
+        BookingRabbitConfig config = new BookingRabbitConfig();
 
         ReflectionTestUtils.setField(config, "bookingCreatedQueueName", "booking.created.queue");
         ReflectionTestUtils.setField(config, "bookingDeadLetterExchangeName", "booking.dlx");
@@ -32,7 +33,7 @@ class RabbitMQConfigTest {
     @Test
     @DisplayName("booking.status.updated.queue deve ser durável e apontar para a DLQ correta")
     void bookingStatusUpdatedQueueHasDlqConfigured() {
-        RabbitMQConfig config = new RabbitMQConfig();
+        BookingRabbitConfig config = new BookingRabbitConfig();
 
         ReflectionTestUtils.setField(config, "bookingStatusUpdatedQueueName", "booking.status.updated.queue");
         ReflectionTestUtils.setField(config, "bookingDeadLetterExchangeName", "booking.dlx");
@@ -49,7 +50,7 @@ class RabbitMQConfigTest {
     @Test
     @DisplayName("bookingDeadLetterExchange deve usar o nome configurado")
     void bookingDeadLetterExchangeHasConfiguredName() {
-        RabbitMQConfig config = new RabbitMQConfig();
+        BookingRabbitConfig config = new BookingRabbitConfig();
 
         ReflectionTestUtils.setField(config, "bookingDeadLetterExchangeName", "booking.dlx");
 

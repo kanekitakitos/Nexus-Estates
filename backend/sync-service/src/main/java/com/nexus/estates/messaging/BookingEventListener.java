@@ -2,6 +2,7 @@ package com.nexus.estates.messaging;
 
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.common.messaging.BookingStatusUpdatedMessage;
+import com.nexus.estates.config.rabbitMQConfig.BookingRabbitConfig;
 import com.nexus.estates.service.ExternalSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +17,7 @@ import org.springframework.stereotype.Component;
  * publica o resultado de volta na fila de atualização de status.
  * <p>
  * Em caso de erro não tratado durante o processamento, a mensagem é rejeitada
- * sem requeue pelo container configurado em {@link com.nexus.estates.config.RabbitMQConfig},
+ * sem requeue pelo container configurado em {@link BookingRabbitConfig},
  * permitindo que o RabbitMQ a encaminhe automaticamente para a Dead Letter Queue
  * associada.
  * </p>
@@ -27,7 +28,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SyncConsumer {
+public class BookingEventListener {
 
     private final ExternalSyncService externalSyncService;
     private final RabbitTemplate rabbitTemplate;

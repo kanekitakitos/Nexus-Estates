@@ -33,22 +33,9 @@ public class ExternalApiClientConfig {
      * @return Function que aceita um mapa de configurações (url, headers) e retorna um RestClient.
      */
     @Bean
-    public Function<Map<String, Object>, RestClient> dynamicRestClientFactory() {
-        return config -> {
-            String baseUrl = (String) config.getOrDefault("baseUrl", "http://localhost");
-            @SuppressWarnings("unchecked")
-            Map<String, String> headers = (Map<String, String>) config.get("headers");
-
-            RestClient.Builder builder = RestClient.builder()
-                    .baseUrl(baseUrl);
-
-            if (headers != null) {
-                builder.defaultHeaders(httpHeaders -> 
-                    headers.forEach(httpHeaders::add)
-                );
-            }
-
-            return builder.build();
-        };
+    public RestClient externalApiRestClient(RestClient.Builder builder) {
+        // Usa o builder auto-configurado do Spring Boot
+        // Já traz os message converters (JSON, etc.) corretos por default
+        return builder.build();
     }
 }
