@@ -1,3 +1,10 @@
+/**
+ * @description
+ * Ficheiro para implementar um componete para servir de guia visual do Processo de Reserva
+ * 
+ * @version 1.0
+ */
+
 import { Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BrutalCard } from "@/components/ui/data-display/card"
