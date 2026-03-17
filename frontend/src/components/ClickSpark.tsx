@@ -1,5 +1,23 @@
+/**
+ * @description
+ * Implementa um efeito visual de partículas (sparks) que reage ao clique do utilizador
+ * utilizando a API de Canvas 2D para alta performance.
+ */
+
 import React, { useRef, useEffect, useCallback } from 'react';
 
+/**
+ * Caracteristicas do Spark
+ * 
+ * @prop sparkColor? - string
+ * @prop sparkSize? - number
+ * @prop sparkRadius? - number
+ * @prop sparkCount? - number
+ * @prop duration? - number
+ * @prop easing? - 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out'
+ * @prop extraScale? - number
+ * @prop children? - React.ReactNode
+ */
 interface ClickSparkProps {
   sparkColor?: string;
   sparkSize?: number;
@@ -11,6 +29,14 @@ interface ClickSparkProps {
   children?: React.ReactNode;
 }
 
+/**
+ * Posições do Spark
+ * 
+ * @prop x - number
+ * @prop y - number
+ * @prop angle - number
+ * @prop startTime - number
+ */
 interface Spark {
   x: number;
   y: number;
@@ -18,11 +44,16 @@ interface Spark {
   startTime: number;
 }
 
+/**
+ * Componete para fornecer uma animação do estilo Spark, ao clicar
+ * @param param0 - caracteristicas do spark
+ */
 const ClickSpark: React.FC<ClickSparkProps> = ({
+  /* Carcteristicas do Spark */
   sparkColor = '#fff',
   sparkSize = 10,
   sparkRadius = 15,
-  sparkCount = 8,
+  sparkCount = 10,
   duration = 400,
   easing = 'ease-out',
   extraScale = 1.0,
@@ -32,6 +63,7 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
   const sparksRef = useRef<Spark[]>([]);
   const startTimeRef = useRef<number | null>(null);
 
+  // useEffect para defenir a Canvas (onde é desenhado) e o seu tamanho
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -65,6 +97,7 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
     };
   }, []);
 
+  // defenição de animiações
   const easeFunc = useCallback(
     (t: number) => {
       switch (easing) {
@@ -81,7 +114,12 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
     [easing]
   );
 
+  /**
+   * Inicializa o loop de renderização do Canvas. 
+   * Atualiza a cor, tamanho, etc do spark, para garantir que o contexto do Canvas está atualizado
+   */
   useEffect(() => {
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -89,16 +127,24 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
 
     let animationId: number;
 
+
+    /**
+     * Render Loop
+     * Função para desenhar o spark e removelo de sparksRef
+     * @param timestamp - Tempo de execução fornecido pelo requestAnimationFrame
+     */
     const draw = (timestamp: number) => {
       if (!startTimeRef.current) {
         startTimeRef.current = timestamp;
       }
       ctx?.clearRect(0, 0, canvas.width, canvas.height);
 
+      // Filtra e desenha as faíscas ativas
       sparksRef.current = sparksRef.current.filter((spark: Spark) => {
         const elapsed = timestamp - spark.startTime;
+
         if (elapsed >= duration) {
-          return false;
+          return false; // Remove a faísca se exceder a duração definida
         }
 
         const progress = elapsed / duration;
@@ -119,19 +165,27 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
         ctx.lineTo(x2, y2);
         ctx.stroke();
 
-        return true;
+        return true; // Mantém a faísca viva no array
       });
 
+      // Agenda o próximo frame, criando o loop infinito
       animationId = requestAnimationFrame(draw);
     };
 
+    // Inicia o primeiro frame
     animationId = requestAnimationFrame(draw);
 
+    // Cleanup: cancela a animação se o componente for desmontado
     return () => {
       cancelAnimationFrame(animationId);
     };
   }, [sparkColor, sparkSize, sparkRadius, sparkCount, duration, easeFunc, extraScale]);
 
+
+  /**
+   * salva e valida a posição do click
+   * cria instancias de spark e salva-as no sparksRef
+   */
   const handleClick = useCallback((e: MouseEvent): void => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -147,6 +201,8 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
     }
 
     const now = performance.now();
+
+    //cria N sparks (o N vem de sparkCount)
     const newSparks: Spark[] = Array.from({ length: sparkCount }, (_, i) => ({
       x,
       y,
@@ -154,15 +210,20 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
       startTime: now
     }));
 
+    //adiciona os sparks ao sparksRef para serem renderizados
     sparksRef.current.push(...newSparks);
   }, [sparkCount]);
 
+  /**
+   * Adição do eventListener ao DOM para escutar o click do rato
+   */
   useEffect(() => {
     document.addEventListener('click', handleClick);
     return () => {
       document.removeEventListener('click', handleClick);
     };
   }, [handleClick]);
+
 
   return (
     <div className="relative w-full h-full">

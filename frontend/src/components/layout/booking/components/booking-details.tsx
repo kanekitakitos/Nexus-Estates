@@ -1,3 +1,10 @@
+/**
+ * @description
+ * * Este ficheiro implementa a página individual de uma propriedade.
+ * 
+ * @version 1.0
+*/
+
 import { useEffect, useCallback, useState } from "react"
 import { ArrowLeft, MapPin, Star, Users, Home, Maximize, Check } from "lucide-react"
 import { Button } from "@/components/ui/forms/button"
@@ -14,6 +21,14 @@ const THUMBNAIL_LABEL_STYLES = "absolute inset-0 flex items-center justify-cente
 const PRICE_TEXT_STYLES = "font-mono font-bold text-primary text-lg md:text-xl"
 const SUMMARY_CARD_STYLES = "flex items-center gap-2 md:gap-3 border-[2px] border-foreground p-2 md:p-3 bg-secondary/30"
 
+
+/**
+ * @prop property - BookingProperty
+ * @prop onBack - () => void
+ * @prop isExiting? - boolean
+ * @prop checkInDate? - Date | null
+ * @prop checkOutDate? - Date | null
+ */
 interface BookingDetailsProps {
     property: BookingProperty
     onBack: () => void
@@ -55,6 +70,7 @@ export function BookingDetails({ property, onBack, isExiting, checkInDate = null
             // Aplica animações de entrada (fly-in) ou saída (fly-out) baseadas no estado
             isExiting ? "animate-fly-out-right fill-mode-forwards" : "animate-fly-in fill-mode-forwards"
         )}>
+            {/* Botão para voltar */}
             <div className="mb-4">
                 <Button 
                     onClick={handleBack}

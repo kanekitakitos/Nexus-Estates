@@ -1,3 +1,11 @@
+/**
+ * @description
+ * * Este ficheiro implementa cartão interativo estilo "brutalista" que exibe o resumo de uma propriedade.
+ * Projetado para ser usado em grids ou listas de propriedades.
+ * 
+ * @version 1.0
+*/
+
 import { BrutalInteractiveCard } from "@/components/ui/data-display/card"
 import { Button } from "@/components/ui/forms/button"
 import { Badge } from "@/components/ui/badge"
@@ -34,6 +42,11 @@ export interface BookingProperty {
     tags?: string[]
 }
 
+/**
+ * @prop property - BookingProperty
+ * @prop onBook? - (id: string) => void
+ * @props className? - string
+ */
 interface BookingCardProps {
     property: BookingProperty
     onBook?: (id: string) => void
