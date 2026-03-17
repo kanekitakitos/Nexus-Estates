@@ -8,6 +8,10 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/navigation/breadcrumb"
 
+/**
+ * @route ´/dashboard´
+ * @description Pagina onde um dono pode ver estatisticas sobre as suas propriedades
+ */
 export default function Page() {
   return (
     <AppShell>
