@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/feedback/sonner-brutal"
+import { Toaster } from "@/components/ui/feedback/sonner-brutal";
 import { ChatProvider } from "@/features/chat/ChatProvider";
 
 /**

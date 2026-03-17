@@ -224,7 +224,7 @@ function ActionButtons({
       </Button>
       
       <div className="mt-4 text-center">
-         <span className="text-xs text-muted-foreground block mb-2">You won't be charged yet</span>
+         <span className="text-xs text-muted-foreground block mb-2">You won&apos;t be charged yet</span>
          <Button 
             variant="link" 
             className="h-auto p-0 text-xs text-foreground underline decoration-2 hover:text-primary"

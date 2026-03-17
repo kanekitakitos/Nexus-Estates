@@ -1,4 +1,4 @@
-import { LoginForm } from "@/components/layout/auth/login-form"
+import { LoginForm } from "@/features/auth/components/login-form"
 import { FieldDescription } from "@/components/ui/forms/field"
 
 /**
