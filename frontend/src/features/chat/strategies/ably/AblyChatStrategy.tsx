@@ -14,6 +14,8 @@ import {
 import { ChatStrategy } from "../../chat-strategy";
 import { ChatHeader, ChatFooter, ChatMessageList, initials } from "@/features/chat/ui";
 import { Input } from "@/components/ui/forms/input";
+import { syncAxios } from "@/lib/axiosAPI";
+import { toast } from "sonner";
 
 // Estratégia Ably (pluggable). Inclui modo demo quando não há chave configurada.
 
@@ -136,24 +138,50 @@ const AblyChatList: React.FC<{ onSelectChat: (chatId: string) => void, selectedC
  * Janela de chat falsa para demonstração quando o Ably não está configurado ou pronto.
  * Utiliza componentes de UI locais em vez do SDK do Ably.
  */
-const FakeChatWindow: React.FC<{ otherName: string; otherAvatar?: string; onBack?: () => void }> = ({ otherName, otherAvatar, onBack }) => {
-  const messages = [
-    { id: 1, from: "them" as const, text: "Olá! Precisa de ajuda com a sua reserva?", time: "10:28" },
-    { id: 2, from: "me" as const, text: "Olá! Quero visitar o T2 na Baixa esta semana.", time: "10:29" },
-    { id: 3, from: "them" as const, text: "Perfeito. Tenho disponibilidade na quinta às 15h.", time: "10:30" },
-    { id: 4, from: "me" as const, text: "Ótimo, marque para quinta às 15h, por favor.", time: "10:31" },
-  ];
+const FakeChatWindow: React.FC<{ otherName: string; otherAvatar?: string; onBack?: () => void; bookingId: string }> = ({ otherName, otherAvatar, onBack, bookingId }) => {
+  const [messages, setMessages] = React.useState<any[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        setIsLoading(true);
+        // O ID da reserva deve ser convertido para Long no backend, mas aqui passamos como string
+        const response = await syncAxios.get(`/messages/${bookingId}`);
+        const mapped = response.data.map((m: any) => ({
+          id: m.id,
+          from: m.senderId === 'me' ? 'me' : 'them',
+          text: m.content,
+          time: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }));
+        setMessages(mapped);
+      } catch (error) {
+        console.error("Erro ao carregar mensagens demo:", error);
+        toast.error("Não foi possível carregar o histórico do chat.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (bookingId) fetchMessages();
+  }, [bookingId]);
 
   return (
     <div className="flex h-full w-full flex-col bg-background">
       <ChatHeader
         name={otherName}
         avatarUrl={otherAvatar}
-        status="Demonstração"
+        status={isLoading ? "A carregar..." : "Demonstração"}
         onBack={onBack}
       />
 
-      <ChatMessageList messages={messages} />
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <ChatMessageList messages={messages} />
+      )}
 
       <ChatFooter disabled placeholder="Chat em demonstração" />
     </div>
@@ -171,12 +199,15 @@ const AblyChatWindowWrapper: React.FC<{ chatId: string; onBack?: () => void }> =
   const meta = oneToOneRooms.find(r => r.id === chatId);
   const otherName = meta?.display ?? "Chat";
   const otherAvatar = meta?.avatarUrl;
+  
+  // Para o modo demo, extraímos o ID numérico do mock room-X
+  const bookingId = chatId.split('-')[1] || "1";
 
   // Cabeçalho personalizado para ser injetado no componente do Ably
   const Header = <ChatHeader name={otherName} avatarUrl={otherAvatar} status="Online" onBack={onBack} rightSlot={<div className="hidden md:block text-xs text-muted-foreground"><RoomInfo /></div>} />;
 
   if (!isReady) {
-    return <FakeChatWindow otherName={otherName} otherAvatar={otherAvatar} onBack={onBack} />;
+    return <FakeChatWindow otherName={otherName} otherAvatar={otherAvatar} onBack={onBack} bookingId={bookingId} />;
   }
 
   return (

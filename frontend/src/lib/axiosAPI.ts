@@ -49,6 +49,15 @@ api.interceptors.response.use(
         const status = error.response?.status;
         const data = error.response?.data as any;
 
+        // Erro de Rede (Servidor desligado ou problemas de conectividade)
+        if (!error.response) {
+            toast.error('Erro de rede: O servidor não responde. Verifique se o backend está ligado.');
+            if (process.env.NODE_ENV === 'development') {
+                console.error('[Network Error]: O servidor em ' + API_BASE_URL + ' não está a responder.');
+            }
+            return Promise.reject(error);
+        }
+
         // Erro de Autenticação (401)
         if (status === 401) {
             if (typeof window !== 'undefined') {
@@ -97,6 +106,12 @@ export const propertiesAxios = axios.create({
 });
 propertiesAxios.interceptors.request = api.interceptors.request as any;
 propertiesAxios.interceptors.response = api.interceptors.response as any;
+
+export const syncAxios = axios.create({
+    baseURL: `${API_BASE_URL}/sync`,
+});
+syncAxios.interceptors.request = api.interceptors.request as any;
+syncAxios.interceptors.response = api.interceptors.response as any;
 
 export const bookingsAxios = axios.create({
     baseURL: `${API_BASE_URL}/bookings`,
