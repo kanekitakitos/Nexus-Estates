@@ -20,7 +20,7 @@ import java.util.List;
  * Controlador REST responsável pela orquestração das operações de reserva.
  * <p>
  * Este componente atua como a camada de entrada para o domínio de reservas, expondo
- * uma API RESTful versionada. Garante a validação de entrada e delega a lógica
+ * uma API RESTful. Garante a validação de entrada e delega a lógica
  * de negócio para o {@link BookingService}.
  * </p>
  *

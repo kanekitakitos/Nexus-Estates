@@ -34,7 +34,7 @@ class AuthenticationFilterTest {
 
     @Test
     void shouldPassThroughWhenRouteIsNotSecured() {
-        MockServerHttpRequest request = MockServerHttpRequest.get("/api/v1/users/auth/login").build();
+        MockServerHttpRequest request = MockServerHttpRequest.get("/api/users/auth/login").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
         // Força o RouteValidator a considerar esta requisição como pública (não segura)
@@ -50,7 +50,7 @@ class AuthenticationFilterTest {
 
     @Test
     void shouldThrowExceptionWhenAuthHeaderIsMissingForSecuredRoute() {
-        MockServerHttpRequest request = MockServerHttpRequest.get("/api/v1/bookings").build();
+        MockServerHttpRequest request = MockServerHttpRequest.get("/api/bookings").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
         assertThrows(RuntimeException.class, () -> 
@@ -60,7 +60,7 @@ class AuthenticationFilterTest {
 
     @Test
     void shouldValidateTokenWhenAuthHeaderIsPresent() {
-        MockServerHttpRequest request = MockServerHttpRequest.get("/api/v1/bookings")
+        MockServerHttpRequest request = MockServerHttpRequest.get("/api/bookings")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
                 .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);

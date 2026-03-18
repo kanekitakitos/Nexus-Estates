@@ -27,46 +27,38 @@ import {
 import { useChatStrategy } from "@/features/chat/ChatProvider"
 
 
-type UserRole = "ADMIN" | "GUEST"
-
-// MOCK DATA
-const currentUser = {
-  name: "Admin User",
-  email: "admin@nexus-estates.com",
-  avatar: "/avatars/shadcn.jpg",
-  role: "ADMIN" as UserRole,
-}
+type UserRole = "ADMIN" | "GUEST" | "OWNER" | "STAFF"
 
 const menuItems = [
   {
     title: "Dashboard",
-    url: "#",
+    url: "/dashboard",
     icon: LayoutDashboard,
-    roles: ["ADMIN", "GUEST"],
+    roles: ["ADMIN", "OWNER", "STAFF"],
   },
   {
     title: "Properties",
-    url: "#",
+    url: "/",
     icon: Building2,
-    roles: ["ADMIN", "GUEST"],
+    roles: ["ADMIN", "GUEST", "OWNER", "STAFF"],
   },
   {
     title: "Bookings",
     url: "#",
     icon: Calendar,
-    roles: ["ADMIN", "GUEST"],
+    roles: ["ADMIN", "GUEST", "OWNER", "STAFF"],
   },
   {
     title: "Clients",
     url: "#",
     icon: Users,
-    roles: ["ADMIN"],
+    roles: ["ADMIN", "OWNER"],
   },
   {
     title: "Settings",
     url: "#",
     icon: Settings,
-    roles: ["ADMIN"],
+    roles: ["ADMIN", "OWNER"],
   },
 ]
 
@@ -90,6 +82,30 @@ export function AppSidebar({
   const ChatWindow = chatStrategy.ChatWindow
   const [selectedChatId, setSelectedChatId] = React.useState<string | undefined>(undefined)
 
+  // Estado real do utilizador vindo do localStorage
+  const [currentUser, setCurrentUser] = React.useState({
+    name: "Convidado",
+    email: "guest@nexus-estates.com",
+    avatar: "/avatars/guest.jpg",
+    role: "GUEST" as UserRole,
+  })
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const email = localStorage.getItem('userEmail')
+      const role = localStorage.getItem('userRole') as UserRole
+      
+      if (email && role) {
+        setCurrentUser({
+          name: email.split('@')[0], // Nome simplificado a partir do email
+          email: email,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+          role: role
+        })
+      }
+    }
+  }, [])
+
   const filteredNavMain = menuItems.filter((item) =>
       item.roles.includes(currentUser.role)
   )
@@ -112,13 +128,13 @@ export function AppSidebar({
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0">
-                    <a href="#">
+                    <a href="/">
                       <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                         <Building2 className="size-4" />
                       </div>
                       <div className="grid flex-1 text-left text-sm leading-tight">
-                        <span className="truncate font-medium">Nexus</span>
-                        <span className="truncate text-xs">Estates</span>
+                        <span className="truncate font-semibold">Nexus Estates</span>
+                        <span className="truncate text-xs">Property Management</span>
                       </div>
                     </a>
                   </SidebarMenuButton>
@@ -136,6 +152,7 @@ export function AppSidebar({
                               onClick={() => {
                                 setActiveItem(item.title)
                                 setOpen(true)
+                                if (item.url !== "#") window.location.href = item.url
                               }}
                               isActive={activeItem === item.title}
                               className="px-2.5 md:px-2"

@@ -33,6 +33,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/layout/sidebar"
+import { AuthService } from "@/services/auth.service"
 
 /**
  * Componete da sideBar, onde o utilizador, pode gerir a sua conta, ou entrar numa.
@@ -41,7 +42,7 @@ import {
  * 1. GUEST - um utilizador que não está a usar uma conta.
  * Fornece uma atalho para a pagina de login
  * 
- * 2. ADMIN - um utilizador com conta iniciada
+ * 2. ADMIN/OWNER/STAFF - um utilizador com conta iniciada
  * Fornece um dropDown menu, com a opção de aceder a mais detalhes da conta, ou terminar a sessão
  * 
  * @param user - dados do utilizador 
@@ -54,10 +55,14 @@ export function NavUser({
     name: string
     email: string
     avatar: string
-    role: "ADMIN" | "GUEST"
+    role: "ADMIN" | "GUEST" | "OWNER" | "STAFF"
   }
 }) {
   const { isMobile } = useSidebar()
+
+  const handleLogout = () => {
+    AuthService.logout();
+  }
 
   // interface para o utilizador convidado
   if (user.role === "GUEST") {
@@ -127,13 +132,13 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarMenuItem>
     </SidebarMenu>
   )
 }

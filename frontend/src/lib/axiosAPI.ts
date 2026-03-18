@@ -4,11 +4,11 @@
  * Implementa interceptores para gestão de JWT, tratamento de erros global e suporte a SSR.
  */
 
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { toast } from 'sonner';
 
 // URL base do API Gateway (Porta 8080)
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 /**
  * Instância principal para chamadas ao Gateway
@@ -21,72 +21,67 @@ const api = axios.create({
     },
 });
 
-/**
- * Interceptor de Pedido: Injeta o Token JWT se existir
- */
-api.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-        // Verifica se estamos no lado do cliente antes de aceder ao localStorage
-        if (typeof window !== 'undefined') {
-            const token = localStorage.getItem('token');
-            if (token && config.headers) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
+const requestInterceptor = (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
+    // Verifica se estamos no lado do cliente antes de aceder ao localStorage
+    if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('token');
+        if (token && config.headers) {
+            config.headers.Authorization = `Bearer ${token}`;
         }
-        return config;
-    },
-    (error: AxiosError) => {
-        return Promise.reject(error);
     }
-);
+    return config;
+};
 
-/**
- * Interceptor de Resposta: Tratamento de Erros Global
- */
-api.interceptors.response.use(
-    (response) => response,
-    (error: AxiosError) => {
-        const status = error.response?.status;
-        const data = error.response?.data as any;
+const requestErrorHandler = (error: AxiosError): Promise<AxiosError> => {
+    return Promise.reject(error);
+};
 
-        // Erro de Rede (Servidor desligado ou problemas de conectividade)
-        if (!error.response) {
-            toast.error('Erro de rede: O servidor não responde. Verifique se o backend está ligado.');
-            if (process.env.NODE_ENV === 'development') {
-                console.error('[Network Error]: O servidor em ' + API_BASE_URL + ' não está a responder.');
-            }
-            return Promise.reject(error);
-        }
+const responseInterceptor = (response: AxiosResponse): AxiosResponse => response;
 
-        // Erro de Autenticação (401)
-        if (status === 401) {
-            if (typeof window !== 'undefined') {
-                localStorage.removeItem('token');
-                // Opcional: Redirecionar para login se não estiver numa rota pública
-                if (!window.location.pathname.includes('/login')) {
-                    window.location.href = '/login?expired=true';
-                }
-            }
-        }
+const responseErrorHandler = (error: AxiosError): Promise<AxiosError> => {
+    const status = error.response?.status;
+    const data = error.response?.data as { message?: string };
 
-        // Erro de Permissão (403)
-        if (status === 403) {
-            toast.error('Não tem permissão para realizar esta ação.');
-        }
-
-        // Erros de Servidor (500+)
-        if (status && status >= 500) {
-            toast.error('Erro no servidor. Tente novamente mais tarde.');
-        }
-
-        // Log de erro para debug em desenvolvimento
+    // Erro de Rede (Servidor desligado ou problemas de conectividade)
+    if (!error.response) {
+        toast.error('Erro de rede: O servidor não responde. Verifique se o backend está ligado.');
         if (process.env.NODE_ENV === 'development') {
-            console.error(`[API Error ${status}]:`, data?.message || error.message);
+            console.error('[Network Error]: O servidor em ' + API_BASE_URL + ' não está a responder.');
         }
-
         return Promise.reject(error);
     }
-);
+
+    // Erro de Autenticação (401)
+    if (status === 401) {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('token');
+            // Opcional: Redirecionar para login se não estiver numa rota pública
+            if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/login?expired=true';
+            }
+        }
+    }
+
+    // Erro de Permissão (403)
+    if (status === 403) {
+        toast.error('Não tem permissão para realizar esta ação.');
+    }
+
+    // Erros de Servidor (500+)
+    if (status && status >= 500) {
+        toast.error('Erro no servidor. Tente novamente mais tarde.');
+    }
+
+    // Log de erro para debug em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+        console.error(`[API Error ${status}]:`, data?.message || error.message);
+    }
+
+    return Promise.reject(error);
+};
+
+api.interceptors.request.use(requestInterceptor, requestErrorHandler);
+api.interceptors.response.use(responseInterceptor, responseErrorHandler);
 
 /**
  * Instâncias especializadas para manter compatibilidade com o código existente
@@ -97,26 +92,25 @@ export const usersAxios = axios.create({
     baseURL: `${API_BASE_URL}/users`,
     withCredentials: true,
 });
-// Aplicar os mesmos interceptores da instância principal
-usersAxios.interceptors.request = api.interceptors.request as any;
-usersAxios.interceptors.response = api.interceptors.response as any;
+usersAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
+usersAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
 
 export const propertiesAxios = axios.create({
     baseURL: `${API_BASE_URL}/properties`,
 });
-propertiesAxios.interceptors.request = api.interceptors.request as any;
-propertiesAxios.interceptors.response = api.interceptors.response as any;
+propertiesAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
+propertiesAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
 
 export const syncAxios = axios.create({
     baseURL: `${API_BASE_URL}/sync`,
 });
-syncAxios.interceptors.request = api.interceptors.request as any;
-syncAxios.interceptors.response = api.interceptors.response as any;
+syncAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
+syncAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
 
 export const bookingsAxios = axios.create({
     baseURL: `${API_BASE_URL}/bookings`,
 });
-bookingsAxios.interceptors.request = api.interceptors.request as any;
-bookingsAxios.interceptors.response = api.interceptors.response as any;
+bookingsAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
+bookingsAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
 
 export default api;
