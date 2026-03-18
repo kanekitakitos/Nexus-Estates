@@ -12,11 +12,12 @@ export interface AuthResponse {
 }
 
 /**
- * Interface para as credenciais de login.
+ * Interface para as credenciais de login e registo.
  */
-export interface LoginCredentials {
+export interface AuthCredentials {
     email: string;
     password?: string;
+    phone?: string;
 }
 
 /**
@@ -27,7 +28,7 @@ export class AuthService {
     /**
      * Realiza o login do utilizador e gere o armazenamento da sessão.
      */
-    static async login(credentials: LoginCredentials): Promise<AuthResponse | null> {
+    static async login(credentials: AuthCredentials): Promise<AuthResponse | null> {
         try {
             const response = await usersAxios.post<AuthResponse>("/auth/login", credentials);
             
@@ -47,7 +48,7 @@ export class AuthService {
     /**
      * Regista um novo utilizador e inicia sessão automaticamente.
      */
-    static async register(credentials: LoginCredentials): Promise<AuthResponse | null> {
+    static async register(credentials: AuthCredentials): Promise<AuthResponse | null> {
         try {
             const response = await usersAxios.post<AuthResponse>("/auth/register", credentials);
             

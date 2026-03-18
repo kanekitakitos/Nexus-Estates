@@ -54,10 +54,11 @@ export function RegisterForm() {
     if (isTryingRegister) return;
 
     const email = (document.getElementById("email") as HTMLInputElement).value
+    const phone = (document.getElementById("phone") as HTMLInputElement).value
     const password = (document.getElementById("password") as HTMLInputElement).value
     const passwordConfirm = (document.getElementById("confirm-password") as HTMLInputElement).value
 
-    if (!password || !passwordConfirm || !email){
+    if (!password || !passwordConfirm || !email || !phone){
       setPasswordError(true)
       toast.warning("Preenche todos os campos");
       return
@@ -72,7 +73,7 @@ export function RegisterForm() {
     setIsTryingRegister(true);
 
     try {
-      const success = await AuthService.register({ email, password });
+      const success = await AuthService.register({ email, password, phone });
       
       if (success) {
         setTimeout(() => {
@@ -98,7 +99,7 @@ export function RegisterForm() {
             Create New Account
           </CardTitle>
           <CardDescription>
-            Enter your email and password to create your account
+            Enter your details to create your account
           </CardDescription>
         </CardHeader>
 
@@ -112,6 +113,17 @@ export function RegisterForm() {
                   id="email"
                   type="email"
                   placeholder="m@example.com"
+                  variant="brutal"
+                  required
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="phone">Phone Number</FieldLabel>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="+351 912 345 678"
                   variant="brutal"
                   required
                 />
