@@ -3,7 +3,7 @@ package com.nexus.estates.messaging;
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.common.messaging.BookingStatusUpdatedMessage;
 import com.nexus.estates.config.rabbitMQConfig.BookingRabbitConfig;
-import com.nexus.estates.service.ExternalSyncService;
+import com.nexus.estates.service.BookingSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -23,14 +23,14 @@ import org.springframework.stereotype.Component;
  * </p>
  *
  * @author Nexus Estates Team
- * @version 1.0
+ * @version 1.1
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class BookingEventListener {
 
-    private final ExternalSyncService externalSyncService;
+    private final BookingSyncService bookingSyncService;
     private final RabbitTemplate rabbitTemplate;
 
     @Value("${booking.events.exchange:booking.exchange}")
@@ -48,8 +48,8 @@ public class BookingEventListener {
     public void handleBookingCreated(BookingCreatedMessage message) {
         log.info("Recebido evento de criação de reserva: {}", message);
 
-        // Processa (Simula integração externa)
-        BookingStatusUpdatedMessage resultMessage = externalSyncService.processBooking(message);
+        // Processa via serviço especializado de sincronização
+        BookingStatusUpdatedMessage resultMessage = bookingSyncService.syncBooking(message);
 
         // Publica resultado (Status Updated)
         log.info("Publicando atualização de status: {} -> {}", resultMessage.bookingId(), resultMessage.status());

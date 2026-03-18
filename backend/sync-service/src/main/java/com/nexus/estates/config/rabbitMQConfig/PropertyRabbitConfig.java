@@ -1,4 +1,4 @@
-package com.nexus.estates.config;
+package com.nexus.estates.config.rabbitMQConfig;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;

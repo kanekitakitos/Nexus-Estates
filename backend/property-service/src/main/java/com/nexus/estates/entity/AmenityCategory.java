@@ -30,5 +30,8 @@ public enum AmenityCategory {
     SAFETY,
 
     /** Elementos de conforto (ex: Ar Condicionado, Aquecimento Central, Wi-Fi). */
-    COMFORT
+    COMFORT,
+
+    /** Vistas e atributos de localização (ex: Vista Mar, Vista Rio, Montanha). */
+    VIEW
 }

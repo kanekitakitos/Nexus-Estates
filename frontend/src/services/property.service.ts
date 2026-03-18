@@ -13,7 +13,7 @@ export class PropertyService {
      * @returns Uma promessa que resolve para um array de BookingProperty
      */
     static async getAllProperties(): Promise<BookingProperty[]> {
-        const response = await propertiesAxios.get("/");
+        const response = await propertiesAxios.get("/search");
         
         return response.data.map((p: any) => ({
             id: p.id,

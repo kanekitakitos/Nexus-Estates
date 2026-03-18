@@ -124,7 +124,7 @@ public class PropertyController {
      */
     @Operation(summary = "Listar todas as propriedades", description = "Retorna uma lista de todos os imóveis")
     @ApiResponse(responseCode = "200", description = "Sucesso ao retornar lista")
-    @GetMapping
+    @GetMapping("/search")
     public ResponseEntity<List<Property>> listAll() {
         return ResponseEntity.ok(service.findAll());
     }
