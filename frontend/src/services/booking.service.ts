@@ -1,10 +1,21 @@
 import { bookingsAxios } from "@/lib/axiosAPI";
+import type { AxiosError } from "axios";
 import { toast } from "sonner";
 
 /**
- * Interface que representa os dados de uma reserva no frontend.
+ * Estados possíveis para uma reserva (alinhados com o backend).
  */
-export interface Booking {
+export type BookingStatus =
+  | "PENDING_PAYMENT"
+  | "CONFIRMED"
+  | "CANCELLED"
+  | "COMPLETED"
+  | "REFUNDED";
+
+/**
+ * Representação de uma reserva devolvida pelo backend booking-service.
+ */
+export interface BookingResponse {
     id: number;
     propertyId: number;
     userId: number;
@@ -12,8 +23,19 @@ export interface Booking {
     checkOutDate: string;
     guestCount: number;
     totalPrice: number;
-    status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
-    createdAt: string;
+    currency: string;
+    status: BookingStatus;
+}
+
+/**
+ * Payload de criação de reserva (DTO de entrada do backend).
+ */
+export interface CreateBookingRequest {
+    propertyId: number;
+    userId: number;
+    checkInDate: string;
+    checkOutDate: string;
+    guestCount: number;
 }
 
 /**
@@ -22,12 +44,14 @@ export interface Booking {
 export class BookingService {
     
     /**
-     * Obtém todas as reservas do utilizador atual.
+     * Obtém todas as reservas do utilizador autenticado (via localStorage).
      */
-    static async getMyBookings(): Promise<Booking[]> {
+    static async getMyBookings(): Promise<BookingResponse[]> {
         try {
-            const response = await bookingsAxios.get("/my-bookings");
-            return response.data;
+            if (typeof window === "undefined") return [];
+            const userId = localStorage.getItem("userId");
+            if (!userId) return [];
+            return await this.getBookingsByUser(Number(userId));
         } catch (error) {
             this.handleError(error, "obter as suas reservas");
             throw error;
@@ -37,10 +61,10 @@ export class BookingService {
     /**
      * Cria uma nova reserva.
      */
-    static async createBooking(bookingData: Partial<Booking>): Promise<Booking> {
+    static async createBooking(bookingData: CreateBookingRequest): Promise<BookingResponse> {
         try {
-            const response = await bookingsAxios.post("", bookingData);
-            toast.success("Reserva efetuada com sucesso!");
+            const response = await bookingsAxios.post<BookingResponse>("", bookingData);
+            toast.success("Reserva criada com sucesso.");
             return response.data;
         } catch (error) {
             this.handleError(error, "criar a reserva");
@@ -49,14 +73,14 @@ export class BookingService {
     }
 
     /**
-     * Cancela uma reserva existente.
+     * Obtém o histórico de reservas de um utilizador específico.
      */
-    static async cancelBooking(id: number): Promise<void> {
+    static async getBookingsByUser(userId: number): Promise<BookingResponse[]> {
         try {
-            await bookingsAxios.delete(`/${id}`);
-            toast.success("Reserva cancelada.");
+            const response = await bookingsAxios.get<BookingResponse[]>(`/user/${userId}`);
+            return response.data;
         } catch (error) {
-            this.handleError(error, "cancelar a reserva");
+            this.handleError(error, "obter reservas por utilizador");
             throw error;
         }
     }
@@ -64,19 +88,25 @@ export class BookingService {
     /**
      * Tratamento centralizado de erros para o serviço de reservas.
      */
-    private static handleError(error: any, action: string): void {
+    private static handleError(error: unknown, action: string): void {
         console.error(`Erro ao ${action}:`, error);
-        if (error.response) {
+        if (this.isAxiosError(error) && error.response) {
             const status = error.response.status;
             if (status === 409) {
                 toast.error("Estas datas já não estão disponíveis.");
             } else if (status === 403) {
                 toast.error("Não tem permissão para esta ação.");
+            } else if (status === 401) {
+                toast.error("Sessão expirada. Faça login novamente.");
             } else {
                 toast.error(`Erro ao ${action}. Tente novamente.`);
             }
         } else {
             toast.error("Erro de conexão ao servidor de reservas.");
         }
+    }
+
+    private static isAxiosError(error: unknown): error is AxiosError {
+        return typeof error === "object" && error !== null && "isAxiosError" in error;
     }
 }

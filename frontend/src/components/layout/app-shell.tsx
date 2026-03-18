@@ -42,9 +42,7 @@ function AppFooter() {
         <nav className="flex flex-wrap justify-center gap-3 font-medium md:justify-end md:gap-4">
           <Link href="/" className="cursor-pointer hover:underline hover:text-primary transition-colors">Home</Link>
           <Link href="/login" className="cursor-pointer hover:underline hover:text-primary transition-colors">Login</Link>
-          <Link href="#" className="cursor-pointer hover:underline hover:text-primary transition-colors">About</Link>
-          <Link href="#" className="cursor-pointer hover:underline hover:text-primary transition-colors">Bookings</Link>
-          <Link href="#" className="cursor-pointer hover:underline hover:text-primary transition-colors">Contact</Link>
+          <Link href="/register" className="cursor-pointer hover:underline hover:text-primary transition-colors">Register</Link>
         </nav>
       </div>
     </footer>

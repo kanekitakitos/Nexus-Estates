@@ -78,7 +78,7 @@ export function RecoverForm({
             .then(response => {
                 if (response.status === 200) { // Assuming a successful login returns a 200 status code
                     console.log("Recuperação efetuada!", response.data);
-                    toast.error("Pedido enviado com sucesso!");
+                    toast.success("Pedido enviado com sucesso!");
                 }
                 else {
                     console.log("resposta:", response);
@@ -114,9 +114,7 @@ export function RecoverForm({
             <BrutalCard>
 
                 <CardHeader className="text-center">
-                    <CardTitle className="text-xl">´
-                        Recover Account
-                    </CardTitle>
+                    <CardTitle className="text-xl">Recover Account</CardTitle>
                     <CardDescription>
                         Enter the email of your account to receive a password reset link
                     </CardDescription>
@@ -138,7 +136,12 @@ export function RecoverForm({
                         </FieldGroup>
                     </form>
 
-                    <Button variant={"brutal"} className="w-full mt-6" onClick={()=>console.log("TO IMPLEMENT!")}>
+                    <Button
+                        variant={"brutal"}
+                        className="w-full mt-6"
+                        disabled={isTryingRegister}
+                        onClick={handleRegister}
+                    >
                         Send Reset Link
                     </Button>
                 </CardContent>

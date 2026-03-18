@@ -111,12 +111,18 @@ function CardImageSection({ property }: { property: BookingProperty }) {
                 </Badge>
             )}
             
-            <img
-                src={property.imageUrl}
-                alt={property.title}
-                className="h-full w-full rounded-[5px] border-[2px] border-foreground object-cover grayscale transition-all duration-500 group-hover:grayscale-0"
-                referrerPolicy="no-referrer"
-            />
+            {property.imageUrl ? (
+                <img
+                    src={property.imageUrl}
+                    alt={property.title}
+                    className="h-full w-full rounded-[5px] border-[2px] border-foreground object-cover grayscale transition-all duration-500 group-hover:grayscale-0"
+                    referrerPolicy="no-referrer"
+                />
+            ) : (
+                <div className="h-full w-full rounded-[5px] border-[2px] border-foreground bg-muted/50 grid place-items-center">
+                    <span className="font-mono text-[10px] uppercase text-muted-foreground">Sem imagem</span>
+                </div>
+            )}
         </div>
     )
 }
@@ -148,7 +154,7 @@ function CardDetailsSection({ property, onBook }: { property: BookingProperty, o
                         Starting from
                     </span>
                     <span className="font-mono text-xs md:text-sm font-bold text-primary leading-none">
-                        ${property.price}/night
+                        €{property.price}/night
                     </span>
                 </div>
                 <Button

@@ -12,6 +12,7 @@ import {
   LogIn,
   LogOut,
 } from "lucide-react"
+import Link from "next/link"
 
 import {
   Avatar,
@@ -56,6 +57,7 @@ export function NavUser({
     email: string
     avatar: string
     role: "ADMIN" | "GUEST" | "OWNER" | "STAFF"
+    isAuthenticated: boolean
   }
 }) {
   const { isMobile } = useSidebar()
@@ -64,13 +66,12 @@ export function NavUser({
     AuthService.logout();
   }
 
-  // interface para o utilizador convidado
-  if (user.role === "GUEST") {
+  if (!user.isAuthenticated) {
     return (
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0">
-            <a href="/login">
+            <Link href="/login">
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <LogIn className="size-4" />
               </div>
@@ -78,7 +79,7 @@ export function NavUser({
                 <span className="truncate font-medium">Log in</span>
                 <span className="truncate text-xs">Access your account</span>
               </div>
-            </a>
+            </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>

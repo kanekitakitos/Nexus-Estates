@@ -9,7 +9,8 @@
 "use client"
 
 import * as React from "react"
-import { Building2, Calendar, LayoutDashboard, Settings, Users } from "lucide-react"
+import { Building2, Calendar, LayoutDashboard, MessageSquare } from "lucide-react"
+import Link from "next/link"
 
 import { NavUser } from "@/components/layout/dashboard/nav-user"
 import {
@@ -25,6 +26,7 @@ import {
   useSidebar,
 } from "@/components/ui/layout/sidebar"
 import { useChatStrategy } from "@/features/chat/ChatProvider"
+import { BookingService, type BookingResponse } from "@/services/booking.service"
 
 
 type UserRole = "ADMIN" | "GUEST" | "OWNER" | "STAFF"
@@ -49,16 +51,10 @@ const menuItems = [
     roles: ["ADMIN", "GUEST", "OWNER", "STAFF"],
   },
   {
-    title: "Clients",
+    title: "Chat",
     url: "#",
-    icon: Users,
-    roles: ["ADMIN", "OWNER"],
-  },
-  {
-    title: "Settings",
-    url: "#",
-    icon: Settings,
-    roles: ["ADMIN", "OWNER"],
+    icon: MessageSquare,
+    roles: ["ADMIN", "OWNER", "STAFF"],
   },
 ]
 
@@ -81,6 +77,8 @@ export function AppSidebar({
   const ChatList = chatStrategy.ChatList
   const ChatWindow = chatStrategy.ChatWindow
   const [selectedChatId, setSelectedChatId] = React.useState<string | undefined>(undefined)
+  const [bookings, setBookings] = React.useState<BookingResponse[]>([])
+  const [isLoadingBookings, setIsLoadingBookings] = React.useState(false)
 
   // Estado real do utilizador vindo do localStorage
   const [currentUser, setCurrentUser] = React.useState({
@@ -88,23 +86,74 @@ export function AppSidebar({
     email: "guest@nexus-estates.com",
     avatar: "/avatars/guest.jpg",
     role: "GUEST" as UserRole,
+    isAuthenticated: false,
   })
 
-  React.useEffect(() => {
+  const syncUserSession = React.useCallback(() => {
     if (typeof window !== 'undefined') {
       const email = localStorage.getItem('userEmail')
-      const role = localStorage.getItem('userRole') as UserRole
+      const token = localStorage.getItem('token')
+      const roleRaw = localStorage.getItem('userRole')
+
+      const normalizeRole = (value: string | null): UserRole => {
+        const normalized = (value || "").replace(/^ROLE_/, "").toUpperCase()
+        if (normalized === "ADMIN" || normalized === "OWNER" || normalized === "STAFF" || normalized === "GUEST") {
+          return normalized as UserRole
+        }
+        return "GUEST"
+      }
       
-      if (email && role) {
+      if (email && token) {
+        const role = normalizeRole(roleRaw)
         setCurrentUser({
-          name: email.split('@')[0], // Nome simplificado a partir do email
+          name: email.split('@')[0],
           email: email,
           avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-          role: role
+          role: role,
+          isAuthenticated: true,
+        })
+      } else {
+        setCurrentUser({
+          name: "Convidado",
+          email: "guest@nexus-estates.com",
+          avatar: "/avatars/guest.jpg",
+          role: "GUEST",
+          isAuthenticated: false,
         })
       }
     }
   }, [])
+
+  React.useEffect(() => {
+    syncUserSession()
+
+    // Escuta mudanças no localStorage de outras abas ou do próprio AuthService
+    window.addEventListener('storage', syncUserSession)
+    
+    // Custom event para quando o login acontece na mesma aba
+    window.addEventListener('auth-change', syncUserSession)
+
+    return () => {
+      window.removeEventListener('storage', syncUserSession)
+      window.removeEventListener('auth-change', syncUserSession)
+    }
+  }, [syncUserSession])
+
+  React.useEffect(() => {
+    const load = async () => {
+      if (activeItem !== "Bookings") return
+      if (!currentUser.isAuthenticated) return
+      try {
+        setIsLoadingBookings(true)
+        const data = await BookingService.getMyBookings()
+        setBookings(data)
+      } finally {
+        setIsLoadingBookings(false)
+      }
+    }
+
+    load()
+  }, [activeItem, currentUser.isAuthenticated])
 
   const filteredNavMain = menuItems.filter((item) =>
       item.roles.includes(currentUser.role)
@@ -128,7 +177,7 @@ export function AppSidebar({
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0">
-                    <a href="/">
+                    <Link href="/">
                       <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                         <Building2 className="size-4" />
                       </div>
@@ -136,7 +185,7 @@ export function AppSidebar({
                         <span className="truncate font-semibold">Nexus Estates</span>
                         <span className="truncate text-xs">Property Management</span>
                       </div>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -180,12 +229,12 @@ export function AppSidebar({
           >
             <SidebarHeader className="border-b p-3 h-[56px] flex items-center gap-2">
               <div className="text-foreground text-base font-medium">
-                {activeItem === "Clients" ? "Clients" : activeItem}
+                {activeItem}
               </div>
             </SidebarHeader>
 
             <SidebarContent className="p-0">
-              {activeItem === "Clients" ? (
+              {activeItem === "Chat" ? (
                 <>
                   {!selectedChatId ? (
                     <div className="h-[calc(100vh-56px)] overflow-y-auto animate-slide-in-left">
@@ -200,6 +249,35 @@ export function AppSidebar({
                     </div>
                   )}
                 </>
+              ) : activeItem === "Bookings" ? (
+                <div className="h-[calc(100vh-56px)] overflow-y-auto p-4">
+                  {!currentUser.isAuthenticated ? (
+                    <div className="text-muted-foreground text-sm">
+                      <div className="mb-2">Precisa de iniciar sessão para ver as suas reservas.</div>
+                      <Link href="/login" className="underline">Ir para Login</Link>
+                    </div>
+                  ) : isLoadingBookings ? (
+                    <div className="text-muted-foreground text-sm">A carregar reservas…</div>
+                  ) : bookings.length === 0 ? (
+                    <div className="text-muted-foreground text-sm">Ainda não tem reservas.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {bookings.map((b) => (
+                        <div key={b.id} className="rounded-lg border p-3 text-sm">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="font-medium">Reserva #{b.id}</div>
+                            <div className="text-xs text-muted-foreground">{b.status}</div>
+                          </div>
+                          <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
+                            <div>Property: {b.propertyId}</div>
+                            <div>{b.checkInDate} → {b.checkOutDate}</div>
+                            <div>Total: {b.totalPrice} {b.currency}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ) : (
                   <div className="text-muted-foreground flex h-full items-center justify-center p-4 text-sm">
                     Conteúdo de {activeItem}

@@ -24,7 +24,7 @@ interface DateRangeCalendarProps {
  * Funcionalidades:
  * - Seleção de intervalo de datas (check-in / check-out).
  * - Cálculo automático do número de noites.
- * - Cálculo detalhado de custos (diárias, taxa de limpeza, taxa de serviço).
+ * - Cálculo do custo total das diárias.
  * - Botões de ação para confirmar reserva ou contactar o proprietário.
  * - Responsividade: Exibe 1 mês em mobile e 2 meses em desktop.
  * 
@@ -52,9 +52,7 @@ export function DateRangeCalendar({
 
   // Cálculos financeiros
   const totalPrice = nights * pricePerNight
-  const serviceFee = Math.round(totalPrice * 0.12) // Taxa de serviço fixa de 12%
-  const cleaningFee = 45 // Taxa de limpeza fixa
-  const total = totalPrice + serviceFee + cleaningFee
+  const total = totalPrice
 
   return (
     <div className={cn("grid gap-6 grid-cols-1 lg:grid-cols-[1fr_380px]", className)}>
@@ -76,10 +74,8 @@ export function DateRangeCalendar({
           <PricingBreakdown 
             pricePerNight={pricePerNight} 
             nights={nights} 
-            totalPrice={totalPrice} 
-            cleaningFee={cleaningFee} 
-            serviceFee={serviceFee} 
-            total={total} 
+            totalPrice={totalPrice}
+            total={total}
           />
 
           <ActionButtons 
@@ -153,15 +149,11 @@ function PricingBreakdown({
   pricePerNight, 
   nights, 
   totalPrice, 
-  cleaningFee, 
-  serviceFee, 
   total 
 }: { 
   pricePerNight: number, 
   nights: number, 
   totalPrice: number, 
-  cleaningFee: number, 
-  serviceFee: number, 
   total: number 
 }) {
   return (
@@ -171,18 +163,6 @@ function PricingBreakdown({
           €{pricePerNight} x {nights} nights
         </span>
         <span>€{totalPrice}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-muted-foreground underline decoration-dotted">
-          Cleaning fee
-        </span>
-        <span>€{cleaningFee}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-muted-foreground underline decoration-dotted">
-          Nexus service fee
-        </span>
-        <span>€{serviceFee}</span>
       </div>
       <div className="mt-4 flex justify-between border-t-[2px] border-foreground pt-4 text-base font-bold">
         <span>Total</span>
@@ -207,8 +187,8 @@ function ActionButtons({
   date: DateRange | undefined, 
   total: number, 
   nights: number, 
-  onConfirmBooking?: (data: any) => void, 
-  onContactOwner?: (data: any) => void 
+  onConfirmBooking?: (data: BookingActionPayload) => void, 
+  onContactOwner?: (data: BookingActionPayload) => void 
 }) {
   const isValid = date?.from && date?.to
 
@@ -218,7 +198,7 @@ function ActionButtons({
         variant="brutal"
         className="w-full h-12 text-base font-bold uppercase tracking-wider"
         disabled={!isValid}
-        onClick={() => isValid && onConfirmBooking?.({ range: date, totalPrice: total, nights })}
+        onClick={() => isValid && onConfirmBooking?.({ range: date, totalPrice: total, nights } as BookingActionPayload)}
       >
         Reserve
       </Button>
@@ -228,11 +208,17 @@ function ActionButtons({
          <Button 
             variant="link" 
             className="h-auto p-0 text-xs text-foreground underline decoration-2 hover:text-primary"
-            onClick={() => isValid && onContactOwner?.({ range: date, totalPrice: total, nights })}
+            onClick={() => isValid && onContactOwner?.({ range: date, totalPrice: total, nights } as BookingActionPayload)}
          >
             Contact Owner
          </Button>
       </div>
     </>
   )
+}
+
+type BookingActionPayload = {
+  range: DateRange;
+  totalPrice: number;
+  nights: number;
 }

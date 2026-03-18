@@ -1,4 +1,5 @@
-import { usersAxios } from "@/lib/axiosAPI";
+import { usersAxios, ApiResponse } from "@/lib/axiosAPI";
+import type { AxiosError } from "axios";
 import { toast } from "sonner";
 
 /**
@@ -30,16 +31,16 @@ export class AuthService {
      */
     static async login(credentials: AuthCredentials): Promise<AuthResponse | null> {
         try {
-            const response = await usersAxios.post<AuthResponse>("/auth/login", credentials);
+            const response = await usersAxios.post<ApiResponse<AuthResponse>>("/auth/login", credentials);
             
-            if (response.status === 200) {
-                const data = response.data;
+            if (response.status === 200 && response.data.success) {
+                const data = response.data.data;
                 this.setSession(data);
                 toast.success("Bem-vindo de volta!");
                 return data;
             }
             return null;
-        } catch (error: any) {
+        } catch (error: unknown) {
             this.handleAuthError(error, "login");
             throw error;
         }
@@ -50,16 +51,16 @@ export class AuthService {
      */
     static async register(credentials: AuthCredentials): Promise<AuthResponse | null> {
         try {
-            const response = await usersAxios.post<AuthResponse>("/auth/register", credentials);
+            const response = await usersAxios.post<ApiResponse<AuthResponse>>("/auth/register", credentials);
             
-            if (response.status === 200) {
-                const data = response.data;
+            if (response.status === 200 && response.data.success) {
+                const data = response.data.data;
                 this.setSession(data);
                 toast.success("Conta criada com sucesso! Bem-vindo.");
                 return data;
             }
             return null;
-        } catch (error: any) {
+        } catch (error: unknown) {
             this.handleAuthError(error, "register");
             throw error;
         }
@@ -73,9 +74,13 @@ export class AuthService {
         localStorage.removeItem('userId');
         localStorage.removeItem('userEmail');
         localStorage.removeItem('userRole');
+        
+        // Notifica outros componentes sobre a mudança de autenticação
+        window.dispatchEvent(new Event('auth-change'));
+        
         toast.success("Sessão terminada com sucesso.");
         setTimeout(() => {
-            window.location.href = "/login";
+            window.location.href = "/";
         }, 1000);
     }
 
@@ -83,17 +88,25 @@ export class AuthService {
      * Armazena os dados da sessão no localStorage.
      */
     private static setSession(auth: AuthResponse): void {
+        const normalizedRole = (auth.role || "").replace(/^ROLE_/, "").toUpperCase();
         localStorage.setItem('token', auth.token);
         localStorage.setItem('userId', auth.id.toString());
         localStorage.setItem('userEmail', auth.email);
-        localStorage.setItem('userRole', auth.role);
+        localStorage.setItem('userRole', normalizedRole);
+        
+        // Notifica outros componentes sobre a mudança de autenticação
+        window.dispatchEvent(new Event('auth-change'));
+    }
+
+    private static isAxiosError(error: unknown): error is AxiosError {
+        return typeof error === "object" && error !== null && "isAxiosError" in error;
     }
 
     /**
      * Tratamento centralizado de erros de autenticação.
      */
-    private static handleAuthError(error: any, type: 'login' | 'register'): void {
-        if (error.response) {
+    private static handleAuthError(error: unknown, type: 'login' | 'register'): void {
+        if (this.isAxiosError(error) && error.response) {
             const status = error.response.status;
             
             if (type === 'login') {

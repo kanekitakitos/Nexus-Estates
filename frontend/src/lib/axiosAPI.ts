@@ -21,6 +21,22 @@ const api = axios.create({
     },
 });
 
+/**
+ * Interface genérica para respostas da API do Nexus Estates.
+ */
+export interface ApiResponse<T> {
+    success: boolean;
+    message: string;
+    data: T;
+    error?: {
+        status: number;
+        message: string;
+        path: string;
+        timestamp: string;
+        validationErrors?: Record<string, string>;
+    };
+}
+
 const requestInterceptor = (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
     // Verifica se estamos no lado do cliente antes de aceder ao localStorage
     if (typeof window !== 'undefined') {
@@ -55,6 +71,10 @@ const responseErrorHandler = (error: AxiosError): Promise<AxiosError> => {
     if (status === 401) {
         if (typeof window !== 'undefined') {
             localStorage.removeItem('token');
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userRole');
+            window.dispatchEvent(new Event('auth-change'));
             // Opcional: Redirecionar para login se não estiver numa rota pública
             if (!window.location.pathname.includes('/login')) {
                 window.location.href = '/login?expired=true';
