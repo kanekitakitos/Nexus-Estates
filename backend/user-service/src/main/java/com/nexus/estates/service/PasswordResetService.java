@@ -14,7 +14,15 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Serviço responsável pela gestão de recuperação de passwords.
+ * Serviço de domínio responsável pela orquestração do fluxo de recuperação de credenciais.
+ * <p>
+ * Este serviço gere a criação, validação e limpeza de tokens de segurança, garantindo
+ * que a redefinição de passwords ocorra de forma atómica e segura através do uso
+ * de transações de base de dados e hashing de BCrypt.
+ * </p>
+ *
+ * @author Nexus Estates Team
+ * @version 1.1
  */
 @Service
 @RequiredArgsConstructor
@@ -25,23 +33,25 @@ public class PasswordResetService {
     private final PasswordEncoder passwordEncoder;
 
     /**
-     * Inicia o processo de recuperação de password.
-     * Gera um token único e guarda-o na base de dados.
+     * Inicia o fluxo de recuperação de conta para um determinado endereço de e-mail.
+     * <p>
+     * O método segue o princípio de <b>Security by Obscurity</b>: se o e-mail não existir,
+     * o sistema não retorna erro, impedindo a enumeração de utilizadores por agentes maliciosos.
+     * Se existir, invalida processos de recuperação anteriores antes de gerar um novo.
+     * </p>
      *
-     * @param email O email do utilizador que solicitou a recuperação.
+     * @param email O endereço de e-mail do utilizador que solicita a redefinição.
      */
     @Transactional
     public void initiatePasswordReset(String email) {
-        // Se o utilizador não existir, não fazemos nada (security by obscurity)
-        // para não revelar quais emails estão registados.
         userRepository.findByEmail(email).ifPresent(user -> {
-            // Remove tokens antigos se existirem
+            // Garante que apenas um token esteja ativo por utilizador de cada vez
             tokenRepository.deleteByUser(user);
 
-            // Gera token único
+            // Geração de identificador opaco e imprevisível
             String token = UUID.randomUUID().toString();
 
-            // Cria e guarda o token com validade de 15 minutos
+            // Configuração do envelope de segurança com TTL (Time-To-Live) de 15 minutos
             PasswordResetToken resetToken = PasswordResetToken.builder()
                     .token(token)
                     .user(user)
@@ -50,32 +60,41 @@ public class PasswordResetService {
 
             tokenRepository.save(resetToken);
 
-            // TODO: Integrar com serviço de Email para enviar o token
+            // TODO: Acoplar o EmailService para envio assíncrono do token
             System.out.println("Token de recuperação gerado para " + email + ": " + token);
         });
     }
 
     /**
-     * Redefine a password do utilizador usando um token válido.
+     * Conclui o processo de redefinição, substituindo a password antiga pela nova credencial.
+     * <p>
+     * Este método valida a existência do token, verifica a sua validade temporal e,
+     * em caso de sucesso, procede à encriptação da nova password. O token é destruído
+     * imediatamente após a operação para evitar reutilização (Idempotência de segurança).
+     * </p>
      *
-     * @param token O token de recuperação recebido.
-     * @param newPassword A nova password a definir.
+     * @param token       O token UUID recebido pelo utilizador via e-mail.
+     * @param newPassword A nova password em texto limpo, a ser processada pelo {@link PasswordEncoder}.
+     * @throws InvalidTokenException Caso o token seja inexistente ou já tenha ultrapassado a data de expiração.
      */
     @Transactional
     public void resetPassword(String token, String newPassword) {
+        // Localização do token ou lançamento de exceção de negócio
         PasswordResetToken resetToken = tokenRepository.findByToken(token)
                 .orElseThrow(() -> new InvalidTokenException("Token inválido ou não encontrado."));
 
+        // Verificação de expiração temporal
         if (resetToken.isExpired()) {
             tokenRepository.delete(resetToken);
             throw new InvalidTokenException("Token expirado. Por favor, solicite um novo.");
         }
 
+        // Atualização da entidade User com a nova credencial encriptada
         User user = resetToken.getUser();
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        // Invalida o token após uso com sucesso
+        // Limpeza de segurança: invalida o token após o primeiro uso bem-sucedido
         tokenRepository.delete(resetToken);
     }
 }

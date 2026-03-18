@@ -1,3 +1,11 @@
+/**
+ * @description
+ * Sidebar principal da aplicação com sistema de ícones + detalhes.
+ * Implementa navegação filtrada por roles de utilizador, estado de colapso sincronizado e fornecimento a funcionalidades
+ * 
+ * @version 1.0
+ */
+
 "use client"
 
 import * as React from "react"
@@ -18,8 +26,10 @@ import {
 } from "@/components/ui/layout/sidebar"
 import { useChatStrategy } from "@/features/chat/ChatProvider"
 
+
 type UserRole = "ADMIN" | "GUEST"
 
+// MOCK DATA
 const currentUser = {
   name: "Admin User",
   email: "admin@nexus-estates.com",
@@ -60,6 +70,15 @@ const menuItems = [
   },
 ]
 
+/**
+ * 
+ * SideBar colapsavel com sistema de duplo painel.
+ * 1. Painel Primario: Fornece navegação por ícons selecionaveis e um perfil de utilizador
+ * 2. Painel de Detalhes: Conteodo dinamico, basedo no item selecionado.
+ * 
+ * @param props - caracteristicas para dar para a side bar
+ * @returns JSX.Element
+ */
 export function AppSidebar({
                              ...props
                            }: React.ComponentProps<typeof Sidebar>) {

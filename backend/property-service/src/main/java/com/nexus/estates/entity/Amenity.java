@@ -1,5 +1,6 @@
 package com.nexus.estates.entity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -31,11 +32,13 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Schema(description = "Entidade que representa uma comodidade (ex: WiFi, Piscina)")
 public class Amenity {
 
     /** Identificador único da comodidade (Chave Primária). */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "ID único da comodidade", example = "1")
     private Long id;
 
     /** * Nome descritivo da comodidade.
@@ -44,15 +47,18 @@ public class Amenity {
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
+    @Schema(description = "Nome da comodidade em múltiplos idiomas", example = "{\"pt\": \"Piscina\", \"en\": \"Pool\"}")
     private Map<String, String> name;
 
     /** Categoria à qual a comodidade pertence (ex: LAZER, SEGURANÇA, CONFORTO). */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Schema(description = "Categoria da comodidade", example = "LAZER")
     private AmenityCategory category;
 
     /** * Nome do ícone para exibição no frontend.
      * Ex: "fa-wifi", "pool"
      */
+    @Schema(description = "Identificador do ícone (ex: FontAwesome)", example = "fa-swimmer")
     private String icon;
 }

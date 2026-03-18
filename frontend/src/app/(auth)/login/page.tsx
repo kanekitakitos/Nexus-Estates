@@ -1,6 +1,10 @@
 import { LoginForm } from "@/components/layout/auth/login-form"
 import { FieldDescription } from "@/components/ui/forms/field"
 
+/**
+ * @route ´/login´
+ * @description Página principal de autenticação, aceesivel através da rota ´/login´. 
+ */
 export default function LoginPage() {
   return (
     <div className={"flex flex-col gap-6"}>

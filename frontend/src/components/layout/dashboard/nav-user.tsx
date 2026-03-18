@@ -1,3 +1,9 @@
+/**
+ * @description Implementa a secção de perfil do utilizador para a Sidebar.
+ * 
+ * @version 1.0
+ */
+
 "use client"
 
 import {
@@ -28,6 +34,19 @@ import {
   useSidebar,
 } from "@/components/ui/layout/sidebar"
 
+/**
+ * Componete da sideBar, onde o utilizador, pode gerir a sua conta, ou entrar numa.
+ * 
+ * Fornece 2 estados
+ * 1. GUEST - um utilizador que não está a usar uma conta.
+ * Fornece uma atalho para a pagina de login
+ * 
+ * 2. ADMIN - um utilizador com conta iniciada
+ * Fornece um dropDown menu, com a opção de aceder a mais detalhes da conta, ou terminar a sessão
+ * 
+ * @param user - dados do utilizador 
+ * @returns JSX.Element
+ */
 export function NavUser({
   user,
 }: {
@@ -40,6 +59,7 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
 
+  // interface para o utilizador convidado
   if (user.role === "GUEST") {
     return (
       <SidebarMenu>
@@ -60,6 +80,7 @@ export function NavUser({
     )
   }
 
+  // interface para uma conta de admin
   return (
     <SidebarMenu>
       <SidebarMenuItem>

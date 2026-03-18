@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/forms/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuPortal, DropdownMenuTrigger } from "@/components/ui/overlay/dropdown-menu"
 import { useState } from "react"
 
+/**
+ * @route ´/dashboard´
+ * @description Pagina onde um dono pode ver estatisticas sobre as suas propriedades
+ */
 export default function Page() {
   const [ganhosDados, setGanhosDados] = useState({periodo:"Mês", valor:"156"})
 

@@ -1,10 +1,21 @@
+/**
+ * @file
+ * Orquestrador Principal do Fluxo de informações sobre os boockings.
+ * 
+ * @description
+ * * Este ficheiro contém a vista principal dos boockings, funcionando como um contentor 
+ * inteligente que alterna entre a listagem de possiveis boockings e a vista detalhada.
+ * 
+ * @version 1.0
+*/
+
 "use client"
 
 import { useMemo, useState, useEffect } from "react"
-import { BookingList } from "./booking-list"
-import { BookingProperty } from "./booking-card"
-import { BookingSearchBar } from "./booking-search-bar"
-import { BookingDetails } from "./booking-details"
+import { BookingList } from "./components/booking-list"
+import { BookingProperty } from "./components/booking-card"
+import { BookingSearchBar } from "./components/booking-search-bar"
+import { BookingDetails } from "./components/booking-details"
 import { cn } from "@/lib/utils"
 
 const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
@@ -256,6 +267,7 @@ export function BookingView() {
         {
         let filtered = MOCK_PROPERTIES.filter(p => p.status === "AVAILABLE")
 
+        // filtra as propriedades dependedo do destino indicado no BookingSearchBar
         if (searchTerm) {
             const term = searchTerm.toLowerCase()
             filtered = filtered.filter(p => 

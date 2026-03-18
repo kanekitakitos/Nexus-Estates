@@ -1,3 +1,11 @@
+/**
+ * @description
+ *  Ficheiro para implementar um contentor para listar as propriedades
+ *  Tambem para controlar e gerir a animação de saida da lista das propriedades
+ * 
+ * @version 1.0
+ */
+
 import { BookingCard, BookingProperty } from "./booking-card"
 import { BookingHowItWorks } from "./booking-how-it-works"
 import { BrutalEmptyState } from "@/components/ui/data-display/card"
@@ -7,6 +15,13 @@ const GRID_CONTAINER_STYLES = "grid grid-cols-2 md:grid-cols-[repeat(auto-fill,m
 const CARD_ROTATION_BASE = "hover:rotate-0 hover:z-10 transition-transform duration-300"
 const HOW_IT_WORKS_ROTATION = "aspect-[4/5] rotate-2 hover:rotate-0 hover:z-10 transition-transform duration-300"
 
+
+/**
+ * @prop properties - BookingProperty[]
+ * @prop onBook? - (id: string) => void
+ * @prop isLeaving? - boolean
+ * @prop isReturning? - boolean
+ */
 interface BookingListProps {
     properties: BookingProperty[]
     onBook?: (id: string) => void
@@ -14,7 +29,20 @@ interface BookingListProps {
     isReturning?: boolean
 }
 
+/**
+ * Componete para gerir a listagem de propriedades disponiveis para o boocking
+ *   e gerir as animações de saidada e entrada desta listagem
+ * 
+ * @param {BookingListProps} props - Propriedades do componente. link: {@link BookingListProps}
+ * @param {BookingProperty[]} props.properties - Lista de propriedades a exibir.
+ * @param {(id: string) => void} [props.onBook] - Callback executado ao selecionar uma propriedade.
+ * @param {boolean} [props.isLeaving] - Ativa as animações de saída (fly-out).
+ * @param {boolean} [props.isReturning] - Ativa as animações de entrada (fly-in).
+ * @returns Um elemento JSX contendo a grelha com propriedades ou o estado vazio.
+ */
 export function BookingList({ properties, onBook, isLeaving, isReturning }: BookingListProps) {
+    
+    // caso não hava propriedades, retorna o estado vazio
     if (properties.length === 0) {
         return (
             <BrutalEmptyState className={cn(
@@ -35,7 +63,7 @@ export function BookingList({ properties, onBook, isLeaving, isReturning }: Book
     return (
         <div className={GRID_CONTAINER_STYLES}>
             {properties.map((property, index) => {
-                // Determine chaos animation based on index (modulo 4)
+                {/* Determine chaos animation based on index (modulo 4)*/}
                 const outAnimations = [
                     "animate-fly-out-chaos-1",
                     "animate-fly-out-chaos-2",
@@ -54,7 +82,7 @@ export function BookingList({ properties, onBook, isLeaving, isReturning }: Book
                     ? outAnimations[index % 4] 
                     : (isReturning ? inAnimations[index % 4] : "")
                 
-                // Add staggered delay
+                {/* Add staggered delay*/}
                 const delayStyle = { animationDelay: `${(index % 5) * 50}ms` }
 
                 const card = (
@@ -74,6 +102,7 @@ export function BookingList({ properties, onBook, isLeaving, isReturning }: Book
                     </div>
                 )
 
+                {/* insere o BookingHowItWorks no meio das propriedades disponiveis + a card*/}
                 if (index === 4) {
                     return (
                         <div key={`wrapper-${property.id}`} className="contents">
@@ -92,6 +121,7 @@ export function BookingList({ properties, onBook, isLeaving, isReturning }: Book
                     )
                 }
 
+                {/* insere a card com a informação da propreiadade na lista */}
                 return card
             })}
         </div>
