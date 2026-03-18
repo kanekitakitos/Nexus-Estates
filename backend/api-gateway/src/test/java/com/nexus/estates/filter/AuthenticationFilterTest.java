@@ -37,6 +37,9 @@ class AuthenticationFilterTest {
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/v1/users/auth/login").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
+        // Força o RouteValidator a considerar esta requisição como pública (não segura)
+        routeValidator.isSecured = req -> false;
+
         when(filterChain.filter(exchange)).thenReturn(Mono.empty());
 
         authenticationFilter.apply(new AuthenticationFilter.Config()).filter(exchange, filterChain);
