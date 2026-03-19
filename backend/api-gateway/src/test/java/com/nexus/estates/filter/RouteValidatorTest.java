@@ -19,13 +19,13 @@ class RouteValidatorTest {
         boolean result = routeValidator.isSecured.test(request);
 
         // Assert
-        assertTrue(result, "Login endpoint should not be secured");
+        assertFalse(result, "Login endpoint should not be secured");
     }
 
     @Test
     void shouldReturnTrueForSecuredEndpoints() {
         // Arrange
-        var request = MockServerHttpRequest.get("/api/v1/bookings").build();
+        var request = MockServerHttpRequest.get("/api/bookings").build();
 
         // Act
         boolean result = routeValidator.isSecured.test(request);

@@ -1,5 +1,6 @@
 package com.nexus.estates.controller;
 
+import com.nexus.estates.common.dto.ApiResponse;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.repository.PropertyRepository;
@@ -7,7 +8,6 @@ import com.nexus.estates.service.PropertyService;
 import com.nexus.estates.service.ImageStorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
@@ -29,11 +29,11 @@ import java.util.concurrent.CompletableFuture;
  * <p>Expõe endpoints para criação e consulta de propriedades no sistema.</p>
  *
  * @author Nexus Estates Team
- * @version 1.0
+ * @version 1.1
  * @since 2026-02-13
  */
 @RestController
-@RequestMapping("/api/v1/properties")
+@RequestMapping("/api/properties")
 @Tag(name = "Property API", description = "Gestão de propriedades da Nexus Estates")
 public class PropertyController {
 
@@ -64,14 +64,14 @@ public class PropertyController {
      */
     @Operation(summary = "Obter parâmetros de upload", description = "Gera uma assinatura segura para upload de fotos. Requer role OWNER.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Parâmetros gerados com sucesso"),
-            @ApiResponse(responseCode = "403", description = "Acesso negado - Requer permissão de OWNER")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Parâmetros gerados com sucesso"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado - Requer permissão de OWNER")
     })
     @GetMapping("/upload-params")
     @PreAuthorize("hasRole('OWNER')")
-    public CompletableFuture<ResponseEntity<Map<String, Object>>> getUploadParams() {
+    public CompletableFuture<ResponseEntity<ApiResponse<Map<String, Object>>>> getUploadParams() {
         return CompletableFuture.supplyAsync(() ->
-                ResponseEntity.ok(imageStorageService.getUploadParameters())
+                ResponseEntity.ok(ApiResponse.success(imageStorageService.getUploadParameters(), "Parâmetros de upload gerados."))
         );
     }
 
@@ -83,12 +83,13 @@ public class PropertyController {
      */
     @Operation(summary = "Criar nova propriedade", description = "Cria uma propriedade e envia email de confirmação. Suporta múltiplos idiomas na descrição.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Propriedade criada com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos ou campos obrigatórios em falta")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Propriedade criada com sucesso"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados de entrada inválidos ou campos obrigatórios em falta")
     })
     @PostMapping
-    public ResponseEntity<Property> create(@Valid @RequestBody CreatePropertyRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
+    public ResponseEntity<ApiResponse<Property>> create(@Valid @RequestBody CreatePropertyRequest request) {
+        Property property = service.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(property, "Propriedade criada com sucesso."));
     }
 
     /**
@@ -103,18 +104,19 @@ public class PropertyController {
      */
     @Operation(summary = "Atualizar comodidades", description = "Substitui as comodidades da casa pelos IDs fornecidos. Requer role OWNER.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Comodidades atualizadas com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Propriedade não encontrada"),
-            @ApiResponse(responseCode = "403", description = "Acesso negado")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Comodidades atualizadas com sucesso"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado")
     })
     @PutMapping("/{id}/amenities")
     @PreAuthorize("hasRole('OWNER')")
-    public CompletableFuture<ResponseEntity<Property>> updateAmenities(
+    public CompletableFuture<ResponseEntity<ApiResponse<Property>>> updateAmenities(
             @Parameter(description = "ID da propriedade") @PathVariable Long id,
             @RequestBody Set<Long> amenityIds) {
-        return CompletableFuture.supplyAsync(() ->
-                ResponseEntity.ok(service.updateAmenities(id, amenityIds))
-        );
+        return CompletableFuture.supplyAsync(() -> {
+            Property property = service.updateAmenities(id, amenityIds);
+            return ResponseEntity.ok(ApiResponse.success(property, "Comodidades atualizadas com sucesso."));
+        });
     }
 
     /**
@@ -123,10 +125,11 @@ public class PropertyController {
      * @return lista de propriedades
      */
     @Operation(summary = "Listar todas as propriedades", description = "Retorna uma lista de todos os imóveis")
-    @ApiResponse(responseCode = "200", description = "Sucesso ao retornar lista")
-    @GetMapping
-    public ResponseEntity<List<Property>> listAll() {
-        return ResponseEntity.ok(service.findAll());
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Sucesso ao retornar lista")
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<List<Property>>> listAll() {
+        List<Property> properties = service.findAll();
+        return ResponseEntity.ok(ApiResponse.success(properties, "Propriedades listadas com sucesso."));
     }
 
     /**
@@ -137,14 +140,15 @@ public class PropertyController {
      */
     @Operation(summary = "Obter propriedade por ID", description = "Retorna os detalhes de um imóvel específico")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Imóvel encontrado"),
-            @ApiResponse(responseCode = "404", description = "Imóvel não existe")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Imóvel encontrado"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Imóvel não existe")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<Property> getById(
+    public ResponseEntity<ApiResponse<Property>> getById(
             @Parameter(description = "ID único da propriedade", example = "1")
             @PathVariable Long id) {
-        return ResponseEntity.ok(service.findById(id));
+        Property property = service.findById(id);
+        return ResponseEntity.ok(ApiResponse.success(property, "Propriedade encontrada."));
     }
 
 

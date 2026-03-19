@@ -19,6 +19,11 @@
     <version>1.0.0</version>
 
     <dependencies>
+        <dependency>
+            <groupId>com.nexus.estates</groupId>
+            <artifactId>common-library</artifactId>
+            <version>1.0.0</version>
+        </dependency>
         <!-- Infraestrutura do Spring Cloud Gateway (roteamento reativo, filtros, etc.) -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>

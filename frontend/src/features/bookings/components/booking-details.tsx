@@ -5,21 +5,25 @@
  * @version 1.0
 */
 
+"use client"
+
 import { useEffect, useCallback, useState } from "react"
-import { ArrowLeft, MapPin, Star, Users, Home, Maximize, Check } from "lucide-react"
+import { ArrowLeft, MapPin, Star, Check } from "lucide-react"
 import { Button } from "@/components/ui/forms/button"
 import { Badge } from "@/components/ui/badge"
 import { BrutalShard } from "@/components/ui/data-display/card"
 import { BookingProperty } from "./booking-card"
 import { cn } from "@/lib/utils"
 import { DateRangeCalendar } from "./date-range-calendar"
+import { BookingService } from "@/services/booking.service"
+import { toast } from "sonner"
+import { format } from "date-fns"
 
 const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-4 md:p-6 lg:px-[150px] min-h-screen overflow-x-hidden"
 const MAIN_IMAGE_WRAPPER_STYLES = "relative w-full overflow-hidden rounded-xl md:rounded-3xl h-[60vh] md:h-auto md:aspect-[16/5]"
 const THUMBNAIL_STYLES = "relative aspect-[4/3] overflow-hidden rounded-lg md:rounded-xl border-[2px] border-foreground/70 bg-muted/50 hover:bg-primary/10 transition-colors cursor-pointer group"
 const THUMBNAIL_LABEL_STYLES = "absolute inset-0 flex items-center justify-center bg-background/40 opacity-0 group-hover:opacity-100 font-mono text-[8px] md:text-[10px] font-bold uppercase tracking-[0.18em] text-foreground"
 const PRICE_TEXT_STYLES = "font-mono font-bold text-primary text-lg md:text-xl"
-const SUMMARY_CARD_STYLES = "flex items-center gap-2 md:gap-3 border-[2px] border-foreground p-2 md:p-3 bg-secondary/30"
 
 
 /**
@@ -112,13 +116,29 @@ export function BookingDetails({ property, onBack, isExiting, checkInDate = null
                         ? { from: checkInDate, to: checkOutDate } 
                         : undefined
                     }
-                    onConfirmBooking={({ range, totalPrice, nights }) => {
-                        // TODO: Integrar com o backend de reservas
-                        alert(`Booking Confirmed! Total: €${totalPrice} for ${nights} nights`)
+                    onConfirmBooking={async ({ range }) => {
+                        if (!range.from || !range.to) return
+                        if (typeof window === "undefined") return
+
+                        const userId = localStorage.getItem("userId")
+                        if (!userId) {
+                            toast.error("Precisa de iniciar sessão para reservar.")
+                            window.location.href = "/login"
+                            return
+                        }
+
+                        const created = await BookingService.createBooking({
+                            propertyId: Number(property.id),
+                            userId: Number(userId),
+                            checkInDate: format(range.from, "yyyy-MM-dd"),
+                            checkOutDate: format(range.to, "yyyy-MM-dd"),
+                            guestCount: 1,
+                        })
+
+                        toast.success(`Reserva criada (#${created.id})`)
                     }}
-                    onContactOwner={({ range }) => {
-                        // TODO: Abrir modal de contato ou redirecionar para chat
-                        alert("Contact owner feature coming soon")
+                    onContactOwner={() => {
+                        toast.info("Chat ainda não está disponível.")
                     }}
                 />
             </div>
@@ -157,7 +177,7 @@ function PropertyHeaderCard({ property }: { property: BookingProperty }) {
                         </Badge>
                         <div className="h-px w-12 bg-foreground/30" />
                         <span className={PRICE_TEXT_STYLES}>
-                            ${property.price}<span className="text-sm text-muted-foreground">/night</span>
+                            €{property.price}<span className="text-sm text-muted-foreground">/night</span>
                         </span>
                     </div>
                 </div>
@@ -179,19 +199,6 @@ function PropertyDescriptionCard({ property }: { property: BookingProperty }) {
                 <p className="font-mono text-base md:text-lg leading-relaxed text-muted-foreground">
                     {property.description}
                 </p>
-                
-                <div className="grid grid-cols-2 gap-3 md:gap-4 mt-6">
-                    {[
-                        { icon: Users, label: "2 Guests" },
-                        { icon: Home, label: "1 Bedroom" },
-                        { icon: Maximize, label: "85 m²" }
-                    ].map((item, i) => (
-                        <div key={i} className={SUMMARY_CARD_STYLES}>
-                            <item.icon className="h-4 w-4 md:h-5 md:w-5" />
-                            <span className="font-mono font-bold uppercase text-xs md:text-sm">{item.label}</span>
-                        </div>
-                    ))}
-                </div>
             </div>
         </BrutalShard>
     )
@@ -234,12 +241,7 @@ function PropertyActionCard({ property }: { property: BookingProperty }) {
  * Inclui funcionalidade de rotação automática (slideshow) a cada 6 segundos.
  */
 function PropertyGallery({ property }: { property: BookingProperty }) {
-    // TODO: Substituir URLs hardcoded por imagens reais da propriedade quando disponíveis na API
-    const galleryImages = [
-        property.imageUrl,
-        "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=1200&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=1200&auto=format&fit=crop",
-    ]
+    const galleryImages = property.imageUrl ? [property.imageUrl] : []
 
     const [activeImageIndex, setActiveImageIndex] = useState(0)
 
@@ -255,26 +257,36 @@ function PropertyGallery({ property }: { property: BookingProperty }) {
     return (
         <div>
             <div className={MAIN_IMAGE_WRAPPER_STYLES}>
-                <img 
-                    src={galleryImages[activeImageIndex]} 
-                    alt={property.title} 
-                    className="h-full w-full object-cover"
-                />
-                <Badge variant="featured" className="absolute top-4 left-4">FEATURED</Badge>
+                {galleryImages.length > 0 ? (
+                    <img 
+                        src={galleryImages[activeImageIndex]} 
+                        alt={property.title} 
+                        className="h-full w-full object-cover"
+                    />
+                ) : (
+                    <div className="h-full w-full bg-muted/50 grid place-items-center">
+                        <span className="font-mono text-[10px] uppercase text-muted-foreground">Sem imagem</span>
+                    </div>
+                )}
+                {property.featured ? (
+                    <Badge variant="featured" className="absolute top-4 left-4">FEATURED</Badge>
+                ) : null}
             </div>
-            <div className="mt-4 grid grid-cols-3 gap-4">
-                {galleryImages.map((imageSrc, index) => (
-                    <button
-                        key={`${imageSrc}-${index}`}
-                        type="button"
-                        onClick={() => setActiveImageIndex(index)}
-                        className={THUMBNAIL_STYLES}
-                    >
-                        <img src={imageSrc} alt="" className="h-full w-full object-cover" />
-                        <div className={THUMBNAIL_LABEL_STYLES}>VIEW</div>
-                    </button>
-                ))}
-            </div>
+            {galleryImages.length > 1 ? (
+                <div className="mt-4 grid grid-cols-3 gap-4">
+                    {galleryImages.map((imageSrc, index) => (
+                        <button
+                            key={`${imageSrc}-${index}`}
+                            type="button"
+                            onClick={() => setActiveImageIndex(index)}
+                            className={THUMBNAIL_STYLES}
+                        >
+                            <img src={imageSrc} alt="" className="h-full w-full object-cover" />
+                            <div className={THUMBNAIL_LABEL_STYLES}>VIEW</div>
+                        </button>
+                    ))}
+                </div>
+            ) : null}
         </div>
     )
 }

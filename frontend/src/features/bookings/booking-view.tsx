@@ -17,6 +17,8 @@ import { BookingProperty } from "./components/booking-card"
 import { BookingSearchBar } from "./components/booking-search-bar"
 import { BookingDetails } from "./components/booking-details"
 import { cn } from "@/lib/utils"
+import { PropertyService } from "@/services/property.service"
+import { toast } from "sonner"
 
 const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
 const HERO_CONTAINER_STYLES = "flex flex-col space-y-2 mb-8 transition-all duration-500"
@@ -29,227 +31,12 @@ const SEARCH_WRAPPER_ANIMATION_RETURN = "animate-fly-in-chaos-2 delay-100"
 const LIST_CONTAINER_STYLES = "relative"
 const LIST_DECORATOR_STYLES = "absolute -left-4 top-0 bottom-0 w-1 bg-foreground/10"
 
-// Mock Data
-const MOCK_PROPERTIES: BookingProperty[] = [
-    {
-        id: "1",
-        title: "Modern Loft in Downtown",
-        description: "Experience city living at its finest in this spacious loft with floor-to-ceiling windows and modern amenities.",
-        location: "New York, NY",
-        price: 250,
-        imageUrl: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1000&auto=format&fit=crop",
-        status: "AVAILABLE",
-        rating: 4.8,
-        featured: true,
-        tags: ["City View", "Loft", "High Floor", "Workspace"]
-    },
-    {
-        id: "2",
-        title: "Cozy Mountain Cabin",
-        description: "Escape to the mountains in this rustic yet luxurious cabin. Perfect for winter getaways and summer hikes.",
-        location: "Aspen, CO",
-        price: 450,
-        imageUrl: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?q=80&w=1000&auto=format&fit=crop",
-        status: "BOOKED", // Should be filtered out
-        rating: 4.9,
-        featured: true,
-        tags: ["Fireplace", "Snow Nearby", "Hot Tub"]
-    },
-    {
-        id: "3",
-        title: "Seaside Villa with Pool",
-        description: "Relax by the ocean in this stunning villa featuring a private infinity pool and direct beach access.",
-        location: "Malibu, CA",
-        price: 1200,
-        imageUrl: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=1000&auto=format&fit=crop",
-        status: "AVAILABLE",
-        rating: 5.0,
-        tags: ["Oceanfront", "Infinity Pool", "Private Beach", "Luxury"]
-    },
-    {
-        id: "4",
-        title: "Urban Studio Apartment",
-        description: "Compact and efficient studio in the heart of the business district. Ideal for business travelers.",
-        location: "Chicago, IL",
-        price: 120,
-        imageUrl: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=1000&auto=format&fit=crop",
-        status: "AVAILABLE",
-        rating: 4.5,
-        tags: ["Business District", "Compact", "Fast Wi-Fi"]
-    },
-    {
-        id: "5",
-        title: "Historic Townhouse",
-        description: "Step back in time in this beautifully restored townhouse with original architectural details.",
-        location: "Boston, MA",
-        price: 350,
-        imageUrl: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=1000&auto=format&fit=crop",
-        status: "MAINTENANCE", // Should be filtered out
-        rating: 4.7,
-        tags: ["Historic Center", "Original Details"]
-    },
-    {
-        id: "6",
-        title: "Lakefront Cottage",
-        description: "Peaceful cottage right on the water's edge. Enjoy fishing, kayaking, or just watching the sunset.",
-        location: "Lake Tahoe, NV",
-        price: 280,
-        imageUrl: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=1000&auto=format&fit=crop",
-        status: "AVAILABLE",
-        rating: 4.6,
-        tags: ["Lakefront", "Sunset View", "Kayak Included"]
-    },
-    {
-        id: "7",
-        title: "Modern Loft in Downtown",
-        description: "Experience city living at its finest in this spacious loft with floor-to-ceiling windows and modern amenities.",
-        location: "New York, NY",
-        price: 250,
-        imageUrl: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1000&auto=format&fit=crop",
-        status: "AVAILABLE",
-        rating: 4.8,
-        featured: true,
-        tags: ["City View", "Loft", "High Floor", "Workspace"]
-    },
-    {
-        id: "8",
-        title: "Cozy Mountain Cabin",
-        description: "Escape to the mountains in this rustic yet luxurious cabin. Perfect for winter getaways and summer hikes.",
-        location: "Aspen, CO",
-        price: 450,
-        imageUrl: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?q=80&w=1000&auto=format&fit=crop",
-        status: "BOOKED", // Should be filtered out
-        rating: 4.9,
-        featured: true,
-        tags: ["Fireplace", "Snow Nearby", "Hot Tub"]
-    },
-    {
-        id: "9",
-        title: "Seaside Villa with Pool",
-        description: "Relax by the ocean in this stunning villa featuring a private infinity pool and direct beach access.",
-        location: "Malibu, CA",
-        price: 1200,
-        imageUrl: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=1000&auto=format&fit=crop",
-        status: "AVAILABLE",
-        rating: 5.0,
-        tags: ["Oceanfront", "Infinity Pool", "Private Beach", "Luxury"]
-    },
-    {
-        id: "10",
-        title: "Urban Studio Apartment",
-        description: "Compact and efficient studio in the heart of the business district. Ideal for business travelers.",
-        location: "Chicago, IL",
-        price: 120,
-        imageUrl: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=1000&auto=format&fit=crop",
-        status: "AVAILABLE",
-        rating: 4.5,
-        tags: ["Business District", "Compact", "Fast Wi-Fi"]
-    },
-    {
-        id: "11",
-        title: "Historic Townhouse",
-        description: "Step back in time in this beautifully restored townhouse with original architectural details.",
-        location: "Boston, MA",
-        price: 350,
-        imageUrl: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=1000&auto=format&fit=crop",
-        status: "MAINTENANCE", // Should be filtered out
-        rating: 4.7,
-        tags: ["Historic Center", "Original Details"]
-    },
-    {
-        id: "12",
-        title: "Lakefront Cottage",
-        description: "Peaceful cottage right on the water's edge. Enjoy fishing, kayaking, or just watching the sunset.",
-        location: "Lake Tahoe, NV",
-        price: 280,
-        imageUrl: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=1000&auto=format&fit=crop",
-        status: "AVAILABLE",
-        rating: 4.6,
-        tags: ["Lakefront", "Sunset View", "Kayak Included"]
-    },
-    {
-        id: "13",
-        title: "Modern Loft in Downtown",
-        description: "Experience city living at its finest in this spacious loft with floor-to-ceiling windows and modern amenities.",
-        location: "New York, NY",
-        price: 250,
-        imageUrl: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1000&auto=format&fit=crop",
-        status: "AVAILABLE",
-        rating: 4.8,
-        featured: true,
-        tags: ["City View", "Loft", "High Floor", "Workspace"]
-    },
-    {
-        id: "14",
-        title: "Cozy Mountain Cabin",
-        description: "Escape to the mountains in this rustic yet luxurious cabin. Perfect for winter getaways and summer hikes.",
-        location: "Aspen, CO",
-        price: 450,
-        imageUrl: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?q=80&w=1000&auto=format&fit=crop",
-        status: "BOOKED", // Should be filtered out
-        rating: 4.9,
-        featured: true,
-        tags: ["Fireplace", "Snow Nearby", "Hot Tub"]
-    },
-    {
-        id: "15",
-        title: "Seaside Villa with Pool",
-        description: "Relax by the ocean in this stunning villa featuring a private infinity pool and direct beach access.",
-        location: "Malibu, CA",
-        price: 1200,
-        imageUrl: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=1000&auto=format&fit=crop",
-        status: "AVAILABLE",
-        rating: 5.0,
-        tags: ["Oceanfront", "Infinity Pool", "Private Beach", "Luxury"]
-    },
-    {
-        id: "16",
-        title: "Urban Studio Apartment",
-        description: "Compact and efficient studio in the heart of the business district. Ideal for business travelers.",
-        location: "Chicago, IL",
-        price: 120,
-        imageUrl: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=1000&auto=format&fit=crop",
-        status: "AVAILABLE",
-        rating: 4.5,
-        tags: ["Business District", "Compact", "Fast Wi-Fi"]
-    },
-    {
-        id: "17",
-        title: "Historic Townhouse",
-        description: "Step back in time in this beautifully restored townhouse with original architectural details.",
-        location: "Boston, MA",
-        price: 350,
-        imageUrl: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=1000&auto=format&fit=crop",
-        status: "MAINTENANCE", // Should be filtered out
-        rating: 4.7,
-        tags: ["Historic Center", "Original Details"]
-    },
-    {
-        id: "18",
-        title: "Lakefront Cottage",
-        description: "Peaceful cottage right on the water's edge. Enjoy fishing, kayaking, or just watching the sunset.",
-        location: "Lake Tahoe, NV",
-        price: 280,
-        imageUrl: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=1000&auto=format&fit=crop",
-        status: "AVAILABLE",
-        rating: 4.6,
-        tags: ["Lakefront", "Sunset View", "Kayak Included"]
-    }
-]
-
 /**
  * Controlador principal da vista de reservas (Booking View).
- * 
- * Este componente atua como um "Smart Container", orquestrando o estado global da página de reservas.
- * Responsabilidades principais:
- * 1. Gestão de Estado: Mantém os filtros de pesquisa (termo, datas, hóspedes, preço) e a propriedade selecionada.
- * 2. Filtragem de Dados: Aplica lógica de filtragem em tempo real sobre a lista de propriedades (MOCK_PROPERTIES).
- * 3. Navegação e Transições: Controla a alternância entre a vista de lista e a vista de detalhes, gerindo as animações de entrada/saída.
- * 4. Integração de Gestos: Coordena com o hook de gestos para permitir navegação fluida.
- * 
- * @returns {JSX.Element} A estrutura completa da página de reservas, alternando condicionalmente entre Lista e Detalhes.
  */
 export function BookingView() {
+    const [properties, setProperties] = useState<BookingProperty[]>([])
+    const [isLoading, setIsLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState("")
     const [selectedProperty, setSelectedProperty] = useState<BookingProperty | null>(null)
     const [lastViewedPropertyId, setLastViewedPropertyId] = useState<string | null>(null)
@@ -262,10 +49,28 @@ export function BookingView() {
     const [checkInDate, setCheckInDate] = useState<Date | null>(null)
     const [checkOutDate, setCheckOutDate] = useState<Date | null>(null)
 
+    // Carrega as propriedades do backend ao montar o componente
+    useEffect(() => {
+        const fetchProperties = async () => {
+            try {
+                setIsLoading(true)
+                const mappedData = await PropertyService.getAllProperties()
+                setProperties(mappedData)
+            } catch (error) {
+                console.error("Erro ao carregar propriedades:", error)
+                toast.error("Não foi possível carregar as propriedades.")
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchProperties()
+    }, [])
+
     // Memoriza a lista filtrada para evitar recálculos desnecessários em cada renderização
     const filteredProperties = useMemo(() => 
         {
-        let filtered = MOCK_PROPERTIES.filter(p => p.status === "AVAILABLE")
+        let filtered = properties.filter(p => p.status === "AVAILABLE")
 
         // filtra as propriedades dependedo do destino indicado no BookingSearchBar
         if (searchTerm) {
@@ -281,21 +86,20 @@ export function BookingView() {
         }
 
         return filtered
-    }, [searchTerm, adults, children, maxPrice])
+    }, [properties, searchTerm, maxPrice])
 
     // Manipula a seleção de uma propriedade, iniciando a animação de saída da lista
     const handleBook = (id: string) => {
-        const property = MOCK_PROPERTIES.find(p => p.id === id)
+        const property = properties.find(p => p.id === id)
         if (property) {
-            setLastViewedPropertyId(id) // Salva para permitir navegação "forward" via gestos
+            setLastViewedPropertyId(id)
             setIsLeaving(true)
-            // Aguarda a animação terminar antes de trocar o estado
             setTimeout(() => {
                 setSelectedProperty(property)
                 setIsLeaving(false)
                 setIsReturning(false)
                 window.scrollTo(0, 0)
-            }, 800) // Sincronizado com a duração da animação CSS
+            }, 800)
         }
     }
 

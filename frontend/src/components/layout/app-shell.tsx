@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { AppSidebar } from "@/components/layout/dashboard/app-sidebar"
 import { Separator } from "@/components/ui/layout/separator"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
@@ -39,11 +40,9 @@ function AppFooter() {
           </span>
         </div>
         <nav className="flex flex-wrap justify-center gap-3 font-medium md:justify-end md:gap-4">
-          <a href="/" className="cursor-pointer hover:underline hover:text-primary transition-colors">Home</a>
-          <a href="/login" className="cursor-pointer hover:underline hover:text-primary transition-colors">Login</a>
-          <a href="#" className="cursor-pointer hover:underline hover:text-primary transition-colors">About</a>
-          <a href="#" className="cursor-pointer hover:underline hover:text-primary transition-colors">Bookings</a>
-          <a href="#" className="cursor-pointer hover:underline hover:text-primary transition-colors">Contact</a>
+          <Link href="/" className="cursor-pointer hover:underline hover:text-primary transition-colors">Home</Link>
+          <Link href="/login" className="cursor-pointer hover:underline hover:text-primary transition-colors">Login</Link>
+          <Link href="/register" className="cursor-pointer hover:underline hover:text-primary transition-colors">Register</Link>
         </nav>
       </div>
     </footer>

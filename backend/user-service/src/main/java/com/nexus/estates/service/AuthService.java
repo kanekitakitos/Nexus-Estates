@@ -52,7 +52,7 @@ public class AuthService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .phone(request.getPhone())
-                .role(request.getRole() != null ? request.getRole() : UserRole.GUEST)
+                .role(UserRole.OWNER)
                 .build();
 
         var savedUser = userRepository.save(user);
@@ -82,6 +82,11 @@ public class AuthService {
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new InvalidCredentialsException("A password fornecida está incorreta.");
+        }
+
+        if (user.getRole() == UserRole.GUEST) {
+            user.setRole(UserRole.OWNER);
+            user = userRepository.save(user);
         }
 
         var token = jwtService.generateToken(user);

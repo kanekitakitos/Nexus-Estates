@@ -1,150 +1,124 @@
 package com.nexus.estates.service;
 
-import com.nexus.estates.common.enums.BookingStatus;
-import com.nexus.estates.common.messaging.BookingCreatedMessage;
-import com.nexus.estates.common.messaging.BookingStatusUpdatedMessage;
+import com.nexus.estates.dto.ExternalApiConfig;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 
+import java.util.Optional;
+
 /**
- * Serviço responsável por integrar com sistemas externos (ex.: Airbnb, Booking.com).
+ * Serviço de infraestrutura para comunicações externas resilientes.
  * <p>
- * Utiliza o {@link RestClient} para efetuar chamadas HTTP/HTTPS e está protegido
- * por circuit breaker e retry configurados via Resilience4j, garantindo que falhas
- * temporárias não derrubam o Sync Service e que problemas persistentes fazem
- * abrir o circuito para evitar sobrecarga das plataformas externas.
+ * Implementa os padrões de resiliência <b>Circuit Breaker</b> e <b>Retry</b> para garantir
+ * que falhas em parceiros externos (Airbnb, Booking.com, Ably) não causem indisponibilidade
+ * no ecossistema Nexus Estates.
+ * </p>
+ * <p>
+ * Utiliza o {@code RestClient} do Spring 6 para chamadas eficientes e integra-se
+ * com o {@code ExternalAuthService} para gestão segura de credenciais.
  * </p>
  *
- * @author Nexus Estates Team
- * @version 1.0
+ * @author Nexus Estates Architect
+ * @version 2.0
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ExternalSyncService {
 
-    @Autowired
     private final RestClient externalApiRestClient;
+    private final ExternalAuthService authService;
 
     /**
-     * Processa a reserva recorrendo a uma API externa.
+     * Executa uma requisição HTTP POST para um serviço externo com proteção de resiliência.
      * <p>
-     * Esta operação está protegida por:
-     * <ul>
-     *     <li>Um mecanismo de Retry com exponential backoff identificado como {@code externalApi}.</li>
-     *     <li>Um Circuit Breaker identificado como {@code externalApi} para falhas repetidas.</li>
-     * </ul>
-     * O fallback é aplicado pelo Circuit Breaker depois das tentativas de retry falharem.
+     * Se a chamada falhar repetidamente ou se o circuito estiver aberto, o método
+     * retorna um {@code Optional.empty()} em vez de propagar uma exceção.
      * </p>
      *
-     * @param message mensagem de criação de reserva.
-     * @return {@link BookingStatusUpdatedMessage} com o novo estado.
+     * @param config   Configurações da API (Base URL, Endpoint, Auth).
+     * @param payload  Objeto a ser enviado no corpo da requisição (JSON).
+     * @param respType Classe do tipo de resposta esperada para o mapeamento.
+     * @param <T>      Tipo genérico do objeto de resposta.
+     * @return {@code Optional<T>} com o resultado se bem-sucedido; {@code Optional.empty()} caso contrário.
      */
-    @Retry(name = "externalApi", fallbackMethod = "fallbackProcessBooking")
+    @Retry(name = "externalApi", fallbackMethod = "fallbackGenericRequest")
     @CircuitBreaker(name = "externalApi")
-    public BookingStatusUpdatedMessage processBooking(BookingCreatedMessage message) {
-        log.info("Iniciando chamada a API externa para Booking ID: {}", message.bookingId());
+    public <T> Optional<T> post(ExternalApiConfig config, Object payload, Class<T> respType) {
+        log.info("Executando POST resiliente para: {}/{}", config.baseUrl(), config.endpoint());
 
-        var response = externalApiRestClient
-                .post()
-                .uri("/external/bookings/sync")
-                .body(message)
+        T response = externalApiRestClient.post()
+                .uri(config.baseUrl() + config.endpoint())
+                .contentType(MediaType.APPLICATION_JSON)
+                .headers(h -> authService.applyAuthentication(h, config))
+                .body(payload)
                 .retrieve()
-                .onStatus(
-                        status -> status.is5xxServerError(),
-                        (req, res) -> {
-                            throw new HttpServerErrorException(res.getStatusCode());
-                        }
-                )
-                .toEntity(ExternalSyncResult.class);
+                .body(respType);
 
-        ExternalSyncResult body = response.getBody();
-        if (body == null) {
-            log.warn("Resposta vazia da API externa para Booking ID: {}", message.bookingId());
-            return new BookingStatusUpdatedMessage(
-                    message.bookingId(),
-                    BookingStatus.CANCELLED,
-                    "Resposta vazia da API externa"
-            );
-        }
-
-        BookingStatus status = body.approved() ? BookingStatus.CONFIRMED : BookingStatus.CANCELLED;
-        String reason = body.reason();
-
-        log.info("Resultado da API externa para Booking ID {}: {} ({})",
-                message.bookingId(), status, reason);
-
-        return new BookingStatusUpdatedMessage(
-                message.bookingId(),
-                status,
-                reason
-        );
+        return Optional.ofNullable(response);
     }
 
     /**
-     * Fallback invocado quando o Circuit Breaker está aberto ou quando as
-     * tentativas de Retry se esgotam.
+     * Versão simplificada do POST que não espera corpo de resposta (204 No Content ou similar).
      *
-     * @param message mensagem original de criação de reserva.
-     * @param ex      exceção que originou o fallback.
-     * @return {@link BookingStatusUpdatedMessage} com estado CANCELLED e razão explicativa.
+     * @param config  Configuração da API.
+     * @param payload Objeto a ser enviado.
+     * @return true se a requisição foi bem-sucedida, false se falhou após retries/circuit breaker.
      */
-    BookingStatusUpdatedMessage fallbackProcessBooking(BookingCreatedMessage message, Throwable ex) {
-        log.error("Falha ao comunicar com API externa para Booking ID {}. Ativando fallback.",
-                message.bookingId(), ex);
-        return new BookingStatusUpdatedMessage(
-                message.bookingId(),
-                BookingStatus.CANCELLED,
-                "Falha na integração externa: " + ex.getClass().getSimpleName()
-        );
-    }
-
-    /**
-     * Método genérico para enviar dados para uma API externa.
-     * Protegido por Circuit Breaker e Retry.
-     *
-     * @param uri URI relativa ou absoluta do endpoint.
-     * @param payload Objeto a ser enviado no corpo da requisição.
-     * @return true se a requisição for bem-sucedida (2xx), false caso contrário.
-     */
-    @Retry(name = "externalApi", fallbackMethod = "fallbackPostToExternalApi")
+    @Retry(name = "externalApi", fallbackMethod = "fallbackBodilessRequest")
     @CircuitBreaker(name = "externalApi")
-    public boolean postToExternalApi(String uri, Object payload) {
-        try {
-            externalApiRestClient
-                    .post()
-                    .uri(uri)
-                    .body(payload)
-                    .retrieve()
-                    .toBodilessEntity();
-            return true;
-        } catch (Exception e) {
-            log.error("Erro ao comunicar com API externa em {}: {}", uri, e.getMessage());
-            throw e; // Relança para ativar o Retry/CircuitBreaker
-        }
+    public boolean postWithoutResponse(ExternalApiConfig config, Object payload) {
+        log.info("Executando POST (sem corpo) para: {}/{}", config.baseUrl(), config.endpoint());
+
+        externalApiRestClient.post()
+                .uri(config.baseUrl() + config.endpoint())
+                .contentType(MediaType.APPLICATION_JSON)
+                .headers(h -> authService.applyAuthentication(h, config))
+                .body(payload)
+                .retrieve()
+                .toBodilessEntity();
+
+        return true;
     }
 
     /**
-     * Fallback para o método genérico postToExternalApi.
+     * Método de Fallback para requisições que esperam um corpo de resposta.
+     * <p>
+     * Invocado quando o Circuit Breaker está aberto ou após todas as tentativas de
+     * Retry falharem. Regista o erro e retorna um {@code Optional.empty()}.
+     * </p>
+     *
+     * @param config   A configuração original da requisição.
+     * @param payload  O payload que falhou ao ser enviado.
+     * @param respType O tipo de resposta esperado.
+     * @param ex       A exceção que originou a falha.
+     * @param <T>      Tipo genérico da resposta.
+     * @return {@code Optional.empty()} indicando falha na operação.
      */
-    boolean fallbackPostToExternalApi(String uri, Object payload, Throwable ex) {
-        log.error("Fallback ativado para chamada a {}. Motivo: {}", uri, ex.getMessage());
+    private <T> Optional<T> fallbackGenericRequest(ExternalApiConfig config, Object payload, Class<T> respType, Throwable ex) {
+        log.error("Circuit Breaker ou Retry falhou para {}. Motivo: {}", config.baseUrl(), ex.getMessage());
+        return Optional.empty();
+    }
+
+    /**
+     * Método de Fallback para requisições sem corpo de resposta.
+     * <p>
+     * Semelhante ao {@link #fallbackGenericRequest}, mas adaptado para métodos
+     * que retornam um booleano de sucesso.
+     * </p>
+     *
+     * @param config  A configuração original da requisição.
+     * @param payload O payload que falhou ao ser enviado.
+     * @param ex      A exceção que originou a falha.
+     * @return {@code false} indicando que a operação falhou.
+     */
+    private boolean fallbackBodilessRequest(ExternalApiConfig config, Object payload, Throwable ex) {
+        log.error("Falha crítica ao enviar dados para {}: {}", config.baseUrl(), ex.getMessage());
         return false;
-    }
-
-    /**
-     * DTO interno utilizado para mapear a resposta da API externa.
-     */
-    public record ExternalSyncResult(
-            boolean approved,
-            String reason
-    ) {
     }
 }

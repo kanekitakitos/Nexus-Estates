@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/forms/field"
 import { Input } from "@/components/ui/forms/input"
 import { useState } from "react";
-import { usersAxios } from "@/lib/axiosAPI";
+import { AuthService } from "@/services/auth.service";
 import { toast } from "sonner"
 
 
@@ -48,76 +48,44 @@ export function RegisterForm() {
    * @returns {Promise<void>} Uma promessa que se resolve após a tentativa de autenticação, 
    * independentemente do sucesso (erros são tratados via toast).
    * 
-   * @version 1.0.1
-   * @todo
-   * * Refactor implementation to simplify and improve error handling.
-   * * Replace use of document.getElementById() for States
+   * @version 1.1
    */
   async function handleRegister() {
-    if (isTryingRegister) return; // Prevent multiple register attempts at the same time
+    if (isTryingRegister) return;
 
     const email = (document.getElementById("email") as HTMLInputElement).value
+    const phone = (document.getElementById("phone") as HTMLInputElement).value
     const password = (document.getElementById("password") as HTMLInputElement).value
     const passwordConfirm = (document.getElementById("confirm-password") as HTMLInputElement).value
 
-    // email or password or passwordConfirm not filled
-    if (!password || !passwordConfirm || !email){
+    if (!password || !passwordConfirm || !email || !phone){
       setPasswordError(true)
-      toast.warning("Prenche todas as celulas");
+      toast.warning("Preenche todos os campos");
       return
     }
 
     if (password !== passwordConfirm) {
       setPasswordError(true)
-
       toast.error("As senhas não coincidem. Por favor, tente novamente.");
-      
-      // Clear password fields
-      (document.getElementById("password") as HTMLInputElement).value = "";
-      (document.getElementById("confirm-password") as HTMLInputElement).value = "";
       return;
     }
 
-    // defines the state to prevent multiple calls at the same time.
     setIsTryingRegister(true);
 
-
-    // use Axios to communicate with the service.
-    await usersAxios.post("/auth/register", JSON.stringify({email, password}), {
-      headers: {
-        "Content-Type": "application/json"
+    try {
+      const success = await AuthService.register({ email, password, phone });
+      
+      if (success) {
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 1500);
       }
-    })
-    .then(response => {
-      if (response.status === 200) { // Assuming a successful login returns a 200 status code
-        console.log("Registro efetuado!", response.data);
-        toast.error("Conta criada com sucesso!");
-      }
-      else {
-        console.log("resposta:", response);
-      }
-    })
-    .catch(error => {
-      console.error("error:", error);
-      if (error.response) {
-        console.error("Mensagem do servidor:", error.response.data);
-          switch (error.response.status) {
-            case 401: toast.error("Email ou senha incorretos. Tente novamente."); break;
-            case 404: toast.error("Usuário não encontrado. Verifique seu email ou registre-se."); break;
-            default: toast.error("Erro no servidor. Status: " + error.response.status); break;
-          }
-      }
-      else if (error.request) {
-        console.error("Requisição feita, mas sem resposta:", error.request);
-        toast.error("Nenhuma resposta do servidor. Verifique sua conexão.");
-      }
-      else {
-        console.error("Erro ao configurar a requisição :", error.message);
-        toast.error("Erro ao configurar a requisição da mensagem: " + error.message);
-      }
-    });
-
-    setIsTryingRegister(false);
+    } catch (error) {
+      // Erro tratado no AuthService
+      console.error("Register component error:", error);
+    } finally {
+      setIsTryingRegister(false);
+    }
   }
 
 
@@ -131,7 +99,7 @@ export function RegisterForm() {
             Create New Account
           </CardTitle>
           <CardDescription>
-            Enter your email and password to create your account
+            Enter your details to create your account
           </CardDescription>
         </CardHeader>
 
@@ -145,6 +113,17 @@ export function RegisterForm() {
                   id="email"
                   type="email"
                   placeholder="m@example.com"
+                  variant="brutal"
+                  required
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="phone">Phone Number</FieldLabel>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="+351 912 345 678"
                   variant="brutal"
                   required
                 />

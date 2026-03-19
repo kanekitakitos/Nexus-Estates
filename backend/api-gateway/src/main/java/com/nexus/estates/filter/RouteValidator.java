@@ -31,12 +31,16 @@ public class RouteValidator {
      * </p>
      */
     public static final List<String> openApiEndpoints = List.of(
-            "/api/v1/users/auth/register",
-            "/api/v1/users/auth/login",
-            "/api/v1/properties/search",
+            "/api/users/auth/register",
+            "/api/users/auth/login",
+            "/api/properties/search",
             "/swagger-ui",
             "/swagger-ui.html",
-            "/v3/api-docs"
+            "/v3/api-docs",
+            "/webjars",
+            "/swagger-resources",
+            "/configuration/ui",
+            "/configuration/security"
     );
 
     /**
