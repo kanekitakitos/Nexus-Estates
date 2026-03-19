@@ -53,7 +53,14 @@ class BookingControllerTest {
                 20L,
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(5),
-                2
+                2,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
 
         BookingResponse response = new BookingResponse(
@@ -88,7 +95,14 @@ class BookingControllerTest {
                 null, // Missing User ID
                 LocalDate.now().minusDays(1), // Past date
                 LocalDate.now().plusDays(2),
-                0 // Invalid guest count
+                0, // Invalid guest count
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
 
         mockMvc.perform(post("/api/bookings")
@@ -107,7 +121,14 @@ class BookingControllerTest {
                 20L,
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(5),
-                2
+                2,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
 
         when(bookingService.createBooking(any(CreateBookingRequest.class)))

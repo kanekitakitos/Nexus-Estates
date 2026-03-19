@@ -2,181 +2,246 @@
 
 import React from "react";
 import * as Ably from "ably";
-import { ChatClient } from "@ably/chat";
-import { ChatClientProvider, ChatRoomProvider } from "@ably/chat/react";
-import {
-  ThemeProvider,
-  AvatarProvider,
-  ChatSettingsProvider,
-  ChatWindow,
-  RoomInfo,
-} from "@ably/chat-react-ui-kit";
 import { ChatStrategy } from "../../chat-strategy";
-import { ChatHeader, ChatFooter, ChatMessageList } from "@/features/chat/ui";
-import { syncAxios } from "@/lib/axiosAPI";
+import { ChatHeader, ChatFooter, ChatMessageList, initials } from "@/features/chat/ui";
+import { Input } from "@/components/ui/forms/input";
+import { BookingService, type BookingResponse } from "@/services/booking.service";
+import { SyncService } from "@/services/sync.service";
 import { toast } from "sonner";
-
-const ChatReadyContext = React.createContext(false);
 
 // --- 1. Global Provider ---
 
-/**
- * Provider global para a estratégia Ably.
- * Inicializa o cliente Ably e fornece o contexto necessário para os componentes filhos.
- * Se a chave da API não estiver configurada, renderiza os filhos sem o contexto do chat (modo fallback).
- */
 const AblyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Usa estado para inicializar o cliente apenas uma vez e apenas no lado do cliente
-  const [client, setClient] = React.useState<ChatClient | null>(null);
-
-  React.useEffect(() => {
-    if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_ABLY_API_KEY) {
-        const clientId =
-          localStorage.getItem("userId") ||
-          localStorage.getItem("userEmail") ||
-          undefined;
-
-        const ablyClient = new Ably.Realtime({
-            key: process.env.NEXT_PUBLIC_ABLY_API_KEY,
-            clientId,
-        });
-        setClient(new ChatClient(ablyClient));
-    }
-  }, []);
-
-  if (!process.env.NEXT_PUBLIC_ABLY_API_KEY) {
-      console.warn("Ably API Key is missing. Chat features will be disabled.");
-      return <>{children}</>;
-  }
-
-  if (!client) {
-      return (
-        <div className="flex items-center justify-center p-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      );
-  }
-
-  return (
-    <ThemeProvider>
-      <AvatarProvider>
-        <ChatSettingsProvider>
-          <ChatClientProvider client={client}>
-            <ChatReadyContext.Provider value={true}>
-              {children}
-            </ChatReadyContext.Provider>
-          </ChatClientProvider>
-        </ChatSettingsProvider>
-      </AvatarProvider>
-    </ThemeProvider>
-  );
+  return <>{children}</>;
 };
 
 // --- 2. Chat List Component (Sidebar) ---
 
-/**
- * Componente que lista os chats disponíveis.
- *
- * Nota: a listagem de conversas deve ser alimentada por dados reais do backend (sync-service)
- * ou por metadata do Ably. Enquanto não existir um endpoint para listar conversas, mostramos
- * um estado vazio (sem dados simulados).
- */
-const AblyChatList: React.FC<{ onSelectChat: (chatId: string) => void, selectedChatId?: string }> = ({ onSelectChat: _onSelectChat, selectedChatId: _selectedChatId }) => {
-  void _onSelectChat
-  void _selectedChatId
+const AblyChatList: React.FC<{ onSelectChat: (chatId: string) => void, selectedChatId?: string }> = ({ onSelectChat, selectedChatId }) => {
+  const [query, setQuery] = React.useState("");
+  const [bookings, setBookings] = React.useState<BookingResponse[]>([]);
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    const load = async () => {
+      if (typeof window === "undefined") return;
+      if (!localStorage.getItem("token")) return;
+
+      try {
+        setIsLoading(true);
+        const data = await BookingService.getMyBookings();
+        setBookings(data);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    load();
+  }, []);
+
+  const filtered = React.useMemo(() => {
+    const q = query.trim();
+    if (!q) return bookings;
+    return bookings.filter((b) => String(b.id).includes(q) || String(b.propertyId).includes(q));
+  }, [bookings, query]);
 
   return (
     <div className="flex flex-col w-full">
-      <div className="p-4 text-sm text-muted-foreground">
-        Sem conversas disponíveis.
+      <div className="p-3 border-b">
+        <Input
+          variant="brutal"
+          placeholder="Pesquisar por bookingId ou propertyId…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
       </div>
+
+      {isLoading ? (
+        <div className="p-4 text-sm text-muted-foreground">A carregar conversas…</div>
+      ) : filtered.length === 0 ? (
+        <div className="p-4 text-sm text-muted-foreground">Sem conversas disponíveis.</div>
+      ) : (
+        filtered.map((b) => (
+          <button
+            key={b.id}
+            type="button"
+            onClick={() => onSelectChat(String(b.id))}
+            className={`flex w-full items-start gap-3 px-4 py-3 text-left border-b hover:bg-sidebar-accent transition-colors ${
+              selectedChatId === String(b.id) ? "bg-sidebar-accent" : ""
+            }`}
+          >
+            <div className="shrink-0">
+              <div className="size-9 rounded-full overflow-hidden bg-secondary grid place-items-center">
+                <span className="text-xs font-medium">{initials(`B ${b.id}`)}</span>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex w-full items-center justify-between">
+                <span className="font-medium flex items-center gap-2">
+                  <span className="truncate">Booking #{b.id}</span>
+                </span>
+                <span className="text-xs text-muted-foreground shrink-0">{b.status}</span>
+              </div>
+              <span className="text-xs text-muted-foreground line-clamp-1">
+                Property {b.propertyId} · {b.checkInDate} → {b.checkOutDate}
+              </span>
+            </div>
+          </button>
+        ))
+      )}
     </div>
   );
 };
 
 // --- 3. Chat Window Component ---
 
-/**
- * Janela de chat de fallback quando o Ably não está configurado ou pronto.
- */
-const FallbackChatWindow: React.FC<{ otherName: string; otherAvatar?: string; onBack?: () => void; bookingId: string }> = ({ otherName, otherAvatar, onBack, bookingId }) => {
-  const [messages, setMessages] = React.useState<DemoChatMessage[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
+const AblyBookingChatWindow: React.FC<{ bookingId: string; onBack?: () => void }> = ({ bookingId, onBack }) => {
+  const [messages, setMessages] = React.useState<Array<{ id: string | number; text: string; time?: string; from: "me" | "them" }>>([]);
+  const [isConnecting, setIsConnecting] = React.useState(true);
+  const [isReady, setIsReady] = React.useState(false);
+
+  const ablyRef = React.useRef<Ably.Realtime | null>(null);
+  const channelRef = React.useRef<Ably.RealtimeChannel | null>(null);
+
+  const mySenderId = React.useMemo(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("userId") || localStorage.getItem("userEmail");
+  }, []);
+
+  const channelId = React.useMemo(() => `booking-chat:${bookingId}`, [bookingId]);
 
   React.useEffect(() => {
-    const fetchMessages = async () => {
+    let cancelled = false;
+
+    const connect = async () => {
       try {
-        setIsLoading(true);
-        // O ID da reserva deve ser convertido para Long no backend, mas aqui passamos como string
-        const response = await syncAxios.get<DemoChatMessageApi[]>(`/messages/${bookingId}`);
-        const mapped: DemoChatMessage[] = response.data.map((m) => ({
-          id: m.id,
-          from: String(m.senderId) === 'me' ? 'me' : 'them',
-          text: m.content,
-          time: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }));
-        setMessages(mapped);
-      } catch (error) {
-        console.error("Erro ao carregar mensagens:", error);
-        toast.error("Não foi possível carregar o histórico do chat.");
+        setIsConnecting(true);
+        setIsReady(false);
+
+        const ablyClient = new Ably.Realtime({
+          authCallback: async (_params, callback) => {
+            try {
+              const tokenDetails = await SyncService.getRealtimeToken(bookingId);
+              callback(null, tokenDetails as unknown as Ably.TokenDetails);
+            } catch {
+              callback(new Ably.ErrorInfo("Falha ao obter token Ably.", 50000, 500), null);
+            }
+          },
+        });
+
+        if (cancelled) {
+          ablyClient.close();
+          return;
+        }
+
+        ablyRef.current = ablyClient;
+        const channel = ablyClient.channels.get(channelId);
+        channelRef.current = channel;
+
+        const history = await SyncService.getBookingMessages(bookingId);
+        if (!cancelled && history.length > 0) {
+          const mapped = history.map((m) => {
+            const isMe = mySenderId && String(m.senderId) === String(mySenderId);
+            return {
+              id: m.id,
+              text: m.content,
+              time: new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              from: isMe ? "me" : "them",
+            } as const;
+          });
+          setMessages(mapped);
+        }
+
+        channel.subscribe("new-message", (msg) => {
+          const data = msg.data as { id?: string | number; senderId?: string; content?: string; createdAt?: string };
+          const id = data.id ?? `${msg.id ?? Date.now()}`;
+          const senderId = data.senderId ?? "unknown";
+          const isMe = mySenderId && String(senderId) === String(mySenderId);
+          const text = data.content ?? "";
+          const createdAt = data.createdAt ?? new Date().toISOString();
+
+          setMessages((prev) => {
+            if (prev.some((m) => String(m.id) === String(id))) return prev;
+            return [
+              ...prev,
+              {
+                id,
+                text,
+                time: new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                from: isMe ? "me" : "them",
+              },
+            ];
+          });
+        });
+
+        setIsReady(true);
+      } catch (e) {
+        console.error("Erro ao iniciar chat Ably:", e);
+        toast.error("Não foi possível iniciar o chat.");
       } finally {
-        setIsLoading(false);
+        setIsConnecting(false);
       }
     };
 
-    if (bookingId) fetchMessages();
-  }, [bookingId]);
+    connect();
+
+    return () => {
+      cancelled = true;
+      try {
+        channelRef.current?.unsubscribe();
+      } catch {}
+      channelRef.current = null;
+      try {
+        ablyRef.current?.close();
+      } catch {}
+      ablyRef.current = null;
+    };
+  }, [bookingId, channelId, mySenderId]);
+
+  const onSend = React.useCallback(
+    (text: string) => {
+      if (!isReady || !channelRef.current || !mySenderId) return;
+
+      const optimisticId =
+        typeof globalThis.crypto?.randomUUID === "function"
+          ? globalThis.crypto.randomUUID()
+          : `tmp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+      const optimistic = {
+        id: optimisticId,
+        senderId: String(mySenderId),
+        content: text,
+        createdAt: new Date().toISOString(),
+      };
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: optimistic.id,
+          text: optimistic.content,
+          time: new Date(optimistic.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          from: "me",
+        },
+      ]);
+
+      channelRef.current
+        .publish("new-message", optimistic)
+        .catch(() => toast.error("Falha ao enviar mensagem."));
+    },
+    [isReady, mySenderId]
+  );
 
   return (
     <div className="flex h-full w-full flex-col bg-background">
-      <ChatHeader
-        name={otherName}
-        avatarUrl={otherAvatar}
-        status={isLoading ? "A carregar..." : "Indisponível"}
-        onBack={onBack}
-      />
-
-      {isLoading ? (
+      <ChatHeader name={`Booking #${bookingId}`} status={isConnecting ? "A ligar..." : "Online"} onBack={onBack} />
+      {isConnecting ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       ) : (
         <ChatMessageList messages={messages} />
       )}
-
-      <ChatFooter disabled placeholder="Chat indisponível" />
-    </div>
-  );
-};
-
-type DemoChatMessage = { id: string | number; text: string; time?: string; from: "me" | "them" };
-
-type DemoChatMessageApi = { id: string | number; senderId: string | number; content: string; createdAt: string };
-
-/**
- * Wrapper para a janela de chat do Ably.
- * Decide se deve mostrar a janela real do Ably ou a versão de fallback (FallbackChatWindow)
- * com base na disponibilidade do cliente Ably.
- */
-const AblyChatWindowWrapper: React.FC<{ chatId: string; onBack?: () => void }> = ({ chatId, onBack }) => {
-  const isReady = React.useContext(ChatReadyContext);
-
-  const otherName = "Chat";
-  const otherAvatar = undefined;
-  const bookingId = chatId;
-
-  // Cabeçalho personalizado para ser injetado no componente do Ably
-  const Header = <ChatHeader name={otherName} avatarUrl={otherAvatar} status="Online" onBack={onBack} rightSlot={<div className="hidden md:block text-xs text-muted-foreground"><RoomInfo /></div>} />;
-
-  if (!isReady) {
-    return <FallbackChatWindow otherName={otherName} otherAvatar={otherAvatar} onBack={onBack} bookingId={bookingId} />;
-  }
-
-  return (
-    <div className="flex h-full w-full flex-col bg-background">
-      <ChatRoomProvider name={chatId}>
-        <ChatWindow roomName={chatId} customHeaderContent={Header} />
-      </ChatRoomProvider>
+      <ChatFooter disabled={!isReady} placeholder={isReady ? "Mensagem" : "A ligar..."} onSend={onSend} />
     </div>
   );
 };
@@ -187,7 +252,7 @@ const AblyChatStrategy: ChatStrategy = {
   name: "ably",
   Provider: AblyProvider,
   ChatList: AblyChatList,
-  ChatWindow: AblyChatWindowWrapper,
+  ChatWindow: ({ chatId, onBack }) => <AblyBookingChatWindow bookingId={chatId} onBack={onBack} />,
 };
 
 export default AblyChatStrategy;

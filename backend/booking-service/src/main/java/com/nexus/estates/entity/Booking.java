@@ -59,8 +59,29 @@ public class Booking {
      * Identificador do Utilizador (Hóspede).
      * <p>Referência lógica para o User Service.</p>
      */
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id")
     private Long userId;
+
+    @Column(name = "guest_full_name")
+    private String guestFullName;
+
+    @Column(name = "guest_email")
+    private String guestEmail;
+
+    @Column(name = "guest_phone", length = 50)
+    private String guestPhone;
+
+    @Column(name = "guest_nationality", length = 10)
+    private String guestNationality;
+
+    @Column(name = "guest_issuing_country", length = 10)
+    private String guestIssuingCountry;
+
+    @Column(name = "guest_document_type", length = 20)
+    private String guestDocumentType;
+
+    @Column(name = "guest_document_number", length = 50)
+    private String guestDocumentNumber;
 
     // 📅 Dados da Estadia
     /** Data de início da ocupação. */

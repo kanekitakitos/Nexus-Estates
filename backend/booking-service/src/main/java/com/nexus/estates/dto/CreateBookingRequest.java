@@ -37,7 +37,6 @@ public record CreateBookingRequest(
         Long propertyId,
 
         @Schema(description = "Identificador único do utilizador que efetua a reserva", example = "7c9e6679-7425-40de-944b-e07fc1f90ae7")
-        @NotNull(message = "User ID is required")
         Long userId,
 
         @Schema(description = "Data de check-in (hoje ou uma data futura)", example = "2026-02-15")
@@ -52,7 +51,28 @@ public record CreateBookingRequest(
 
         @Schema(description = "Número total de hóspedes para a reserva", example = "2", minimum = "1")
         @Min(value = 1, message = "At least 1 guest is required")
-        int guestCount
+        int guestCount,
+
+        @Schema(description = "Nome completo do hóspede (quando userId é null)", example = "João Silva")
+        String guestFullName,
+
+        @Schema(description = "Email do hóspede (quando userId é null)", example = "guest@email.com")
+        String guestEmail,
+
+        @Schema(description = "Telefone do hóspede (quando userId é null)", example = "+351912345678")
+        String guestPhone,
+
+        @Schema(description = "Nacionalidade do hóspede (quando userId é null)", example = "PT")
+        String guestNationality,
+
+        @Schema(description = "País emissor do documento (quando userId é null)", example = "PT")
+        String guestIssuingCountry,
+
+        @Schema(description = "Tipo de documento (CC ou PASSPORT)", example = "CC")
+        String guestDocumentType,
+
+        @Schema(description = "Número de documento", example = "12345678")
+        String guestDocumentNumber
 ) {
 
 
@@ -72,6 +92,13 @@ public record CreateBookingRequest(
                         .checkInDate(this.checkInDate())
                         .checkOutDate(this.checkOutDate())
                         .guests(this.guestCount())
+                        .guestFullName(this.guestFullName())
+                        .guestEmail(this.guestEmail())
+                        .guestPhone(this.guestPhone())
+                        .guestNationality(this.guestNationality())
+                        .guestIssuingCountry(this.guestIssuingCountry())
+                        .guestDocumentType(this.guestDocumentType())
+                        .guestDocumentNumber(this.guestDocumentNumber())
                         .status(BookingStatus.PENDING_PAYMENT) // Estado inicial obrigatório
                         .build();
     }

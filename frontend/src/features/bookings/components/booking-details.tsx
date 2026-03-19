@@ -15,7 +15,6 @@ import { BrutalShard } from "@/components/ui/data-display/card"
 import { BookingProperty } from "./booking-card"
 import { cn } from "@/lib/utils"
 import { DateRangeCalendar } from "./date-range-calendar"
-import { BookingService } from "@/services/booking.service"
 import { toast } from "sonner"
 import { format } from "date-fns"
 
@@ -36,6 +35,7 @@ const PRICE_TEXT_STYLES = "font-mono font-bold text-primary text-lg md:text-xl"
 interface BookingDetailsProps {
     property: BookingProperty
     onBack: () => void
+    onCheckout: (params: { checkIn: string; checkOut: string }) => void
     isExiting?: boolean
     checkInDate?: Date | null
     checkOutDate?: Date | null
@@ -60,7 +60,7 @@ interface BookingDetailsProps {
  * @param checkInDate - Data de check-in pré-selecionada (opcional, vinda da busca).
  * @param checkOutDate - Data de check-out pré-selecionada (opcional, vinda da busca).
  */
-export function BookingDetails({ property, onBack, isExiting, checkInDate = null, checkOutDate = null }: BookingDetailsProps) {
+export function BookingDetails({ property, onBack, onCheckout, isExiting, checkInDate = null, checkOutDate = null }: BookingDetailsProps) {
     const handleBack = useCallback(() => {
         onBack()
     }, [onBack])
@@ -116,26 +116,12 @@ export function BookingDetails({ property, onBack, isExiting, checkInDate = null
                         ? { from: checkInDate, to: checkOutDate } 
                         : undefined
                     }
-                    onConfirmBooking={async ({ range }) => {
+                    onConfirmBooking={({ range }) => {
                         if (!range.from || !range.to) return
-                        if (typeof window === "undefined") return
-
-                        const userId = localStorage.getItem("userId")
-                        if (!userId) {
-                            toast.error("Precisa de iniciar sessão para reservar.")
-                            window.location.href = "/login"
-                            return
-                        }
-
-                        const created = await BookingService.createBooking({
-                            propertyId: Number(property.id),
-                            userId: Number(userId),
-                            checkInDate: format(range.from, "yyyy-MM-dd"),
-                            checkOutDate: format(range.to, "yyyy-MM-dd"),
-                            guestCount: 1,
+                        onCheckout({
+                            checkIn: format(range.from, "yyyy-MM-dd"),
+                            checkOut: format(range.to, "yyyy-MM-dd"),
                         })
-
-                        toast.success(`Reserva criada (#${created.id})`)
                     }}
                     onContactOwner={() => {
                         toast.info("Chat ainda não está disponível.")

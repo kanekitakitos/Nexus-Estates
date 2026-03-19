@@ -16,6 +16,7 @@ import { BookingList } from "./components/booking-list"
 import { BookingProperty } from "./components/booking-card"
 import { BookingSearchBar } from "./components/booking-search-bar"
 import { BookingDetails } from "./components/booking-details"
+import { BookingCheckoutForm } from "./components/booking-checkout-form"
 import { cn } from "@/lib/utils"
 import { PropertyService } from "@/services/property.service"
 import { toast } from "sonner"
@@ -39,9 +40,11 @@ export function BookingView() {
     const [isLoading, setIsLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState("")
     const [selectedProperty, setSelectedProperty] = useState<BookingProperty | null>(null)
+    const [checkout, setCheckout] = useState<{ checkIn: string; checkOut: string } | null>(null)
     const [lastViewedPropertyId, setLastViewedPropertyId] = useState<string | null>(null)
     const [isLeaving, setIsLeaving] = useState(false)
     const [isReturning, setIsReturning] = useState(false)
+    const [isCheckoutLeaving, setIsCheckoutLeaving] = useState(false)
     
     const [adults, setAdults] = useState(1)
     const [children, setChildren] = useState(0)
@@ -126,13 +129,48 @@ export function BookingView() {
 
     // Renderização condicional: Vista de Detalhes
     if (selectedProperty) {
-        return <BookingDetails
-            property={selectedProperty}
-            onBack={handleBack}
-            isExiting={isReturning}
-            checkInDate={checkInDate}
-            checkOutDate={checkOutDate}
-        />
+        if (checkout) {
+            return (
+                <div className={cn(
+                    "p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden",
+                    isCheckoutLeaving ? "animate-fly-out-right fill-mode-forwards" : "animate-fly-in fill-mode-forwards"
+                )}>
+                    <BookingCheckoutForm
+                        property={selectedProperty}
+                        checkIn={checkout.checkIn}
+                        checkOut={checkout.checkOut}
+                        onBack={() => {
+                            setIsCheckoutLeaving(true)
+                            setTimeout(() => {
+                                setCheckout(null)
+                                setIsCheckoutLeaving(false)
+                            }, 800)
+                        }}
+                        onSuccess={() => {
+                            setSelectedProperty(null)
+                            setCheckout(null)
+                            setIsReturning(false)
+                            window.scrollTo(0, 0)
+                        }}
+                    />
+                </div>
+            )
+        }
+
+        return (
+            <BookingDetails
+                property={selectedProperty}
+                onBack={handleBack}
+                onCheckout={({ checkIn, checkOut }) => {
+                    setCheckout({ checkIn, checkOut })
+                    setIsCheckoutLeaving(false)
+                    window.scrollTo(0, 0)
+                }}
+                isExiting={isReturning}
+                checkInDate={checkInDate}
+                checkOutDate={checkOutDate}
+            />
+        )
     }
 
     // Renderização padrão: Vista de Lista com Pesquisa e Hero
