@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from "react"
 import { PropertyEdit2 } from "./property-edit2"
 import { PropertyList } from "./property-list"
-import { BookingProperty } from "@/components/layout/booking/booking-card"
+import { BookingProperty } from "@/components/layout/booking/components/booking-card"
 import { cn } from "@/lib/utils"
 
 const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
@@ -18,7 +18,7 @@ const LIST_CONTAINER_STYLES = "relative"
 const LIST_DECORATOR_STYLES = "absolute -left-4 top-0 bottom-0 w-1 bg-foreground/10"
 
 
-const MOCK_PROPERTIES: BookingProperty[] = [
+export const MOCK_PROPERTIES: BookingProperty[] = [
     {
         id: "1",
         title: "Modern Loft in Downtown",
