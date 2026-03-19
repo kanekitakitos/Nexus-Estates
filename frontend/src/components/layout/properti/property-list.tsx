@@ -46,6 +46,7 @@ export function PropertyList(
             </>
         )
     }
+            animate && (isExiting ? "animate-fly-out-right" : "animate-fly-in"),
 
     return(
         <div id="abc" className={cn(
