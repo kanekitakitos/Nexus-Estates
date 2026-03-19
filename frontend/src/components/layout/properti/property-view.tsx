@@ -122,6 +122,7 @@ export function PropertyView(){
                 propertys={MOCK_PROPERTIES}
                 onSelect={(id)=>handelSelectedProperty(id)}
                 isExiting={isLeaving}
+                animate={true}
             />)
     }
 
