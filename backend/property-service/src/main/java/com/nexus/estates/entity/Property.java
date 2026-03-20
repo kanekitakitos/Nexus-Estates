@@ -100,9 +100,10 @@ public class Property {
     private Boolean isActive = true;
 
     /**
-     * Lista de comodidades associadas à propriedade.
+     * Conjunto de comodidades associadas à propriedade.
      *
-     * <p>Relação Many-to-Many com a entidade Amenity.</p>
+     * <p>Relação Many-to-Many que utiliza uma tabela de junção para mapear
+     * características como WiFi, Piscina, etc.</p>
      */
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -112,6 +113,14 @@ public class Property {
     )
     @Schema(description = "Lista de comodidades associadas")
     private Set<Amenity> amenities = new HashSet<>();
+
+    /**
+     * Regras de sazonalidade e precificação dinâmica.
+     * <p>Relação One-to-Many com cascade para garantir que as regras são geridas com a propriedade.</p>
+     */
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Schema(description = "Regras de sazonalidade associadas a esta propriedade")
+    private Set<SeasonalityRule> seasonalityRules = new HashSet<>();
 
     // Getters e Setters
     public Long getId() { return id; }
@@ -134,4 +143,6 @@ public class Property {
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
     public Set<Amenity> getAmenities() { return amenities; }
     public void setAmenities(Set<Amenity> amenities) { this.amenities = amenities; }
+    public Set<SeasonalityRule> getSeasonalityRules() { return seasonalityRules; }
+    public void setSeasonalityRules(Set<SeasonalityRule> seasonalityRules) { this.seasonalityRules = seasonalityRules; }
 }

@@ -1,3 +1,9 @@
+-- Remove a constraint desatualizada se existir
+ALTER TABLE amenities DROP CONSTRAINT IF EXISTS amenities_category_check;
+
+-- Adiciona a constraint com os valores atualizados do AmenityCategory enum
+ALTER TABLE amenities ADD CONSTRAINT amenities_category_check CHECK (category IN ('KITCHEN', 'LEISURE', 'SAFETY', 'COMFORT', 'VIEW'));
+
 -- More Amenities
 INSERT INTO amenities (name, category, icon)
 VALUES 
@@ -14,7 +20,7 @@ VALUES
 INSERT INTO properties (name, description, location, city, address, base_price, max_guests, is_active)
 VALUES 
     ('Porto Riverside Apartment', '{"pt": "Apartamento moderno com vista para o Rio Douro.", "en": "Modern apartment with Douro River view."}', 'Ribeira', 'Porto', 'Rua Nova da Alfândega, 10', 180.00, 4, true),
-    ('Algarve Luxury Villa', '{"pt": "Vila de luxo com piscina infinita e jardim.", "en": "Luxury villa with infinity pool and garden."}', 'Quinta do Lago', 'Almancil', 'Estrada da Quinta, Lote 45', 1500.00, 8, true),
+    ('Algarve Luxury Villa', '{"pt": "Vila de luxo com piscina infinita e jardim.", "en": "Luxury villa com infinity pool and garden."}', 'Quinta do Lago', 'Almancil', 'Estrada da Quinta, Lote 45', 1500.00, 8, true),
     ('Madeira Island Retreat', '{"pt": "Refúgio tranquilo na ilha com vista panorâmica.", "en": "Quiet island retreat with panoramic views."}', 'Funchal', 'Funchal', 'Caminho do Monte, 123', 220.00, 4, true),
     ('Azores Green House', '{"pt": "Casa sustentável rodeada pela natureza dos Açores.", "en": "Sustainable house surrounded by Azores nature."}', 'Sete Cidades', 'Ponta Delgada', 'Rua da Lagoa, 5', 150.00, 5, true),
     ('Coimbra Historic Studio', '{"pt": "Estúdio charmoso no centro histórico de Coimbra.", "en": "Charming studio in Coimbra historic center."}', 'Alta de Coimbra', 'Coimbra', 'Rua da Sofia, 88', 95.00, 2, true),

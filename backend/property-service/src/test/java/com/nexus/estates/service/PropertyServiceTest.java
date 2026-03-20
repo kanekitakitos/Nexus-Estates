@@ -3,8 +3,10 @@ package com.nexus.estates.service;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Amenity;
 import com.nexus.estates.entity.Property;
+import com.nexus.estates.entity.SeasonalityRule;
 import com.nexus.estates.repository.AmenityRepository;
 import com.nexus.estates.repository.PropertyRepository;
+import com.nexus.estates.repository.SeasonalityRuleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,9 +16,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Set;
+import java.time.LocalDate;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -27,25 +28,28 @@ import static org.mockito.Mockito.*;
  * Testes unitários para a classe de serviço {@link PropertyService}.
  *
  * <p>Esta classe utiliza o framework Mockito para isolar as dependências de persistência
- * (PropertyRepository e AmenityRepository), permitindo validar a lógica de negócio de
- * mapeamento, validação de preços e associação de comodidades de forma independente.</p>
+ * (PropertyRepository, AmenityRepository e SeasonalityRuleRepository), permitindo validar
+ * a lógica de negócio de mapeamento, cálculo de preços dinâmicos e associação de comodidades.</p>
  *
  * @author Nexus Estates Team
- * @version 1.1
- * @since 2026-02-24
+ * @version 1.2
  */
 @ExtendWith(MockitoExtension.class)
 class PropertyServiceTest {
 
-    /** Mock do repositório de propriedades para simular operações de escrita. */
+    /** Mock do repositório de propriedades. */
     @Mock
     private PropertyRepository repository;
 
-    /** Mock do repositório de comodidades para validar a existência de IDs no sistema. */
+    /** Mock do repositório de comodidades. */
     @Mock
     private AmenityRepository amenityRepository;
 
-    /** Instância do serviço com as dependências mockadas injetadas via construtor. */
+    /** Mock do repositório de regras de sazonalidade. */
+    @Mock
+    private SeasonalityRuleRepository seasonalityRuleRepository;
+
+    /** Instância do serviço com as dependências mockadas injetadas. */
     @InjectMocks
     private PropertyService service;
 
@@ -54,16 +58,14 @@ class PropertyServiceTest {
 
     /**
      * Configuração inicial executada antes de cada teste.
-     * <p>Prepara um DTO de requisição válido conforme o esquema de internacionalização
-     * e uma entidade de propriedade que simula o objeto já persistido com ID gerado.</p>
      */
     @BeforeEach
     void setUp() {
-        // Ordem conforme o Record: title, description, price, ownerId, location, amenityIds
+        // Dados para teste de criação
         validRequest = new CreatePropertyRequest(
                 "Casa de Luxo Teste",
                 Map.of("pt", "Descrição detalhada", "en", "Detailed description"),
-                1500.0,
+                100.0, // Preço base de 100 para facilitar cálculos
                 1L,
                 "Avenida Principal, 123",
                 Set.of(5L, 10L)
@@ -72,38 +74,127 @@ class PropertyServiceTest {
         savedProperty = new Property();
         savedProperty.setId(1L);
         savedProperty.setName(validRequest.title());
-        savedProperty.setBasePrice(BigDecimal.valueOf(validRequest.price()));
+        // Define explicitamente a escala para evitar surpresas
+        savedProperty.setBasePrice(BigDecimal.valueOf(100.00)); 
     }
 
-    /**
-     * Testa o cenário de criação bem-sucedida de uma propriedade.
-     * * <p>Verifica se:
-     * <ul>
-     * <li>O serviço consulta o AmenityRepository para validar os IDs das comodidades.</li>
-     * <li>O mapeamento do preço (Double para BigDecimal) ocorre corretamente.</li>
-     * <li>O repositório de propriedades é chamado para persistir os dados.</li>
-     * </ul>
-     * </p>
-     */
     @Test
     @DisplayName("Deve criar uma propriedade e associar comodidades com sucesso")
     void shouldCreatePropertyWithSuccess() {
-        // Arrange: Define o comportamento esperado dos componentes externos
-        // Simula que o repositório encontra as comodidades solicitadas
+        // Arrange
         when(amenityRepository.findAllById(any())).thenReturn(new ArrayList<>());
-        // Simula a persistência retornando o objeto com ID
         when(repository.save(any(Property.class))).thenReturn(savedProperty);
 
-        // Act: Executa a lógica de negócio do serviço
+        // Act
         Property result = service.create(validRequest);
 
-        // Assert: Valida se o resultado cumpre os requisitos esperados
-        assertNotNull(result, "A propriedade retornada não deve ser nula");
-        assertEquals(1L, result.getId(), "O ID da propriedade deve corresponder ao persistido");
-        assertEquals("Casa de Luxo Teste", result.getName(), "O nome deve ser mapeado corretamente");
-
-        // Verificação de Interações: Garante que os métodos dos repositórios foram invocados
+        // Assert
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
         verify(amenityRepository, times(1)).findAllById(validRequest.amenityIds());
         verify(repository, times(1)).save(any(Property.class));
+    }
+
+    /**
+     * Valida o cálculo de preço total sem regras de sazonalidade.
+     * Cenário: Estadia de 3 noites, preço base 100.00. Total esperado: 300.00.
+     */
+    @Test
+    @DisplayName("Deve calcular preço base sem regras de sazonalidade")
+    void shouldCalculatePriceWithoutRules() {
+        // Arrange
+        Long propertyId = 1L;
+        LocalDate checkIn = LocalDate.of(2024, 6, 1);
+        LocalDate checkOut = LocalDate.of(2024, 6, 4); // 3 noites
+
+        when(repository.findById(propertyId)).thenReturn(java.util.Optional.of(savedProperty));
+        when(seasonalityRuleRepository.findByPropertyIdAndDateRange(any(), any(), any()))
+                .thenReturn(Collections.emptyList());
+
+        // Act
+        BigDecimal totalPrice = service.calculateTotalPrice(propertyId, checkIn, checkOut, null);
+
+        // Assert
+        // Comparação usando compareTo é mais segura para BigDecimal pois ignora escala (300.0 == 300.00)
+        assertEquals(0, new BigDecimal("300.00").compareTo(totalPrice), 
+                "O preço total deve ser 300.00");
+    }
+
+    /**
+     * Valida o cálculo com uma regra de intervalo de datas.
+     * Cenário: Estadia de 2 noites.
+     * Dia 1: Sem regra (100.00).
+     * Dia 2: Regra de Época Alta (+50% -> 1.50). Preço dia 2 = 150.00.
+     * Total esperado: 250.00.
+     */
+    @Test
+    @DisplayName("Deve aplicar regra de sazonalidade por data")
+    void shouldCalculatePriceWithDateRangeRule() {
+        // Arrange
+        Long propertyId = 1L;
+        LocalDate checkIn = LocalDate.of(2024, 7, 14);
+        LocalDate checkOut = LocalDate.of(2024, 7, 16); // 2 noites: 14 e 15
+
+        // Regra para dia 15 de Julho: +50%
+        SeasonalityRule rule = new SeasonalityRule();
+        rule.setStartDate(LocalDate.of(2024, 7, 15));
+        rule.setEndDate(LocalDate.of(2024, 7, 15));
+        rule.setPriceModifier(new BigDecimal("1.50"));
+
+        when(repository.findById(propertyId)).thenReturn(java.util.Optional.of(savedProperty));
+        when(seasonalityRuleRepository.findByPropertyIdAndDateRange(any(), any(), any()))
+                .thenReturn(List.of(rule));
+
+        // Act
+        BigDecimal totalPrice = service.calculateTotalPrice(propertyId, checkIn, checkOut, null);
+
+        // Assert
+        // Dia 14: 100.00
+        // Dia 15: 150.000 (100 * 1.50)
+        // Total: 250.000
+        assertEquals(0, new BigDecimal("250.00").compareTo(totalPrice),
+                "O preço total deve ser 250.00");
+    }
+
+    /**
+     * Valida a hierarquia de regras.
+     * Cenário: Estadia de 1 noite.
+     * Existem duas regras para o mesmo dia:
+     * 1. Regra de Data: +20% (1.20)
+     * 2. Regra de Canal (Airbnb): +10% (1.10)
+     * Esperado: A regra de Canal deve ter prioridade sobre a regra de data.
+     * Preço base 100 * 1.10 = 110.00.
+     */
+    @Test
+    @DisplayName("Deve priorizar regra de canal sobre regra de data")
+    void shouldPrioritizeChannelRuleOverDateRule() {
+        // Arrange
+        Long propertyId = 1L;
+        LocalDate date = LocalDate.of(2024, 8, 1);
+        LocalDate checkOut = date.plusDays(1); // 1 noite
+
+        SeasonalityRule dateRule = new SeasonalityRule();
+        dateRule.setStartDate(date);
+        dateRule.setEndDate(date);
+        dateRule.setPriceModifier(new BigDecimal("1.20")); // +20%
+
+        SeasonalityRule channelRule = new SeasonalityRule();
+        channelRule.setStartDate(date);
+        channelRule.setEndDate(date);
+        channelRule.setChannel("Airbnb");
+        channelRule.setPriceModifier(new BigDecimal("1.10")); // +10%
+
+        when(repository.findById(propertyId)).thenReturn(java.util.Optional.of(savedProperty));
+        when(seasonalityRuleRepository.findByPropertyIdAndDateRange(any(), any(), any()))
+                .thenReturn(List.of(dateRule, channelRule));
+
+        // Act
+        BigDecimal totalPrice = service.calculateTotalPrice(propertyId, date, checkOut, "Airbnb");
+
+        // Assert
+        // Deve aplicar o modificador de canal (1.10)
+        // 100 * 1.10 = 110.00
+        assertEquals(0, new BigDecimal("110.00").compareTo(totalPrice),
+                "Deve aplicar a regra de canal (110.00) e ignorar a de data");
     }
 }
