@@ -381,8 +381,11 @@ export function BookingCheckoutForm({
     }
   }, [nationality, form])
 
-  const scrollTo = (ref: React.RefObject<HTMLDivElement>) => {
-    setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60)
+  const scrollTo = (el: HTMLElement | null) => {
+    if (!el) return
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "start" })
+    })
   }
 
   // Section confirmations
@@ -393,7 +396,6 @@ export function BookingCheckoutForm({
     )
     if (!ok) { toast.warning("Revê os campos assinalados."); return }
     setIdentityOpen(true)
-    scrollTo(identityRef)
   }
 
   const confirmIdentity = async () => {
@@ -403,16 +405,26 @@ export function BookingCheckoutForm({
     const ok = await form.trigger(fields, { shouldFocus: true })
     if (!ok) { toast.warning("Revê os campos assinalados."); return }
     setReviewOpen(true)
-    scrollTo(reviewRef)
   }
 
   const handleFinalSubmit = form.handleSubmit(async (values) => {
     const ok = await submit(values)
     if (ok) {
       setPaymentOpen(true)
-      scrollTo(paymentRef)
     }
   })
+
+  React.useEffect(() => {
+    if (identityOpen) scrollTo(identityRef.current)
+  }, [identityOpen])
+
+  React.useEffect(() => {
+    if (reviewOpen) scrollTo(reviewRef.current)
+  }, [reviewOpen])
+
+  React.useEffect(() => {
+    if (paymentOpen) scrollTo(paymentRef.current)
+  }, [paymentOpen])
 
   // Sidebar progress
   const progress = {
@@ -724,7 +736,7 @@ export function BookingCheckoutForm({
               <div className="space-y-1.5">
                 {(
                   [
-                    { key: "trip", label: "Dados", done: progress.trip, active: !identityOpen },
+                    { key: "trip", label: "Dados", done: progress.trip, active: !identityOpen, locked: false },
                     { key: "identity", label: "Identificação", done: progress.identity, active: identityOpen && !reviewOpen, locked: !identityOpen },
                     { key: "review", label: "Revisão", done: progress.review, active: reviewOpen && !paymentOpen, locked: !reviewOpen },
                     { key: "payment", label: "Pagamento", done: progress.payment, active: paymentOpen, locked: !paymentOpen },

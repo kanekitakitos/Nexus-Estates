@@ -1,8 +1,18 @@
 "use client"
 
+/**
+ * BookingSearchBar
+ *
+ * Barra de pesquisa da listagem de bookings.
+ * Objectivos:
+ * - UX optimizada para mobile (secções compactas, popovers)
+ * - Feedback visual “filled” por secção
+ * - Animações consistentes via presets em `features/bookings/motion.ts`
+ */
 import { Calendar as CalendarIcon, DollarSign, MapPin, Minus, Plus, Search, Users } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { format } from "date-fns"
+import { motion, AnimatePresence } from "framer-motion"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/forms/button"
@@ -19,6 +29,19 @@ import {
   SearchBarLabel,
   SearchBarSection,
 } from "@/components/ui/data-display/search-bar"
+import {
+  staggerContainer,
+  staggerItem,
+  popoverVariants,
+  indicatorDot,
+  springSnap,
+  pillHover,
+  pillTap,
+} from "@/features/bookings/motion"
+
+// ─────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────
 
 interface BookingSearchBarProps {
   destination?: string
@@ -38,32 +61,11 @@ interface BookingSearchBarProps {
   className?: string
 }
 
-/**
- * Barra de Pesquisa de Reservas (Booking Search Bar).
- * 
- * Componente central para filtragem de propriedades.
- * Implementa um design modular onde cada critério de busca (Destino, Datas, Hóspedes, Preço)
- * é uma seção independente.
- * 
- * Características:
- * - Inputs estilizados com ícones.
- * - Seletores de data (Date Picker) com validação de intervalo.
- * - Contador de hóspedes (Adultos/Crianças) em popover.
- * - Input numérico para preço máximo.
- * 
- * @param destination - Valor atual do filtro de destino.
- * @param adults - Número de adultos selecionados.
- * @param childrenCount - Número de crianças selecionadas.
- * @param maxPrice - Preço máximo definido pelo utilizador.
- * @param checkInDate - Data de início da estadia.
- * @param checkOutDate - Data de fim da estadia.
- * @param onDestinationChange - Callback para atualização do destino.
- * @param onAdultsChange - Callback para atualização do número de adultos.
- * @param onChildrenChange - Callback para atualização do número de crianças.
- * @param onMaxPriceChange - Callback para atualização do preço máximo.
- * @param onCheckInChange - Callback para atualização da data de check-in.
- * @param onCheckOutChange - Callback para atualização da data de check-out.
- */
+// ─────────────────────────────────────────────
+// BookingSearchBar
+// ─────────────────────────────────────────────
+
+/** Componente raiz da barra de pesquisa (delegando a UI em secções). */
 export function BookingSearchBar({
   destination,
   guests,
@@ -83,10 +85,12 @@ export function BookingSearchBar({
 }: BookingSearchBarProps) {
   const [checkInDate, setCheckInDate] = useState<Date | null>(initialCheckIn ?? null)
   const [checkOutDate, setCheckOutDate] = useState<Date | null>(initialCheckOut ?? null)
+
   const computedGuestsLabel = useMemo(() => {
     const total = adults + childrenCount
     return `${total} Guest${total !== 1 ? "s" : ""}`
   }, [adults, childrenCount])
+
   const displayedGuestsLabel = guests ?? computedGuestsLabel
 
   useEffect(() => {
@@ -95,95 +99,123 @@ export function BookingSearchBar({
 
   return (
     <SearchBar className={className}>
-      <SearchBarContent>
-        {/* Seção 1: Destino */}
-        <DestinationSection destination={destination} onChange={onDestinationChange} />
-        
-        {/* Seção 2: Datas (Check-in / Check-out) */}
-        <DatesSection 
-          checkInDate={checkInDate}
-          checkOutDate={checkOutDate}
-          onCheckInChange={(date) => {
-            setCheckInDate(date)
-            onCheckInChange?.(date)
-          }}
-          onCheckOutChange={(date) => {
-            setCheckOutDate(date)
-            onCheckOutChange?.(date)
-          }}
-        />
+      <motion.div
+        variants={staggerContainer}
+        initial="initial"
+        animate="animate"
+      >
+        <SearchBarContent>
+          <motion.div variants={staggerItem} className="col-span-2 md:col-span-1">
+            <DestinationSection destination={destination} onChange={onDestinationChange} />
+          </motion.div>
 
-        {/* Seção 3: Hóspedes */}
-        <GuestsSection 
-          guestsLabel={displayedGuestsLabel}
-          adults={adults}
-          childrenCount={childrenCount}
-          onAdultsChange={onAdultsChange}
-          onChildrenChange={onChildrenChange}
-        />
+          <motion.div variants={staggerItem} className="col-span-2 md:col-span-1">
+            <DatesSection
+              checkInDate={checkInDate}
+              checkOutDate={checkOutDate}
+              onCheckInChange={(date) => {
+                setCheckInDate(date)
+                onCheckInChange?.(date)
+              }}
+              onCheckOutChange={(date) => {
+                setCheckOutDate(date)
+                onCheckOutChange?.(date)
+              }}
+            />
+          </motion.div>
 
-        {/* Seção 4: Preço Máximo */}
-        <PriceSection maxPrice={maxPrice} onMaxPriceChange={onMaxPriceChange} />
-      </SearchBarContent>
+          <motion.div variants={staggerItem}>
+            <GuestsSection
+              guestsLabel={displayedGuestsLabel}
+              adults={adults}
+              childrenCount={childrenCount}
+              onAdultsChange={onAdultsChange}
+              onChildrenChange={onChildrenChange}
+            />
+          </motion.div>
+
+          <motion.div variants={staggerItem}>
+            <PriceSection maxPrice={maxPrice} onMaxPriceChange={onMaxPriceChange} />
+          </motion.div>
+        </SearchBarContent>
+      </motion.div>
     </SearchBar>
   )
 }
 
-// --- Sub-components ---
+// ─────────────────────────────────────────────
+// Section components
+// ─────────────────────────────────────────────
 
-/**
- * Subcomponente: Seção de Destino.
- * Input de texto simples para filtrar por localização ou nome da propriedade.
- */
-function DestinationSection({ destination, onChange }: { destination?: string, onChange?: (val: string) => void }) {
+/** Secção: destino (input livre). */
+function DestinationSection({
+  destination,
+  onChange,
+}: {
+  destination?: string
+  onChange?: (val: string) => void
+}) {
+  const filled = Boolean(destination && destination.trim().length > 0)
+
   return (
-    <SearchBarSection className="col-span-2 md:col-span-1">
-      <SearchBarLabel>
-        <MapPin className="h-3 w-3 md:h-3.5 md:w-3.5" />
+    <SearchBarSection className={cn("col-span-2 md:col-span-1 transition-colors", filled && "bg-primary/5")}>
+      <SearchBarLabel className={cn("transition-colors", filled && "text-primary")}>
+        <MapPin className={cn("h-3 w-3 md:h-3.5 md:w-3.5 transition-colors", filled && "text-primary")} />
         <span>Destination</span>
+        {filled && (
+          <motion.span
+            initial={indicatorDot.initial}
+            animate={indicatorDot.animate}
+            className="ml-auto h-1.5 w-1.5 rounded-full bg-primary"
+          />
+        )}
       </SearchBarLabel>
       <SearchBarInputContainer>
-        <Search className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+        <Search className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground shrink-0" />
         <input
           type="text"
           placeholder="Search..."
           className="w-full bg-transparent font-mono text-[10px] md:text-xs uppercase outline-none placeholder:text-muted-foreground/70"
           value={destination ?? ""}
-          onChange={(event) => onChange?.(event.target.value)}
+          onChange={(e) => onChange?.(e.target.value)}
         />
       </SearchBarInputContainer>
     </SearchBarSection>
   )
 }
 
-/**
- * Subcomponente: Seção de Datas.
- * Contém dois seletores de data (DatePickers) para definir o intervalo da estadia.
- * Garante que a data de check-out seja posterior à de check-in.
- */
-function DatesSection({ 
-  checkInDate, 
-  checkOutDate, 
-  onCheckInChange, 
-  onCheckOutChange 
-}: { 
-  checkInDate: Date | null, 
-  checkOutDate: Date | null, 
-  onCheckInChange: (d: Date | null) => void, 
-  onCheckOutChange: (d: Date | null) => void 
+/** Secção: datas (2 date pickers em popover). */
+function DatesSection({
+  checkInDate,
+  checkOutDate,
+  onCheckInChange,
+  onCheckOutChange,
+}: {
+  checkInDate: Date | null
+  checkOutDate: Date | null
+  onCheckInChange: (d: Date | null) => void
+  onCheckOutChange: (d: Date | null) => void
 }) {
+  const filled = Boolean(checkInDate || checkOutDate)
+
   return (
-    <SearchBarSection className="col-span-2 md:col-span-1">
-      <SearchBarLabel>
-        <CalendarIcon className="h-3 w-3 md:h-3.5 md:w-3.5" />
+    <SearchBarSection className={cn("col-span-2 md:col-span-1 transition-colors", filled && "bg-primary/5")}>
+      <SearchBarLabel className={cn("transition-colors", filled && "text-primary")}>
+        <CalendarIcon className={cn("h-3 w-3 md:h-3.5 md:w-3.5 transition-colors", filled && "text-primary")} />
         <span>Dates</span>
+        {filled && (
+          <motion.span
+            initial={indicatorDot.initial}
+            animate={indicatorDot.animate}
+            className="ml-auto h-1.5 w-1.5 rounded-full bg-primary"
+          />
+        )}
       </SearchBarLabel>
       <SearchBarInputContainer className="justify-between">
         <DatePicker
           date={checkInDate}
           onSelect={(date) => {
             onCheckInChange(date ?? null)
-            // Reseta o check-out se a nova data de check-in for inválida em relação ao check-out atual
             if (date && checkOutDate && date >= checkOutDate) {
               onCheckOutChange(null)
             }
@@ -191,11 +223,11 @@ function DatesSection({
           disabled={(date) => date < new Date()}
           placeholder="Check-in"
         />
-        <span className="text-muted-foreground/70 text-[10px]">—</span>
+        <span className="text-muted-foreground/50 text-[10px] select-none">—</span>
         <DatePicker
           date={checkOutDate}
           onSelect={(date) => onCheckOutChange(date ?? null)}
-          disabled={(date) => (checkInDate ? date < checkInDate : date < new Date())}
+          disabled={(date) => (checkInDate ? date <= checkInDate : date < new Date())}
           placeholder="Check-out"
         />
       </SearchBarInputContainer>
@@ -203,30 +235,36 @@ function DatesSection({
   )
 }
 
-/**
- * Subcomponente: Seção de Hóspedes.
- * Exibe o total de hóspedes e abre um popover para ajuste detalhado (Adultos/Crianças).
- */
-function GuestsSection({ 
+/** Secção: hóspedes (popover com counters). */
+function GuestsSection({
   guestsLabel,
-  adults, 
-  childrenCount, 
-  onAdultsChange, 
-  onChildrenChange 
-}: { 
+  adults,
+  childrenCount,
+  onAdultsChange,
+  onChildrenChange,
+}: {
   guestsLabel: string
-  adults: number, 
-  childrenCount: number, 
-  onAdultsChange?: (v: number) => void, 
-  onChildrenChange?: (v: number) => void 
+  adults: number
+  childrenCount: number
+  onAdultsChange?: (v: number) => void
+  onChildrenChange?: (v: number) => void
 }) {
+  const filled = adults > 1 || childrenCount > 0
+
   return (
-    <SearchBarSection>
-      <SearchBarLabel>
-        <Users className="h-3 w-3 md:h-3.5 md:w-3.5" />
+    <SearchBarSection className={cn("transition-colors", filled && "bg-primary/5")}>
+      <SearchBarLabel className={cn("transition-colors", filled && "text-primary")}>
+        <Users className={cn("h-3 w-3 md:h-3.5 md:w-3.5 transition-colors", filled && "text-primary")} />
         <span>Guests</span>
+        {filled && (
+          <motion.span
+            initial={indicatorDot.initial}
+            animate={indicatorDot.animate}
+            className="ml-auto h-1.5 w-1.5 rounded-full bg-primary"
+          />
+        )}
       </SearchBarLabel>
-      <GuestSelector 
+      <GuestSelector
         guestsLabel={guestsLabel}
         adults={adults}
         childrenCount={childrenCount}
@@ -237,15 +275,25 @@ function GuestsSection({
   )
 }
 
-/**
- * Subcomponente: Seção de Preço.
- * Input numérico para definir o orçamento máximo por noite.
- */
-function PriceSection({ maxPrice, onMaxPriceChange }: { maxPrice: number | "", onMaxPriceChange?: (v: number | "") => void }) {
+/** Secção: preço máximo (input com “brutal shadow” e micro-interactions). */
+function PriceSection({
+  maxPrice,
+  onMaxPriceChange,
+}: {
+  maxPrice: number | ""
+  onMaxPriceChange?: (v: number | "") => void
+}) {
+  const filled = maxPrice !== "" && maxPrice > 0
+
   return (
-    <SearchBarSection>
-      <SearchBarLabel className="relative overflow-hidden">
-        <span className="absolute inset-0 bg-primary/90 -skew-x-6 origin-left" />
+    <SearchBarSection className={cn("transition-colors", filled && "bg-primary/5")}>
+      <SearchBarLabel className={cn("relative overflow-hidden transition-colors", filled && "text-primary")}>
+        <span
+          className={cn(
+            "absolute inset-0 -skew-x-6 origin-left transition-colors",
+            filled ? "bg-primary/20" : "bg-primary/90"
+          )}
+        />
         <div className="relative flex items-center gap-2">
           <DollarSign className="h-3 w-3 md:h-3.5 md:w-3.5" />
           <span className="relative z-10">Max Price</span>
@@ -261,7 +309,9 @@ function PriceSection({ maxPrice, onMaxPriceChange }: { maxPrice: number | "", o
   )
 }
 
-// --- Helper Components ---
+// ─────────────────────────────────────────────
+// DatePicker
+// ─────────────────────────────────────────────
 
 interface DatePickerProps {
   date: Date | null
@@ -270,31 +320,44 @@ interface DatePickerProps {
   placeholder?: string
 }
 
-/**
- * Componente Auxiliar: Seletor de Data (Date Picker).
- * Wrapper em torno do componente Calendar do shadcn/ui dentro de um Popover.
- */
 function DatePicker({ date, onSelect, disabled, placeholder = "Date" }: DatePickerProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="flex items-center gap-1.5 md:gap-2 font-mono text-[10px] md:text-[11px] uppercase text-foreground outline-none cursor-pointer hover:text-primary transition-colors">
+        <motion.button
+          whileHover={pillHover}
+          whileTap={pillTap}
+          className="flex items-center gap-1.5 md:gap-2 font-mono text-[10px] md:text-[11px] uppercase text-foreground outline-none cursor-pointer"
+        >
           <CalendarIcon className="h-3 w-3 md:h-3.5 md:w-3.5 text-muted-foreground" />
-          <span>{date ? format(date, "dd/MM") : placeholder}</span>
-        </button>
+          <span className={cn(!date && "text-muted-foreground/70")}>
+            {date ? format(date, "dd/MM") : placeholder}
+          </span>
+        </motion.button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={date ?? undefined}
-          onSelect={onSelect}
-          disabled={disabled}
-          initialFocus
-        />
+      <PopoverContent className="w-auto p-0" align="start" asChild>
+        <motion.div
+          variants={popoverVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+        >
+          <Calendar
+            mode="single"
+            selected={date ?? undefined}
+            onSelect={onSelect}
+            disabled={disabled}
+            initialFocus
+          />
+        </motion.div>
       </PopoverContent>
     </Popover>
   )
 }
+
+// ─────────────────────────────────────────────
+// GuestSelector
+// ─────────────────────────────────────────────
 
 interface GuestSelectorProps {
   guestsLabel: string
@@ -304,70 +367,94 @@ interface GuestSelectorProps {
   onChildrenChange?: (value: number) => void
 }
 
-/**
- * Componente Auxiliar: Seletor de Hóspedes.
- * Popover contendo contadores para Adultos e Crianças.
- */
-function GuestSelector({ guestsLabel, adults, childrenCount, onAdultsChange, onChildrenChange }: GuestSelectorProps) {
+function GuestSelector({
+  guestsLabel,
+  adults,
+  childrenCount,
+  onAdultsChange,
+  onChildrenChange,
+}: GuestSelectorProps) {
   const [open, setOpen] = useState(false)
   const totalGuests = adults + childrenCount
   const computedLabel = `${totalGuests} Guest${totalGuests !== 1 ? "s" : ""}`
 
-  const handleAdultsChange = (delta: number) => {
-    const newValue = Math.max(1, adults + delta)
-    onAdultsChange?.(newValue)
-  }
-
-  const handleChildrenChange = (delta: number) => {
-    const newValue = Math.max(0, childrenCount + delta)
-    onChildrenChange?.(newValue)
-  }
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <div 
+        <motion.div
+          whileHover={{ backgroundColor: "var(--muted)" }}
+          whileTap={{ scale: 0.985 }}
+          transition={springSnap}
           className={cn(
-            "flex items-center gap-2 md:gap-3 bg-secondary px-3 py-2 md:px-4 md:py-3 dark:bg-background transition-transform active:scale-[0.98]", 
-            "w-full text-left outline-none transition-colors hover:bg-secondary/80 dark:hover:bg-muted/20 cursor-pointer"
+            "flex items-center gap-2 md:gap-3 bg-secondary px-3 py-2 md:px-4 md:py-3 dark:bg-background",
+            "w-full text-left outline-none cursor-pointer rounded-sm"
           )}
           role="button"
           tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && setOpen(true)}
         >
-          <Users className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+          <Users className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground shrink-0" />
           <span className="font-mono text-[10px] md:text-xs uppercase text-foreground truncate">
-            {totalGuests > 0 ? guestsLabel || computedLabel : "Add"}
+            {guestsLabel || computedLabel}
           </span>
-        </div>
+        </motion.div>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-4 border-2 border-foreground shadow-[4px_4px_0_0_rgb(0,0,0)]">
-        <div className="grid gap-4">
-          <GuestCounter 
-            label="Adults" 
-            sub="Ages 13+" 
-            count={adults} 
-            onChange={handleAdultsChange} 
-            min={1} 
-          />
-          <div className="h-[1px] w-full bg-border" />
-          <GuestCounter 
-            label="Children" 
-            sub="Ages 2-12" 
-            count={childrenCount} 
-            onChange={handleChildrenChange} 
-            min={0} 
-          />
-        </div>
-      </PopoverContent>
+      <AnimatePresence>
+        {open && (
+          <PopoverContent
+            className="w-80 p-4 border-2 border-foreground shadow-[4px_4px_0_0_rgb(0,0,0)]"
+            align="start"
+            forceMount
+            asChild
+          >
+            <motion.div
+              variants={popoverVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <div className="grid gap-4">
+                <GuestCounter
+                  label="Adults"
+                  sub="Ages 13+"
+                  count={adults}
+                  onChange={(d) => onAdultsChange?.(Math.max(1, adults + d))}
+                  min={1}
+                />
+                <div className="h-px w-full bg-border" />
+                <GuestCounter
+                  label="Children"
+                  sub="Ages 2–12"
+                  count={childrenCount}
+                  onChange={(d) => onChildrenChange?.(Math.max(0, childrenCount + d))}
+                  min={0}
+                />
+              </div>
+            </motion.div>
+          </PopoverContent>
+        )}
+      </AnimatePresence>
     </Popover>
   )
 }
 
-/**
- * Componente Auxiliar: Contador de Hóspedes.
- * Linha individual com rótulo e botões de incremento/decremento.
- */
-function GuestCounter({ label, sub, count, onChange, min }: { label: string, sub: string, count: number, onChange: (d: number) => void, min: number }) {
+// ─────────────────────────────────────────────
+// GuestCounter
+// ─────────────────────────────────────────────
+
+function GuestCounter({
+  label,
+  sub,
+  count,
+  onChange,
+  min,
+}: {
+  label: string
+  sub: string
+  count: number
+  onChange: (d: number) => void
+  min: number
+}) {
   return (
     <div className="flex items-center justify-between">
       <div className="grid gap-0.5">
@@ -375,47 +462,81 @@ function GuestCounter({ label, sub, count, onChange, min }: { label: string, sub
         <span className="text-xs text-muted-foreground">{sub}</span>
       </div>
       <div className="flex items-center gap-3">
-        <Button variant="brutal" size="icon" className="h-8 w-8" onClick={() => onChange(count - 1)} disabled={count <= min}>
-          <Minus className="h-3 w-3" />
-        </Button>
-        <span className="w-4 text-center font-mono text-sm font-bold">{count}</span>
-        <Button variant="brutal" size="icon" className="h-8 w-8" onClick={() => onChange(count + 1)}>
-          <Plus className="h-3 w-3" />
-        </Button>
+        <motion.div whileTap={{ scale: 0.88 }} transition={springSnap}>
+          <Button
+            variant="brutal"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onChange(-1)}
+            disabled={count <= min}
+          >
+            <Minus className="h-3 w-3" />
+          </Button>
+        </motion.div>
+
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={count}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+            className="w-4 text-center font-mono text-sm font-bold tabular-nums"
+          >
+            {count}
+          </motion.span>
+        </AnimatePresence>
+
+        <motion.div whileTap={{ scale: 0.88 }} transition={springSnap}>
+          <Button
+            variant="brutal"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onChange(1)}
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+        </motion.div>
       </div>
     </div>
   )
 }
+
+// ─────────────────────────────────────────────
+// PriceInput
+// ─────────────────────────────────────────────
 
 interface PriceInputProps {
   value: number | ""
   onChange?: (value: number | "") => void
 }
 
-/**
- * Componente Auxiliar: Input de Preço.
- * Campo numérico estilizado com rotação e ícone de dólar.
- * Lida com a conversão de string para número e validação básica.
- */
 function PriceInput({ value, onChange }: PriceInputProps) {
   const [localValue, setLocalValue] = useState(value === "" ? "" : String(value))
+  const [focused, setFocused] = useState(false)
 
-  const handleBlurOrEnter = () => {
+  const commit = () => {
     if (!onChange) return
-    if (localValue === "") {
-      onChange("")
-      return
-    }
+    if (localValue === "") { onChange(""); return }
     const parsed = Number(localValue)
-    if (!Number.isNaN(parsed)) {
-      onChange(parsed)
-    }
+    if (!Number.isNaN(parsed)) onChange(parsed)
   }
 
   return (
-    <div className="relative flex-1 min-w-[60px] md:min-w-[80px]">
-      <div className="absolute inset-0 translate-x-[3px] translate-y-[3px] border-[2px] border-foreground bg-foreground/10 -rotate-2" />
-      <div className="relative flex items-center gap-1 bg-background px-2 py-1 md:px-3 md:py-2 border-[2px] border-foreground rotate-[-2deg]">
+    <motion.div
+      className="relative flex-1 min-w-[60px] md:min-w-[80px]"
+      animate={focused ? { rotate: -1.5 } : { rotate: -1 }}
+      transition={springSnap}
+    >
+      {/* Shadow layer */}
+      <div className="absolute inset-0 translate-x-[3px] translate-y-[3px] border-2 border-foreground bg-foreground/10" />
+
+      {/* Input layer */}
+      <motion.div
+        animate={focused ? { scale: 1.02 } : { scale: 1 }}
+        transition={springSnap}
+        className="relative flex items-center gap-1 bg-background px-2 py-1 md:px-3 md:py-2 border-2 border-foreground"
+      >
         <DollarSign className="h-2.5 w-2.5 md:h-3 md:w-3 text-muted-foreground shrink-0" />
         <input
           type="number"
@@ -424,11 +545,12 @@ function PriceInput({ value, onChange }: PriceInputProps) {
           className="w-full bg-transparent font-mono text-[10px] md:text-xs uppercase outline-none min-w-0"
           value={localValue}
           onChange={(e) => setLocalValue(e.target.value)}
-          onBlur={handleBlurOrEnter}
-          onKeyDown={(e) => e.key === "Enter" && handleBlurOrEnter()}
+          onFocus={() => setFocused(true)}
+          onBlur={() => { setFocused(false); commit() }}
+          onKeyDown={(e) => e.key === "Enter" && commit()}
           placeholder="500"
         />
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }

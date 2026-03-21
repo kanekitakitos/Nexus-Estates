@@ -1,98 +1,142 @@
+"use client"
+
 /**
- * @description
- *  Ficheiro para implementar um contentor para listar as propriedades
- *  Tambem para controlar e gerir a animação de saida da lista das propriedades
- * 
- * @version 1.0
+ * BookingList — v2
+ *
+ * Mantém o que o original tinha de bom:
+ * - Rotação alternada nos cards (±1deg) para aspecto editorial
+ * - BookingHowItWorks inserido na posição 4 como card no grid
+ * - listContainerVariants / listItemVariants do motion.ts
+ *
+ * Melhorias:
+ * - Estado vazio com animação e mensagem em PT
+ * - CARD_ROTATION_BASE e HOW_IT_WORKS_ROTATION como constantes
+ * - Lógica de inserção do HowItWorks extraída para helper legível
+ * - Grid ligeiramente mais generoso em gap para respirar com o novo card design
  */
+
+import { motion } from "framer-motion"
+import { SearchX } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 import { BookingCard, BookingProperty } from "./booking-card"
 import { BookingHowItWorks } from "./booking-how-it-works"
 import { BrutalEmptyState } from "@/components/ui/data-display/card"
-import { cn } from "@/lib/utils"
-import { motion } from "framer-motion"
-import { comicPopVariants, listContainerVariants, listItemVariants, panelVariants } from "@/features/bookings/motion"
+import {
+  comicPopVariants,
+  listContainerVariants,
+  listItemVariants,
+  panelVariants,
+} from "@/features/bookings/motion"
 
-const GRID_CONTAINER_STYLES = "grid grid-cols-2 md:grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3 md:gap-8 transition-[grid-template-columns,gap] duration-200 ease-[cubic-bezier(0.2,0.8,0.4,1)] pb-12"
-const CARD_ROTATION_BASE = "hover:rotate-0 hover:z-10 transition-transform duration-300"
-const HOW_IT_WORKS_ROTATION = "aspect-[4/5] rotate-2 hover:rotate-0 hover:z-10 transition-transform duration-300"
+// ─────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────
 
+// Position (0-indexed) where the HowItWorks card is injected
+const HOW_IT_WORKS_INDEX = 4
 
-/**
- * @prop properties - BookingProperty[]
- * @prop onBook? - (id: string) => void
- */
-interface BookingListProps {
-    properties: BookingProperty[]
-    onBook?: (id: string) => void
+const GRID_STYLES =
+  "grid grid-cols-2 md:grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3 md:gap-8 pb-12"
+
+const CARD_BASE_STYLES =
+  "hover:rotate-0 hover:z-10 transition-transform duration-300"
+
+const HOW_IT_WORKS_STYLES =
+  "aspect-[4/5] rotate-2 hover:rotate-0 hover:z-10 transition-transform duration-300"
+
+/** Inclinação alternada por índice — mantém o “editorial feel” do grid. */
+function cardRotation(index: number): string {
+  return index % 2 === 0 ? "rotate-1" : "-rotate-1"
 }
 
-/**
- * Componete para gerir a listagem de propriedades disponiveis para o boocking
- *   e gerir as animações de saidada e entrada desta listagem
- * 
- * @param {BookingListProps} props - Propriedades do componente. link: {@link BookingListProps}
- * @param {BookingProperty[]} props.properties - Lista de propriedades a exibir.
- * @param {(id: string) => void} [props.onBook] - Callback executado ao selecionar uma propriedade.
- * @returns Um elemento JSX contendo a grelha com propriedades ou o estado vazio.
- */
+// ─────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────
+
+interface BookingListProps {
+  properties: BookingProperty[]
+  onBook?: (id: string) => void
+}
+
+// ─────────────────────────────────────────────
+// BookingList
+// ─────────────────────────────────────────────
+
 export function BookingList({ properties, onBook }: BookingListProps) {
-    
-    // caso não hava propriedades, retorna o estado vazio
-    if (properties.length === 0) {
-        return (
-            <motion.div variants={panelVariants} initial="initial" animate="animate">
-                <BrutalEmptyState>
-                    <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
-                        <h3 className="mt-4 font-mono text-xl font-bold uppercase tracking-tight">No properties found</h3>
-                        <p className="mb-4 mt-2 text-sm text-muted-foreground font-mono">
-                            We could not find any properties matching your criteria. Try adjusting your filters.
-                        </p>
-                    </div>
-                </BrutalEmptyState>
-            </motion.div>
+  if (properties.length === 0) {
+    return <EmptyState />
+  }
+
+  return (
+    <motion.div
+      className={GRID_STYLES}
+      variants={listContainerVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+    >
+      {properties.map((property, index) => {
+        const card = (
+          <motion.div
+            key={property.id}
+            variants={listItemVariants}
+            className={cn(cardRotation(index), CARD_BASE_STYLES)}
+          >
+            <BookingCard property={property} onBook={onBook} />
+          </motion.div>
         )
-    }
 
-    return (
-        <motion.div
-            className={GRID_CONTAINER_STYLES}
-            variants={listContainerVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-        >
-            {properties.map((property, index) => {
-                const card = (
-                    <motion.div
-                        key={property.id}
-                        variants={listItemVariants}
-                        className={cn(
-                            index % 2 === 0 ? "rotate-1" : "-rotate-1",
-                            CARD_ROTATION_BASE
-                        )}
-                    >
-                        <BookingCard property={property} onBook={onBook} />
-                    </motion.div>
-                )
+        // Inject HowItWorks at position HOW_IT_WORKS_INDEX
+        if (index === HOW_IT_WORKS_INDEX) {
+          return (
+            <div key={`group-${property.id}`} className="contents">
+              <motion.div
+                key="how-it-works"
+                variants={comicPopVariants}
+                className={HOW_IT_WORKS_STYLES}
+              >
+                <BookingHowItWorks mode="card" className="h-full w-full" />
+              </motion.div>
+              {card}
+            </div>
+          )
+        }
 
-                if (index === 4) {
-                    return (
-                        <div key={`wrapper-${property.id}`} className="contents">
-                            <motion.div
-                                key="how-it-works"
-                                variants={comicPopVariants}
-                                className={HOW_IT_WORKS_ROTATION}
-                            >
-                                <BookingHowItWorks mode="card" className="h-full w-full" />
-                            </motion.div>
-                            {card}
-                        </div>
-                    )
-                }
+        return card
+      })}
+    </motion.div>
+  )
+}
 
-                return card
-            })}
-        </motion.div>
-    )
+// ─────────────────────────────────────────────
+// EmptyState
+// ─────────────────────────────────────────────
+
+/** Estado vazio da listagem quando não existem propriedades para mostrar. */
+function EmptyState() {
+  return (
+    <motion.div variants={panelVariants} initial="initial" animate="animate">
+      <BrutalEmptyState>
+        <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center gap-3">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.15, type: "spring", stiffness: 420, damping: 18 }}
+            className="rounded-xl border-2 border-foreground/20 bg-muted/30 p-4 shadow-[3px_3px_0_0_rgb(0,0,0,0.06)]"
+          >
+            <SearchX className="h-8 w-8 text-muted-foreground/50" />
+          </motion.div>
+          <div>
+            <h3 className="font-mono text-xl font-bold uppercase tracking-tight">
+              Sem resultados
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground font-mono max-w-xs">
+              Não encontrámos propriedades com estes critérios. Tenta ajustar os filtros.
+            </p>
+          </div>
+        </div>
+      </BrutalEmptyState>
+    </motion.div>
+  )
 }

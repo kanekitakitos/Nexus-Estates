@@ -1,5 +1,18 @@
 "use client"
 
+/**
+ * DateRangeCalendar — v2
+ *
+ * Melhorias:
+ * - BookingActionPayload exportado (reutilizável em booking-details)
+ * - Sem props redundantes (totalPrice === total — removido)
+ * - AnimatePresence no pricing summary (estado vazio → preenchido)
+ * - Estado vazio com visual útil (placeholder de datas)
+ * - CalendarSection inline (era só um wrapper de uma linha)
+ * - Animação de counter no número de noites
+ * - useMediaQuery encapsulado — sem prop drilling
+ */
+
 import * as React from "react"
 import { BrutalCalendar } from "@/components/ui/calendar"
 import { DateRange } from "react-day-picker"
@@ -7,32 +20,51 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/forms/button"
 import { BrutalCard } from "@/components/ui/data-display/card"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import { AnimatePresence, motion } from "framer-motion"
+import { Calendar, MessageCircle, ChevronRight, ArrowRight } from "lucide-react"
+import { format } from "date-fns"
+import {
+  springSnap, springBounce,
+  gummyHover, gummyTap, comicSpring,
+  pillHover, pillTap,
+  fadeUpEnter,
+} from "@/features/bookings/motion"
+
+// ─────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────
+
+export type BookingActionPayload = {
+  range: DateRange
+  totalPrice: number
+  nights: number
+}
 
 interface DateRangeCalendarProps {
   className?: string
   pricePerNight: number
   defaultValue?: DateRange
-  onConfirmBooking?: (data: { range: DateRange; totalPrice: number; nights: number }) => void
-  onContactOwner?: (data: { range: DateRange; totalPrice: number; nights: number }) => void
+  onConfirmBooking?: (data: BookingActionPayload) => void
+  onContactOwner?: (data: BookingActionPayload) => void
 }
 
-/**
- * Componente de Calendário de Reservas e Cálculo de Preços.
- * 
- * Este componente combina a seleção de datas (via calendário) com um resumo financeiro da reserva.
- * 
- * Funcionalidades:
- * - Seleção de intervalo de datas (check-in / check-out).
- * - Cálculo automático do número de noites.
- * - Cálculo do custo total das diárias.
- * - Botões de ação para confirmar reserva ou contactar o proprietário.
- * - Responsividade: Exibe 1 mês em mobile e 2 meses em desktop.
- * 
- * @param pricePerNight - Valor da diária da propriedade.
- * @param defaultValue - Intervalo de datas inicial (opcional).
- * @param onConfirmBooking - Callback executado ao clicar em "Reserve".
- * @param onContactOwner - Callback executado ao clicar em "Contact Owner".
- */
+// ─────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────
+
+function calcNights(range: DateRange | undefined): number {
+  if (!range?.from || !range?.to) return 0
+  return Math.max(1, Math.ceil(
+    Math.abs(range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24)
+  ))
+}
+
+const TODAY = new Date(new Date().setHours(0, 0, 0, 0))
+
+// ─────────────────────────────────────────────
+// DateRangeCalendar
+// ─────────────────────────────────────────────
+
 export function DateRangeCalendar({
   className,
   pricePerNight,
@@ -43,183 +75,253 @@ export function DateRangeCalendar({
   const [date, setDate] = React.useState<DateRange | undefined>(defaultValue)
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
-  // Calcula o número de noites baseado no intervalo selecionado
-  const nights = React.useMemo(() => {
-    if (!date?.from || !date?.to) return 0
-    const diffTime = Math.abs(date.to.getTime() - date.from.getTime())
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  }, [date])
+  const nights = React.useMemo(() => calcNights(date), [date])
+  const total = nights * pricePerNight
 
-  // Cálculos financeiros
-  const totalPrice = nights * pricePerNight
-  const total = totalPrice
+  const isValid = Boolean(date?.from && date?.to)
+  const payload = React.useMemo<BookingActionPayload | null>(
+    () => (isValid && date?.from && date?.to ? { range: date, totalPrice: total, nights } : null),
+    [isValid, date, total, nights]
+  )
 
   return (
-    <div className={cn("grid gap-6 grid-cols-1 lg:grid-cols-[1fr_380px]", className)}>
-      {/* Seção Esquerda: Calendário */}
-      <CalendarSection 
-        date={date} 
-        setDate={setDate} 
-        isDesktop={isDesktop} 
-      />
+    <div className={cn("grid gap-6 grid-cols-1 lg:grid-cols-[1fr_360px]", className)}>
 
-      {/* Seção Direita: Resumo de Custos */}
-      <div className="space-y-6">
+      {/* Left — Calendar */}
+      <motion.div
+        {...fadeUpEnter(0, 12, 0.3)}
+      >
+        <BrutalCalendar
+          title="Selecionar datas"
+          initialFocus
+          mode="range"
+          defaultMonth={date?.from}
+          selected={date}
+          onSelect={setDate}
+          numberOfMonths={isDesktop ? 2 : 1}
+          className="w-full max-w-[300px] md:max-w-none"
+          disabled={(d) => d < TODAY}
+        />
+      </motion.div>
+
+      {/* Right — Pricing summary */}
+      <motion.div
+        {...fadeUpEnter(0.08, 12, 0.3)}
+        className="space-y-4"
+      >
         <BrutalCard>
-          <PricingHeader 
-            pricePerNight={pricePerNight} 
-            nights={nights} 
-          />
-          
-          <PricingBreakdown 
-            pricePerNight={pricePerNight} 
-            nights={nights} 
-            totalPrice={totalPrice}
+          <PricingSummary
+            pricePerNight={pricePerNight}
+            nights={nights}
             total={total}
+            date={date}
           />
-
-          <ActionButtons 
-            date={date} 
-            total={total} 
-            nights={nights} 
-            onConfirmBooking={onConfirmBooking} 
-            onContactOwner={onContactOwner} 
+          <BookingActions
+            payload={payload}
+            isValid={isValid}
+            onConfirmBooking={onConfirmBooking}
+            onContactOwner={onContactOwner}
           />
         </BrutalCard>
-      </div>
+      </motion.div>
     </div>
   )
 }
 
-// --- Sub-components ---
+// ─────────────────────────────────────────────
+// PricingSummary
+// ─────────────────────────────────────────────
 
-/**
- * Subcomponente: Seção do Calendário.
- * Renderiza o componente BrutalCalendar configurado para seleção de intervalo.
- */
-function CalendarSection({ 
-  date, 
-  setDate, 
-  isDesktop 
-}: { 
-  date: DateRange | undefined, 
-  setDate: (d: DateRange | undefined) => void, 
-  isDesktop: boolean 
+function PricingSummary({
+  pricePerNight,
+  nights,
+  total,
+  date,
+}: {
+  pricePerNight: number
+  nights: number
+  total: number
+  date: DateRange | undefined
 }) {
+  const hasDates = Boolean(date?.from && date?.to)
+
   return (
-    <BrutalCalendar
-      title="Select Dates"
-      initialFocus
-      mode="range"
-      defaultMonth={date?.from}
-      selected={date}
-      onSelect={setDate}
-      numberOfMonths={isDesktop ? 2 : 1}
-      className="w-full max-w-[300px] md:max-w-none"
-      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-    />
+    <div className="space-y-5">
+      {/* Price header */}
+      <div className="flex items-baseline justify-between gap-3">
+        <div>
+          <span className="font-mono text-2xl font-black">€{pricePerNight}</span>
+          <span className="font-mono text-sm text-muted-foreground ml-1">/noite</span>
+        </div>
+
+        <AnimatePresence mode="wait">
+          {nights > 0 && (
+            <motion.div
+              key={nights}
+              initial={{ opacity: 0, scale: 0.85, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 4 }}
+              transition={springBounce}
+              className="rounded-full border-2 border-primary bg-primary/10 px-3 py-1"
+            >
+              <span className="font-mono text-xs font-black text-primary uppercase">
+                {nights} noite{nights !== 1 ? "s" : ""}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Date chips */}
+      <AnimatePresence mode="wait">
+        {hasDates ? (
+          <motion.div
+            key="date-chips"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="grid grid-cols-2 gap-2"
+          >
+            <DateChip label="Check-in" date={date?.from} />
+            <DateChip label="Check-out" date={date?.to} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="date-empty"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="flex items-center gap-2.5 rounded-lg border-2 border-dashed border-foreground/20 p-3.5 text-muted-foreground"
+          >
+            <Calendar className="h-4 w-4 shrink-0" />
+            <span className="font-mono text-xs leading-relaxed">
+              Seleciona um intervalo de datas no calendário
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Breakdown — only when dates are set */}
+      <AnimatePresence>
+        {hasDates && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-2.5 font-mono text-sm pt-1">
+              <div className="flex justify-between text-muted-foreground">
+                <span className="underline decoration-dotted underline-offset-2">
+                  €{pricePerNight} × {nights} noite{nights !== 1 ? "s" : ""}
+                </span>
+                <span className="font-bold text-foreground">€{nights * pricePerNight}</span>
+              </div>
+
+              <div className="flex justify-between border-t-2 border-foreground pt-3 font-black text-base">
+                <span className="uppercase">Total</span>
+                <motion.span
+                  key={total}
+                  initial={{ opacity: 0, x: 6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={springSnap}
+                  className="text-primary tabular-nums"
+                >
+                  €{total}
+                </motion.span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   )
 }
 
-/**
- * Subcomponente: Cabeçalho de Preço.
- * Mostra o preço por noite e o total de noites selecionadas.
- */
-function PricingHeader({ pricePerNight, nights }: { pricePerNight: number, nights: number }) {
+// ─────────────────────────────────────────────
+// DateChip — small date display
+// ─────────────────────────────────────────────
+
+function DateChip({ label, date }: { label: string; date?: Date }) {
   return (
-    <div className="flex items-baseline justify-between">
-      <h3 className="font-mono text-xl font-bold uppercase">
-        €{pricePerNight}
-        <span className="text-sm text-muted-foreground">/night</span>
-      </h3>
-      {nights > 0 && (
-          <span className="font-mono text-sm font-bold text-primary">
-              {nights} night{nights !== 1 ? "s" : ""}
-          </span>
+    <div className="rounded-lg border-2 border-foreground bg-background p-3 shadow-[2px_2px_0_0_rgb(0,0,0)] dark:shadow-[2px_2px_0_0_rgba(255,255,255,0.8)]">
+      <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground mb-0.5">
+        {label}
+      </div>
+      <div className="font-black text-sm leading-none">
+        {date ? format(date, "dd MMM") : "—"}
+      </div>
+      {date && (
+        <div className="font-mono text-[10px] text-muted-foreground mt-0.5">
+          {format(date, "yyyy")}
+        </div>
       )}
     </div>
   )
 }
 
-/**
- * Subcomponente: Detalhamento de Custos.
- * Lista discriminada de todos os valores que compõem o preço final.
- */
-function PricingBreakdown({ 
-  pricePerNight, 
-  nights, 
-  totalPrice, 
-  total 
-}: { 
-  pricePerNight: number, 
-  nights: number, 
-  totalPrice: number, 
-  total: number 
+// ─────────────────────────────────────────────
+// BookingActions
+// ─────────────────────────────────────────────
+
+function BookingActions({
+  payload,
+  isValid,
+  onConfirmBooking,
+  onContactOwner,
+}: {
+  payload: BookingActionPayload | null
+  isValid: boolean
+  onConfirmBooking?: (data: BookingActionPayload) => void
+  onContactOwner?: (data: BookingActionPayload) => void
 }) {
   return (
-    <div className="my-6 space-y-3 font-mono text-sm">
-      <div className="flex justify-between">
-        <span className="text-muted-foreground underline decoration-dotted">
-          €{pricePerNight} x {nights} nights
-        </span>
-        <span>€{totalPrice}</span>
-      </div>
-      <div className="mt-4 flex justify-between border-t-[2px] border-foreground pt-4 text-base font-bold">
-        <span>Total</span>
-        <span>€{total}</span>
+    <div className="mt-6 space-y-3">
+      {/* Primary CTA */}
+      <motion.div
+        whileHover={isValid ? gummyHover : undefined}
+        whileTap={isValid ? gummyTap : undefined}
+        transition={comicSpring}
+      >
+        <Button
+          variant="brutal"
+          className="w-full h-12 text-base font-black uppercase tracking-wider shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)]"
+          disabled={!isValid}
+          onClick={() => payload && onConfirmBooking?.(payload)}
+        >
+          {isValid ? (
+            <span className="flex items-center gap-2">
+              Reservar
+              <ChevronRight className="h-4 w-4" />
+            </span>
+          ) : (
+            "Seleciona as datas"
+          )}
+        </Button>
+      </motion.div>
+
+      {/* Fine print */}
+      <p className="text-center font-mono text-[10px] text-muted-foreground/60 uppercase tracking-wider">
+        Sem cobrança até à confirmação
+      </p>
+
+      {/* Secondary — contact owner */}
+      <div className="pt-1 border-t border-foreground/10">
+        <motion.div whileHover={pillHover} whileTap={pillTap} transition={springSnap}>
+          <Button
+            variant="brutal-outline"
+            className="w-full h-10 text-xs font-black uppercase"
+            disabled={!isValid}
+            onClick={() => payload && onContactOwner?.(payload)}
+          >
+            <MessageCircle className="h-3.5 w-3.5 mr-2" />
+            Contactar proprietário
+          </Button>
+        </motion.div>
       </div>
     </div>
   )
-}
-
-/**
- * Subcomponente: Botões de Ação.
- * Botão principal de reserva e link secundário para contato.
- * Desabilitados se o intervalo de datas não for válido.
- */
-function ActionButtons({ 
-  date, 
-  total, 
-  nights, 
-  onConfirmBooking, 
-  onContactOwner 
-}: { 
-  date: DateRange | undefined, 
-  total: number, 
-  nights: number, 
-  onConfirmBooking?: (data: BookingActionPayload) => void, 
-  onContactOwner?: (data: BookingActionPayload) => void 
-}) {
-  const isValid = Boolean(date?.from && date?.to)
-  const payload: BookingActionPayload | null = isValid && date?.from && date?.to ? { range: date, totalPrice: total, nights } : null
-
-  return (
-    <>
-      <Button
-        variant="brutal"
-        className="w-full h-12 text-base font-bold uppercase tracking-wider"
-        disabled={!isValid}
-        onClick={() => payload && onConfirmBooking?.(payload)}
-      >
-        Reserve
-      </Button>
-      
-      <div className="mt-4 text-center">
-         <span className="text-xs text-muted-foreground block mb-2">You won&apos;t be charged yet</span>
-         <Button 
-            variant="link" 
-            className="h-auto p-0 text-xs text-foreground underline decoration-2 hover:text-primary"
-            onClick={() => payload && onContactOwner?.(payload)}
-         >
-            Contact Owner
-         </Button>
-      </div>
-    </>
-  )
-}
-
-type BookingActionPayload = {
-  range: DateRange;
-  totalPrice: number;
-  nights: number;
 }
