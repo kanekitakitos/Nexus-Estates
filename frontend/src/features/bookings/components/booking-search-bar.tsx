@@ -3,11 +3,17 @@
 /**
  * BookingSearchBar
  *
- * Barra de pesquisa da listagem de bookings.
- * Objectivos:
- * - UX optimizada para mobile (secções compactas, popovers)
- * - Feedback visual “filled” por secção
- * - Animações consistentes via presets em `features/bookings/motion.ts`
+ * Contexto
+ * - Barra de pesquisa usada no ecrã de listagem (BookingView).
+ *
+ * Responsabilidades
+ * - Capturar critérios de pesquisa (destino, datas, hóspedes, preço máximo).
+ * - Emitir callbacks por campo para o parent aplicar filtros.
+ *
+ * UX/Animação
+ * - Secções compactas e popovers para manter densidade correcta em mobile.
+ * - Indicadores “filled” para feedback rápido sem ocupar espaço.
+ * - Presets de motion centralizados em `features/bookings/motion.ts`.
  */
 import { Calendar as CalendarIcon, DollarSign, MapPin, Minus, Plus, Search, Users } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"

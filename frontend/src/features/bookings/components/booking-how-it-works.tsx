@@ -3,14 +3,16 @@
 /**
  * BookingHowItWorks — v2
  *
- * Redesenhado para ser memorável no contexto da listing grid:
- * - Números decorativos gigantes em fundo (opacity baixa) — profundidade
- * - Textura diagonal CSS (background-image) em vez de blur circle inútil
- * - "Scanner" line animada que percorre os steps em loop
- * - Steps com stagger de entrada e hover individual (slide para a direita)
- * - Título dois pesos: "Como" regular + "Funciona" heavy com accent
- * - CTA "Explorar" no fundo — dá razão de ser ao card
- * - Modo "card" mais compacto mas sem perder personalidade
+ * Objectivo
+ * - Card “editorial” que explica rapidamente o fluxo de reserva dentro do grid.
+ *
+ * Onde é usado
+ * - Injectado em `BookingList` (posição fixa) para quebrar monotonia e guiar o utilizador.
+ *
+ * Notas de UX/Animação
+ * - Textura diagonal é CSS (barata) — evita blur pesado.
+ * - Scanner line é motion (loop) para sensação “dashboard vivo”.
+ * - Steps entram com stagger e têm hover subtil; respeita reduced motion.
  */
 
 import { cn } from "@/lib/utils"

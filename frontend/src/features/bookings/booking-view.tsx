@@ -3,13 +3,27 @@
 /**
  * BookingView — v2
  *
- * Melhorias vs v1:
- * - SearchFilters agrupados num único objecto — menos useState avulso
- * - Skeleton loader animado em vez de texto "A carregar..."
- * - Hero com stagger por palavra e sublinhado animado
- * - Contador de resultados animado com AnimatePresence
- * - useNavigationGestures com { passive: true } e ref estável
- * - Separação clara entre layout (BookingView) e presentação (HeroSection, ResultsHeader)
+ * Contexto
+ * - Ecrã principal do módulo de reservas (bookings) no frontend.
+ * - Mantém o fluxo dentro do mesmo “screen” para transições rápidas (sem trocar de rota).
+ *
+ * Responsabilidades
+ * - Carregar propriedades do backend (`PropertyService.getAllProperties()`).
+ * - Filtrar propriedades localmente (destino/preço).
+ * - Orquestrar navegação interna: list → details → checkout.
+ * - Garantir transições suaves com Framer Motion (`AnimatePresence`).
+ *
+ * UX/Animação
+ * - Transições de ecrã usam `pageVariants` (motion.ts) para consistência.
+ * - Skeleton loader usa shimmer para comunicar loading sem “saltos” de layout.
+ * - Hero e contadores usam stagger/AnimatePresence para dar “vida” sem ruído.
+ *
+ * Acessibilidade
+ * - Mantém navegação por botões/inputs standard nas sub-components.
+ * - Gestos (scroll horizontal/swipe) são uma conveniência, não substituem UI.
+ *
+ * Notas de arquitectura
+ * - Este ficheiro mantém só coordenação e estado. A UI detalhada está em components/.
  */
 
 import { useMemo, useState, useEffect, useCallback, useRef } from "react"
@@ -66,11 +80,14 @@ const DEFAULT_FILTERS: SearchFilters = {
 /**
  * Root da feature de bookings.
  *
- * Responsabilidades:
- * - Carregar propriedades do backend (`PropertyService`)
- * - Aplicar filtros locais
- * - Controlar o fluxo list → details → checkout com `AnimatePresence`
- * - Garantir UX rápida (sem navegar entre páginas/rotas)
+ * Fluxo
+ * - `screen === "list"`: pesquisa + grid de propriedades.
+ * - `screen === "details"`: detalhe de uma propriedade seleccionada.
+ * - `screen === "checkout"`: formulário de reserva/pagamento para a propriedade seleccionada.
+ *
+ * Side-effects
+ * - Carrega dados ao montar.
+ * - Controla scrollTo(0,0) em cada transição para evitar estados confusos.
  */
 export function BookingView() {
   const [properties, setProperties] = useState<BookingProperty[]>([])
@@ -83,7 +100,12 @@ export function BookingView() {
   const [exitCleanup, setExitCleanup] = useState<ExitCleanup>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
 
-  /** Setter utilitário: aplica update parcial ao objecto de filtros. */
+  /**
+   * Setter utilitário: aplica update parcial ao objecto de filtros.
+   *
+   * Motivo
+   * - Evita múltiplos `useState` e reduz prop drilling.
+   */
   const setFilter = useCallback(
     <K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) => {
       setFilters((prev) => ({ ...prev, [key]: value }))
@@ -127,7 +149,12 @@ export function BookingView() {
 
   // ── Navegação entre ecrãs (máquina de estados simples)
 
-  /** Abre o detalhe de uma propriedade (a partir do id). */
+  /**
+   * Abre o detalhe de uma propriedade (a partir do id).
+   *
+   * Guardas
+   * - Respeita `isTransitioning` para evitar double-clicks durante animação.
+   */
   const navigateToDetails = useCallback(
     (id: string) => {
       if (isTransitioning) return
@@ -144,7 +171,12 @@ export function BookingView() {
     [isTransitioning, properties]
   )
 
-  /** Volta à lista e limpa selecção/checkout após terminar animação de saída. */
+  /**
+   * Volta à lista e limpa selecção/checkout após terminar animação de saída.
+   *
+   * Nota
+   * - A limpeza real acontece em `onExitComplete` para não haver “flash” durante a animação.
+   */
   const navigateBackToList = useCallback(() => {
     if (isTransitioning) return
     setExitCleanup("clearAll")
@@ -153,7 +185,12 @@ export function BookingView() {
     window.scrollTo(0, 0)
   }, [isTransitioning])
 
-  /** Avança para checkout mantendo a propriedade seleccionada. */
+  /**
+   * Avança para checkout mantendo a propriedade seleccionada.
+   *
+   * Entrada
+   * - `payload` vem do BookingDetails (datas confirmadas).
+   */
   const navigateToCheckout = useCallback(
     (payload: { checkIn: string; checkOut: string }) => {
       if (isTransitioning) return
@@ -166,7 +203,12 @@ export function BookingView() {
     [isTransitioning]
   )
 
-  /** Volta do checkout para os detalhes, preservando propriedade. */
+  /**
+   * Volta do checkout para os detalhes, preservando propriedade.
+   *
+   * Motivo
+   * - Permite editar datas/ver detalhes sem recomeçar o fluxo.
+   */
   const navigateBackToDetails = useCallback(() => {
     if (isTransitioning) return
     setExitCleanup("clearCheckout")
@@ -186,6 +228,10 @@ export function BookingView() {
     <AnimatePresence
       mode="wait"
       onExitComplete={() => {
+        /**
+         * Cleanup pós-animação.
+         * Mantém o estado consistente com o screen final e evita “stale UI”.
+         */
         if (exitCleanup === "clearCheckout") setCheckout(null)
         if (exitCleanup === "clearSelected") setSelectedProperty(null)
         if (exitCleanup === "clearAll") { setCheckout(null); setSelectedProperty(null) }
@@ -301,6 +347,13 @@ const HERO_WORDS = [
  * Hero da listagem (título “word-stagger” + sublinhado animado).
  * Mantém-se isolado para não poluir o componente root.
  */
+/**
+ * Hero da listagem.
+ *
+ * Detalhes
+ * - Usa stagger por palavra para um título “editorial”.
+ * - Mantém reduced-motion através de `useReducedMotion`.
+ */
 function HeroSection() {
   const shouldReduceMotion = useReducedMotion()
 
@@ -363,6 +416,12 @@ function HeroSection() {
 // ─────────────────────────────────────────────
 
 /** Cabeçalho de resultados com contador animado (valor troca com `AnimatePresence`). */
+/**
+ * Cabeçalho de resultados.
+ *
+ * - Mostra count animado.
+ * - Ajusta label consoante existirem filtros activos.
+ */
 function ResultsHeader({ count, hasFilter }: { count: number; hasFilter: boolean }) {
   return (
     <div className="flex items-center gap-3 mb-4">
@@ -390,6 +449,13 @@ function ResultsHeader({ count, hasFilter }: { count: number; hasFilter: boolean
 // ─────────────────────────────────────────────
 
 /** Estado de loading: skeleton grid com shimmer animado. */
+/**
+ * Estado de loading para a listagem.
+ *
+ * Motivo
+ * - Mostra estrutura aproximada do grid e reduz layout shift.
+ * - Usa shimmer para sugerir carregamento sem bloquear a UI.
+ */
 function PropertySkeletons() {
   return (
     <motion.div
@@ -440,6 +506,18 @@ function PropertySkeletons() {
 // useNavigationGestures
 // ─────────────────────────────────────────────
 
+/**
+ * Hook de navegação por gestos no ecrã de listagem.
+ *
+ * Suporte
+ * - Trackpad horizontal (WheelEvent deltaX)
+ * - Swipe (touchstart/touchend)
+ *
+ * Guardas
+ * - Só corre quando `screen === "list"`
+ * - Só navega quando existe `lastViewedPropertyId`
+ * - Respeita `isTransitioning`
+ */
 function useNavigationGestures({
   screen,
   lastViewedPropertyId,
@@ -451,7 +529,7 @@ function useNavigationGestures({
   isTransitioning: boolean
   onNavigateForward: (id: string) => void
 }) {
-  // Stable ref — avoids re-attaching listeners when callback changes identity
+  /** Ref estável para evitar re-attach de listeners quando o callback muda de identidade. */
   const onForwardRef = useRef(onNavigateForward)
   useEffect(() => { onForwardRef.current = onNavigateForward }, [onNavigateForward])
 

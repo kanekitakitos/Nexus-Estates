@@ -3,14 +3,17 @@
 /**
  * DateRangeCalendar — v2
  *
- * Melhorias:
- * - BookingActionPayload exportado (reutilizável em booking-details)
- * - Sem props redundantes (totalPrice === total — removido)
- * - AnimatePresence no pricing summary (estado vazio → preenchido)
- * - Estado vazio com visual útil (placeholder de datas)
- * - CalendarSection inline (era só um wrapper de uma linha)
- * - Animação de counter no número de noites
- * - useMediaQuery encapsulado — sem prop drilling
+ * Contexto
+ * - Selector de datas reutilizado em `BookingDetails` para iniciar uma reserva.
+ *
+ * Responsabilidades
+ * - Permitir seleccionar um intervalo (check-in/check-out) com UX consistente.
+ * - Calcular noites e total (baseado em `pricePerNight`) localmente.
+ * - Emitir callbacks com payload tipado para avançar no fluxo (reserva/contacto).
+ *
+ * Notas
+ * - A validação de disponibilidade real deve viver no backend/channel manager.
+ * - Este componente aplica apenas guardas UX (ex: impedir datas no passado).
  */
 
 import * as React from "react"

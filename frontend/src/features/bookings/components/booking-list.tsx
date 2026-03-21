@@ -3,16 +3,17 @@
 /**
  * BookingList — v2
  *
- * Mantém o que o original tinha de bom:
- * - Rotação alternada nos cards (±1deg) para aspecto editorial
- * - BookingHowItWorks inserido na posição 4 como card no grid
- * - listContainerVariants / listItemVariants do motion.ts
+ * Contexto
+ * - Grid principal de resultados no ecrã de listagem (BookingView).
  *
- * Melhorias:
- * - Estado vazio com animação e mensagem em PT
- * - CARD_ROTATION_BASE e HOW_IT_WORKS_ROTATION como constantes
- * - Lógica de inserção do HowItWorks extraída para helper legível
- * - Grid ligeiramente mais generoso em gap para respirar com o novo card design
+ * Responsabilidades
+ * - Renderizar uma lista de `BookingCard` com animação de entrada em stagger.
+ * - Injectar `BookingHowItWorks` numa posição fixa para orientar o utilizador.
+ * - Mostrar EmptyState quando a lista vem vazia.
+ *
+ * Notas de UX
+ * - Rotação alternada (±1deg) dá aspecto editorial sem comprometer legibilidade.
+ * - Hover remove rotação e sobe z-index para dar “focus” ao card.
  */
 
 import { motion } from "framer-motion"

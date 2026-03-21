@@ -3,13 +3,26 @@
 /**
  * BookingCheckoutForm — v2 (single-page scroll)
  *
- * Arquitectura:
- * - Página única com scroll (sem step switching / AnimatePresence)
- * - 4 secções locked progressivamente conforme validação
- * - Sidebar sticky: resumo, snapshot do hóspede, progress tracker
- * - RHFField genérico único (text | number | select)
- * - Lógica isolada: `normalize` namespace + `useBookingSubmit` hook
- * - Estilo: brutal-clean (bordas bold, sombras, sem ruído)
+ * Contexto
+ * - Formulário de reserva (checkout) apresentado no fluxo BookingView → BookingDetails → Checkout.
+ * - Mantém-se no mesmo screen (sem navegação de rota) para transições rápidas.
+ *
+ * Arquitectura (mobile-first)
+ * - Página única com scroll: evita “wizard fatigue” e mantém contexto visível.
+ * - Secções progressivas (locked/unlocked) com validação por RHF+Zod.
+ * - Sidebar sticky em desktop: resumo, snapshot do hóspede e tracker de progresso.
+ *
+ * Segurança e validação
+ * - Todas as entradas passam por normalização (sanitização) antes de seguirem para o payload.
+ * - Zod garante regras formais antes do submit (inclui campos SEF dinâmicos).
+ *
+ * Integrações (não alterar lógica de negócio)
+ * - `BookingService.createBooking` + `createPaymentIntent` mantêm-se como fonte de verdade.
+ * - Sessão: pré-preenche contacto se existir JWT válido (localStorage) e mantém modo Guest.
+ *
+ * Acessibilidade
+ * - O progresso não depende de gestos; botões e links funcionam com teclado.
+ * - Respeita `prefers-reduced-motion` através de presets na UI (onde aplicável).
  */
 
 import React from "react"

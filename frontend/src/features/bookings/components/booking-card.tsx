@@ -3,15 +3,17 @@
 /**
  * BookingCard — v2
  *
- * Redesenhado de raiz:
- * - Imagem full-bleed com gradiente na base para legibilidade do texto
- * - Título, localização e preço sobrepostos na imagem (muito mais impacto)
- * - Featured badge com glow pulsante animado
- * - Tags como pills mínimas no topo do card
- * - Hover: sombra brutalista cresce + card levanta (gummy)
- * - Animação de entrada staggerada via `listItemVariants` do motion.ts
- * - Sem constantes locais duplicadas
- * - Interface BookingProperty exportada sem alteração (compatibilidade)
+ * Contexto
+ * - Card usado na listagem (BookingList) para representar uma propriedade.
+ *
+ * Responsabilidades
+ * - Apresentar imagem, título, localização e preço de forma impactante.
+ * - Ser “tap-friendly” em mobile (container inteiro clicável).
+ * - Emitir `onBook(property.id)` quando o utilizador interage.
+ *
+ * UX/Animação
+ * - Presets (hover/tap/shadow/glow) vêm de `features/bookings/motion.ts` para consistência.
+ * - Respeita `prefers-reduced-motion` através de `useReducedMotion`.
  */
 
 import { motion, useReducedMotion } from "framer-motion"

@@ -12,6 +12,9 @@
 // Nota:
 // - Estes presets são intencionalmente “opinionated”. Se precisares de um caso
 //   especial, cria um helper novo aqui em vez de espalhar números mágicos.
+// - Regra prática: usa `springSnap` para micro-interactions e `springBounce` para cards/painéis.
+// - Acessibilidade: quando o utilizador tem `prefers-reduced-motion`, os componentes devem
+//   desactivar `whileHover/whileTap` e reduzir transições complexas.
 //
 // ─────────────────────────────────────────────
 // Curvas de easing
@@ -64,6 +67,13 @@ export const duration = {
   base: 0.28,
   slow: 0.4,
 } as const
+
+/**
+ * Regras de naming
+ * - `Variants`: objectos com chaves `initial/animate/exit` para `variants=...`
+ * - `...Enter`: helpers que devolvem `{ initial, animate, transition }` para spreads (`{...fadeUpEnter()}`)
+ * - `...Hover/...Tap`: presets para `whileHover/whileTap`
+ */
 
 // ─────────────────────────────────────────────
 // Transições de página (nível alto)

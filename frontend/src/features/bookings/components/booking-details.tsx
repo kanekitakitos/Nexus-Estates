@@ -3,14 +3,24 @@
 /**
  * BookingDetails — v5
  *
- * Correcções vs v4:
- * - FloatingBackButton removido — botão volta para o fluxo normal (não absolute)
- *   para não se sobrepor à galeria
- * - RevealSection tem `initial` explícito — sem flicker de posição no mount
- * - PropertyStats usa RevealSection em vez de whileInView duplo — sem conflito
- * - Container raiz tem `relative` correcto
- * - Gradiente da galeria mínimo (só dot indicators), sem fundo opaco
- * - Título LED glow abaixo da galeria, sobre fundo limpo
+ * Contexto
+ * - Ecrã de detalhe de uma propriedade no fluxo de bookings.
+ * - É apresentado quando o utilizador selecciona um card no grid (BookingView).
+ *
+ * Responsabilidades
+ * - Mostrar informação principal da propriedade (imagem, título, localização, rating).
+ * - Permitir seleccionar datas com o `DateRangeCalendar`.
+ * - Emitir `onCheckout({checkIn, checkOut})` quando o utilizador confirmar datas.
+ *
+ * UX/Animação
+ * - Usa presets centralizados em `features/bookings/motion.ts` para consistência.
+ * - Minimiza “layout thrash” com transições de altura/opacity e `useReducedMotion`.
+ *
+ * Acessibilidade
+ * - CTA principais usam `<Button>`; navegação não depende de gestos.
+ *
+ * Notas
+ * - Este componente não faz chamadas ao backend: apenas prepara o payload para checkout.
  */
 
 import { useEffect, useCallback, useRef, useState, useMemo } from "react"
