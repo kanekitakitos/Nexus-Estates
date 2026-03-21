@@ -120,7 +120,8 @@ export function AppShell({ children, header }: AppShellProps) {
         } as React.CSSProperties
       }
     >
-      <BrutalGridBackground />
+      <BrutalGridBackground 
+      defaultVariant="terminal-logs" />
 
       <AppSidebar className="z-30" />
 

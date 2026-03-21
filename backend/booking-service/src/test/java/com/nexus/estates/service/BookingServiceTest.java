@@ -58,7 +58,15 @@ class BookingServiceTest {
                 20L,
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(4),
-                2
+                2,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
 
         // Criamos o objeto que o repositório irá retornar com os dados necessários
@@ -98,7 +106,15 @@ class BookingServiceTest {
                 20L,
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(5),
-                2
+                2,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
 
         // Configurar Mock do UserClient (necessário pois a validação ocorre antes da verificação de datas)
@@ -123,7 +139,15 @@ class BookingServiceTest {
                 20L,
                 LocalDate.now().plusDays(5),
                 LocalDate.now().plusDays(2), // Inválido: Sai antes de entrar
-                2
+                2,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
 
         assertThatThrownBy(() -> bookingService.createBooking(request))
@@ -141,7 +165,15 @@ class BookingServiceTest {
                 10L, 20L,
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(4), // 3 noites
-                2
+                2,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
 
         Booking savedBooking = new Booking();

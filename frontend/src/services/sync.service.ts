@@ -1,17 +1,15 @@
-import { syncAxios, ApiResponse } from "@/lib/axiosAPI";
+import { syncAxios } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import { toast } from "sonner";
 
 /**
- * Interface para mensagens de chat em tempo real via Sync Service.
+ * Interface base para mensagens de chat.
  */
 export interface SyncMessage {
-    id?: number;
-    senderId: number;
-    receiverId: number;
+    id: string | number;
+    senderId: string;
     content: string;
-    timestamp: string;
-    type: 'TEXT' | 'IMAGE' | 'SYSTEM';
+    createdAt: string;
 }
 
 /**
@@ -20,40 +18,29 @@ export interface SyncMessage {
 export class SyncService {
     
     /**
-     * Envia uma mensagem via Sync Service (que será processada e enviada para o Ably).
+     * Obtém um token de autenticação temporário para o Ably, restrito ao canal do booking.
      */
-    static async sendMessage(message: Partial<SyncMessage>): Promise<SyncMessage> {
+    static async getRealtimeToken(bookingId: string | number): Promise<Record<string, unknown>> {
         try {
-            const response = await syncAxios.post<ApiResponse<SyncMessage>>("/messages", message);
-            return response.data.data;
+            const response = await syncAxios.get<Record<string, unknown>>("/auth/realtime", {
+                params: { bookingId: String(bookingId) },
+            });
+            return response.data;
         } catch (error) {
-            this.handleError(error, "enviar mensagem");
+            this.handleError(error, "obter token de tempo real");
             throw error;
         }
     }
 
     /**
-     * Obtém o histórico de mensagens entre dois utilizadores.
+     * Obtém o histórico de mensagens de uma reserva.
      */
-    static async getChatHistory(userId: number): Promise<SyncMessage[]> {
+    static async getBookingMessages(bookingId: string | number): Promise<SyncMessage[]> {
         try {
-            const response = await syncAxios.get<ApiResponse<SyncMessage[]>>(`/messages/history/${userId}`);
-            return response.data.data;
+            const response = await syncAxios.get<SyncMessage[]>(`/messages/${bookingId}`);
+            return response.data;
         } catch (error) {
-            this.handleError(error, "obter histórico de chat");
-            throw error;
-        }
-    }
-
-    /**
-     * Obtém um token de autenticação seguro para o cliente Ably.
-     */
-    static async getAblyToken(channelId: string): Promise<Record<string, unknown>> {
-        try {
-            const response = await syncAxios.get<ApiResponse<Record<string, unknown>>>(`/auth/ably-token?channelId=${channelId}`);
-            return response.data.data;
-        } catch (error) {
-            this.handleError(error, "obter token do Ably");
+            this.handleError(error, "obter histórico do chat");
             throw error;
         }
     }
