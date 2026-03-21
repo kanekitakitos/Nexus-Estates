@@ -76,6 +76,7 @@ export interface CreateBookingRequest {
         issuingCountry: string;
         documentType: "CC" | "PASSPORT";
         documentNumber: string;
+        documentIssueDate?: string;
     };
 }
 
@@ -121,6 +122,9 @@ export class BookingService {
                 payload.guestIssuingCountry = bookingData.guestDetails.issuingCountry;
                 payload.guestDocumentType = bookingData.guestDetails.documentType;
                 payload.guestDocumentNumber = bookingData.guestDetails.documentNumber;
+                if (bookingData.guestDetails.documentIssueDate) {
+                    payload.guestDocumentIssueDate = bookingData.guestDetails.documentIssueDate;
+                }
             }
 
             const response = await bookingsAxios.post<BookingResponse>("", payload);

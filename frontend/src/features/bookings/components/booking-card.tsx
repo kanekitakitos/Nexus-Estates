@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/forms/button"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, ArrowRight, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { motion, useReducedMotion } from "framer-motion"
+import { gummyHover, gummyTap } from "@/features/bookings/motion"
 
 /**
  * Interface de Dados da Propriedade (Booking Property).
@@ -70,19 +72,19 @@ interface BookingCardProps {
  * @param className - Classes CSS adicionais para customização de layout externo.
  */
 export function BookingCard({ property, onBook, className }: BookingCardProps) {
+    const shouldReduceMotion = useReducedMotion()
+
     return (
-        <div className={cn("group relative aspect-[4/5] w-full max-w-[240px] mx-auto md:max-w-none", className)}>
-            <BrutalInteractiveCard 
-                onClick={() => onBook?.(property.id)}
-                className="h-full py-2"
-            >
-                {/* Seção Superior: Imagem e Badges */}
+        <motion.div
+            className={cn("group relative aspect-[4/5] w-full max-w-[240px] mx-auto md:max-w-none", className)}
+            whileHover={shouldReduceMotion ? undefined : gummyHover}
+            whileTap={shouldReduceMotion ? undefined : gummyTap}
+        >
+            <BrutalInteractiveCard onClick={() => onBook?.(property.id)} className="h-full py-2">
                 <CardImageSection property={property} />
-                
-                {/* Seção Inferior: Detalhes e Ação */}
                 <CardDetailsSection property={property} onBook={onBook} />
             </BrutalInteractiveCard>
-        </div>
+        </motion.div>
     )
 }
 

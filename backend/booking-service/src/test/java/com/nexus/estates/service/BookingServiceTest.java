@@ -65,6 +65,7 @@ class BookingServiceTest {
                 null,
                 null,
                 null,
+                null,
                 null
         );
 
@@ -112,6 +113,7 @@ class BookingServiceTest {
                 null,
                 null,
                 null,
+                null,
                 null
         );
 
@@ -144,6 +146,7 @@ class BookingServiceTest {
                 null,
                 null,
                 null,
+                null,
                 null
         );
 
@@ -163,6 +166,7 @@ class BookingServiceTest {
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(4), // 3 noites
                 2,
+                null,
                 null,
                 null,
                 null,

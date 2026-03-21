@@ -83,6 +83,9 @@ public class Booking {
     @Column(name = "guest_document_number", length = 50)
     private String guestDocumentNumber;
 
+    @Column(name = "guest_document_issue_date")
+    private LocalDate guestDocumentIssueDate;
+
     // 📅 Dados da Estadia
     /** Data de início da ocupação. */
     @Column(name = "check_in_date", nullable = false)

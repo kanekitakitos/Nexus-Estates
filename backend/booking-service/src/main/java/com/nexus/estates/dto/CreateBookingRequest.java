@@ -72,7 +72,10 @@ public record CreateBookingRequest(
         String guestDocumentType,
 
         @Schema(description = "Número de documento", example = "12345678")
-        String guestDocumentNumber
+        String guestDocumentNumber,
+
+        @Schema(description = "Data de emissão do documento (quando userId é null e nationality != PT)", example = "2026-01-12")
+        LocalDate guestDocumentIssueDate
 ) {
 
 
@@ -99,6 +102,7 @@ public record CreateBookingRequest(
                         .guestIssuingCountry(this.guestIssuingCountry())
                         .guestDocumentType(this.guestDocumentType())
                         .guestDocumentNumber(this.guestDocumentNumber())
+                        .guestDocumentIssueDate(this.guestDocumentIssueDate())
                         .status(BookingStatus.PENDING_PAYMENT) // Estado inicial obrigatório
                         .build();
     }

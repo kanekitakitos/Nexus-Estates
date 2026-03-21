@@ -94,7 +94,8 @@ public class BookingController {
                         request.guestNationality(),
                         request.guestIssuingCountry(),
                         request.guestDocumentType(),
-                        request.guestDocumentNumber()
+                        request.guestDocumentNumber(),
+                        request.guestDocumentIssueDate()
                 );
             }
         } catch (Exception ignored) {}

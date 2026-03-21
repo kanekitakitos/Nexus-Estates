@@ -190,7 +190,8 @@ function ActionButtons({
   onConfirmBooking?: (data: BookingActionPayload) => void, 
   onContactOwner?: (data: BookingActionPayload) => void 
 }) {
-  const isValid = date?.from && date?.to
+  const isValid = Boolean(date?.from && date?.to)
+  const payload: BookingActionPayload | null = isValid && date?.from && date?.to ? { range: date, totalPrice: total, nights } : null
 
   return (
     <>
@@ -198,7 +199,7 @@ function ActionButtons({
         variant="brutal"
         className="w-full h-12 text-base font-bold uppercase tracking-wider"
         disabled={!isValid}
-        onClick={() => isValid && onConfirmBooking?.({ range: date, totalPrice: total, nights } as BookingActionPayload)}
+        onClick={() => payload && onConfirmBooking?.(payload)}
       >
         Reserve
       </Button>
@@ -208,7 +209,7 @@ function ActionButtons({
          <Button 
             variant="link" 
             className="h-auto p-0 text-xs text-foreground underline decoration-2 hover:text-primary"
-            onClick={() => isValid && onContactOwner?.({ range: date, totalPrice: total, nights } as BookingActionPayload)}
+            onClick={() => payload && onContactOwner?.(payload)}
          >
             Contact Owner
          </Button>

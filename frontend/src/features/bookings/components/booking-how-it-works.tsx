@@ -9,6 +9,7 @@ import { Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BrutalCard } from "@/components/ui/data-display/card"
 import { Badge } from "@/components/ui/badge"
+import { motion, useReducedMotion } from "framer-motion"
 
 interface BookingHowItWorksProps {
     mode?: "default" | "card"
@@ -26,24 +27,23 @@ interface BookingHowItWorksProps {
  * @param mode - Modo de exibição (atualmente suporta "default" e "card").
  * @param className - Classes CSS adicionais para customização de layout.
  */
-export function BookingHowItWorks({ mode = "default", className }: BookingHowItWorksProps) {
+export function BookingHowItWorks({ mode: _mode = "default", className }: BookingHowItWorksProps) {
+    const shouldReduceMotion = useReducedMotion()
+    const compact = _mode === "card"
+
     return (
-        <BrutalCard 
-            variant="primary"
-            className={cn(
-                "group relative h-full w-full overflow-hidden transition-all hover:-translate-y-1 flex flex-col justify-between hover:shadow-[8px_8px_0_0_rgb(0,0,0)] dark:hover:shadow-[8px_8px_0_0_rgba(255,255,255,0.9)]",
-                className
-            )}
+        <motion.div
+            whileHover={shouldReduceMotion ? undefined : { y: -6, x: 2 }}
+            whileTap={shouldReduceMotion ? undefined : { y: -2, x: 0, scale: 0.99 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className={cn("h-full w-full", className)}
         >
-            {/* Seção Superior: Ícone e Título */}
-            <HeaderSection />
-            
-            {/* Seção Central: Lista de Passos */}
-            <StepsSection />
-            
-            {/* Elementos Decorativos de Fundo */}
-            <DecorativeBackground />
-        </BrutalCard>
+            <BrutalCard variant="primary" className="group relative h-full w-full overflow-hidden flex flex-col justify-between">
+                <HeaderSection compact={compact} />
+                <StepsSection compact={compact} />
+                <DecorativeBackground />
+            </BrutalCard>
+        </motion.div>
     )
 }
 
@@ -54,7 +54,7 @@ export function BookingHowItWorks({ mode = "default", className }: BookingHowItW
  * 
  * Exibe o ícone de "Guia" e o título principal "How it works".
  */
-function HeaderSection() {
+function HeaderSection({ compact }: { compact: boolean }) {
     return (
         <div className="flex flex-col gap-4">
             <div className="flex justify-between items-start">
@@ -66,7 +66,12 @@ function HeaderSection() {
                 </Badge>
             </div>
             
-            <h3 className="font-mono text-3xl font-black uppercase leading-[0.85] text-primary-foreground drop-shadow-[3px_3px_0_rgb(0,0,0)] break-words">
+            <h3
+                className={cn(
+                    "font-mono font-black uppercase leading-[0.85] text-primary-foreground drop-shadow-[3px_3px_0_rgb(0,0,0)] break-words",
+                    compact ? "text-2xl" : "text-3xl"
+                )}
+            >
                 How it<br/>works
             </h3>
         </div>
@@ -79,7 +84,9 @@ function HeaderSection() {
  * Renderiza os passos do processo (Browse, Book, Enjoy) como badges interativos.
  * Cada passo tem um número e um rótulo descritivo.
  */
-function StepsSection() {
+function StepsSection({ compact }: { compact: boolean }) {
+    const shouldReduceMotion = useReducedMotion()
+
     const steps = [
         { step: 1, label: "Browse" },
         { step: 2, label: "Book" },
@@ -89,10 +96,17 @@ function StepsSection() {
     return (
         <div className="flex flex-col gap-3 mt-4">
             {steps.map((item) => (
-                <Badge key={item.step} variant="brutal" className="w-full justify-start p-2 hover:translate-x-1 transition-transform gap-3 rounded-md">
-                    <div className="flex items-center justify-center w-6 h-6 border-[2px] border-foreground bg-primary text-primary-foreground font-mono text-xs font-bold ">{item.step}</div>
-                    <span className="font-mono text-sm font-bold text-foreground uppercase">{item.label}</span>
-                </Badge>
+                <motion.div
+                    key={item.step}
+                    whileHover={shouldReduceMotion ? undefined : { x: 6 }}
+                    whileTap={shouldReduceMotion ? undefined : { x: 2, scale: 0.99 }}
+                    transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                >
+                    <Badge variant="brutal" className={cn("w-full justify-start gap-3 rounded-md", compact ? "p-1.5" : "p-2")}>
+                        <div className="flex items-center justify-center w-6 h-6 border-[2px] border-foreground bg-primary text-primary-foreground font-mono text-xs font-bold ">{item.step}</div>
+                        <span className="font-mono text-sm font-bold text-foreground uppercase">{item.label}</span>
+                    </Badge>
+                </motion.div>
             ))}
         </div>
     )

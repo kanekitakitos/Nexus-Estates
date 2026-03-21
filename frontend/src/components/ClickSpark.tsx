@@ -44,6 +44,12 @@ interface Spark {
   startTime: number;
 }
 
+interface Wave {
+  x: number;
+  y: number;
+  startTime: number;
+}
+
 /**
  * Componete para fornecer uma animação do estilo Spark, ao clicar
  * @param param0 - caracteristicas do spark
@@ -61,40 +67,66 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sparksRef = useRef<Spark[]>([]);
+  const wavesRef = useRef<Wave[]>([]);
   const startTimeRef = useRef<number | null>(null);
+  const viewportRef = useRef({ width: 0, height: 0, dpr: 1 });
+  const themeRef = useRef({
+    bg: "rgba(0,0,0,0)",
+    fg: "rgba(0,0,0,0.12)",
+    fgSoft: "rgba(0,0,0,0.06)",
+    highlight: "rgba(255,255,255,0.12)",
+    shadow: "rgba(0,0,0,0.10)",
+  });
 
-  // useEffect para defenir a Canvas (onde é desenhado) e o seu tamanho
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
-    const parent = canvas.parentElement;
-    if (!parent) return;
-
-    let resizeTimeout: ReturnType<typeof setTimeout>;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     const resizeCanvas = () => {
-      const { width, height } = parent.getBoundingClientRect();
-      if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
-      }
-    };
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
 
-    const handleResize = () => {
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(resizeCanvas, 100);
-    };
+      viewportRef.current = { width, height, dpr };
 
-    const ro = new ResizeObserver(handleResize);
-    ro.observe(parent);
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
 
     resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    return () => window.removeEventListener('resize', resizeCanvas);
+  }, []);
 
-    return () => {
-      ro.disconnect();
-      clearTimeout(resizeTimeout);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const computeTheme = () => {
+      const body = document.body;
+      if (!body) return;
+      const styles = window.getComputedStyle(body);
+      const bgRgb = parseRgb(styles.backgroundColor) ?? { r: 255, g: 255, b: 255 };
+      const fgRgb = parseRgb(styles.color) ?? { r: 0, g: 0, b: 0 };
+
+      const bgLum = relativeLuminance(bgRgb);
+      const isDark = bgLum < 0.35;
+
+      themeRef.current = {
+        bg: `rgba(${bgRgb.r},${bgRgb.g},${bgRgb.b},1)`,
+        fg: `rgba(${fgRgb.r},${fgRgb.g},${fgRgb.b},0.12)`,
+        fgSoft: `rgba(${fgRgb.r},${fgRgb.g},${fgRgb.b},0.06)`,
+        highlight: isDark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.10)",
+        shadow: isDark ? "rgba(0,0,0,0.22)" : "rgba(0,0,0,0.12)",
+      };
     };
+
+    computeTheme();
+    const observer = new MutationObserver(computeTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "style", "data-theme"] });
+    return () => observer.disconnect();
   }, []);
 
   // defenição de animiações
@@ -137,7 +169,48 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
       if (!startTimeRef.current) {
         startTimeRef.current = timestamp;
       }
-      ctx?.clearRect(0, 0, canvas.width, canvas.height);
+      const { width, height } = viewportRef.current;
+      ctx?.clearRect(0, 0, width, height);
+
+      const waveDuration = Math.max(420, duration);
+      wavesRef.current = wavesRef.current.filter((wave: Wave) => {
+        const elapsed = timestamp - wave.startTime;
+        if (elapsed >= waveDuration) return false;
+
+        const progress = Math.min(1, elapsed / waveDuration);
+        const eased = easeFunc(progress);
+        const radius = 14 + eased * 96;
+
+        const baseOpacity = 0.22 * (1 - eased);
+        const { fgSoft, highlight, shadow } = themeRef.current;
+
+        ctx.save();
+        ctx.globalAlpha = baseOpacity;
+
+        const grad = ctx.createRadialGradient(wave.x, wave.y, radius * 0.2, wave.x, wave.y, radius);
+        grad.addColorStop(0, "rgba(0,0,0,0)");
+        grad.addColorStop(0.6, "rgba(0,0,0,0)");
+        grad.addColorStop(1, fgSoft);
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(wave.x, wave.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = highlight;
+        ctx.beginPath();
+        ctx.arc(wave.x - 1.2, wave.y - 1.2, radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = shadow;
+        ctx.beginPath();
+        ctx.arc(wave.x + 1.2, wave.y + 1.2, radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.restore();
+        return true;
+      });
 
       // Filtra e desenha as faíscas ativas
       sparksRef.current = sparksRef.current.filter((spark: Spark) => {
@@ -186,26 +259,21 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
    * salva e valida a posição do click
    * cria instancias de spark e salva-as no sparksRef
    */
-  const handleClick = useCallback((e: MouseEvent): void => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    // Verificar se o clique foi dentro da área do canvas
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    // Verificar se as coordenadas estão dentro do canvas
-    if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
-      return;
+  const handleClick = useCallback((e: PointerEvent): void => {
+    const target = e.target instanceof Element ? e.target : null
+    const isReduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
+    if (!isReduced && isBackgroundTarget(target)) {
+      const now = performance.now();
+      wavesRef.current.push({ x: e.clientX, y: e.clientY, startTime: now });
+      wavesRef.current = wavesRef.current.slice(-8);
     }
 
     const now = performance.now();
 
     //cria N sparks (o N vem de sparkCount)
     const newSparks: Spark[] = Array.from({ length: sparkCount }, (_, i) => ({
-      x,
-      y,
+      x: e.clientX,
+      y: e.clientY,
       angle: (2 * Math.PI * i) / sparkCount,
       startTime: now
     }));
@@ -218,19 +286,56 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
    * Adição do eventListener ao DOM para escutar o click do rato
    */
   useEffect(() => {
-    document.addEventListener('click', handleClick);
+    const options: AddEventListenerOptions = { capture: true, passive: true }
+    window.addEventListener('pointerdown', handleClick, options);
     return () => {
-      document.removeEventListener('click', handleClick);
+      window.removeEventListener('pointerdown', handleClick, options);
     };
   }, [handleClick]);
 
 
   return (
-    <div className="relative w-full h-full">
-      <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
+    <>
+      <div className="pointer-events-none fixed inset-0 z-[9999]">
+        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+      </div>
       {children}
-    </div>
+    </>
   );
 };
 
 export default ClickSpark;
+
+function isBackgroundTarget(target: Element | null): boolean {
+  if (!target) return true
+
+  const interactive =
+    "a,button,input,textarea,select,summary,label,[role='button'],[role='link'],[role='menuitem'],[data-no-bg-wave]"
+  if (target.closest(interactive)) return false
+
+  if (target.closest("[data-slot='sidebar']")) return false
+  if (target.closest("[data-slot='dropdown-menu-content']")) return false
+  if (target.closest("[data-slot='popover-content']")) return false
+  if (target.closest("[data-slot='sheet-content']")) return false
+  if (target.closest("[data-slot='dialog-content']")) return false
+  if (target.closest("[data-slot='brutal-interactive-card']")) return false
+
+  return true
+}
+
+function parseRgb(value: string): { r: number; g: number; b: number } | null {
+  const match = value.match(/rgba?\(\s*(\d+)\s*[,\s]+(\d+)\s*[,\s]+(\d+)/i)
+  if (!match) return null
+  return { r: Number(match[1]), g: Number(match[2]), b: Number(match[3]) }
+}
+
+function relativeLuminance(rgb: { r: number; g: number; b: number }): number {
+  const toLinear = (c: number) => {
+    const s = c / 255
+    return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+  }
+  const r = toLinear(rgb.r)
+  const g = toLinear(rgb.g)
+  const b = toLinear(rgb.b)
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}

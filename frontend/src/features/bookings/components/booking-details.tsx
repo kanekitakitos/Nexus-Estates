@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils"
 import { DateRangeCalendar } from "./date-range-calendar"
 import { toast } from "sonner"
 import { format } from "date-fns"
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
+import { comicSpring, gummyHover, gummyTap } from "@/features/bookings/motion"
 
 const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-4 md:p-6 lg:px-[150px] min-h-screen overflow-x-hidden"
 const MAIN_IMAGE_WRAPPER_STYLES = "relative w-full overflow-hidden rounded-xl md:rounded-3xl h-[60vh] md:h-auto md:aspect-[16/5]"
@@ -36,7 +38,6 @@ interface BookingDetailsProps {
     property: BookingProperty
     onBack: () => void
     onCheckout: (params: { checkIn: string; checkOut: string }) => void
-    isExiting?: boolean
     checkInDate?: Date | null
     checkOutDate?: Date | null
 }
@@ -60,7 +61,7 @@ interface BookingDetailsProps {
  * @param checkInDate - Data de check-in pré-selecionada (opcional, vinda da busca).
  * @param checkOutDate - Data de check-out pré-selecionada (opcional, vinda da busca).
  */
-export function BookingDetails({ property, onBack, onCheckout, isExiting, checkInDate = null, checkOutDate = null }: BookingDetailsProps) {
+export function BookingDetails({ property, onBack, onCheckout, checkInDate = null, checkOutDate = null }: BookingDetailsProps) {
     const handleBack = useCallback(() => {
         onBack()
     }, [onBack])
@@ -69,11 +70,7 @@ export function BookingDetails({ property, onBack, onCheckout, isExiting, checkI
     useSwipeBack(handleBack)
 
     return (
-        <div className={cn(
-            PAGE_CONTAINER_STYLES,
-            // Aplica animações de entrada (fly-in) ou saída (fly-out) baseadas no estado
-            isExiting ? "animate-fly-out-right fill-mode-forwards" : "animate-fly-in fill-mode-forwards"
-        )}>
+        <div className={cn(PAGE_CONTAINER_STYLES)}>
             {/* Botão para voltar */}
             <div className="mb-4">
                 <Button 
@@ -230,6 +227,7 @@ function PropertyGallery({ property }: { property: BookingProperty }) {
     const galleryImages = property.imageUrl ? [property.imageUrl] : []
 
     const [activeImageIndex, setActiveImageIndex] = useState(0)
+    const shouldReduceMotion = useReducedMotion()
 
     // Efeito para rotação automática das imagens
     useEffect(() => {
@@ -244,11 +242,18 @@ function PropertyGallery({ property }: { property: BookingProperty }) {
         <div>
             <div className={MAIN_IMAGE_WRAPPER_STYLES}>
                 {galleryImages.length > 0 ? (
-                    <img 
-                        src={galleryImages[activeImageIndex]} 
-                        alt={property.title} 
-                        className="h-full w-full object-cover"
-                    />
+                    <AnimatePresence initial={false} mode="wait">
+                        <motion.img
+                            key={galleryImages[activeImageIndex]}
+                            src={galleryImages[activeImageIndex]}
+                            alt={property.title}
+                            className="h-full w-full object-cover"
+                            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, scale: 1.01 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.99 }}
+                            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                        />
+                    </AnimatePresence>
                 ) : (
                     <div className="h-full w-full bg-muted/50 grid place-items-center">
                         <span className="font-mono text-[10px] uppercase text-muted-foreground">Sem imagem</span>
@@ -261,15 +266,19 @@ function PropertyGallery({ property }: { property: BookingProperty }) {
             {galleryImages.length > 1 ? (
                 <div className="mt-4 grid grid-cols-3 gap-4">
                     {galleryImages.map((imageSrc, index) => (
-                        <button
+                        <motion.button
                             key={`${imageSrc}-${index}`}
                             type="button"
                             onClick={() => setActiveImageIndex(index)}
                             className={THUMBNAIL_STYLES}
+                            whileHover={shouldReduceMotion ? undefined : gummyHover}
+                            whileTap={shouldReduceMotion ? undefined : gummyTap}
+                            transition={comicSpring}
+                            animate={index === activeImageIndex ? { scale: 1.02, rotate: -0.25 } : { scale: 1, rotate: 0 }}
                         >
                             <img src={imageSrc} alt="" className="h-full w-full object-cover" />
                             <div className={THUMBNAIL_LABEL_STYLES}>VIEW</div>
-                        </button>
+                        </motion.button>
                     ))}
                 </div>
             ) : null}

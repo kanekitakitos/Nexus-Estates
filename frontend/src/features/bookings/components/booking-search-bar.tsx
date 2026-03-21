@@ -1,7 +1,7 @@
 "use client"
 
 import { Calendar as CalendarIcon, DollarSign, MapPin, Minus, Plus, Search, Users } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { format } from "date-fns"
 
 import { cn } from "@/lib/utils"
@@ -83,6 +83,15 @@ export function BookingSearchBar({
 }: BookingSearchBarProps) {
   const [checkInDate, setCheckInDate] = useState<Date | null>(initialCheckIn ?? null)
   const [checkOutDate, setCheckOutDate] = useState<Date | null>(initialCheckOut ?? null)
+  const computedGuestsLabel = useMemo(() => {
+    const total = adults + childrenCount
+    return `${total} Guest${total !== 1 ? "s" : ""}`
+  }, [adults, childrenCount])
+  const displayedGuestsLabel = guests ?? computedGuestsLabel
+
+  useEffect(() => {
+    onGuestsChange?.(computedGuestsLabel)
+  }, [computedGuestsLabel, onGuestsChange])
 
   return (
     <SearchBar className={className}>
@@ -106,6 +115,7 @@ export function BookingSearchBar({
 
         {/* Seção 3: Hóspedes */}
         <GuestsSection 
+          guestsLabel={displayedGuestsLabel}
           adults={adults}
           childrenCount={childrenCount}
           onAdultsChange={onAdultsChange}
@@ -198,11 +208,13 @@ function DatesSection({
  * Exibe o total de hóspedes e abre um popover para ajuste detalhado (Adultos/Crianças).
  */
 function GuestsSection({ 
+  guestsLabel,
   adults, 
   childrenCount, 
   onAdultsChange, 
   onChildrenChange 
 }: { 
+  guestsLabel: string
   adults: number, 
   childrenCount: number, 
   onAdultsChange?: (v: number) => void, 
@@ -215,6 +227,7 @@ function GuestsSection({
         <span>Guests</span>
       </SearchBarLabel>
       <GuestSelector 
+        guestsLabel={guestsLabel}
         adults={adults}
         childrenCount={childrenCount}
         onAdultsChange={onAdultsChange}
@@ -284,6 +297,7 @@ function DatePicker({ date, onSelect, disabled, placeholder = "Date" }: DatePick
 }
 
 interface GuestSelectorProps {
+  guestsLabel: string
   adults: number
   childrenCount: number
   onAdultsChange?: (value: number) => void
@@ -294,10 +308,10 @@ interface GuestSelectorProps {
  * Componente Auxiliar: Seletor de Hóspedes.
  * Popover contendo contadores para Adultos e Crianças.
  */
-function GuestSelector({ adults, childrenCount, onAdultsChange, onChildrenChange }: GuestSelectorProps) {
+function GuestSelector({ guestsLabel, adults, childrenCount, onAdultsChange, onChildrenChange }: GuestSelectorProps) {
   const [open, setOpen] = useState(false)
   const totalGuests = adults + childrenCount
-  const guestLabel = `${totalGuests} Guest${totalGuests !== 1 ? "s" : ""}`
+  const computedLabel = `${totalGuests} Guest${totalGuests !== 1 ? "s" : ""}`
 
   const handleAdultsChange = (delta: number) => {
     const newValue = Math.max(1, adults + delta)
@@ -322,7 +336,7 @@ function GuestSelector({ adults, childrenCount, onAdultsChange, onChildrenChange
         >
           <Users className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
           <span className="font-mono text-[10px] md:text-xs uppercase text-foreground truncate">
-            {totalGuests > 0 ? guestLabel : "Add"}
+            {totalGuests > 0 ? guestsLabel || computedLabel : "Add"}
           </span>
         </div>
       </PopoverTrigger>

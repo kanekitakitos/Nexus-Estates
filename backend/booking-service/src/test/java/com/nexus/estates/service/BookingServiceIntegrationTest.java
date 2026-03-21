@@ -59,6 +59,7 @@ class BookingServiceIntegrationTest {
                 null,
                 null,
                 null,
+                null,
                 null
         );
 

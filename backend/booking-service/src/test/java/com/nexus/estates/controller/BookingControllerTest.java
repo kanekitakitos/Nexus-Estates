@@ -60,6 +60,7 @@ class BookingControllerTest {
                 null,
                 null,
                 null,
+                null,
                 null
         );
 
@@ -102,6 +103,7 @@ class BookingControllerTest {
                 null,
                 null,
                 null,
+                null,
                 null
         );
 
@@ -122,6 +124,7 @@ class BookingControllerTest {
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(5),
                 2,
+                null,
                 null,
                 null,
                 null,

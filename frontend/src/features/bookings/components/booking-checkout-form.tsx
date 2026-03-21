@@ -1,14 +1,45 @@
 "use client"
 
+/**
+ * BookingCheckoutForm — v2 (single-page scroll)
+ *
+ * Arquitectura:
+ * - Página única com scroll (sem step switching / AnimatePresence)
+ * - 4 secções locked progressivamente conforme validação
+ * - Sidebar sticky: resumo, snapshot do hóspede, progress tracker
+ * - RHFField genérico único (text | number | select)
+ * - Lógica isolada: `normalize` namespace + `useBookingSubmit` hook
+ * - Estilo: brutal-clean (bordas bold, sombras, sem ruído)
+ */
+
 import React from "react"
 import { differenceInCalendarDays, format, parseISO } from "date-fns"
+import { motion } from "framer-motion"
+import { zodResolver } from "@hookform/resolvers/zod"
+import {
+  Controller,
+  FormProvider,
+  useForm,
+  useFormContext,
+  useWatch,
+} from "react-hook-form"
+import { z } from "zod"
 import { toast } from "sonner"
+import { Check, ChevronRight, Lock, Loader2, Copy, ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/forms/button"
 import { Input } from "@/components/ui/forms/input"
-import { BrutalShard } from "@/components/ui/data-display/card"
+import { Switch } from "@/components/ui/forms/switch"
 import type { BookingProperty } from "@/features/bookings/components/booking-card"
-import { BookingService, type PaymentResponse as BookingPaymentResponse } from "@/services/booking.service"
+import {
+  BookingService,
+  type PaymentResponse as BookingPaymentResponse,
+} from "@/services/booking.service"
+import { cn } from "@/lib/utils"
+
+// ─────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────
 
 export type BookingCheckoutParams = {
   property: BookingProperty
@@ -20,569 +51,920 @@ export type BookingCheckoutParams = {
 
 type DocumentType = "CC" | "PASSPORT"
 
-type GuestDetails = {
+type CheckoutFormValues = {
   fullName: string
   email: string
   phone: string
-  nationality: "PT" | "OTHER"
-  issuingCountry: string
-  documentType: DocumentType
-  documentNumber: string
   guestCount: number
+  nationality: string
+  issuingCountry: string
+  documentNumber: string
+  passportNumber: string
+  passportIssueDate: string
 }
 
-type CheckoutStep = "trip" | "identity" | "review" | "payment"
+// ─────────────────────────────────────────────
+// Design tokens — single source of truth
+// ─────────────────────────────────────────────
 
-/**
- * Formulário de checkout (estilo Google Forms) para confirmar dados antes de criar a reserva.
- * - Auto-preenche email quando o utilizador está autenticado.
- * - Exige passaporte apenas quando nacionalidade != PT.
- * - Permite checkout anónimo (cria conta automaticamente para obter userId).
- */
-export function BookingCheckoutForm({ property, checkIn, checkOut, onBack, onSuccess }: BookingCheckoutParams) {
-  const [step, setStep] = React.useState<CheckoutStep>("trip")
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
-  const [createdBookingId, setCreatedBookingId] = React.useState<number | null>(null)
-  const [payment, setPayment] = React.useState<BookingPaymentResponse | null>(null)
-  const [providerInfo, setProviderInfo] = React.useState<Record<string, unknown> | null>(null)
-  const [checkoutAsGuest, setCheckoutAsGuest] = React.useState(false)
+const tk = {
+  card: "rounded-xl border-2 border-foreground bg-background shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.8)]",
+  cardLg: "rounded-2xl border-2 border-foreground bg-background shadow-[6px_6px_0_0_rgb(0,0,0)] dark:shadow-[6px_6px_0_0_rgba(255,255,255,0.8)]",
+  label: "text-[11px] font-black uppercase tracking-widest",
+  mono: "text-xs font-mono text-muted-foreground",
+  divider: "border-t border-foreground/10",
+} as const
 
-  const [details, setDetails] = React.useState<GuestDetails>({
-    fullName: "",
-    email: "",
-    phone: "",
-    nationality: "PT",
-    issuingCountry: "PT",
-    documentType: "CC",
-    documentNumber: "",
-    guestCount: 1,
-  })
+// ─────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────
 
-  const isForeign = details.nationality !== "PT"
+const EMAIL_REGEX =
+  /^(?!.*\.\.)(?!\.)([A-Z0-9!#$%&'*+/=?^_`{|}~-]+(\.[A-Z0-9!#$%&'*+/=?^_`{|}~-]+)*)@([A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,63}$/i
 
-  const { nights, total } = React.useMemo(() => {
-    const from = safeParseDate(checkIn)
-    const to = safeParseDate(checkOut)
-    const computedNights =
-      from && to ? Math.max(1, differenceInCalendarDays(to, from)) : 0
-    return { nights: computedNights, total: computedNights * property.price }
-  }, [checkIn, checkOut, property.price])
+const NATIONALITY_OPTIONS = [
+  { value: "PT", label: "Portugal" },
+  { value: "ES", label: "Espanha" },
+  { value: "FR", label: "França" },
+  { value: "DE", label: "Alemanha" },
+  { value: "GB", label: "Reino Unido" },
+  { value: "US", label: "Estados Unidos" },
+  { value: "BR", label: "Brasil" },
+  { value: "AO", label: "Angola" },
+  { value: "MZ", label: "Moçambique" },
+] as const
 
-  React.useEffect(() => {
-    if (typeof window === "undefined") return
+// ─────────────────────────────────────────────
+// Normalize helpers
+// ─────────────────────────────────────────────
 
-    const token = localStorage.getItem("token")
-    const storedEmail = localStorage.getItem("userEmail") || ""
-
-    if (token && storedEmail) {
-      setDetails((prev) => {
-        if (prev.email) return prev
-        return {
-          ...prev,
-          email: storedEmail,
-          fullName: prev.fullName || storedEmail.split("@")[0] || "",
-        }
-      })
-      setCheckoutAsGuest(false)
-    } else {
-      setCheckoutAsGuest(true)
+const normalize = {
+  fullName(v: string) {
+    return v.replace(/[<>]/g, "").replace(/\s+/g, " ").trim().replace(/[^\p{L}\p{M}' -]/gu, "")
+  },
+  phone(v: string) {
+    const t = v.trim()
+    const isIntl = t.startsWith("+")
+    const digits = t.replace(/\D/g, "")
+    if (isIntl) {
+      const d = digits.slice(0, 15)
+      return d ? `+${(d.match(/.{1,3}/g) ?? []).join(" ")}` : "+"
     }
-  }, [])
+    return (digits.slice(0, 9).match(/.{1,3}/g) ?? []).join(" ")
+  },
+  phoneError(v: string): string | undefined {
+    const t = v.trim()
+    if (!t) return "Obrigatório."
+    const digits = t.replace(/\D/g, "")
+    if (t.startsWith("+")) return digits.length < 7 ? "Número inválido." : undefined
+    return digits.length !== 9 ? "Formato: 999 999 999" : undefined
+  },
+  countryCode(v: string) {
+    return v.replace(/[^a-z]/gi, "").toUpperCase().slice(0, 2)
+  },
+  documentNumber(v: string) {
+    return v.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 20)
+  },
+  clampInt(v: string, min: number, max: number) {
+    const n = Number(v.replace(/\D/g, "") || String(min))
+    return Number.isNaN(n) ? min : Math.min(max, Math.max(min, n))
+  },
+} as const
 
-  React.useEffect(() => {
-    setDetails((prev) => {
-      if (prev.nationality !== "PT") {
-        return {
-          ...prev,
-          documentType: "PASSPORT",
-          issuingCountry: prev.issuingCountry || "PT",
-        }
-      }
-      return {
-        ...prev,
-        documentType: "CC",
-        issuingCountry: "PT",
-      }
-    })
-  }, [details.nationality])
+// ─────────────────────────────────────────────
+// Utilities
+// ─────────────────────────────────────────────
 
-  const goNext = () => {
-    if (step === "trip") setStep("identity")
-    if (step === "identity") setStep("review")
-  }
-
-  const goBack = () => {
-    if (step === "payment") setStep("review")
-    if (step === "review") setStep("identity")
-    if (step === "identity") setStep("trip")
-    if (step === "trip") onBack()
-  }
-
-  const canProceed = React.useMemo(() => {
-    const errors = validateStep(step, details)
-    return errors.length === 0
-  }, [details, step])
-
-  const submit = async () => {
-    if (typeof window === "undefined") return
-    if (isSubmitting) return
-
-    const allErrors = validateAll(details)
-    if (allErrors.length > 0) {
-      toast.warning("Preenche os dados obrigatórios para concluir a reserva.")
-      setStep("trip")
-      return
-    }
-
-    const from = safeParseDate(checkIn)
-    const to = safeParseDate(checkOut)
-    if (!from || !to) {
-      toast.error("Datas inválidas. Volta atrás e seleciona novamente.")
-      return
-    }
-
-    setIsSubmitting(true)
-    try {
-      const userId = !checkoutAsGuest ? localStorage.getItem("userId") : null
-
-      const created = await BookingService.createBooking({
-        propertyId: Number(property.id),
-        userId: userId ? Number(userId) : null,
-        checkInDate: format(from, "yyyy-MM-dd"),
-        checkOutDate: format(to, "yyyy-MM-dd"),
-        guestCount: details.guestCount,
-        guestDetails: {
-          fullName: details.fullName.trim(),
-          email: details.email.trim(),
-          phone: details.phone.trim(),
-          nationality: details.nationality,
-          issuingCountry: isForeign ? details.issuingCountry.trim() : "PT",
-          documentType: details.documentType,
-          documentNumber: details.documentNumber.trim(),
-        },
-      })
-
-      setCreatedBookingId(created.id)
-
-      const info = await BookingService.getPaymentProviderInfo()
-      setProviderInfo(info)
-
-      const paymentIntent = await BookingService.createPaymentIntent(created.id, "CREDIT_CARD")
-      setPayment(paymentIntent)
-      setStep("payment")
-    } catch {
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <BrutalShard rotate="primary">
-        <div className="space-y-2">
-          <div className="text-xs text-muted-foreground uppercase tracking-wide">
-            Checkout
-          </div>
-          <div className="text-2xl font-black uppercase">{property.title}</div>
-          <div className="text-sm text-muted-foreground">
-            {checkIn} → {checkOut} · {nights} noites · Total estimado €{total}
-          </div>
-        </div>
-      </BrutalShard>
-
-      <div className="flex gap-2 text-xs">
-        <StepPill active={step === "trip"}>Dados</StepPill>
-        <StepPill active={step === "identity"}>Identificação</StepPill>
-        <StepPill active={step === "review"}>Revisão</StepPill>
-        <StepPill active={step === "payment"}>Pagamento</StepPill>
-      </div>
-
-      {step === "trip" ? (
-        <SectionCard
-          title="Confirma os teus dados"
-          description="Preenche o mínimo necessário para concluir rapidamente."
-        >
-          <div className="rounded-lg border p-3 text-sm flex items-center justify-between gap-3">
-            <div>
-              <div className="font-medium">Reservar sem conta</div>
-              <div className="text-xs text-muted-foreground">
-                Se estiver ligado, não criamos utilizador. Só usamos dados do hóspede.
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={checkoutAsGuest}
-              onChange={(e) => setCheckoutAsGuest(e.target.checked)}
-              className="h-4 w-4"
-            />
-          </div>
-
-          <Field id="checkout-full-name" label="Nome completo" required>
-            <Input
-              id="checkout-full-name"
-              variant="brutal"
-              value={details.fullName}
-              maxLength={120}
-              autoComplete="name"
-              onChange={(e) =>
-                setDetails((p) => ({ ...p, fullName: e.target.value }))
-              }
-            />
-          </Field>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field id="checkout-email" label="Email" required>
-              <Input
-                id="checkout-email"
-                variant="brutal"
-                type="email"
-                value={details.email}
-                maxLength={120}
-                autoComplete="email"
-                onChange={(e) =>
-                  setDetails((p) => ({ ...p, email: e.target.value }))
-                }
-              />
-            </Field>
-
-            <Field id="checkout-phone" label="Telefone" required>
-              <Input
-                id="checkout-phone"
-                variant="brutal"
-                type="tel"
-                value={details.phone}
-                inputMode="tel"
-                autoComplete="tel"
-                maxLength={20}
-                onChange={(e) =>
-                  setDetails((p) => ({
-                    ...p,
-                    phone: e.target.value.replace(/[^\d+]/g, "").slice(0, 20),
-                  }))
-                }
-              />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field id="checkout-nationality" label="Nacionalidade" required>
-              <select
-                id="checkout-nationality"
-                value={details.nationality}
-                onChange={(e) =>
-                  setDetails((p) => ({
-                    ...p,
-                    nationality: e.target.value as GuestDetails["nationality"],
-                  }))
-                }
-                className="h-10 rounded-md border bg-background px-3 text-sm"
-              >
-                <option value="PT">Portugal</option>
-                <option value="OTHER">Estrangeiro</option>
-              </select>
-            </Field>
-
-            <Field id="checkout-guest-count" label="Número de hóspedes" required>
-              <Input
-                id="checkout-guest-count"
-                variant="brutal"
-                type="number"
-                min={1}
-                max={20}
-                inputMode="numeric"
-                value={details.guestCount}
-                onChange={(e) =>
-                  setDetails((p) => ({
-                    ...p,
-                    guestCount: Math.min(20, Math.max(1, Number(e.target.value))),
-                  }))
-                }
-              />
-            </Field>
-          </div>
-        </SectionCard>
-      ) : null}
-
-      {step === "identity" ? (
-        <SectionCard
-          title="Identificação (SEF)"
-          description="Passaporte é obrigatório apenas para estrangeiros."
-        >
-          {isForeign ? (
-            <Field id="checkout-issuing-country" label="País emissor do passaporte" required>
-              <Input
-                id="checkout-issuing-country"
-                variant="brutal"
-                value={details.issuingCountry}
-                maxLength={56}
-                onChange={(e) =>
-                  setDetails((p) => ({ ...p, issuingCountry: e.target.value }))
-                }
-              />
-            </Field>
-          ) : null}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field id="checkout-document-type" label="Tipo de documento" required>
-              <select
-                id="checkout-document-type"
-                value={details.documentType}
-                onChange={(e) =>
-                  setDetails((p) => ({
-                    ...p,
-                    documentType: e.target.value as DocumentType,
-                  }))
-                }
-                disabled={isForeign}
-                className="h-10 rounded-md border bg-background px-3 text-sm disabled:opacity-60"
-              >
-                <option value="CC">Cartão de Cidadão</option>
-                <option value="PASSPORT">Passaporte</option>
-              </select>
-            </Field>
-
-            <Field
-              id="checkout-document-number"
-              label={details.documentType === "PASSPORT" ? "Nº Passaporte" : "Nº Documento"}
-              required
-            >
-              <Input
-                id="checkout-document-number"
-                variant="brutal"
-                value={details.documentNumber}
-                onChange={(e) =>
-                  setDetails((p) => ({
-                    ...p,
-                    documentNumber: e.target.value.replace(/\D/g, "").slice(0, 20),
-                  }))
-                }
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={20}
-              />
-            </Field>
-          </div>
-        </SectionCard>
-      ) : null}
-
-      {step === "review" ? (
-        <SectionCard
-          title="Rever e concluir"
-          description="Confere os dados antes de finalizar."
-        >
-          <div className="rounded-lg border p-3 text-sm space-y-1">
-            <div className="font-medium">{details.fullName || "—"}</div>
-            <div className="text-muted-foreground text-xs">{details.email || "—"}</div>
-            <div className="text-muted-foreground text-xs">{details.phone || "—"}</div>
-            <div className="text-muted-foreground text-xs">
-              {details.nationality === "PT" ? "Portugal" : "Estrangeiro"} · {details.guestCount} hóspedes
-            </div>
-            <div className="text-muted-foreground text-xs">
-              {details.documentType} · {details.documentNumber || "—"}
-            </div>
-          </div>
-
-          <div className="rounded-lg border p-3 text-sm">
-            <div className="font-medium">Total estimado</div>
-            <div className="text-muted-foreground text-xs">
-              {nights} noites · €{property.price}/noite
-            </div>
-            <div className="mt-2 text-lg font-black">€{total}</div>
-          </div>
-        </SectionCard>
-      ) : null}
-
-      {step === "payment" ? (
-        <SectionCard
-          title="Pagamento"
-          description="O pagamento é iniciado no provedor configurado no booking-service."
-        >
-          <div className="rounded-lg border p-3 text-sm space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="font-medium">Reserva</div>
-              <div className="text-xs text-muted-foreground">#{createdBookingId ?? "—"}</div>
-            </div>
-
-            <div className="flex items-center justify-between gap-2">
-              <div className="font-medium">Status</div>
-              <div className="text-xs text-muted-foreground">
-                {readPaymentStatus(payment)}
-              </div>
-            </div>
-
-            {providerInfo ? (
-              <div className="text-xs text-muted-foreground">
-                Provider: {String(providerInfo["name"] || "—")}
-              </div>
-            ) : null}
-          </div>
-
-          {readClientSecret(payment) ? (
-            <div className="rounded-lg border p-3 text-sm space-y-2">
-              <div className="font-medium">Client Secret</div>
-              <Input
-                id="payment-client-secret"
-                variant="brutal"
-                readOnly
-                value={readClientSecret(payment) || ""}
-              />
-              <Button
-                variant="brutal-outline"
-                type="button"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(readClientSecret(payment) || "")
-                    toast.success("Copiado.")
-                  } catch {
-                    toast.error("Não foi possível copiar.")
-                  }
-                }}
-              >
-                Copiar
-              </Button>
-            </div>
-          ) : null}
-
-          <div className="rounded-lg border p-3 text-sm text-muted-foreground">
-            Este projeto já devolve o client secret do Stripe. O próximo passo é integrar o Stripe Elements
-            no frontend para recolher os dados do cartão e concluir o pagamento.
-          </div>
-        </SectionCard>
-      ) : null}
-
-      <div className="flex justify-between gap-3">
-        <Button variant="brutal-outline" disabled={isSubmitting} onClick={goBack}>
-          Voltar
-        </Button>
-
-        {step === "payment" ? (
-          <Button variant="brutal" disabled={isSubmitting} onClick={onSuccess}>
-            Terminar
-          </Button>
-        ) : step !== "review" ? (
-          <Button variant="brutal" disabled={!canProceed || isSubmitting} onClick={goNext}>
-            Continuar
-          </Button>
-        ) : (
-          <Button variant="brutal" disabled={isSubmitting} onClick={submit}>
-            {isSubmitting ? "A iniciar pagamento..." : "Ir para Pagamento"}
-          </Button>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function safeParseDate(value: string): Date | null {
+function parseDate(v: string): Date | null {
   try {
-    const parsed = parseISO(value)
-    return Number.isNaN(parsed.getTime()) ? null : parsed
+    const d = parseISO(v)
+    return Number.isNaN(d.getTime()) ? null : d
   } catch {
     return null
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
-
-function readPaymentStatus(payment: BookingPaymentResponse | null): string {
-  if (!payment) return "—"
-  if (!isRecord(payment)) return "—"
-  const status = payment["status"]
-  return typeof status === "string" ? status : "—"
-}
-
-function readClientSecret(payment: BookingPaymentResponse | null): string | null {
-  if (!payment) return null
-  if (!isRecord(payment)) return null
-  const clientSecret = payment["clientSecret"]
-  return typeof clientSecret === "string" && clientSecret.length > 0 ? clientSecret : null
-}
-
-function validateStep(step: CheckoutStep, data: GuestDetails): string[] {
-  if (step === "trip") {
-    const errors: string[] = []
-    if (!data.fullName.trim()) errors.push("fullName")
-    if (!data.email.trim()) errors.push("email")
-    if (!data.phone.trim()) errors.push("phone")
-    if (!data.nationality.trim()) errors.push("nationality")
-    if (data.guestCount < 1) errors.push("guestCount")
-    return errors
-  }
-
-  if (step === "identity") {
-    const errors: string[] = []
-    if (!data.documentNumber.trim()) errors.push("documentNumber")
-    if (data.nationality !== "PT" && !data.issuingCountry.trim()) errors.push("issuingCountry")
-    return errors
-  }
-
-  return validateAll(data)
-}
-
-function validateAll(data: GuestDetails): string[] {
-  const errors: string[] = []
-  if (!data.fullName.trim()) errors.push("fullName")
-  if (!data.email.trim()) errors.push("email")
-  if (!data.phone.trim()) errors.push("phone")
-  if (!data.nationality.trim()) errors.push("nationality")
-  if (data.guestCount < 1) errors.push("guestCount")
-  if (!data.documentNumber.trim()) errors.push("documentNumber")
-  if (data.nationality !== "PT" && !data.issuingCountry.trim()) errors.push("issuingCountry")
-  return errors
-}
-
-function StepPill({ active, children }: { active: boolean; children: React.ReactNode }) {
+function nationalityLabel(code: string) {
   return (
-    <div
-      className={`rounded-full border px-3 py-1 ${
-        active ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground"
-      }`}
+    NATIONALITY_OPTIONS.find((o) => o.value === normalize.countryCode(code || "PT"))?.label ?? code
+  )
+}
+
+function readAuthSession() {
+  if (typeof window === "undefined")
+    return { isAuthenticated: false, userId: null as number | null, email: "" }
+  const token = localStorage.getItem("token") ?? ""
+  const email = localStorage.getItem("userEmail") ?? ""
+  const rawId = localStorage.getItem("userId")
+  const userId = rawId && /^\d+$/.test(rawId) ? Number(rawId) : null
+  const ok = Boolean(token && email && isJwtValid(token))
+  return { isAuthenticated: ok, userId: ok ? userId : null, email: ok ? email : "" }
+}
+
+function isJwtValid(token: string) {
+  const parts = token.split(".")
+  if (parts.length < 2) return false
+  try {
+    const p = JSON.parse(
+      atob(padBase64(parts[1].replace(/-/g, "+").replace(/_/g, "/")))
+    ) as { exp?: number }
+    return Boolean(p.exp && p.exp > Math.floor(Date.now() / 1000) + 15)
+  } catch {
+    return false
+  }
+}
+
+function padBase64(s: string) {
+  return s + "=".repeat((4 - (s.length % 4)) % 4)
+}
+
+function readPaymentStatus(p: BookingPaymentResponse | null) {
+  if (!p || typeof p !== "object") return "—"
+  const s = (p as Record<string, unknown>)["status"]
+  return typeof s === "string" ? s : "—"
+}
+
+function readClientSecret(p: BookingPaymentResponse | null): string | null {
+  if (!p || typeof p !== "object") return null
+  const s = (p as Record<string, unknown>)["clientSecret"]
+  return typeof s === "string" && s.length > 0 ? s : null
+}
+
+// ─────────────────────────────────────────────
+// Validation schema
+// ─────────────────────────────────────────────
+
+const checkoutSchema = z
+  .object({
+    fullName: z.string().trim().min(3, "Mínimo 3 caracteres."),
+    email: z.string().trim().regex(EMAIL_REGEX, "Email inválido."),
+    phone: z
+      .string()
+      .trim()
+      .refine((v) => normalize.phoneError(v) == null, "Telefone inválido."),
+    guestCount: z.number().int().min(1).max(20),
+    nationality: z.string().trim().min(2).max(10),
+    issuingCountry: z.string().trim(),
+    documentNumber: z.string().trim(),
+    passportNumber: z.string().trim(),
+    passportIssueDate: z.string().trim(),
+  })
+  .superRefine((data, ctx) => {
+    const nat = normalize.countryCode(data.nationality)
+    if (nat !== "PT") {
+      if (normalize.countryCode(data.issuingCountry).length !== 2)
+        ctx.addIssue({ code: "custom", path: ["issuingCountry"], message: "Código ISO (2 letras)." })
+      if (!normalize.documentNumber(data.passportNumber))
+        ctx.addIssue({ code: "custom", path: ["passportNumber"], message: "Obrigatório." })
+      if (!parseDate(data.passportIssueDate))
+        ctx.addIssue({ code: "custom", path: ["passportIssueDate"], message: "Data inválida." })
+    } else {
+      if (!normalize.documentNumber(data.documentNumber))
+        ctx.addIssue({ code: "custom", path: ["documentNumber"], message: "Obrigatório." })
+    }
+  })
+
+// ─────────────────────────────────────────────
+// useBookingSubmit
+// ─────────────────────────────────────────────
+
+function useBookingSubmit(
+  checkIn: string,
+  checkOut: string,
+  property: BookingProperty,
+  getAuth: () => { isAuthenticated: boolean; userId: number | null },
+  isGuest: () => boolean
+) {
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [bookingId, setBookingId] = React.useState<number | null>(null)
+  const [payment, setPayment] = React.useState<BookingPaymentResponse | null>(null)
+  const [providerInfo, setProviderInfo] = React.useState<Record<string, unknown> | null>(null)
+
+  const submit = React.useCallback(
+    async (values: CheckoutFormValues): Promise<boolean> => {
+      const from = parseDate(checkIn)
+      const to = parseDate(checkOut)
+      if (!from || !to) {
+        toast.error("Datas inválidas.")
+        return false
+      }
+
+      const nat = normalize.countryCode(values.nationality)
+      const foreign = nat !== "PT"
+      const documentType: DocumentType = foreign ? "PASSPORT" : "CC"
+
+      setIsSubmitting(true)
+      try {
+        const auth = getAuth()
+        const userId = !isGuest() && auth.isAuthenticated ? auth.userId : null
+
+        const created = await BookingService.createBooking({
+          propertyId: Number(property.id),
+          userId: userId ?? null,
+          checkInDate: format(from, "yyyy-MM-dd"),
+          checkOutDate: format(to, "yyyy-MM-dd"),
+          guestCount: values.guestCount,
+          guestDetails: {
+            fullName: values.fullName.trim(),
+            email: values.email.trim(),
+            phone: values.phone.trim(),
+            nationality: nat,
+            issuingCountry: foreign ? normalize.countryCode(values.issuingCountry) : "PT",
+            documentType,
+            documentNumber: foreign
+              ? normalize.documentNumber(values.passportNumber)
+              : normalize.documentNumber(values.documentNumber),
+            documentIssueDate: foreign ? values.passportIssueDate.trim() : undefined,
+          },
+        })
+
+        setBookingId(created.id)
+        const [info, intent] = await Promise.all([
+          BookingService.getPaymentProviderInfo(),
+          BookingService.createPaymentIntent(created.id, "CREDIT_CARD"),
+        ])
+        setProviderInfo(info)
+        setPayment(intent)
+        return true
+      } catch {
+        toast.error("Erro ao criar reserva. Tenta novamente.")
+        return false
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    [checkIn, checkOut, getAuth, isGuest, property.id]
+  )
+
+  return { isSubmitting, bookingId, payment, providerInfo, submit }
+}
+
+// ─────────────────────────────────────────────
+// Main component
+// ─────────────────────────────────────────────
+
+export function BookingCheckoutForm({
+  property,
+  checkIn,
+  checkOut,
+  onBack,
+  onSuccess,
+}: BookingCheckoutParams) {
+  const [authSession, setAuthSession] = React.useState({
+    isAuthenticated: false,
+    userId: null as number | null,
+    email: "",
+  })
+  const [checkoutAsGuest, setCheckoutAsGuest] = React.useState(true)
+
+  // Progressive unlock state
+  const [identityOpen, setIdentityOpen] = React.useState(false)
+  const [reviewOpen, setReviewOpen] = React.useState(false)
+  const [paymentOpen, setPaymentOpen] = React.useState(false)
+
+  const identityRef = React.useRef<HTMLDivElement>(null)
+  const reviewRef = React.useRef<HTMLDivElement>(null)
+  const paymentRef = React.useRef<HTMLDivElement>(null)
+
+  const form = useForm<CheckoutFormValues>({
+    resolver: zodResolver(checkoutSchema),
+    mode: "onChange",
+    defaultValues: {
+      fullName: "",
+      email: "",
+      phone: "",
+      guestCount: 1,
+      nationality: "PT",
+      issuingCountry: "PT",
+      documentNumber: "",
+      passportNumber: "",
+      passportIssueDate: "",
+    },
+  })
+
+  const preview = useWatch({ control: form.control })
+  const nationality = useWatch({ control: form.control, name: "nationality" })
+  const isForeign = normalize.countryCode(nationality || "PT") !== "PT"
+
+  const { nights, total } = React.useMemo(() => {
+    const from = parseDate(checkIn)
+    const to = parseDate(checkOut)
+    const n = from && to ? Math.max(1, differenceInCalendarDays(to, from)) : 0
+    return { nights: n, total: n * property.price }
+  }, [checkIn, checkOut, property.price])
+
+  const getAuth = React.useCallback(() => authSession, [authSession])
+  const isGuest = React.useCallback(() => checkoutAsGuest, [checkoutAsGuest])
+
+  const { isSubmitting, bookingId, payment, providerInfo, submit } =
+    useBookingSubmit(checkIn, checkOut, property, getAuth, isGuest)
+
+  // Seed session on mount
+  React.useEffect(() => {
+    const s = readAuthSession()
+    setAuthSession(s)
+    if (s.isAuthenticated) {
+      setCheckoutAsGuest(false)
+      form.setValue("email", s.email, { shouldValidate: true })
+      form.setValue("fullName", s.email.split("@")[0] ?? "", { shouldValidate: true })
+    }
+  }, [form])
+
+  // Reset doc fields on nationality change
+  React.useEffect(() => {
+    if (normalize.countryCode(nationality || "PT") === "PT") {
+      form.setValue("issuingCountry", "PT", { shouldValidate: true })
+      form.setValue("passportNumber", "")
+      form.setValue("passportIssueDate", "")
+    } else {
+      form.setValue("documentNumber", "")
+    }
+  }, [nationality, form])
+
+  const scrollTo = (ref: React.RefObject<HTMLDivElement>) => {
+    setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60)
+  }
+
+  // Section confirmations
+  const confirmTrip = async () => {
+    const ok = await form.trigger(
+      ["fullName", "email", "phone", "guestCount", "nationality"],
+      { shouldFocus: true }
+    )
+    if (!ok) { toast.warning("Revê os campos assinalados."); return }
+    setIdentityOpen(true)
+    scrollTo(identityRef)
+  }
+
+  const confirmIdentity = async () => {
+    const fields = isForeign
+      ? (["issuingCountry", "passportNumber", "passportIssueDate"] as const)
+      : (["documentNumber"] as const)
+    const ok = await form.trigger(fields, { shouldFocus: true })
+    if (!ok) { toast.warning("Revê os campos assinalados."); return }
+    setReviewOpen(true)
+    scrollTo(reviewRef)
+  }
+
+  const handleFinalSubmit = form.handleSubmit(async (values) => {
+    const ok = await submit(values)
+    if (ok) {
+      setPaymentOpen(true)
+      scrollTo(paymentRef)
+    }
+  })
+
+  // Sidebar progress
+  const progress = {
+    trip: identityOpen,
+    identity: reviewOpen,
+    review: paymentOpen,
+    payment: Boolean(bookingId && payment),
+  }
+
+  return (
+    <FormProvider {...form}>
+      <div className="mx-auto w-full max-w-5xl">
+
+        {/* Back link */}
+        <button
+          type="button"
+          onClick={onBack}
+          className={cn(tk.mono, "mb-6 flex items-center gap-1.5 hover:text-foreground transition-colors")}
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Voltar
+        </button>
+
+        <div className="grid gap-8 md:grid-cols-[1fr_300px] items-start">
+
+          {/* ── Scroll form column */}
+          <div className="space-y-4">
+
+            {/* Section 01 — Dados */}
+            <Section
+              index="01"
+              title="Os teus dados"
+              description="Contacto e informação sobre a estadia"
+              locked={false}
+              completed={progress.trip}
+            >
+              {/* Guest toggle */}
+              <div className="flex items-center justify-between gap-4 pb-4 border-b border-foreground/10">
+                <div>
+                  <div className={tk.label}>Reservar sem conta</div>
+                  <div className={cn(tk.mono, "mt-0.5")}>
+                    Sem criação de utilizador — apenas dados do hóspede.
+                  </div>
+                </div>
+                <Switch
+                  checked={checkoutAsGuest}
+                  disabled={!authSession.isAuthenticated}
+                  onCheckedChange={(next) => {
+                    if (!authSession.isAuthenticated && !next) {
+                      toast.info("Inicia sessão para reservar com conta.")
+                      return
+                    }
+                    setCheckoutAsGuest(next)
+                  }}
+                />
+              </div>
+
+              <RHFField
+                name="fullName"
+                label="Nome completo"
+                required
+                transform={normalize.fullName}
+                inputProps={{ maxLength: 120, autoComplete: "name", placeholder: "Maria Silva" }}
+              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <RHFField
+                  name="email"
+                  label="Email"
+                  required
+                  transform={(v) => v.trim()}
+                  inputProps={{ type: "email", maxLength: 120, autoComplete: "email", placeholder: "email@exemplo.com" }}
+                />
+                <RHFField
+                  name="phone"
+                  label="Telefone"
+                  required
+                  transform={normalize.phone}
+                  inputProps={{ type: "tel", inputMode: "tel", autoComplete: "tel", maxLength: 20, placeholder: "912 345 678" }}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <RHFField
+                  name="nationality"
+                  label="Nacionalidade"
+                  required
+                  type="select"
+                  options={NATIONALITY_OPTIONS}
+                />
+                <RHFField
+                  name="guestCount"
+                  label="Nº de hóspedes"
+                  required
+                  type="number"
+                  min={1}
+                  max={20}
+                />
+              </div>
+
+              <SectionCTA onClick={confirmTrip}>
+                Confirmar dados
+              </SectionCTA>
+            </Section>
+
+            {/* Section 02 — Identificação */}
+            <div ref={identityRef}>
+              <Section
+                index="02"
+                title="Identificação"
+                description="Documento obrigatório por lei (SEF/IRN)"
+                locked={!identityOpen}
+                completed={progress.identity}
+              >
+                {isForeign ? (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <RHFField
+                        name="issuingCountry"
+                        label="País emitente (ISO2)"
+                        required
+                        transform={normalize.countryCode}
+                        inputProps={{ maxLength: 2, autoComplete: "off", placeholder: "ES" }}
+                      />
+                      <RHFField
+                        name="passportNumber"
+                        label="Nº Passaporte"
+                        required
+                        transform={normalize.documentNumber}
+                        inputProps={{ maxLength: 20, autoComplete: "off", placeholder: "AB123456" }}
+                      />
+                    </div>
+                    <RHFField
+                      name="passportIssueDate"
+                      label="Data de emissão"
+                      required
+                      transform={(v) => v}
+                      inputProps={{ type: "date", autoComplete: "off" }}
+                    />
+                  </>
+                ) : (
+                  <RHFField
+                    name="documentNumber"
+                    label="Nº Cartão de Cidadão"
+                    required
+                    transform={normalize.documentNumber}
+                    inputProps={{ maxLength: 20, autoComplete: "off", placeholder: "12345678 0 ZZ4" }}
+                  />
+                )}
+
+                <SectionCTA onClick={confirmIdentity}>
+                  Confirmar identificação
+                </SectionCTA>
+              </Section>
+            </div>
+
+            {/* Section 03 — Revisão */}
+            <div ref={reviewRef}>
+              <Section
+                index="03"
+                title="Revisão"
+                description="Confirma os dados antes de pagar"
+                locked={!reviewOpen}
+                completed={progress.review}
+              >
+                <div className="divide-y divide-foreground/10">
+                  <ReviewRow label="Nome" value={preview.fullName || "—"} />
+                  <ReviewRow label="Email" value={preview.email || "—"} />
+                  <ReviewRow label="Telefone" value={preview.phone || "—"} />
+                  <ReviewRow label="Nacionalidade" value={nationalityLabel(preview.nationality ?? "PT")} />
+                  <ReviewRow label="Hóspedes" value={String(preview.guestCount || 1)} />
+                  <ReviewRow
+                    label="Documento"
+                    value={
+                      isForeign
+                        ? `Passaporte · ${preview.passportNumber || "—"} · ${preview.issuingCountry || "—"}`
+                        : `CC · ${preview.documentNumber || "—"}`
+                    }
+                  />
+                </div>
+
+                <div className={cn("pt-4", tk.divider, "flex items-end justify-between gap-4")}>
+                  <div>
+                    <div className={tk.label}>Total a pagar</div>
+                    <div className={cn(tk.mono, "mt-0.5")}>
+                      {nights} noite{nights !== 1 ? "s" : ""} × €{property.price}
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black tabular-nums">€{total}</div>
+                </div>
+
+                <SectionCTA
+                  onClick={() => void handleFinalSubmit()}
+                  disabled={isSubmitting}
+                  icon={
+                    isSubmitting
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Lock className="h-4 w-4" />
+                  }
+                >
+                  {isSubmitting ? "A processar…" : "Iniciar pagamento"}
+                </SectionCTA>
+              </Section>
+            </div>
+
+            {/* Section 04 — Pagamento */}
+            <div ref={paymentRef}>
+              <Section
+                index="04"
+                title="Pagamento"
+                description="Reserva criada e intent iniciado"
+                locked={!paymentOpen}
+                completed={progress.payment}
+              >
+                <div className="divide-y divide-foreground/10">
+                  <ReviewRow label="Reserva" value={`#${bookingId ?? "—"}`} />
+                  <ReviewRow label="Estado" value={readPaymentStatus(payment)} />
+                  {providerInfo && (
+                    <ReviewRow label="Provider" value={String(providerInfo["name"] ?? "—")} />
+                  )}
+                </div>
+
+                {readClientSecret(payment) && (
+                  <div className="space-y-2 pt-4 border-t border-foreground/10">
+                    <div className={tk.label}>Client secret</div>
+                    <Input
+                      id="payment-client-secret"
+                      variant="brutal"
+                      readOnly
+                      value={readClientSecret(payment) ?? ""}
+                    />
+                    <Button
+                      variant="brutal-outline"
+                      type="button"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(readClientSecret(payment) ?? "")
+                          toast.success("Copiado.")
+                        } catch {
+                          toast.error("Não foi possível copiar.")
+                        }
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5 mr-1.5" />
+                      Copiar
+                    </Button>
+                  </div>
+                )}
+
+                <SectionCTA onClick={onSuccess} disabled={!bookingId}>
+                  Concluir reserva
+                </SectionCTA>
+              </Section>
+            </div>
+          </div>
+
+          {/* ── Sticky sidebar */}
+          <aside className="md:sticky md:top-6 space-y-4">
+
+            {/* Property + price */}
+            <div className={cn(tk.cardLg, "p-5")}>
+              <div className={cn(tk.mono, "uppercase tracking-widest mb-3")}>Resumo</div>
+              <div className="font-black uppercase leading-snug text-sm">{property.title}</div>
+
+              <div className={cn("mt-3 pt-3 space-y-2", tk.divider)}>
+                <SidebarRow label="Check-in" value={checkIn} />
+                <SidebarRow label="Check-out" value={checkOut} />
+                <SidebarRow label="Noites" value={String(nights)} />
+                <SidebarRow label="Por noite" value={`€${property.price}`} />
+              </div>
+
+              <div className={cn("mt-3 pt-3 flex items-baseline justify-between", tk.divider)}>
+                <span className={tk.mono}>Total</span>
+                <span className="text-2xl font-black tabular-nums">€{total}</span>
+              </div>
+            </div>
+
+            {/* Guest snapshot */}
+            <div className={cn(tk.card, "p-4 space-y-3")}>
+              <div className={cn(tk.mono, "uppercase tracking-widest")}>Hóspede</div>
+
+              {preview.fullName ? (
+                <div className="space-y-1">
+                  <div className="text-sm font-black">{preview.fullName}</div>
+                  {preview.email && <div className={tk.mono}>{preview.email}</div>}
+                  {preview.phone && <div className={tk.mono}>{preview.phone}</div>}
+                </div>
+              ) : (
+                <div className={cn(tk.mono, "italic")}>Ainda sem dados</div>
+              )}
+
+              {(preview.nationality || preview.guestCount) ? (
+                <div className={cn("pt-3 space-y-1.5", tk.divider)}>
+                  {preview.nationality && (
+                    <SidebarRow label="Nac." value={nationalityLabel(preview.nationality)} />
+                  )}
+                  {preview.guestCount ? (
+                    <SidebarRow label="Hóspedes" value={String(preview.guestCount)} />
+                  ) : null}
+                  <SidebarRow label="Tipo" value={checkoutAsGuest ? "Convidado" : "Conta"} />
+                </div>
+              ) : null}
+            </div>
+
+            {/* Progress tracker */}
+            <div className={cn(tk.card, "p-4")}>
+              <div className={cn(tk.mono, "uppercase tracking-widest mb-3")}>Progresso</div>
+              <div className="space-y-1.5">
+                {(
+                  [
+                    { key: "trip", label: "Dados", done: progress.trip, active: !identityOpen },
+                    { key: "identity", label: "Identificação", done: progress.identity, active: identityOpen && !reviewOpen, locked: !identityOpen },
+                    { key: "review", label: "Revisão", done: progress.review, active: reviewOpen && !paymentOpen, locked: !reviewOpen },
+                    { key: "payment", label: "Pagamento", done: progress.payment, active: paymentOpen, locked: !paymentOpen },
+                  ] as const
+                ).map(({ key, label, done, active, locked }, i) => (
+                  <div
+                    key={key}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
+                      active && "bg-primary/10 border border-primary/30",
+                      !active && "border border-transparent"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "h-6 w-6 shrink-0 rounded-full border-2 flex items-center justify-center text-[10px] font-black transition-colors",
+                        done && "border-foreground bg-foreground text-background",
+                        active && !done && "border-primary text-primary",
+                        locked && !done && "border-foreground/20 text-foreground/20"
+                      )}
+                    >
+                      {done ? <Check className="h-3 w-3" /> : String(i + 1).padStart(2, "0")}
+                    </div>
+                    <span
+                      className={cn(
+                        "text-xs font-black uppercase flex-1",
+                        locked && !done && "text-muted-foreground/30"
+                      )}
+                    >
+                      {label}
+                    </span>
+                    {active && <ChevronRight className="h-3.5 w-3.5 text-primary shrink-0" />}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </aside>
+        </div>
+      </div>
+    </FormProvider>
+  )
+}
+
+// ─────────────────────────────────────────────
+// Section wrapper
+// ─────────────────────────────────────────────
+
+function Section({
+  index,
+  title,
+  description,
+  locked,
+  completed,
+  children,
+}: {
+  index: string
+  title: string
+  description: string
+  locked: boolean
+  completed: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <motion.div
+      animate={{ opacity: locked ? 0.38 : 1 }}
+      transition={{ duration: 0.18 }}
+      className={cn(
+        tk.card,
+        "p-5 md:p-6",
+        locked && "pointer-events-none select-none"
+      )}
     >
-      {children}
+      {/* Header row */}
+      <div className="flex items-start gap-4 mb-5">
+        <div
+          className={cn(
+            "h-8 w-8 shrink-0 rounded-full border-2 flex items-center justify-center text-[11px] font-black transition-colors",
+            completed && "border-foreground bg-foreground text-background",
+            !completed && !locked && "border-foreground text-foreground",
+            locked && "border-foreground/25 text-foreground/25"
+          )}
+        >
+          {completed ? <Check className="h-3.5 w-3.5" /> : index}
+        </div>
+        <div className="flex-1 pt-0.5">
+          <div className={cn("font-black uppercase leading-none", locked && "text-foreground/30")}>
+            {title}
+          </div>
+          <div className={cn(tk.mono, "mt-1")}>{description}</div>
+        </div>
+        {locked && <Lock className="h-4 w-4 mt-0.5 text-muted-foreground/30 shrink-0" />}
+      </div>
+
+      {!locked && <div className="space-y-4">{children}</div>}
+    </motion.div>
+  )
+}
+
+// ─────────────────────────────────────────────
+// SectionCTA
+// ─────────────────────────────────────────────
+
+function SectionCTA({
+  onClick,
+  disabled = false,
+  icon,
+  children,
+}: {
+  onClick: () => void
+  disabled?: boolean
+  icon?: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div className={cn("pt-4 border-t border-foreground/10")}>
+      <Button
+        variant="brutal"
+        type="button"
+        disabled={disabled}
+        onClick={onClick}
+        className="w-full sm:w-auto"
+      >
+        {icon && <span className="mr-2 flex items-center">{icon}</span>}
+        {children}
+        {!icon && <ChevronRight className="ml-1.5 h-4 w-4" />}
+      </Button>
     </div>
   )
 }
 
-function SectionCard({
-  title,
-  description,
-  children,
-}: {
-  title: string
-  description: string
-  children: React.ReactNode
-}) {
+// ─────────────────────────────────────────────
+// Generic RHFField (text | number | select)
+// ─────────────────────────────────────────────
+
+type RHFBase = { name: keyof CheckoutFormValues; label: string; required?: boolean }
+type RHFText = RHFBase & {
+  type?: "text"
+  transform: (v: string) => string
+  inputProps?: Omit<React.ComponentProps<typeof Input>, "id" | "value" | "onChange">
+  options?: never; min?: never; max?: never
+}
+type RHFNumber = RHFBase & {
+  type: "number"; min: number; max: number
+  transform?: never; inputProps?: never; options?: never
+}
+type RHFSelect = RHFBase & {
+  type: "select"
+  options: ReadonlyArray<{ value: string; label: string }>
+  transform?: never; min?: never; max?: never; inputProps?: never
+}
+type RHFFieldProps = RHFText | RHFNumber | RHFSelect
+
+function RHFField({ name, label, required, type = "text", ...rest }: RHFFieldProps) {
+  const { control, formState } = useFormContext<CheckoutFormValues>()
+  const error = formState.errors[name]?.message as string | undefined
+  const id = `field-${name}`
+
   return (
-    <BrutalShard rotate="secondary">
-      <div className="space-y-1">
-        <div className="text-lg font-black uppercase">{title}</div>
-        <div className="text-sm text-muted-foreground">{description}</div>
-      </div>
-      <div className="mt-4 grid gap-4">{children}</div>
-    </BrutalShard>
+    <div className="grid gap-1.5">
+      <label htmlFor={id} className={tk.label}>
+        {label}
+        {required && <span className="text-destructive ml-0.5">*</span>}
+      </label>
+
+      <Controller
+        control={control}
+        name={name}
+        render={({ field }) => {
+          if (type === "select") {
+            const { options } = rest as RHFSelect
+            return (
+              <select
+                id={id}
+                value={String(field.value ?? "")}
+                onChange={(e) => field.onChange(e.target.value)}
+                aria-invalid={Boolean(error)}
+                className="h-11 w-full rounded-md border-2 border-foreground bg-background px-3 text-sm font-mono shadow-[3px_3px_0_0_rgb(0,0,0)] dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.8)] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+              >
+                {options.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            )
+          }
+
+          if (type === "number") {
+            const { min, max } = rest as RHFNumber
+            return (
+              <Input
+                id={id}
+                variant="brutal"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={String(field.value ?? min)}
+                aria-invalid={Boolean(error)}
+                onChange={(e) => field.onChange(normalize.clampInt(e.target.value, min, max))}
+              />
+            )
+          }
+
+          const { transform, inputProps } = rest as RHFText
+          return (
+            <Input
+              id={id}
+              variant="brutal"
+              value={String(field.value ?? "")}
+              aria-invalid={Boolean(error)}
+              {...inputProps}
+              onChange={(e) => field.onChange(transform(e.target.value))}
+            />
+          )
+        }}
+      />
+
+      {error && (
+        <div className="text-[11px] font-mono text-destructive">{error}</div>
+      )}
+    </div>
   )
 }
 
-function Field({
-  id,
-  label,
-  required,
-  children,
-}: {
-  id: string
-  label: string
-  required?: boolean
-  children: React.ReactNode
-}) {
+// ─────────────────────────────────────────────
+// Presentational helpers
+// ─────────────────────────────────────────────
+
+function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid gap-1">
-      <label htmlFor={id} className="text-xs font-medium">
-        {label}
-        {required ? <span className="text-destructive"> *</span> : null}
-      </label>
-      {children}
+    <div className="flex items-start justify-between gap-6 py-2.5 first:pt-0 last:pb-0">
+      <span className={cn(tk.mono, "shrink-0 uppercase")}>{label}</span>
+      <span className="text-sm font-black text-right break-all">{value}</span>
+    </div>
+  )
+}
+
+function SidebarRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className={tk.mono}>{label}</span>
+      <span className="text-xs font-black tabular-nums">{value}</span>
     </div>
   )
 }

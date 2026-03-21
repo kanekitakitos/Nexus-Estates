@@ -85,8 +85,13 @@ public class BookingService
                 isBlank(request.guestDocumentNumber())) {
                 throw new IllegalArgumentException("Dados do hóspede são obrigatórios para reservas sem conta.");
             }
-            if (!"PT".equalsIgnoreCase(request.guestNationality()) && isBlank(request.guestIssuingCountry())) {
-                throw new IllegalArgumentException("País emissor é obrigatório para hóspedes estrangeiros.");
+            if (!"PT".equalsIgnoreCase(request.guestNationality())) {
+                if (isBlank(request.guestIssuingCountry())) {
+                    throw new IllegalArgumentException("País emissor é obrigatório para hóspedes estrangeiros.");
+                }
+                if (request.guestDocumentIssueDate() == null) {
+                    throw new IllegalArgumentException("Data de emissão do documento é obrigatória para hóspedes estrangeiros.");
+                }
             }
         }
 
