@@ -262,12 +262,7 @@ public class BookingService
      */
     @Transactional
     public com.nexus.estates.dto.payment.PaymentResponse confirmPayment(Long bookingId, String paymentIntentId) {
-        java.util.Map<String, Object> metadata = java.util.Map.of(
-                "bookingId", bookingId.toString(),
-                "confirmedAt", java.time.LocalDateTime.now().toString()
-        );
-        
-        return bookingPaymentService.confirmPayment(paymentIntentId, metadata);
+        return bookingPaymentService.confirmPayment(bookingId, paymentIntentId);
     }
 
     /**

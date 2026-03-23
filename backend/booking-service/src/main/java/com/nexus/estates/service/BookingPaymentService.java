@@ -15,20 +15,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Serviço responsável pela orquestração de pagamentos relacionados a reservas.
  * <p>
- * Este serviço atua como uma camada intermediária entre a lógica de negócio de reservas
- * e o provedor de pagamentos ({@link PaymentGatewayProvider}). Ele gerencia o ciclo de vida
- * dos pagamentos, incluindo criação de intenções, confirmação, pagamentos diretos e reembolsos,
- * garantindo que o estado da reserva seja atualizado consistentemente.
+ * Este serviço atua como camada de orquestração entre o domínio de reservas e o finance-service.
+ * Ele delega a criação/confirmação/reembolso ao {@code NexusClients.FinanceClient} e mantém
+ * a consistência do estado da reserva através de callbacks internos e publicação de eventos.
  * </p>
  *
  * @author Nexus Estates Team
  * @version 1.1
- * @see PaymentGatewayProvider
  * @see BookingRepository
  * @see BookingEventPublisher
  */
@@ -42,7 +39,7 @@ public class BookingPaymentService {
     /**
      * Construtor para injeção de dependências.
      *
-     * @param paymentGatewayProvider Provedor de gateway de pagamento para processamento financeiro.
+     * @param proxy Facade para comunicação com microservices externos (inclui finance-service).
      * @param bookingRepository Repositório para acesso e persistência de dados de reservas.
      * @param eventPublisher Publicador de eventos para notificar outros componentes sobre mudanças de estado.
      */
