@@ -16,7 +16,7 @@ import org.springframework.http.ResponseEntity;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -32,7 +32,6 @@ class PropertyControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Inicializamos os mocks e o controller antes de cada teste
         propertyService = mock(PropertyService.class);
         imageStorageService = mock(ImageStorageService.class);
         repository = mock(PropertyRepository.class);
@@ -44,7 +43,6 @@ class PropertyControllerTest {
     @Test
     @DisplayName("Should return 201 Created when request is valid")
     void shouldReturnCreatedWhenRequestIsValid() {
-        // Arrange
         CreatePropertyRequest request = new CreatePropertyRequest(
                 "Apartamento Luxo",
                 Map.of("pt", "Descrição"),
@@ -56,26 +54,23 @@ class PropertyControllerTest {
 
         when(propertyService.create(any(CreatePropertyRequest.class))).thenReturn(new Property());
 
-        // Act
         ResponseEntity<ApiResponse<Property>> response = controller.create(request);
 
-        // Assert
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         verify(propertyService, times(1)).create(request);
     }
 
     @Test
     @DisplayName("Should return upload parameters asynchronously")
-    void shouldReturnUploadParameters() throws ExecutionException, InterruptedException {
-        // Arrange
+    void shouldReturnUploadParameters() throws Exception {
         Map<String, Object> mockParams = Map.of("signature", "123", "timestamp", "456");
         when(imageStorageService.getUploadParameters()).thenReturn(mockParams);
 
-        // Act
         CompletableFuture<ResponseEntity<ApiResponse<Map<String, Object>>>> futureResponse = controller.getUploadParams();
-        ResponseEntity<ApiResponse<Map<String, Object>>> response = futureResponse.get(); // Espera o resultado da thread asíncrona
+        
+        // Adiciona timeout para evitar bloqueio no CI
+        ResponseEntity<ApiResponse<Map<String, Object>>> response = futureResponse.get(2, TimeUnit.SECONDS);
 
-        // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().isSuccess());

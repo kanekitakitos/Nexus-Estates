@@ -6,6 +6,7 @@ import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.SeasonalityRule;
 import com.nexus.estates.repository.AmenityRepository;
 import com.nexus.estates.repository.PropertyRepository;
+import com.nexus.estates.repository.PropertyRuleRepository;
 import com.nexus.estates.repository.SeasonalityRuleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,6 +49,10 @@ class PropertyServiceTest {
     /** Mock do repositório de regras de sazonalidade. */
     @Mock
     private SeasonalityRuleRepository seasonalityRuleRepository;
+
+    /** Mock do repositório de regras de propriedade. */
+    @Mock
+    private PropertyRuleRepository propertyRuleRepository;
 
     /** Instância do serviço com as dependências mockadas injetadas. */
     @InjectMocks
@@ -93,6 +98,8 @@ class PropertyServiceTest {
         assertEquals(1L, result.getId());
         verify(amenityRepository, times(1)).findAllById(validRequest.amenityIds());
         verify(repository, times(1)).save(any(Property.class));
+        // Verifica se a regra padrão foi criada e salva
+        verify(propertyRuleRepository, times(1)).save(any());
     }
 
     /**
