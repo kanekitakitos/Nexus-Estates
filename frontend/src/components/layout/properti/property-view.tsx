@@ -119,10 +119,12 @@ export function PropertyView(){
     else{ // nenhuma propreidade selecionada
         return(
             <PropertyList
+                variant="CARDS"
                 propertys={MOCK_PROPERTIES}
                 onSelect={(id)=>handelSelectedProperty(id)}
                 isExiting={isLeaving}
                 animate={true}
+                addNewProperty={true}
             />)
     }
 
