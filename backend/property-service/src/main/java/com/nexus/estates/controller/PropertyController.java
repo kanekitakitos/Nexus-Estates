@@ -6,7 +6,7 @@ import com.nexus.estates.common.dto.PropertyRuleDTO;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.service.PropertyService;
-import com.nexus.estates.service.ImageStorageService;
+import com.nexus.estates.service.repository.ImageStorageService;
 import com.nexus.estates.service.PropertyRuleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

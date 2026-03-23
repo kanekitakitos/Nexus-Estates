@@ -1,4 +1,4 @@
-package com.nexus.estates.service;
+package com.nexus.estates.service.repository;
 
 import java.util.Map;
 

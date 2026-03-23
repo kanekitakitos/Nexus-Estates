@@ -136,7 +136,7 @@ class PropertyServiceTest {
      */
     @Test
     @DisplayName("Deve aplicar regra de sazonalidade por data")
-    void shouldCalculatePriceWithDateRangeRule() {
+    void shouldCalculatePriceWithDateRangeRule2() {
         // Arrange
         Long propertyId = 1L;
         LocalDate checkIn = LocalDate.of(2024, 7, 14);
@@ -174,7 +174,7 @@ class PropertyServiceTest {
      */
     @Test
     @DisplayName("Deve priorizar regra de canal sobre regra de data")
-    void shouldPrioritizeChannelRuleOverDateRule() {
+    void shouldPrioritizeChannelRuleOverDateRule1() {
         // Arrange
         Long propertyId = 1L;
         LocalDate date = LocalDate.of(2024, 8, 1);
@@ -211,7 +211,7 @@ class PropertyServiceTest {
      */
     @Test
     @DisplayName("Deve calcular preço base sem regras de sazonalidade")
-    void shouldCalculatePriceWithoutRules() {
+    void shouldCalculatePriceWithoutRules0() {
         // Arrange
         Long propertyId = 1L;
         LocalDate checkIn = LocalDate.of(2024, 6, 1);
