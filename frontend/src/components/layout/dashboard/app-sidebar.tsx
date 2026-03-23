@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/layout/sidebar"
 import { useChatStrategy } from "@/features/chat/ChatProvider"
 
+import { PropertyList, PropertyListBars } from "../properti/property-list"
+import { MOCK_PROPERTIES } from "../properti/property-view"
 
 type UserRole = "ADMIN" | "GUEST"
 
@@ -183,7 +185,13 @@ export function AppSidebar({
                     </div>
                   )}
                 </>
-              ) : (
+              ) 
+              : activeItem === "Properties" ? (
+                  <div key={selectedChatId} className="flex-1 h-[calc(100vh-56px)]">
+                    <PropertyListBars propertys={MOCK_PROPERTIES} isExiting={true} animate={false} onSelect={()=>{}}/>
+                  </div>
+              )
+              : (
                   <div className="text-muted-foreground flex h-full items-center justify-center p-4 text-sm">
                     Conteúdo de {activeItem}
                   </div>
