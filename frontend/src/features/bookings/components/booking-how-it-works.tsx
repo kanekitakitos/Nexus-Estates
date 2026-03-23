@@ -1,111 +1,262 @@
+"use client"
+
 /**
- * @description
- * Ficheiro para implementar um componete para servir de guia visual do Processo de Reserva
- * 
- * @version 1.0
+ * BookingHowItWorks — v2
+ *
+ * Objectivo
+ * - Card “editorial” que explica rapidamente o fluxo de reserva dentro do grid.
+ *
+ * Onde é usado
+ * - Injectado em `BookingList` (posição fixa) para quebrar monotonia e guiar o utilizador.
+ *
+ * Notas de UX/Animação
+ * - Textura diagonal é CSS (barata) — evita blur pesado.
+ * - Scanner line é motion (loop) para sensação “dashboard vivo”.
+ * - Steps entram com stagger e têm hover subtil; respeita reduced motion.
  */
 
-import { Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BrutalCard } from "@/components/ui/data-display/card"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/forms/button"
+import { motion, useReducedMotion } from "framer-motion"
+import { ArrowRight, Search, CalendarCheck, Smile } from "lucide-react"
+import { scannerLine, staggerContainer, staggerItem, springSnap, springBounce } from "@/features/bookings/motion"
+
+// ─────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────
 
 interface BookingHowItWorksProps {
-    mode?: "default" | "card"
-    className?: string
+  mode?: "default" | "card"
+  className?: string
+  onExplore?: () => void
 }
 
-/**
- * Componente Informativo: Como Funciona (How It Works).
- * 
- * Um cartão visualmente rico que explica o processo de reserva em 3 passos simples.
- * Utiliza um design "brutalista" com sombras fortes e elementos decorativos.
- * 
- * Ideal para ser exibido na barra lateral ou em seções de ajuda.
- * 
- * @param mode - Modo de exibição (atualmente suporta "default" e "card").
- * @param className - Classes CSS adicionais para customização de layout.
- */
-export function BookingHowItWorks({ mode = "default", className }: BookingHowItWorksProps) {
-    return (
-        <BrutalCard 
-            variant="primary"
-            className={cn(
-                "group relative h-full w-full overflow-hidden transition-all hover:-translate-y-1 flex flex-col justify-between hover:shadow-[8px_8px_0_0_rgb(0,0,0)] dark:hover:shadow-[8px_8px_0_0_rgba(255,255,255,0.9)]",
-                className
-            )}
+// ─────────────────────────────────────────────
+// Step data
+// ─────────────────────────────────────────────
+
+const STEPS = [
+  {
+    number: "01",
+    label: "Explora",
+    description: "Pesquisa por destino, datas e orçamento",
+    icon: Search,
+  },
+  {
+    number: "02",
+    label: "Reserva",
+    description: "Confirma os detalhes e paga em segurança",
+    icon: CalendarCheck,
+  },
+  {
+    number: "03",
+    label: "Desfruta",
+    description: "Chega e relaxa — tratamos do resto",
+    icon: Smile,
+  },
+] as const
+
+// ─────────────────────────────────────────────
+// BookingHowItWorks
+// ─────────────────────────────────────────────
+
+export function BookingHowItWorks({
+  mode = "default",
+  className,
+  onExplore,
+}: BookingHowItWorksProps) {
+  const shouldReduceMotion = useReducedMotion()
+  const compact = mode === "card"
+
+  return (
+    <motion.div
+      whileHover={shouldReduceMotion ? undefined : { y: -5, rotate: -0.2, transition: springSnap }}
+      whileTap={shouldReduceMotion ? undefined : { scaleX: 0.985, scaleY: 0.972, transition: springSnap }}
+      className={cn("h-full w-full", className)}
+    >
+      <BrutalCard
+        variant="primary"
+        className="group relative h-full w-full overflow-hidden flex flex-col justify-between"
+      >
+        {/* ── Diagonal texture overlay */}
+        <DiagonalTexture />
+
+        {/* ── Animated scanner line */}
+        {!shouldReduceMotion && <ScannerLine />}
+
+        {/* ── Content */}
+        <div className="relative z-10 flex flex-col h-full gap-4 p-1">
+          <Header compact={compact} />
+          <Steps compact={compact} />
+          {!compact && <Cta onExplore={onExplore} />}
+        </div>
+      </BrutalCard>
+    </motion.div>
+  )
+}
+
+// ─────────────────────────────────────────────
+// DiagonalTexture — CSS-only, no blur
+// ─────────────────────────────────────────────
+
+function DiagonalTexture() {
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none opacity-[0.06]"
+      style={{
+        backgroundImage: `repeating-linear-gradient(
+          -45deg,
+          currentColor 0px,
+          currentColor 1px,
+          transparent 1px,
+          transparent 10px
+        )`,
+      }}
+    />
+  )
+}
+
+// ─────────────────────────────────────────────
+// ScannerLine — horizontal line that sweeps top→bottom
+// ─────────────────────────────────────────────
+
+function ScannerLine() {
+  return (
+    <motion.div
+      className="absolute left-0 right-0 h-px bg-primary-foreground/20 pointer-events-none z-10"
+      initial={scannerLine.initial}
+      animate={scannerLine.animate}
+      transition={scannerLine.transition}
+    />
+  )
+}
+
+// ─────────────────────────────────────────────
+// Header
+// ─────────────────────────────────────────────
+
+function Header({ compact }: { compact: boolean }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        {/* Guide label */}
+        <div className="inline-flex items-center gap-1.5 rounded-full border-2 border-primary-foreground/30 bg-primary-foreground/10 px-2.5 py-0.5 mb-2">
+          <span className="font-mono text-[9px] font-black uppercase tracking-widest text-primary-foreground/80">
+            Guia
+          </span>
+        </div>
+
+        {/* Title — two-weight treatment */}
+        <h3
+          className={cn(
+            "font-mono uppercase leading-[0.88] tracking-tight",
+            compact ? "text-xl" : "text-3xl"
+          )}
         >
-            {/* Seção Superior: Ícone e Título */}
-            <HeaderSection />
-            
-            {/* Seção Central: Lista de Passos */}
-            <StepsSection />
-            
-            {/* Elementos Decorativos de Fundo */}
-            <DecorativeBackground />
-        </BrutalCard>
-    )
+          <span className="font-normal text-primary-foreground/70">Como</span>
+          <br />
+          <span className="font-black text-primary-foreground drop-shadow-[2px_2px_0_rgba(0,0,0,0.25)]">
+            Funciona
+          </span>
+        </h3>
+      </div>
+
+      {/* Decorative large number */}
+      <div
+        className={cn(
+          "font-black font-mono text-primary-foreground/10 leading-none select-none pointer-events-none",
+          compact ? "text-[64px]" : "text-[80px]"
+        )}
+        aria-hidden
+      >
+        ?
+      </div>
+    </div>
+  )
 }
 
-// --- Sub-components ---
+// ─────────────────────────────────────────────
+// Steps
+// ─────────────────────────────────────────────
 
-/**
- * Subcomponente: Cabeçalho do Cartão.
- * 
- * Exibe o ícone de "Guia" e o título principal "How it works".
- */
-function HeaderSection() {
-    return (
-        <div className="flex flex-col gap-4">
-            <div className="flex justify-between items-start">
-                <div className="w-10 h-10 rounded-full border-[2px] border-foreground bg-background flex items-center justify-center shadow-[3px_3px_0_0_rgb(0,0,0)] dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.9)]">
-                    <Users className="w-5 h-5 text-foreground" />
-                </div>
-                <Badge variant="brutal" className="-rotate-3">
-                    Guide
-                </Badge>
+function Steps({ compact }: { compact: boolean }) {
+  const shouldReduceMotion = useReducedMotion()
+
+  return (
+    <motion.div
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className="flex flex-col gap-2 flex-1"
+    >
+      {STEPS.map(({ number, label, description, icon: Icon }) => (
+        <motion.div
+          key={number}
+          variants={staggerItem}
+          whileHover={
+            shouldReduceMotion
+              ? undefined
+              : { x: 5, transition: { duration: 0.15, ease: [0.22, 1, 0.36, 1] } }
+          }
+          className="flex items-center gap-3 rounded-lg border-2 border-primary-foreground/20 bg-primary-foreground/10 px-3 py-2 cursor-default"
+        >
+          {/* Step number badge */}
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-primary-foreground/40 bg-primary-foreground/20">
+            <span className="font-mono text-[10px] font-black text-primary-foreground leading-none">
+              {number}
+            </span>
+          </div>
+
+          {/* Text */}
+          <div className="min-w-0 flex-1">
+            <div className={cn(
+              "font-mono font-black uppercase text-primary-foreground leading-none",
+              compact ? "text-xs" : "text-sm"
+            )}>
+              {label}
             </div>
-            
-            <h3 className="font-mono text-3xl font-black uppercase leading-[0.85] text-primary-foreground drop-shadow-[3px_3px_0_rgb(0,0,0)] break-words">
-                How it<br/>works
-            </h3>
-        </div>
-    )
+            {!compact && (
+              <div className="font-mono text-[10px] text-primary-foreground/60 mt-0.5 leading-snug">
+                {description}
+              </div>
+            )}
+          </div>
+
+          {/* Icon */}
+          <Icon
+            className={cn(
+              "shrink-0 text-primary-foreground/40",
+              compact ? "h-3.5 w-3.5" : "h-4 w-4"
+            )}
+          />
+        </motion.div>
+      ))}
+    </motion.div>
+  )
 }
 
-/**
- * Subcomponente: Lista de Passos.
- * 
- * Renderiza os passos do processo (Browse, Book, Enjoy) como badges interativos.
- * Cada passo tem um número e um rótulo descritivo.
- */
-function StepsSection() {
-    const steps = [
-        { step: 1, label: "Browse" },
-        { step: 2, label: "Book" },
-        { step: 3, label: "Enjoy" }
-    ]
+// ─────────────────────────────────────────────
+// Cta — only in default mode
+// ─────────────────────────────────────────────
 
-    return (
-        <div className="flex flex-col gap-3 mt-4">
-            {steps.map((item) => (
-                <Badge key={item.step} variant="brutal" className="w-full justify-start p-2 hover:translate-x-1 transition-transform gap-3 rounded-md">
-                    <div className="flex items-center justify-center w-6 h-6 border-[2px] border-foreground bg-primary text-primary-foreground font-mono text-xs font-bold ">{item.step}</div>
-                    <span className="font-mono text-sm font-bold text-foreground uppercase">{item.label}</span>
-                </Badge>
-            ))}
-        </div>
-    )
-}
+function Cta({ onExplore }: { onExplore?: () => void }) {
+  const shouldReduceMotion = useReducedMotion()
 
-/**
- * Subcomponente: Fundo Decorativo.
- * 
- * Adiciona elementos visuais abstratos (círculos, blur) para enriquecer o design
- * sem interferir na legibilidade do conteúdo.
- */
-function DecorativeBackground() {
-    return (
-        <div className="absolute -bottom-8 -right-8 w-24 h-24 bg-background/10 rounded-full blur-xl pointer-events-none" />
-    )
+  return (
+    <motion.div
+      whileHover={shouldReduceMotion ? undefined : { scale: 1.03, rotate: -0.3 }}
+      whileTap={shouldReduceMotion ? undefined : { scale: 0.96 }}
+      transition={springBounce}
+    >
+      <Button
+        variant="brutal"
+        onClick={onExplore}
+        className="w-full h-10 font-black uppercase text-sm shadow-[3px_3px_0_0_rgb(0,0,0)] bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+      >
+        Explorar
+        <ArrowRight className="h-4 w-4 ml-1.5" />
+      </Button>
+    </motion.div>
+  )
 }

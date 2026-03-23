@@ -1,284 +1,572 @@
-/**
- * @file
- * Orquestrador Principal do Fluxo de informações sobre os boockings.
- * 
- * @description
- * * Este ficheiro contém a vista principal dos boockings, funcionando como um contentor 
- * inteligente que alterna entre a listagem de possiveis boockings e a vista detalhada.
- * 
- * @version 1.0
-*/
-
 "use client"
 
-import { useMemo, useState, useEffect } from "react"
+/**
+ * BookingView — v2
+ *
+ * Contexto
+ * - Ecrã principal do módulo de reservas (bookings) no frontend.
+ * - Mantém o fluxo dentro do mesmo “screen” para transições rápidas (sem trocar de rota).
+ *
+ * Responsabilidades
+ * - Carregar propriedades do backend (`PropertyService.getAllProperties()`).
+ * - Filtrar propriedades localmente (destino/preço).
+ * - Orquestrar navegação interna: list → details → checkout.
+ * - Garantir transições suaves com Framer Motion (`AnimatePresence`).
+ *
+ * UX/Animação
+ * - Transições de ecrã usam `pageVariants` (motion.ts) para consistência.
+ * - Skeleton loader usa shimmer para comunicar loading sem “saltos” de layout.
+ * - Hero e contadores usam stagger/AnimatePresence para dar “vida” sem ruído.
+ *
+ * Acessibilidade
+ * - Mantém navegação por botões/inputs standard nas sub-components.
+ * - Gestos (scroll horizontal/swipe) são uma conveniência, não substituem UI.
+ *
+ * Notas de arquitectura
+ * - Este ficheiro mantém só coordenação e estado. A UI detalhada está em components/.
+ */
+
+import { useMemo, useState, useEffect, useCallback, useRef } from "react"
 import { BookingList } from "./components/booking-list"
 import { BookingProperty } from "./components/booking-card"
 import { BookingSearchBar } from "./components/booking-search-bar"
 import { BookingDetails } from "./components/booking-details"
+import { BookingCheckoutForm } from "./components/booking-checkout-form"
 import { cn } from "@/lib/utils"
 import { PropertyService } from "@/services/property.service"
 import { toast } from "sonner"
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
+import {
+  comicPopVariants, gummyHover, gummyTap,
+  fadeUpEnter,
+  pageVariants, staggerContainer, staggerItem,
+  shimmerX,
+  springSnap, springBounce,
+} from "@/features/bookings/motion"
 
-const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
-const HERO_CONTAINER_STYLES = "flex flex-col space-y-2 mb-8 transition-all duration-500"
-const HERO_TITLE_STYLES = "text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter uppercase mb-2"
-const HERO_PILL_PRIMARY_STYLES = "bg-primary text-primary-foreground px-2 inline-block -rotate-1 mr-2 shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)]"
-const HERO_UNDERLINE_TEXT_STYLES = "text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/70 underline decoration-4 decoration-primary underline-offset-4"
-const HERO_SUBTITLE_STYLES = "text-lg md:text-xl text-muted-foreground font-mono max-w-2xl border-l-4 border-primary pl-4"
-const SEARCH_WRAPPER_ANIMATION_LEAVE = "animate-fly-out-chaos-2 delay-100"
-const SEARCH_WRAPPER_ANIMATION_RETURN = "animate-fly-in-chaos-2 delay-100"
-const LIST_CONTAINER_STYLES = "relative"
-const LIST_DECORATOR_STYLES = "absolute -left-4 top-0 bottom-0 w-1 bg-foreground/10"
+// ─────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────
+
+/** Estados de ecrã internos (sem mudar de rota) para manter transições fluídas. */
+type BookingViewScreen = "list" | "details" | "checkout"
+/** Acções de limpeza a executar após `AnimatePresence` completar a saída. */
+type ExitCleanup = "clearSelected" | "clearCheckout" | "clearAll" | null
+
+/** Filtros de pesquisa usados no ecrã de listagem. */
+interface SearchFilters {
+  destination: string
+  adults: number
+  children: number
+  maxPrice: number | ""
+  checkInDate: Date | null
+  checkOutDate: Date | null
+}
+
+/** Valores iniciais “safe defaults” para filtros. */
+const DEFAULT_FILTERS: SearchFilters = {
+  destination: "",
+  adults: 1,
+  children: 0,
+  maxPrice: "",
+  checkInDate: null,
+  checkOutDate: null,
+}
+
+// ─────────────────────────────────────────────
+// BookingView — root
+// ─────────────────────────────────────────────
 
 /**
- * Controlador principal da vista de reservas (Booking View).
+ * Root da feature de bookings.
+ *
+ * Fluxo
+ * - `screen === "list"`: pesquisa + grid de propriedades.
+ * - `screen === "details"`: detalhe de uma propriedade seleccionada.
+ * - `screen === "checkout"`: formulário de reserva/pagamento para a propriedade seleccionada.
+ *
+ * Side-effects
+ * - Carrega dados ao montar.
+ * - Controla scrollTo(0,0) em cada transição para evitar estados confusos.
  */
 export function BookingView() {
-    const [properties, setProperties] = useState<BookingProperty[]>([])
-    const [isLoading, setIsLoading] = useState(true)
-    const [searchTerm, setSearchTerm] = useState("")
-    const [selectedProperty, setSelectedProperty] = useState<BookingProperty | null>(null)
-    const [lastViewedPropertyId, setLastViewedPropertyId] = useState<string | null>(null)
-    const [isLeaving, setIsLeaving] = useState(false)
-    const [isReturning, setIsReturning] = useState(false)
-    
-    const [adults, setAdults] = useState(1)
-    const [children, setChildren] = useState(0)
-    const [maxPrice, setMaxPrice] = useState<number | "">("")
-    const [checkInDate, setCheckInDate] = useState<Date | null>(null)
-    const [checkOutDate, setCheckOutDate] = useState<Date | null>(null)
+  const [properties, setProperties] = useState<BookingProperty[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS)
+  const [selectedProperty, setSelectedProperty] = useState<BookingProperty | null>(null)
+  const [checkout, setCheckout] = useState<{ checkIn: string; checkOut: string } | null>(null)
+  const [lastViewedPropertyId, setLastViewedPropertyId] = useState<string | null>(null)
+  const [screen, setScreen] = useState<BookingViewScreen>("list")
+  const [exitCleanup, setExitCleanup] = useState<ExitCleanup>(null)
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
-    // Carrega as propriedades do backend ao montar o componente
-    useEffect(() => {
-        const fetchProperties = async () => {
-            try {
-                setIsLoading(true)
-                const mappedData = await PropertyService.getAllProperties()
-                setProperties(mappedData)
-            } catch (error) {
-                console.error("Erro ao carregar propriedades:", error)
-                toast.error("Não foi possível carregar as propriedades.")
-            } finally {
-                setIsLoading(false)
-            }
-        }
+  /**
+   * Setter utilitário: aplica update parcial ao objecto de filtros.
+   *
+   * Motivo
+   * - Evita múltiplos `useState` e reduz prop drilling.
+   */
+  const setFilter = useCallback(
+    <K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) => {
+      setFilters((prev) => ({ ...prev, [key]: value }))
+    },
+    []
+  )
 
-        fetchProperties()
-    }, [])
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setIsLoading(true)
+        const data = await PropertyService.getAllProperties()
+        setProperties(data)
+      } catch {
+        toast.error("Não foi possível carregar as propriedades.")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    load()
+  }, [])
 
-    // Memoriza a lista filtrada para evitar recálculos desnecessários em cada renderização
-    const filteredProperties = useMemo(() => 
-        {
-        let filtered = properties.filter(p => p.status === "AVAILABLE")
+  const filteredProperties = useMemo(() => {
+    let list = properties.filter((p) => p.status === "AVAILABLE")
 
-        // filtra as propriedades dependedo do destino indicado no BookingSearchBar
-        if (searchTerm) {
-            const term = searchTerm.toLowerCase()
-            filtered = filtered.filter(p => 
-                p.title.toLowerCase().includes(term) || 
-                p.location.toLowerCase().includes(term)
-            )
-        }
-
-        if (maxPrice !== "") {
-            filtered = filtered.filter(p => p.price <= Number(maxPrice))
-        }
-
-        return filtered
-    }, [properties, searchTerm, maxPrice])
-
-    // Manipula a seleção de uma propriedade, iniciando a animação de saída da lista
-    const handleBook = (id: string) => {
-        const property = properties.find(p => p.id === id)
-        if (property) {
-            setLastViewedPropertyId(id)
-            setIsLeaving(true)
-            setTimeout(() => {
-                setSelectedProperty(property)
-                setIsLeaving(false)
-                setIsReturning(false)
-                window.scrollTo(0, 0)
-            }, 800)
-        }
+    if (filters.destination) {
+      const term = filters.destination.toLowerCase()
+      list = list.filter(
+        (p) =>
+          p.title.toLowerCase().includes(term) ||
+          p.location.toLowerCase().includes(term)
+      )
     }
 
-    // Manipula o retorno da vista de detalhes para a lista
-    const handleBack = () => {
-        setIsReturning(true)
-        
-        setTimeout(() => {
-            setSelectedProperty(null)
-            setTimeout(() => {
-                setIsReturning(false)
-            }, 1000)
-        }, 800)
+    if (filters.maxPrice !== "") {
+      list = list.filter((p) => p.price <= Number(filters.maxPrice))
     }
 
-    // Hook para gestos de navegação (swipe/wheel)
-    useNavigationGestures({
-        selectedProperty,
-        lastViewedPropertyId,
-        isLeaving,
-        isReturning,
-        onNavigateForward: handleBook
-    })
+    return list
+  }, [properties, filters.destination, filters.maxPrice])
 
-    // Renderização condicional: Vista de Detalhes
-    if (selectedProperty) {
-        return <BookingDetails
+  // ── Navegação entre ecrãs (máquina de estados simples)
+
+  /**
+   * Abre o detalhe de uma propriedade (a partir do id).
+   *
+   * Guardas
+   * - Respeita `isTransitioning` para evitar double-clicks durante animação.
+   */
+  const navigateToDetails = useCallback(
+    (id: string) => {
+      if (isTransitioning) return
+      const property = properties.find((p) => p.id === id)
+      if (!property) return
+      setLastViewedPropertyId(id)
+      setSelectedProperty(property)
+      setCheckout(null)
+      setExitCleanup(null)
+      setIsTransitioning(true)
+      setScreen("details")
+      window.scrollTo(0, 0)
+    },
+    [isTransitioning, properties]
+  )
+
+  /**
+   * Volta à lista e limpa selecção/checkout após terminar animação de saída.
+   *
+   * Nota
+   * - A limpeza real acontece em `onExitComplete` para não haver “flash” durante a animação.
+   */
+  const navigateBackToList = useCallback(() => {
+    if (isTransitioning) return
+    setExitCleanup("clearAll")
+    setIsTransitioning(true)
+    setScreen("list")
+    window.scrollTo(0, 0)
+  }, [isTransitioning])
+
+  /**
+   * Avança para checkout mantendo a propriedade seleccionada.
+   *
+   * Entrada
+   * - `payload` vem do BookingDetails (datas confirmadas).
+   */
+  const navigateToCheckout = useCallback(
+    (payload: { checkIn: string; checkOut: string }) => {
+      if (isTransitioning) return
+      setCheckout(payload)
+      setExitCleanup(null)
+      setIsTransitioning(true)
+      setScreen("checkout")
+      window.scrollTo(0, 0)
+    },
+    [isTransitioning]
+  )
+
+  /**
+   * Volta do checkout para os detalhes, preservando propriedade.
+   *
+   * Motivo
+   * - Permite editar datas/ver detalhes sem recomeçar o fluxo.
+   */
+  const navigateBackToDetails = useCallback(() => {
+    if (isTransitioning) return
+    setExitCleanup("clearCheckout")
+    setIsTransitioning(true)
+    setScreen("details")
+    window.scrollTo(0, 0)
+  }, [isTransitioning])
+
+  useNavigationGestures({
+    screen,
+    lastViewedPropertyId,
+    isTransitioning,
+    onNavigateForward: navigateToDetails,
+  })
+
+  return (
+    <AnimatePresence
+      mode="wait"
+      onExitComplete={() => {
+        /**
+         * Cleanup pós-animação.
+         * Mantém o estado consistente com o screen final e evita “stale UI”.
+         */
+        if (exitCleanup === "clearCheckout") setCheckout(null)
+        if (exitCleanup === "clearSelected") setSelectedProperty(null)
+        if (exitCleanup === "clearAll") { setCheckout(null); setSelectedProperty(null) }
+        setExitCleanup(null)
+        setIsTransitioning(false)
+      }}
+    >
+      {/* ── List screen */}
+      {screen === "list" && (
+        <motion.div
+          key="booking-list"
+          className="flex flex-col space-y-6 p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+        >
+          <HeroSection />
+
+          {/* Search bar wrapper */}
+          <motion.div
+            {...fadeUpEnter(0.35, 10, 0.32)}
+            className="rounded-2xl border-2 border-foreground bg-background shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)] p-3 md:p-4"
+          >
+            <BookingSearchBar
+              destination={filters.destination}
+              checkInDate={filters.checkInDate}
+              checkOutDate={filters.checkOutDate}
+              adults={filters.adults}
+              childrenCount={filters.children}
+              maxPrice={filters.maxPrice}
+              onDestinationChange={(v) => setFilter("destination", v)}
+              onCheckInChange={(v) => setFilter("checkInDate", v)}
+              onCheckOutChange={(v) => setFilter("checkOutDate", v)}
+              onAdultsChange={(v) => setFilter("adults", v)}
+              onChildrenChange={(v) => setFilter("children", v)}
+              onMaxPriceChange={(v) => setFilter("maxPrice", v)}
+              className="bg-transparent shadow-none border-0 p-0"
+            />
+          </motion.div>
+
+          {/* Results */}
+          <div className="relative">
+            <div className="absolute -left-4 top-0 bottom-0 w-1 bg-foreground/10 hidden md:block" />
+            {isLoading ? (
+              <PropertySkeletons />
+            ) : (
+              <>
+                <ResultsHeader
+                  count={filteredProperties.length}
+                  hasFilter={Boolean(filters.destination || filters.maxPrice !== "")}
+                />
+                <BookingList properties={filteredProperties} onBook={navigateToDetails} />
+              </>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── Details screen */}
+      {screen === "details" && selectedProperty && (
+        <motion.div
+          key="booking-details"
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+        >
+          <BookingDetails
             property={selectedProperty}
-            onBack={handleBack}
-            isExiting={isReturning}
-            checkInDate={checkInDate}
-            checkOutDate={checkOutDate}
-        />
-    }
+            onBack={navigateBackToList}
+            onCheckout={navigateToCheckout}
+            checkInDate={filters.checkInDate}
+            checkOutDate={filters.checkOutDate}
+          />
+        </motion.div>
+      )}
 
-    // Renderização padrão: Vista de Lista com Pesquisa e Hero
-    return (
-        <div className={PAGE_CONTAINER_STYLES}>
-            <HeroSection isLeaving={isLeaving} isReturning={isReturning} />
-
-            <div className={cn(
-                isLeaving && SEARCH_WRAPPER_ANIMATION_LEAVE,
-                isReturning && SEARCH_WRAPPER_ANIMATION_RETURN
-            )}>
-                <BookingSearchBar
-                    destination={searchTerm}
-                    checkInDate={checkInDate}
-                    checkOutDate={checkOutDate}
-                    adults={adults}
-                    childrenCount={children}
-                    maxPrice={maxPrice}
-                    onDestinationChange={setSearchTerm}
-                    onCheckInChange={setCheckInDate}
-                    onCheckOutChange={setCheckOutDate}
-                    onAdultsChange={setAdults}
-                    onChildrenChange={setChildren}
-                    onMaxPriceChange={setMaxPrice}
-                />
-            </div>
-
-            <div className={cn(LIST_CONTAINER_STYLES)}>
-                <div className={LIST_DECORATOR_STYLES} />
-                <BookingList
-                    properties={filteredProperties}
-                    onBook={handleBook}
-                    isLeaving={isLeaving}
-                    isReturning={isReturning}
-                />
-            </div>
-        </div>
-    )
+      {/* ── Checkout screen */}
+      {screen === "checkout" && selectedProperty && checkout && (
+        <motion.div
+          key="booking-checkout"
+          className="p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+        >
+          <BookingCheckoutForm
+            property={selectedProperty}
+            checkIn={checkout.checkIn}
+            checkOut={checkout.checkOut}
+            onBack={navigateBackToDetails}
+            onSuccess={navigateBackToList}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
 }
 
-// --- Sub-components & Hooks ---
+// ─────────────────────────────────────────────
+// HeroSection — word-stagger title + animated underline
+// ─────────────────────────────────────────────
+
+const HERO_WORDS = [
+  { text: "Find",      pill: true,  rotate: "-rotate-1", underline: false },
+  { text: "Your",      pill: false, rotate: "rotate-1",  underline: false },
+  { text: "Next Stay", pill: false, rotate: "",         underline: true },
+] as const
 
 /**
- * Componente visual de destaque (Hero Section).
- * 
- * Apresenta o título principal e subtítulo da página.
- * Reage às propriedades de estado `isLeaving` e `isReturning` para aplicar
- * classes de animação CSS (fly-out/fly-in), criando uma transição fluida
- * quando o utilizador navega para os detalhes de uma propriedade.
- * 
- * @param isLeaving - Indica se a vista atual está a sair (transição para detalhes).
- * @param isReturning - Indica se a vista está a retornar (vindo dos detalhes).
+ * Hero da listagem (título “word-stagger” + sublinhado animado).
+ * Mantém-se isolado para não poluir o componente root.
  */
-function HeroSection({ isLeaving, isReturning }: { isLeaving: boolean, isReturning: boolean }) {
-    return (
-        <div className={cn(
-            HERO_CONTAINER_STYLES,
-            isLeaving && "animate-fly-out-chaos-1",
-            isReturning && "animate-fly-in-chaos-1"
-        )}>
-            <h1 className={HERO_TITLE_STYLES}>
-                <span className={HERO_PILL_PRIMARY_STYLES}>Find</span>
-                <span className="inline-block rotate-1">Your</span>
-                <br />
-                <span className={HERO_UNDERLINE_TEXT_STYLES}>Next Stay</span>
-            </h1>
-            <p className={HERO_SUBTITLE_STYLES}>
-                Explore our curated selection of premium properties available for your dates.
-            </p>
-        </div>
-    )
+/**
+ * Hero da listagem.
+ *
+ * Detalhes
+ * - Usa stagger por palavra para um título “editorial”.
+ * - Mantém reduced-motion através de `useReducedMotion`.
+ */
+function HeroSection() {
+  const shouldReduceMotion = useReducedMotion()
+
+  return (
+    <motion.div
+      className="flex flex-col space-y-2 mb-6"
+      variants={comicPopVariants}
+      initial={shouldReduceMotion ? undefined : "initial"}
+      animate="animate"
+    >
+      <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter uppercase mb-2 leading-[0.92]">
+        <motion.div
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+          className="flex flex-wrap items-baseline gap-x-3 gap-y-1"
+        >
+          {HERO_WORDS.map(({ text, pill, rotate, underline }) => (
+            <motion.span
+              key={text}
+              variants={staggerItem}
+              whileHover={shouldReduceMotion ? undefined : { ...gummyHover, transition: springSnap }}
+              whileTap={shouldReduceMotion ? undefined : gummyTap}
+              className={cn(
+                "inline-block cursor-default",
+                rotate,
+                pill && "bg-primary text-primary-foreground px-2 shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)]",
+                underline && "relative"
+              )}
+            >
+              {text}
+              {/* Animated underline on "Next Stay" */}
+              {underline && (
+                <motion.span
+                  className="absolute bottom-1 left-0 h-[4px] bg-primary rounded-full"
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ delay: 0.6, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                />
+              )}
+            </motion.span>
+          ))}
+        </motion.div>
+      </h1>
+
+      <motion.p
+        className="text-lg md:text-xl text-muted-foreground font-mono max-w-2xl border-l-4 border-primary pl-4"
+        initial={shouldReduceMotion ? undefined : { opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.42, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      >
+        Explora a nossa seleção de propriedades premium disponíveis para as tuas datas.
+      </motion.p>
+    </motion.div>
+  )
 }
 
+// ─────────────────────────────────────────────
+// ResultsHeader — animated count
+// ─────────────────────────────────────────────
+
+/** Cabeçalho de resultados com contador animado (valor troca com `AnimatePresence`). */
 /**
- * Hook de efeito colateral para navegação baseada em gestos.
- * 
- * Adiciona ouvintes de eventos (event listeners) globais à janela para detetar:
- * 1. Scroll horizontal do trackpad (WheelEvent).
- * 2. Gestos de swipe em dispositivos táteis (TouchStart/TouchEnd).
- * 
- * Permite que o utilizador "avance" para a última propriedade visualizada
- * deslizando para a esquerda ou fazendo scroll horizontal, simulando uma navegação nativa.
- * 
- * @param params.selectedProperty - Propriedade atualmente selecionada (se houver).
- * @param params.lastViewedPropertyId - ID da última propriedade visualizada para navegação forward.
- * @param params.isLeaving - Estado de animação de saída (bloqueia novos gestos).
- * @param params.isReturning - Estado de animação de retorno (bloqueia novos gestos).
- * @param params.onNavigateForward - Função a ser executada quando um gesto válido é detetado.
+ * Cabeçalho de resultados.
+ *
+ * - Mostra count animado.
+ * - Ajusta label consoante existirem filtros activos.
+ */
+function ResultsHeader({ count, hasFilter }: { count: number; hasFilter: boolean }) {
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={count}
+          initial={{ opacity: 0, y: -8, scale: 0.85 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 8, scale: 0.85 }}
+          transition={springBounce}
+          className="inline-flex items-center justify-center h-7 min-w-[28px] px-2 rounded-full border-2 border-foreground bg-primary text-primary-foreground font-black font-mono text-xs shadow-[2px_2px_0_0_rgb(0,0,0)]"
+        >
+          {count}
+        </motion.span>
+      </AnimatePresence>
+      <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+        {hasFilter ? "resultados filtrados" : "propriedades disponíveis"}
+      </span>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────
+// PropertySkeletons — animated loading state
+// ─────────────────────────────────────────────
+
+/** Estado de loading: skeleton grid com shimmer animado. */
+/**
+ * Estado de loading para a listagem.
+ *
+ * Motivo
+ * - Mostra estrutura aproximada do grid e reduz layout shift.
+ * - Usa shimmer para sugerir carregamento sem bloquear a UI.
+ */
+function PropertySkeletons() {
+  return (
+    <motion.div
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+    >
+      {Array.from({ length: 6 }).map((_, i) => (
+        <motion.div
+          key={i}
+          variants={staggerItem}
+          className="rounded-2xl border-2 border-foreground/20 bg-muted/30 overflow-hidden shadow-[3px_3px_0_0_rgb(0,0,0,0.06)]"
+        >
+          {/* Image placeholder */}
+          <div className="h-44 bg-muted/50 relative overflow-hidden">
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-background/40 to-transparent"
+              {...shimmerX(i * 0.08)}
+            />
+          </div>
+          {/* Text lines */}
+          <div className="p-4 space-y-2.5">
+            <div className="h-4 rounded-full bg-muted/70 w-3/4 overflow-hidden relative">
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-background/40 to-transparent"
+                {...shimmerX(i * 0.08 + 0.1)}
+              />
+            </div>
+            <div className="h-3 rounded-full bg-muted/50 w-1/2 overflow-hidden relative">
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-background/40 to-transparent"
+                {...shimmerX(i * 0.08 + 0.18)}
+              />
+            </div>
+            <div className="flex justify-between items-center pt-1">
+              <div className="h-3 rounded-full bg-muted/40 w-16" />
+              <div className="h-8 rounded-lg bg-muted/50 w-20" />
+            </div>
+          </div>
+        </motion.div>
+      ))}
+    </motion.div>
+  )
+}
+
+// ─────────────────────────────────────────────
+// useNavigationGestures
+// ─────────────────────────────────────────────
+
+/**
+ * Hook de navegação por gestos no ecrã de listagem.
+ *
+ * Suporte
+ * - Trackpad horizontal (WheelEvent deltaX)
+ * - Swipe (touchstart/touchend)
+ *
+ * Guardas
+ * - Só corre quando `screen === "list"`
+ * - Só navega quando existe `lastViewedPropertyId`
+ * - Respeita `isTransitioning`
  */
 function useNavigationGestures({
-    selectedProperty,
-    lastViewedPropertyId,
-    isLeaving,
-    isReturning,
-    onNavigateForward
+  screen,
+  lastViewedPropertyId,
+  isTransitioning,
+  onNavigateForward,
 }: {
-    selectedProperty: BookingProperty | null,
-    lastViewedPropertyId: string | null,
-    isLeaving: boolean,
-    isReturning: boolean,
-    onNavigateForward: (id: string) => void
+  screen: BookingViewScreen
+  lastViewedPropertyId: string | null
+  isTransitioning: boolean
+  onNavigateForward: (id: string) => void
 }) {
-    useEffect(() => {
-        // Se já estivermos nos detalhes, não precisamos destes gestos (a BookingDetails tem o seu próprio hook de voltar)
-        if (selectedProperty) return
+  /** Ref estável para evitar re-attach de listeners quando o callback muda de identidade. */
+  const onForwardRef = useRef(onNavigateForward)
+  useEffect(() => { onForwardRef.current = onNavigateForward }, [onNavigateForward])
 
-        let touchStartX = 0
-        let touchStartY = 0
+  useEffect(() => {
+    if (screen !== "list") return
 
-        const handleWheel = (e: WheelEvent) => {
-            const isHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY)
-            
-            // Deteta scroll horizontal significativo para a direita (avançar)
-            if (isHorizontal && lastViewedPropertyId && !isLeaving && !isReturning) {
-                if (e.deltaX > 20) {
-                     onNavigateForward(lastViewedPropertyId)
-                }
-            }
-        }
+    let startX = 0
+    let startY = 0
 
-        const handleTouchStart = (e: TouchEvent) => {
-            touchStartX = e.touches[0].clientX
-            touchStartY = e.touches[0].clientY
-        }
+    const handleWheel = (e: WheelEvent) => {
+      const isHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY)
+      if (isHorizontal && e.deltaX > 20 && lastViewedPropertyId && !isTransitioning) {
+        onForwardRef.current(lastViewedPropertyId)
+      }
+    }
 
-        const handleTouchEnd = (e: TouchEvent) => {
-            const touchEndX = e.changedTouches[0].clientX
-            const touchEndY = e.changedTouches[0].clientY
-            
-            const deltaX = touchEndX - touchStartX
-            const deltaY = touchEndY - touchStartY
+    const handleTouchStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX
+      startY = e.touches[0].clientY
+    }
 
-            // Deteta swipe para a esquerda (avançar)
-            if (deltaX < -30 && Math.abs(deltaX) > Math.abs(deltaY) && lastViewedPropertyId && !isLeaving && !isReturning) {
-                onNavigateForward(lastViewedPropertyId)
-            }
-        }
+    const handleTouchEnd = (e: TouchEvent) => {
+      const dx = e.changedTouches[0].clientX - startX
+      const dy = e.changedTouches[0].clientY - startY
+      if (dx < -30 && Math.abs(dx) > Math.abs(dy) && lastViewedPropertyId && !isTransitioning) {
+        onForwardRef.current(lastViewedPropertyId)
+      }
+    }
 
-        window.addEventListener("wheel", handleWheel)
-        window.addEventListener("touchstart", handleTouchStart)
-        window.addEventListener("touchend", handleTouchEnd)
-        
-        return () => {
-            window.removeEventListener("wheel", handleWheel)
-            window.removeEventListener("touchstart", handleTouchStart)
-            window.removeEventListener("touchend", handleTouchEnd)
-        }
-    }, [selectedProperty, lastViewedPropertyId, isLeaving, isReturning, onNavigateForward])
+    window.addEventListener("wheel", handleWheel, { passive: true })
+    window.addEventListener("touchstart", handleTouchStart, { passive: true })
+    window.addEventListener("touchend", handleTouchEnd, { passive: true })
+
+    return () => {
+      window.removeEventListener("wheel", handleWheel)
+      window.removeEventListener("touchstart", handleTouchStart)
+      window.removeEventListener("touchend", handleTouchEnd)
+    }
+  }, [screen, lastViewedPropertyId, isTransitioning])
 }

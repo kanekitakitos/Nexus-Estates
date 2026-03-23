@@ -18,7 +18,7 @@ export type BookingStatus =
 export interface BookingResponse {
     id: number;
     propertyId: number;
-    userId: number;
+    userId?: number | null;
     checkInDate: string;
     checkOutDate: string;
     guestCount: number;
@@ -27,15 +27,57 @@ export interface BookingResponse {
     status: BookingStatus;
 }
 
+export type PaymentMethod =
+  | "CREDIT_CARD"
+  | "DEBIT_CARD"
+  | "BANK_TRANSFER"
+  | "MULTIBANCO"
+  | "MB_WAY"
+  | "PAYPAL";
+
+export type PaymentStatus =
+  | "PENDING"
+  | "REQUIRES_ACTION"
+  | "PROCESSING"
+  | "REQUIRES_CAPTURE"
+  | "SUCCEEDED"
+  | "FAILED"
+  | "CANCELLED"
+  | "UNKNOWN";
+
+export type PaymentResponse =
+  | {
+      transactionId: string;
+      status: PaymentStatus;
+      clientSecret?: string;
+      amount?: number;
+      currency?: string;
+      actionType?: string;
+      redirectUrl?: string | null;
+      errorCode?: string;
+      errorMessage?: string;
+    }
+  | Record<string, unknown>;
+
 /**
  * Payload de criação de reserva (DTO de entrada do backend).
  */
 export interface CreateBookingRequest {
     propertyId: number;
-    userId: number;
+    userId?: number | null;
     checkInDate: string;
     checkOutDate: string;
     guestCount: number;
+    guestDetails?: {
+        fullName: string;
+        email: string;
+        phone: string;
+        nationality: string;
+        issuingCountry: string;
+        documentType: "CC" | "PASSPORT";
+        documentNumber: string;
+        documentIssueDate?: string;
+    };
 }
 
 /**
@@ -63,7 +105,29 @@ export class BookingService {
      */
     static async createBooking(bookingData: CreateBookingRequest): Promise<BookingResponse> {
         try {
-            const response = await bookingsAxios.post<BookingResponse>("", bookingData);
+            const payload: Record<string, unknown> = {
+                propertyId: bookingData.propertyId,
+                checkInDate: bookingData.checkInDate,
+                checkOutDate: bookingData.checkOutDate,
+                guestCount: bookingData.guestCount,
+            };
+
+            if (bookingData.userId != null) {
+                payload.userId = bookingData.userId;
+            } else if (bookingData.guestDetails) {
+                payload.guestFullName = bookingData.guestDetails.fullName;
+                payload.guestEmail = bookingData.guestDetails.email;
+                payload.guestPhone = bookingData.guestDetails.phone;
+                payload.guestNationality = bookingData.guestDetails.nationality;
+                payload.guestIssuingCountry = bookingData.guestDetails.issuingCountry;
+                payload.guestDocumentType = bookingData.guestDetails.documentType;
+                payload.guestDocumentNumber = bookingData.guestDetails.documentNumber;
+                if (bookingData.guestDetails.documentIssueDate) {
+                    payload.guestDocumentIssueDate = bookingData.guestDetails.documentIssueDate;
+                }
+            }
+
+            const response = await bookingsAxios.post<BookingResponse>("", payload);
             toast.success("Reserva criada com sucesso.");
             return response.data;
         } catch (error) {
@@ -81,6 +145,28 @@ export class BookingService {
             return response.data;
         } catch (error) {
             this.handleError(error, "obter reservas por utilizador");
+            throw error;
+        }
+    }
+
+    static async createPaymentIntent(bookingId: number, paymentMethod: PaymentMethod): Promise<PaymentResponse> {
+        try {
+            const response = await bookingsAxios.post<PaymentResponse>(`/${bookingId}/payments/intent`, {
+                paymentMethod,
+            });
+            return response.data;
+        } catch (error) {
+            this.handleError(error, "iniciar pagamento");
+            throw error;
+        }
+    }
+
+    static async getPaymentProviderInfo(): Promise<Record<string, unknown>> {
+        try {
+            const response = await bookingsAxios.get<Record<string, unknown>>(`/payments/provider`);
+            return response.data;
+        } catch (error) {
+            this.handleError(error, "obter info do provedor de pagamento");
             throw error;
         }
     }
