@@ -344,7 +344,7 @@ public class BookingPaymentService {
         return Map.of(
             "bookingId", booking.getId().toString(),
             "propertyId", booking.getPropertyId().toString(),
-            "userId", booking.getUserId().toString(),
+                "userId", booking.getUserId() != null ? booking.getUserId().toString() : "GUEST",
             "checkInDate", booking.getCheckInDate().toString(),
             "checkOutDate", booking.getCheckOutDate().toString(),
             "guests", String.valueOf(booking.getGuests())

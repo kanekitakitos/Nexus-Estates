@@ -25,7 +25,7 @@ import java.util.List;
  * </p>
  *
  * @author Nexus Estates Team
- * @version 1.0
+ * @version 1.1
  * @since 2026-02-10
  */
 @RestController
@@ -82,7 +82,21 @@ public class BookingController {
         try {
             if (userIdHeader != null) {
                 Long uid = Long.parseLong(userIdHeader);
-                effective = new CreateBookingRequest(request.propertyId(), uid, request.checkInDate(), request.checkOutDate(), request.guestCount());
+                effective = new CreateBookingRequest(
+                        request.propertyId(),
+                        uid,
+                        request.checkInDate(),
+                        request.checkOutDate(),
+                        request.guestCount(),
+                        request.guestFullName(),
+                        request.guestEmail(),
+                        request.guestPhone(),
+                        request.guestNationality(),
+                        request.guestIssuingCountry(),
+                        request.guestDocumentType(),
+                        request.guestDocumentNumber(),
+                        request.guestDocumentIssueDate()
+                );
             }
         } catch (Exception ignored) {}
         BookingResponse response = bookingService.createBooking(effective);
