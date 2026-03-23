@@ -122,6 +122,14 @@ public class Property {
     @Schema(description = "Regras de sazonalidade associadas a esta propriedade")
     private Set<SeasonalityRule> seasonalityRules = new HashSet<>();
 
+    /**
+     * Regras operacionais da propriedade (Check-in, Check-out, etc).
+     * Relação One-to-One.
+     */
+    @OneToOne(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Schema(description = "Regras operacionais da propriedade")
+    private PropertyRule propertyRule;
+
     // Getters e Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -145,4 +153,6 @@ public class Property {
     public void setAmenities(Set<Amenity> amenities) { this.amenities = amenities; }
     public Set<SeasonalityRule> getSeasonalityRules() { return seasonalityRules; }
     public void setSeasonalityRules(Set<SeasonalityRule> seasonalityRules) { this.seasonalityRules = seasonalityRules; }
+    public PropertyRule getPropertyRule() { return propertyRule; }
+    public void setPropertyRule(PropertyRule propertyRule) { this.propertyRule = propertyRule; }
 }

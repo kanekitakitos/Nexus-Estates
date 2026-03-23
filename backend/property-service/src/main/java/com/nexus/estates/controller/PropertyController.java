@@ -2,10 +2,12 @@ package com.nexus.estates.controller;
 
 import com.nexus.estates.common.dto.ApiResponse;
 import com.nexus.estates.dto.CreatePropertyRequest;
+import com.nexus.estates.common.dto.PropertyRuleDTO;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.service.PropertyService;
 import com.nexus.estates.service.ImageStorageService;
+import com.nexus.estates.service.PropertyRuleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -24,21 +26,22 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * REST Controller responsável pela gestão de propriedades.
+ * REST Controller responsável pela gestão de propriedades e suas regras associadas.
  *
- * <p>Expõe endpoints para criação e consulta de propriedades no sistema.</p>
+ * <p>Expõe endpoints para criação, consulta e atualização de propriedades,
+ * bem como para a gestão das suas regras operacionais.</p>
  *
  * @author Nexus Estates Team
- * @version 1.1
- * @since 2026-02-13
+ * @version 1.2
  */
 @RestController
 @RequestMapping("/api/properties")
-@Tag(name = "Property API", description = "Gestão de propriedades da Nexus Estates")
+@Tag(name = "Property API", description = "Gestão de propriedades e regras da Nexus Estates")
 public class PropertyController {
 
     private final PropertyService service;
     private final PropertyRepository repository;
+    private final PropertyRuleService ruleService;
 
     private final ImageStorageService imageStorageService;
 
@@ -47,11 +50,14 @@ public class PropertyController {
      *
      * @param service serviço responsável pela lógica de negócio das propriedades
      * @param imageStorageService serviço responsável pela integração com armazenamento de imagens
+     * @param repository repositório de propriedades
+     * @param ruleService serviço de gestão de regras
      */
-    public PropertyController(PropertyService service, ImageStorageService imageStorageService, PropertyRepository repository) {
+    public PropertyController(PropertyService service, ImageStorageService imageStorageService, PropertyRepository repository, PropertyRuleService ruleService) {
         this.service = service;
         this.imageStorageService = imageStorageService;
         this.repository = repository;
+        this.ruleService = ruleService;
     }
 
     /**
@@ -81,7 +87,7 @@ public class PropertyController {
      * @param request dados da propriedade a criar via DTO
      * @return propriedade criada com status 201 Created
      */
-    @Operation(summary = "Criar nova propriedade", description = "Cria uma propriedade e envia email de confirmação. Suporta múltiplos idiomas na descrição.")
+    @Operation(summary = "Criar nova propriedade", description = "Cria uma propriedade e as suas regras padrão. Suporta múltiplos idiomas na descrição.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Propriedade criada com sucesso"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados de entrada inválidos ou campos obrigatórios em falta")
@@ -151,7 +157,45 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(property, "Propriedade encontrada."));
     }
 
+    /**
+     * Obtém as regras operacionais de uma propriedade.
+     *
+     * @param id O ID da propriedade.
+     * @return As regras da propriedade.
+     */
+    @Operation(summary = "Obter regras da propriedade", description = "Retorna as regras operacionais de uma propriedade, como horários de check-in/out e noites mínimas.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Regras obtidas com sucesso."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
+    })
+    @GetMapping("/{id}/rules")
+    public ResponseEntity<ApiResponse<PropertyRuleDTO>> getRules(@Parameter(description = "ID da propriedade") @PathVariable Long id) {
+        PropertyRuleDTO rules = ruleService.getRules(id);
+        return ResponseEntity.ok(ApiResponse.success(rules, "Regras da propriedade obtidas com sucesso."));
+    }
 
+    /**
+     * Atualiza as regras operacionais de uma propriedade.
+     *
+     * @param id O ID da propriedade.
+     * @param dto Os novos dados das regras.
+     * @return As regras atualizadas.
+     */
+    @Operation(summary = "Atualizar regras da propriedade", description = "Atualiza as regras operacionais de uma propriedade. Requer a role 'OWNER'.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Regras atualizadas com sucesso."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados de entrada inválidos."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
+    })
+    @PutMapping("/{id}/rules")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<ApiResponse<PropertyRuleDTO>> updateRules(
+            @Parameter(description = "ID da propriedade") @PathVariable Long id,
+            @Valid @RequestBody PropertyRuleDTO dto) {
+        PropertyRuleDTO updatedRules = ruleService.updateRules(id, dto);
+        return ResponseEntity.ok(ApiResponse.success(updatedRules, "Regras da propriedade atualizadas com sucesso."));
+    }
 
     public BigDecimal getPriceById(Long id) {
         return repository.findPriceById(id)
