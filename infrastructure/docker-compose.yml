@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
       # Criamos múltiplas DBs num só container para poupar memória
-      POSTGRES_MULTIPLE_DATABASES: "booking_db,property_db,user_db,sync_db"
+      POSTGRES_MULTIPLE_DATABASES: "booking_db,property_db,user_db,sync_db,finance_db"
     ports:
       - "5432:5432"
     volumes:

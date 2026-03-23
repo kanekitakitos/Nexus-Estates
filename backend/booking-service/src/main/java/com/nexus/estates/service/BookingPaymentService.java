@@ -1,5 +1,7 @@
 package com.nexus.estates.service;
 
+import com.nexus.estates.client.NexusClients;
+import com.nexus.estates.client.Proxy;
 import com.nexus.estates.dto.payment.*;
 import com.nexus.estates.entity.Booking;
 import com.nexus.estates.common.enums.BookingStatus;
@@ -7,11 +9,11 @@ import com.nexus.estates.exception.PaymentNotFoundException;
 import com.nexus.estates.exception.PaymentProcessingException;
 import com.nexus.estates.messaging.BookingEventPublisher;
 import com.nexus.estates.repository.BookingRepository;
-import com.nexus.estates.service.interfaces.PaymentGatewayProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 
@@ -33,7 +35,7 @@ import java.util.Optional;
 @Service
 public class BookingPaymentService {
 
-    private final PaymentGatewayProvider paymentGatewayProvider;
+    private final Proxy proxy;
     private final BookingRepository bookingRepository;
     private final BookingEventPublisher eventPublisher;
 
@@ -44,10 +46,10 @@ public class BookingPaymentService {
      * @param bookingRepository Repositório para acesso e persistência de dados de reservas.
      * @param eventPublisher Publicador de eventos para notificar outros componentes sobre mudanças de estado.
      */
-    public BookingPaymentService(PaymentGatewayProvider paymentGatewayProvider,
-                               BookingRepository bookingRepository,
-                               BookingEventPublisher eventPublisher) {
-        this.paymentGatewayProvider = paymentGatewayProvider;
+    public BookingPaymentService(Proxy proxy,
+                                 BookingRepository bookingRepository,
+                                 BookingEventPublisher eventPublisher) {
+        this.proxy = proxy;
         this.bookingRepository = bookingRepository;
         this.eventPublisher = eventPublisher;
     }
@@ -76,11 +78,9 @@ public class BookingPaymentService {
         Map<String, Object> metadata = createPaymentMetadata(booking);
         
         try {
-            PaymentResponse response = paymentGatewayProvider.createPaymentIntent(
-                booking.getTotalPrice(),
-                "EUR",
-                booking.getId().toString(),
-                metadata
+            PaymentResponse response = proxy.financeClient().createPaymentIntent(
+                    bookingId,
+                    new NexusClients.CreatePaymentIntentRequest(booking.getTotalPrice(), "EUR", paymentMethod, metadata)
             );
             
             booking.setPaymentIntentId(response.transactionId());
@@ -111,19 +111,17 @@ public class BookingPaymentService {
      * @throws PaymentProcessingException Se ocorrer um erro durante a confirmação do pagamento.
      */
     @Transactional
-    public PaymentResponse confirmPayment(String paymentIntentId, Map<String, Object> metadata) {
+    public PaymentResponse confirmPayment(Long bookingId, String paymentIntentId) {
         try {
-            PaymentResponse response = paymentGatewayProvider.confirmPaymentIntent(paymentIntentId, metadata);
-            
-            if (response instanceof PaymentResponse.Success success) {
-                String bookingIdStr = (String) metadata.get("bookingId");
-                if (bookingIdStr != null) {
-                    Long bookingId = Long.parseLong(bookingIdStr);
-                    updateBookingStatusAfterPayment(bookingId, success.transactionId());
-                }
-            }
-            
-            return response;
+            Map<String, Object> metadata = Map.of(
+                    "bookingId", bookingId.toString(),
+                    "confirmedAt", LocalDateTime.now().toString()
+            );
+
+            return proxy.financeClient().confirmPayment(
+                    bookingId,
+                    new NexusClients.ConfirmPaymentRequest(paymentIntentId, metadata)
+            );
         } catch (Exception e) {
             throw new PaymentProcessingException(
                 "Failed to confirm payment intent " + paymentIntentId,
@@ -157,19 +155,10 @@ public class BookingPaymentService {
         Map<String, Object> metadata = createPaymentMetadata(booking);
         
         try {
-            PaymentResponse response = paymentGatewayProvider.processDirectPayment(
-                booking.getTotalPrice(),
-                "EUR",
-                booking.getId().toString(),
-                paymentMethod,
-                metadata
+            return proxy.financeClient().processDirectPayment(
+                    bookingId,
+                    new NexusClients.DirectPaymentRequest(booking.getTotalPrice(), "EUR", paymentMethod, metadata)
             );
-            
-            if (response instanceof PaymentResponse.Success success) {
-                updateBookingStatusAfterPayment(bookingId, success.transactionId());
-            }
-            
-            return response;
         } catch (Exception e) {
             throw new PaymentProcessingException(
                 "Failed to process direct payment for booking " + bookingId,
@@ -214,12 +203,9 @@ public class BookingPaymentService {
         );
         
         try {
-            RefundResult refund = paymentGatewayProvider.processRefund(
-                transactionId,
-                amount,
-                "EUR",
-                Optional.ofNullable(reason),
-                metadata
+            RefundResult refund = proxy.financeClient().refund(
+                    bookingId,
+                    new NexusClients.RefundRequest(transactionId, amount, "EUR", reason, metadata)
             );
             
             if (refund.status() == RefundStatus.SUCCEEDED) {
@@ -246,7 +232,7 @@ public class BookingPaymentService {
      */
     public TransactionInfo getTransactionDetails(String transactionId) {
         try {
-            return paymentGatewayProvider.getTransactionDetails(transactionId);
+            return proxy.financeClient().getTransactionDetails(transactionId);
         } catch (Exception e) {
             throw new PaymentNotFoundException("Transaction not found: " + transactionId);
         }
@@ -261,7 +247,7 @@ public class BookingPaymentService {
      */
     public PaymentStatus getPaymentStatus(String transactionId) {
         try {
-            return paymentGatewayProvider.getPaymentStatus(transactionId);
+            return proxy.financeClient().getPaymentStatus(transactionId);
         } catch (Exception e) {
             throw new PaymentNotFoundException("Unable to get payment status for transaction: " + transactionId);
         }
@@ -274,7 +260,9 @@ public class BookingPaymentService {
      * @return {@code true} se o método for suportado, {@code false} caso contrário.
      */
     public boolean supportsPaymentMethod(PaymentMethod paymentMethod) {
-        return paymentGatewayProvider.supportsPaymentMethod(paymentMethod);
+        Map<String, Object> result = proxy.financeClient().supportsPaymentMethod(paymentMethod);
+        Object supported = result != null ? result.get("supported") : null;
+        return supported instanceof Boolean b ? b : false;
     }
 
     /**
@@ -283,7 +271,19 @@ public class BookingPaymentService {
      * @return Um objeto {@link ProviderInfo} contendo metadados do provedor.
      */
     public ProviderInfo getProviderInfo() {
-        return paymentGatewayProvider.getProviderInfo();
+        return proxy.financeClient().getPaymentProviderInfo();
+    }
+
+    @Transactional
+    public void markPaymentSucceeded(Long bookingId, String transactionId) {
+        bookingRepository.findById(bookingId).ifPresent(booking -> {
+            if (booking.getStatus() == BookingStatus.CONFIRMED) {
+                if (transactionId != null && transactionId.equals(booking.getPaymentIntentId())) {
+                    return;
+                }
+            }
+            updateBookingStatusAfterPayment(bookingId, transactionId);
+        });
     }
 
     /**

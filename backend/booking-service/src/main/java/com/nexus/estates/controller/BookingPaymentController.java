@@ -3,6 +3,7 @@ package com.nexus.estates.controller;
 import com.nexus.estates.dto.payment.*;
 import com.nexus.estates.service.BookingPaymentService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,15 +14,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
  * Controlador REST dedicado às operações de pagamento de reservas.
  * <p>
- * Este controlador isola a lógica de pagamentos, interagindo diretamente com o
- * {@link BookingPaymentService} para processar transações, reembolsos e consultas
- * de estado de pagamento.
+ * Este controlador expõe endpoints de pagamentos no domínio de reservas, mas a execução
+ * efetiva das operações financeiras é delegada ao finance-service via {@link BookingPaymentService}.
+ * </p>
+ *
+ * <p>Nota: o endpoint {@code /payments/succeeded} é um callback interno (server-to-server)
+ * usado pelo finance-service após pagamento concluído (confirm/direct ou webhook).</p>
  * </p>
  *
  * @author Nexus Estates Team
@@ -60,16 +63,16 @@ public class BookingPaymentController {
      */
     @Operation(
             summary = "Cria intenção de pagamento",
-            description = "Gera uma intenção de pagamento para ser finalizada pelo cliente."
+            description = "Delegado ao finance-service: cria um PaymentIntent para ser finalizado pelo cliente."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Intenção criada com sucesso"),
+            @ApiResponse(responseCode = "200", description = "Intenção criada com sucesso", content = @Content(schema = @Schema(implementation = PaymentResponse.Intent.class))),
             @ApiResponse(responseCode = "404", description = "Reserva não encontrada"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos ou estado da reserva incompatível")
     })
     @PostMapping("/{bookingId}/payments/intent")
     public ResponseEntity<PaymentResponse> createPaymentIntent(
-            @PathVariable Long bookingId,
+            @Parameter(description = "ID da reserva") @PathVariable Long bookingId,
             @Valid @RequestBody PaymentIntentRequest request
     ) {
         return ResponseEntity.ok(bookingPaymentService.createPaymentIntent(bookingId, request.paymentMethod()));
@@ -87,22 +90,19 @@ public class BookingPaymentController {
      */
     @Operation(
             summary = "Confirma pagamento",
-            description = "Valida e confirma uma transação de pagamento, atualizando a reserva."
+            description = "Delegado ao finance-service: confirma a transação e, em sucesso, confirma a reserva."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Pagamento confirmado"),
+            @ApiResponse(responseCode = "200", description = "Pagamento confirmado", content = @Content(schema = @Schema(implementation = PaymentResponse.Success.class))),
+            @ApiResponse(responseCode = "400", description = "Pedido inválido ou falha no provider"),
             @ApiResponse(responseCode = "500", description = "Erro no processamento do pagamento")
     })
     @PostMapping("/{bookingId}/payments/confirm")
     public ResponseEntity<PaymentResponse> confirmPayment(
-            @PathVariable Long bookingId,
+            @Parameter(description = "ID da reserva") @PathVariable Long bookingId,
             @Valid @RequestBody ConfirmPaymentRequest request
     ) {
-        Map<String, Object> metadata = Map.of(
-                "bookingId", bookingId.toString(),
-                "confirmedAt", LocalDateTime.now().toString()
-        );
-        return ResponseEntity.ok(bookingPaymentService.confirmPayment(request.paymentIntentId(), metadata));
+        return ResponseEntity.ok(bookingPaymentService.confirmPayment(bookingId, request.paymentIntentId()));
     }
 
     /**
@@ -114,11 +114,16 @@ public class BookingPaymentController {
      */
     @Operation(
             summary = "Pagamento direto",
-            description = "Processa um pagamento em passo único (ex: cartão salvo)."
+            description = "Delegado ao finance-service: processa um pagamento em passo único."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Pagamento concluído", content = @Content(schema = @Schema(implementation = PaymentResponse.Success.class))),
+            @ApiResponse(responseCode = "400", description = "Pedido inválido ou falha no provider"),
+            @ApiResponse(responseCode = "500", description = "Erro interno")
+    })
     @PostMapping("/{bookingId}/payments/direct")
     public ResponseEntity<PaymentResponse> processDirectPayment(
-            @PathVariable Long bookingId,
+            @Parameter(description = "ID da reserva") @PathVariable Long bookingId,
             @Valid @RequestBody DirectPaymentRequest request
     ) {
         return ResponseEntity.ok(bookingPaymentService.processDirectPayment(bookingId, request.paymentMethod()));
@@ -133,11 +138,17 @@ public class BookingPaymentController {
      */
     @Operation(
             summary = "Processa reembolso",
-            description = "Inicia o processo de devolução de valores pagos."
+            description = "Delegado ao finance-service: inicia o processo de devolução de valores pagos."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Reembolso processado", content = @Content(schema = @Schema(implementation = RefundResult.class))),
+            @ApiResponse(responseCode = "400", description = "Pedido inválido"),
+            @ApiResponse(responseCode = "404", description = "Reserva ou transação não encontrada"),
+            @ApiResponse(responseCode = "500", description = "Erro interno")
+    })
     @PostMapping("/{bookingId}/payments/refund")
     public ResponseEntity<RefundResult> refund(
-            @PathVariable Long bookingId,
+            @Parameter(description = "ID da reserva") @PathVariable Long bookingId,
             @RequestBody(required = false) RefundRequest request
     ) {
         BigDecimal amount = request != null ? request.amount() : null;
@@ -193,9 +204,34 @@ public class BookingPaymentController {
         return ResponseEntity.ok(Map.of("paymentMethod", paymentMethod.name(), "supported", supported));
     }
 
+    /**
+     * Callback interno chamado pelo finance-service quando um pagamento é confirmado.
+     *
+     * <p>Este endpoint não é destinado a consumo pelo frontend.</p>
+     */
+    @Operation(
+            summary = "Callback interno: pagamento concluído",
+            description = "Endpoint server-to-server usado pelo finance-service para confirmar a reserva após pagamento."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Reserva confirmada"),
+            @ApiResponse(responseCode = "400", description = "Pedido inválido"),
+            @ApiResponse(responseCode = "404", description = "Reserva não encontrada"),
+            @ApiResponse(responseCode = "500", description = "Erro interno")
+    })
+    @PostMapping("/{bookingId}/payments/succeeded")
+    public ResponseEntity<Map<String, Object>> markPaymentSucceeded(
+            @Parameter(description = "ID da reserva") @PathVariable Long bookingId,
+            @Valid @RequestBody PaymentSucceededRequest request
+    ) {
+        bookingPaymentService.markPaymentSucceeded(bookingId, request.transactionId());
+        return ResponseEntity.ok(Map.of("bookingId", bookingId, "status", "CONFIRMED"));
+    }
+
     // DTOs internos (Records) para requisições
     public record PaymentIntentRequest(PaymentMethod paymentMethod) {}
     public record ConfirmPaymentRequest(String paymentIntentId) {}
     public record DirectPaymentRequest(PaymentMethod paymentMethod) {}
     public record RefundRequest(BigDecimal amount, String reason) {}
+    public record PaymentSucceededRequest(String transactionId, String providerTransactionId) {}
 }
