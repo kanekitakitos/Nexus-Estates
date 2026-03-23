@@ -1,8 +1,11 @@
 package com.nexus.estates.service;
 
+import com.nexus.estates.common.dto.PropertyQuoteRequest;
+import com.nexus.estates.common.dto.PropertyQuoteResponse;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Amenity;
 import com.nexus.estates.entity.Property;
+import com.nexus.estates.entity.PropertyRule;
 import com.nexus.estates.entity.SeasonalityRule;
 import com.nexus.estates.repository.AmenityRepository;
 import com.nexus.estates.repository.PropertyRepository;
@@ -18,10 +21,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -80,7 +83,8 @@ class PropertyServiceTest {
         savedProperty.setId(1L);
         savedProperty.setName(validRequest.title());
         // Define explicitamente a escala para evitar surpresas
-        savedProperty.setBasePrice(BigDecimal.valueOf(100.00)); 
+        savedProperty.setBasePrice(BigDecimal.valueOf(100.00));
+        savedProperty.setMaxGuests(4);
     }
 
     @Test
@@ -203,5 +207,74 @@ class PropertyServiceTest {
         // 100 * 1.10 = 110.00
         assertEquals(0, new BigDecimal("110.00").compareTo(totalPrice),
                 "Deve aplicar a regra de canal (110.00) e ignorar a de data");
+    }
+
+    @Test
+    @DisplayName("ValidateAndQuote - Deve falhar se exceder capacidade")
+    void validateAndQuote_ShouldFail_WhenCapacityExceeded() {
+        // Arrange
+        PropertyQuoteRequest request = new PropertyQuoteRequest(
+                LocalDate.now().plusDays(10),
+                LocalDate.now().plusDays(12),
+                5 // MaxGuests é 4
+        );
+        when(repository.findById(1L)).thenReturn(Optional.of(savedProperty));
+
+        // Act
+        PropertyQuoteResponse response = service.validateAndQuote(1L, request);
+
+        // Assert
+        assertFalse(response.valid());
+        assertTrue(response.validationErrors().stream().anyMatch(e -> e.contains("capacidade máxima")));
+    }
+
+    @Test
+    @DisplayName("ValidateAndQuote - Deve falhar se violar regra de min nights")
+    void validateAndQuote_ShouldFail_WhenMinNightsViolated() {
+        // Arrange
+        PropertyQuoteRequest request = new PropertyQuoteRequest(
+                LocalDate.now().plusDays(10),
+                LocalDate.now().plusDays(11), // 1 noite
+                2
+        );
+        
+        PropertyRule rule = new PropertyRule();
+        rule.setMinNights(3);
+        savedProperty.setPropertyRule(rule);
+
+        when(repository.findById(1L)).thenReturn(Optional.of(savedProperty));
+
+        // Act
+        PropertyQuoteResponse response = service.validateAndQuote(1L, request);
+
+        // Assert
+        assertFalse(response.valid());
+        assertTrue(response.validationErrors().stream().anyMatch(e -> e.contains("número mínimo de noites")));
+    }
+
+    @Test
+    @DisplayName("ValidateAndQuote - Deve suceder e calcular preço quando tudo é válido")
+    void validateAndQuote_ShouldSucceed_WhenValid() {
+        // Arrange
+        PropertyQuoteRequest request = new PropertyQuoteRequest(
+                LocalDate.now().plusDays(10),
+                LocalDate.now().plusDays(13), // 3 noites
+                2
+        );
+        
+        PropertyRule rule = new PropertyRule();
+        rule.setMinNights(2);
+        savedProperty.setPropertyRule(rule);
+
+        when(repository.findById(1L)).thenReturn(Optional.of(savedProperty));
+        when(seasonalityRuleRepository.findByPropertyIdAndDateRange(any(), any(), any()))
+                .thenReturn(Collections.emptyList());
+
+        // Act
+        PropertyQuoteResponse response = service.validateAndQuote(1L, request);
+
+        // Assert
+        assertTrue(response.valid());
+        assertEquals(0, new BigDecimal("300.00").compareTo(response.totalPrice())); // 100 * 3
     }
 }

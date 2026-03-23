@@ -1,5 +1,7 @@
 package com.nexus.estates.service;
 
+import com.nexus.estates.common.dto.PropertyQuoteRequest;
+import com.nexus.estates.common.dto.PropertyQuoteResponse;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Amenity;
 import com.nexus.estates.entity.Property;
@@ -17,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -151,6 +155,58 @@ public class PropertyService {
     public Property findById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new PropertyNotFoundException(id));
+    }
+
+    /**
+     * Valida as regras da propriedade e calcula o preço total para uma estadia proposta.
+     * <p>
+     * Este método centraliza a lógica de negócio, garantindo que o Booking Service
+     * não precisa de conhecer os detalhes de implementação das regras ou sazonalidade.
+     * </p>
+     *
+     * @param propertyId ID da propriedade.
+     * @param request Pedido de cotação contendo datas e hóspedes.
+     * @return Resposta com validação (sucesso/falha) e preço.
+     */
+    @Transactional(readOnly = true)
+    public PropertyQuoteResponse validateAndQuote(Long propertyId, PropertyQuoteRequest request) {
+        Property property = findById(propertyId);
+        List<String> errors = new ArrayList<>();
+
+        // 1. Validação de Capacidade
+        if (request.guestCount() > property.getMaxGuests()) {
+            errors.add("O número de hóspedes (" + request.guestCount() + ") excede a capacidade máxima de " + property.getMaxGuests());
+        }
+
+        // 2. Validação de Regras Operacionais (Min/Max Nights, Lead Time)
+        PropertyRule rule = property.getPropertyRule();
+        if (rule != null) {
+            long nights = ChronoUnit.DAYS.between(request.checkInDate(), request.checkOutDate());
+            
+            if (rule.getMinNights() != null && nights < rule.getMinNights()) {
+                errors.add("O número mínimo de noites é " + rule.getMinNights());
+            }
+            if (rule.getMaxNights() != null && nights > rule.getMaxNights()) {
+                errors.add("O número máximo de noites é " + rule.getMaxNights());
+            }
+            
+            if (rule.getBookingLeadTimeDays() != null) {
+                LocalDate minCheckInDate = LocalDate.now().plusDays(rule.getBookingLeadTimeDays());
+                if (request.checkInDate().isBefore(minCheckInDate)) {
+                    errors.add("A reserva deve ser feita com pelo menos " + rule.getBookingLeadTimeDays() + " dias de antecedência.");
+                }
+            }
+        }
+
+        // Se houver erros, retorna falha imediatamente
+        if (!errors.isEmpty()) {
+            return PropertyQuoteResponse.failure(errors);
+        }
+
+        // 3. Cálculo de Preço (Sazonalidade)
+        BigDecimal totalPrice = calculateTotalPrice(propertyId, request.checkInDate(), request.checkOutDate(), null);
+        
+        return PropertyQuoteResponse.success(totalPrice, "EUR"); // Assumindo EUR por defeito
     }
 
     /**
