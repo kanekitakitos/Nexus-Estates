@@ -1,11 +1,14 @@
 package com.nexus.estates.service;
 
+import com.nexus.estates.common.dto.ApiResponse;
+import com.nexus.estates.common.dto.PropertyRuleDTO;
 import com.nexus.estates.dto.BookingResponse;
 import com.nexus.estates.dto.CreateBookingRequest;
 import com.nexus.estates.entity.Booking;
 import com.nexus.estates.exception.BookingConflictException;
 import com.nexus.estates.exception.InvalidRefundException;
 import com.nexus.estates.exception.PaymentProcessingException;
+import com.nexus.estates.exception.RuleViolationException;
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.messaging.BookingEventPublisher;
 import com.nexus.estates.repository.BookingRepository;
@@ -14,6 +17,8 @@ import org.springframework.stereotype.Service;
 import com.nexus.estates.client.Proxy;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 /**
  * Serviço de domínio responsável pela execução da lógica de negócio de Reservas.
@@ -87,6 +92,20 @@ public class BookingService
             }
         }
 
+        // 1.6 Validação de Regras da Propriedade (Noites min/max, Lead Time)
+        try {
+            ApiResponse<PropertyRuleDTO> rulesResponse = api.propertyClient().getRules(request.propertyId());
+            if (rulesResponse != null && rulesResponse.isSuccess() && rulesResponse.getData() != null) {
+                validateBookingRules(request, rulesResponse.getData());
+            }
+        } catch (RuleViolationException e) {
+            throw e; // Relança a exceção de regra para ser tratada pelo GlobalExceptionHandler
+        } catch (Exception e) {
+             // Em caso de falha na comunicação com o property-service, optamos por bloquear a reserva por segurança
+             // ou poderíamos logar e permitir (Fail Open vs Fail Closed). Aqui opto por Fail Closed.
+             throw new RuntimeException("Não foi possível validar as regras da propriedade. Tente novamente mais tarde.", e);
+        }
+
 
         // 2. Verificar Disponibilidade
         boolean isOccupied = bookingRepository.existsOverlappingBooking(
@@ -119,8 +138,26 @@ public class BookingService
         bookingEventPublisher.publishBookingCreated(message);
 
         return response;
-        }
+    }
 
+    private void validateBookingRules(CreateBookingRequest request, PropertyRuleDTO rules) {
+        long nights = ChronoUnit.DAYS.between(request.checkInDate(), request.checkOutDate());
+        
+        if (rules.minNights() != null && nights < rules.minNights()) {
+            throw new RuleViolationException("O número mínimo de noites é " + rules.minNights());
+        }
+        
+        if (rules.maxNights() != null && nights > rules.maxNights()) {
+            throw new RuleViolationException("O número máximo de noites é " + rules.maxNights());
+        }
+        
+        if (rules.bookingLeadTimeDays() != null) {
+            LocalDate minCheckInDate = LocalDate.now().plusDays(rules.bookingLeadTimeDays());
+            if (request.checkInDate().isBefore(minCheckInDate)) {
+                 throw new RuleViolationException("A reserva deve ser feita com pelo menos " + rules.bookingLeadTimeDays() + " dias de antecedência.");
+            }
+        }
+    }
 
 
     /**

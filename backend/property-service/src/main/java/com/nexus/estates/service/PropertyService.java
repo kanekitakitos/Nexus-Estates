@@ -3,10 +3,12 @@ package com.nexus.estates.service;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Amenity;
 import com.nexus.estates.entity.Property;
+import com.nexus.estates.entity.PropertyRule;
 import com.nexus.estates.entity.SeasonalityRule;
 import com.nexus.estates.exception.PropertyNotFoundException;
 import com.nexus.estates.repository.AmenityRepository;
 import com.nexus.estates.repository.PropertyRepository;
+import com.nexus.estates.repository.PropertyRuleRepository;
 import com.nexus.estates.repository.SeasonalityRuleRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -37,6 +40,7 @@ public class PropertyService {
     private final PropertyRepository repository;
     private final AmenityRepository amenityRepository;
     private final SeasonalityRuleRepository seasonalityRuleRepository;
+    private final PropertyRuleRepository propertyRuleRepository;
 
     /**
      * Construtor do serviço.
@@ -44,11 +48,13 @@ public class PropertyService {
      * @param repository repositório responsável pelo acesso aos dados
      * @param amenityRepository repositório responsável pelas comodidades
      * @param seasonalityRuleRepository repositório responsável pelas regras de sazonalidade
+     * @param propertyRuleRepository repositório responsável pelas regras da propriedade
      */
-    public PropertyService(PropertyRepository repository, AmenityRepository amenityRepository, SeasonalityRuleRepository seasonalityRuleRepository) {
+    public PropertyService(PropertyRepository repository, AmenityRepository amenityRepository, SeasonalityRuleRepository seasonalityRuleRepository, PropertyRuleRepository propertyRuleRepository) {
         this.repository = repository;
         this.amenityRepository = amenityRepository;
         this.seasonalityRuleRepository = seasonalityRuleRepository;
+        this.propertyRuleRepository = propertyRuleRepository;
     }
 
     /**
@@ -82,7 +88,21 @@ public class PropertyService {
             property.setAmenities(new HashSet<>(amenities));
         }
 
-        return repository.save(property);
+        Property savedProperty = repository.save(property);
+
+        // Cria e associa as regras padrão
+        PropertyRule defaultRule = PropertyRule.builder()
+                .property(savedProperty)
+                .checkInTime(LocalTime.of(16, 0))
+                .checkOutTime(LocalTime.of(11, 0))
+                .minNights(1)
+                .maxNights(30)
+                .bookingLeadTimeDays(0)
+                .build();
+        propertyRuleRepository.save(defaultRule);
+        savedProperty.setPropertyRule(defaultRule);
+
+        return savedProperty;
     }
 
     /**

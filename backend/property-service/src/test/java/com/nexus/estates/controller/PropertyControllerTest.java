@@ -5,11 +5,13 @@ import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.service.PropertyService;
-import com.nexus.estates.service.ImageStorageService; // Importar a interface
+import com.nexus.estates.service.ImageStorageService;
+import com.nexus.estates.service.PropertyRuleService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 import java.util.Map;
 import java.util.Set;
@@ -17,23 +19,26 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class PropertyControllerTest {
 
     private PropertyService propertyService;
-    private ImageStorageService imageStorageService; // Usar a interface
-    private PropertyController controller;
+    private ImageStorageService imageStorageService;
     private PropertyRepository repository;
+    private PropertyRuleService ruleService;
+    private PropertyController controller;
 
     @BeforeEach
     void setUp() {
         // Inicializamos os mocks e o controller antes de cada teste
         propertyService = mock(PropertyService.class);
-        imageStorageService = mock(ImageStorageService.class); // Mock da interface
+        imageStorageService = mock(ImageStorageService.class);
         repository = mock(PropertyRepository.class);
+        ruleService = mock(PropertyRuleService.class);
 
-        controller = new PropertyController(propertyService, imageStorageService,repository);
+        controller = new PropertyController(propertyService, imageStorageService, repository, ruleService);
     }
 
     @Test
@@ -52,7 +57,7 @@ class PropertyControllerTest {
         when(propertyService.create(any(CreatePropertyRequest.class))).thenReturn(new Property());
 
         // Act
-        var response = controller.create(request);
+        ResponseEntity<ApiResponse<Property>> response = controller.create(request);
 
         // Assert
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
@@ -67,8 +72,8 @@ class PropertyControllerTest {
         when(imageStorageService.getUploadParameters()).thenReturn(mockParams);
 
         // Act
-        CompletableFuture<org.springframework.http.ResponseEntity<ApiResponse<Map<String, Object>>>> futureResponse = controller.getUploadParams();
-        var response = futureResponse.get(); // Espera o resultado da thread asíncrona
+        CompletableFuture<ResponseEntity<ApiResponse<Map<String, Object>>>> futureResponse = controller.getUploadParams();
+        ResponseEntity<ApiResponse<Map<String, Object>>> response = futureResponse.get(); // Espera o resultado da thread asíncrona
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());

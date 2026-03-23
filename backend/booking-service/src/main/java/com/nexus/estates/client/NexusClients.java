@@ -1,5 +1,7 @@
 package com.nexus.estates.client;
 
+import com.nexus.estates.common.dto.ApiResponse;
+import com.nexus.estates.common.dto.PropertyRuleDTO;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.service.annotation.GetExchange;
 
@@ -36,6 +38,15 @@ public interface NexusClients {
          */
         @GetExchange("/api/properties/{id}/price")
         BigDecimal getPropertyPrice(@PathVariable Long id);
+
+        /**
+         * Obtém as regras operacionais de uma propriedade.
+         *
+         * @param id Identificador único da propriedade.
+         * @return As regras da propriedade.
+         */
+        @GetExchange("/api/properties/{id}/rules")
+        ApiResponse<PropertyRuleDTO> getRules(@PathVariable Long id);
 
     }
 
