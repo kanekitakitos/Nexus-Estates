@@ -1,26 +1,34 @@
 package com.nexus.estates.service;
 
-import com.nexus.estates.common.enums.BookingStatus;
-import com.nexus.estates.common.messaging.BookingCreatedMessage;
-import com.nexus.estates.common.messaging.BookingStatusUpdatedMessage;
+import com.nexus.estates.dto.ExternalApiConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClient;
 
+import java.util.Optional;
+import java.util.function.Consumer;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ExternalSyncServiceTest {
 
     @Mock
-    private RestClient restClient;
+    private RestClient externalApiRestClient;
+
+    @Mock
+    private ExternalAuthService authService;
 
     @Mock
     private RestClient.RequestBodyUriSpec requestBodyUriSpec;
@@ -35,55 +43,65 @@ class ExternalSyncServiceTest {
     private ExternalSyncService externalSyncService;
 
     @Test
-    @DisplayName("Deve confirmar reserva quando API externa aprovar")
-    void shouldConfirmBookingWhenExternalApiApproves() {
-        BookingCreatedMessage message = new BookingCreatedMessage(1L, 10L, 20L, BookingStatus.PENDING_PAYMENT);
-        ExternalSyncService.ExternalSyncResult result = new ExternalSyncService.ExternalSyncResult(true, "OK");
+    @DisplayName("Deve retornar Optional com resposta quando API externa responder com sucesso")
+    void shouldReturnOptionalWithResponseOnSuccess() {
+        ExternalApiConfig config = ExternalApiConfig.builder()
+                .baseUrl("https://api.com")
+                .endpoint("/test")
+                .build();
+        
+        String payload = "data";
+        String expectedResponse = "success";
 
-        when(restClient.post()).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.uri("/external/bookings/sync")).thenReturn(requestBodySpec);
-        when(requestBodySpec.body(message)).thenReturn(requestBodySpec);
+        when(externalApiRestClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri("https://api.com/test")).thenReturn(requestBodySpec);
+        when(requestBodySpec.contentType(any())).thenReturn(requestBodySpec);
+        
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            Consumer<HttpHeaders> headersConsumer = invocation.getArgument(0);
+            headersConsumer.accept(new HttpHeaders());
+            return requestBodySpec;
+        }).when(requestBodySpec).headers(any());
+
+        when(requestBodySpec.body(payload)).thenReturn(requestBodySpec);
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
-        when(responseSpec.toEntity(ExternalSyncService.ExternalSyncResult.class))
-                .thenReturn(ResponseEntity.ok(result));
+        when(responseSpec.body(String.class)).thenReturn(expectedResponse);
 
-        BookingStatusUpdatedMessage response = externalSyncService.processBooking(message);
+        Optional<String> result = externalSyncService.post(config, payload, String.class);
 
-        assertThat(response.status()).isEqualTo(BookingStatus.CONFIRMED);
-        assertThat(response.reason()).isEqualTo("OK");
+        assertThat(result).isPresent().contains(expectedResponse);
+        verify(authService).applyAuthentication(any(), eq(config));
     }
 
     @Test
-    @DisplayName("Deve cancelar reserva quando API externa rejeitar")
-    void shouldCancelBookingWhenExternalApiRejects() {
-        BookingCreatedMessage message = new BookingCreatedMessage(1L, 10L, 20L, BookingStatus.PENDING_PAYMENT);
-        ExternalSyncService.ExternalSyncResult result = new ExternalSyncService.ExternalSyncResult(false, "Rejected");
+    @DisplayName("Deve retornar true em postWithoutResponse quando API responder com sucesso")
+    void shouldReturnTrueOnPostWithoutResponseSuccess() {
+        ExternalApiConfig config = ExternalApiConfig.builder()
+                .baseUrl("https://api.com")
+                .endpoint("/test")
+                .build();
+        
+        String payload = "payload";
 
-        when(restClient.post()).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.uri("/external/bookings/sync")).thenReturn(requestBodySpec);
-        when(requestBodySpec.body(message)).thenReturn(requestBodySpec);
+        when(externalApiRestClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri("https://api.com/test")).thenReturn(requestBodySpec);
+        when(requestBodySpec.contentType(any())).thenReturn(requestBodySpec);
+        
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            Consumer<HttpHeaders> headersConsumer = invocation.getArgument(0);
+            headersConsumer.accept(new HttpHeaders());
+            return requestBodySpec;
+        }).when(requestBodySpec).headers(any());
+
+        when(requestBodySpec.body(payload)).thenReturn(requestBodySpec);
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
-        when(responseSpec.toEntity(ExternalSyncService.ExternalSyncResult.class))
-                .thenReturn(ResponseEntity.ok(result));
+        when(responseSpec.toBodilessEntity()).thenReturn(ResponseEntity.noContent().build());
 
-        BookingStatusUpdatedMessage response = externalSyncService.processBooking(message);
+        boolean result = externalSyncService.postWithoutResponse(config, payload);
 
-        assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
-        assertThat(response.reason()).isEqualTo("Rejected");
-    }
-
-    @Test
-    @DisplayName("Fallback deve devolver CANCELLED com razão explicativa")
-    void fallbackShouldReturnCancelledWithReason() {
-        BookingCreatedMessage message = new BookingCreatedMessage(1L, 10L, 20L, BookingStatus.PENDING_PAYMENT);
-        Throwable ex = new RuntimeException("Simulated failure");
-
-        BookingStatusUpdatedMessage response = externalSyncService.fallbackProcessBooking(message, ex);
-
-        assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
-        assertThat(response.reason()).contains("Falha na integração externa");
+        assertThat(result).isTrue();
+        verify(authService).applyAuthentication(any(), eq(config));
     }
 }
-

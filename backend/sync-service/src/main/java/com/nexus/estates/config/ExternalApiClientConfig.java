@@ -24,31 +24,40 @@ import java.util.function.Function;
 public class ExternalApiClientConfig {
 
     /**
-     * Factory para criar clientes REST dinamicamente.
+     * Bean principal do RestClient utilizado pelo sistema de sincronização.
      * <p>
-     * Permite instanciar um RestClient configurado com base URL e headers específicos
-     * para cada integração (ex: Airbnb vs Booking).
+     * Este cliente é configurado uma única vez para ser reutilizado por todos os serviços,
+     * evitando a criação excessiva de instâncias e fugas de memória (memory leaks),
+     * conforme as boas práticas de arquitetura para sistemas de alta performance.
      * </p>
      *
-     * @return Function que aceita um mapa de configurações (url, headers) e retorna um RestClient.
+     * @param builder Builder auto-configurado pelo Spring Boot.
+     * @return Uma instância thread-safe de RestClient.
      */
     @Bean
+    public RestClient externalApiRestClient(RestClient.Builder builder) {
+        return builder.build();
+    }
+
+    /**
+     * Factory para criar instâncias de RestClient dinamicamente para cenários isolados.
+     * <p>
+     * <b>Atenção:</b> Deve ser usado com cautela para não criar novas instâncias a cada request.
+     * Ideal para inicializar integrações específicas no arranque do sistema.
+     * </p>
+     *
+     * @return Uma Function que aceita parâmetros de configuração e devolve um RestClient.
+     */
     public Function<Map<String, Object>, RestClient> dynamicRestClientFactory() {
-        return config -> {
-            String baseUrl = (String) config.getOrDefault("baseUrl", "http://localhost");
+        return params -> {
+            String baseUrl = (String) params.getOrDefault("baseUrl", "http://localhost:8080");
             @SuppressWarnings("unchecked")
-            Map<String, String> headers = (Map<String, String>) config.get("headers");
+            Map<String, String> headers = (Map<String, String>) params.getOrDefault("headers", Map.of());
 
-            RestClient.Builder builder = RestClient.builder()
-                    .baseUrl(baseUrl);
-
-            if (headers != null) {
-                builder.defaultHeaders(httpHeaders -> 
-                    headers.forEach(httpHeaders::add)
-                );
-            }
-
-            return builder.build();
+            return RestClient.builder()
+                    .baseUrl(baseUrl)
+                    .defaultHeaders(h -> headers.forEach(h::add))
+                    .build();
         };
     }
 }

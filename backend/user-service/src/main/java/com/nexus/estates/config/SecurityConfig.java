@@ -67,6 +67,9 @@ public class SecurityConfig {
                         // Endpoints de suporte (Recuperação de password) são públicos
                         .requestMatchers("/api/users/auth/password/**").permitAll()
 
+                        // Endpoints de documentação (Swagger/OpenAPI) são públicos
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+
                         // Todos os restantes pedidos (Properties, Amenities, etc.) requerem autenticação
                         .anyRequest().authenticated()
                 )

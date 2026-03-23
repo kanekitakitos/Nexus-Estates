@@ -90,4 +90,13 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR;
         return buildErrorResponse(ex, status, request, null);
     }
+
+    /**
+     * Tratamento genérico para qualquer outra exceção não capturada.
+     * Garante que o cliente recebe sempre um JSON de erro em vez de uma página HTML.
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Object>> handleAllUncaughtExceptions(Exception ex, HttpServletRequest request) {
+        return buildErrorResponse(ex, HttpStatus.INTERNAL_SERVER_ERROR, request, null);
+    }
 }

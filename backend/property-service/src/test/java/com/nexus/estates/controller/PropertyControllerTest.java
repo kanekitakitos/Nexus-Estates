@@ -1,5 +1,6 @@
 package com.nexus.estates.controller;
 
+import com.nexus.estates.common.dto.ApiResponse;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.repository.PropertyRepository;
@@ -66,12 +67,14 @@ class PropertyControllerTest {
         when(imageStorageService.getUploadParameters()).thenReturn(mockParams);
 
         // Act
-        CompletableFuture<org.springframework.http.ResponseEntity<Map<String, Object>>> futureResponse = controller.getUploadParams();
+        CompletableFuture<org.springframework.http.ResponseEntity<ApiResponse<Map<String, Object>>>> futureResponse = controller.getUploadParams();
         var response = futureResponse.get(); // Espera o resultado da thread asíncrona
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(mockParams, response.getBody());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().isSuccess());
+        assertEquals(mockParams, response.getBody().getData());
         verify(imageStorageService, times(1)).getUploadParameters();
     }
 }

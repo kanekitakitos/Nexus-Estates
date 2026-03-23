@@ -1,12 +1,14 @@
 package com.nexus.estates.service;
 
 import com.nexus.estates.service.interfaces.ChatPlatform;
+import com.nexus.estates.dto.ExternalApiConfig;
 import io.ably.lib.rest.AblyRest;
 import io.ably.lib.rest.Auth.TokenParams;
 import io.ably.lib.types.AblyException;
 import io.ably.lib.types.Capability;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
@@ -20,11 +22,9 @@ import org.springframework.stereotype.Service;
  * </p>
  *
  * @author Nexus Estates Team
- * @version 1.1
+ * @version 1.2
  * @see ChatPlatform
  * @see ExternalSyncService
- * @see <a href="https://ably.com/docs/rest/messages#publish">Ably REST API - Publish Message</a>
- * @see <a href="https://ably.com/docs/core-features/authentication#token-authentication">Ably Token Authentication</a>
  */
 @Slf4j
 @Service
@@ -32,18 +32,42 @@ import org.springframework.stereotype.Service;
 public class AblySyncService implements ChatPlatform {
 
     private final ExternalSyncService externalSyncService;
-    private final AblyRest ablyClient; // Injetado a partir de AblyConfig
+    private final AblyRest ablyClient;
 
+    @Value("${ably.api.key}")
+    private String ablyApiKey;
+
+    private static final String ABLY_BASE_URL = "https://rest.ably.io";
+
+    /**
+     * Envia uma mensagem para um canal específico no Ably de forma resiliente.
+     * <p>
+     * Utiliza o {@code ExternalSyncService} para realizar a chamada HTTP REST
+     * manual, garantindo que o Circuit Breaker protege o sistema contra falhas no Ably.
+     * </p>
+     *
+     * @param channel O nome do canal onde publicar.
+     * @param event   O nome do evento (ex: "message.received").
+     * @param message O conteúdo da mensagem a ser enviado (JSON).
+     * @return {@code true} se a mensagem foi enviada com sucesso; {@code false} caso contrário.
+     */
     @Override
     public boolean sendMessage(String channel, String event, Object message) {
         // A API REST do Ably para publicar mensagens é:
-        // POST /channels/{channel_id}/messages
-        // O corpo da mensagem deve ter "name" (evento) e "data" (mensagem).
-        String uri = String.format("/channels/%s/messages", channel);
+        // POST https://rest.ably.io/channels/{channel_id}/messages
+        String endpoint = String.format("/channels/%s/messages", channel);
         var payload = new AblyMessage(event, message);
 
-        // Usa o serviço genérico para fazer a chamada HTTP de forma resiliente
-        return externalSyncService.postToExternalApi(uri, payload);
+        // Configura o acesso ao Ably usando a nova arquitetura flexível
+        ExternalApiConfig config = ExternalApiConfig.builder()
+                .baseUrl(ABLY_BASE_URL)
+                .endpoint(endpoint)
+                .authType(ExternalApiConfig.AuthType.BASIC)
+                .credentials(ablyApiKey)
+                .build();
+
+        // Usa o serviço centralizado para garantir resiliência (Circuit Breaker/Retry)
+        return externalSyncService.postWithoutResponse(config, payload);
     }
 
     /**
@@ -85,6 +109,9 @@ public class AblySyncService implements ChatPlatform {
 
     /**
      * DTO interno para formatar a mensagem conforme esperado pela API do Ably.
+     *
+     * @param name Nome do evento no Ably.
+     * @param data Conteúdo da mensagem.
      */
     private record AblyMessage(String name, Object data) {}
 }

@@ -1,7 +1,8 @@
 "use client"
 
+import Link from "next/link"
 import { AppShell } from "@/components/layout/app-shell"
-import { BookingView } from "@/components/layout/booking/booking-view"
+import { BookingView } from "@/features/bookings/booking-view"
 import { 
   Breadcrumb, 
   BreadcrumbItem, 
@@ -24,11 +25,17 @@ export default function Home() {
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem className="hidden md:block">
-          <BreadcrumbLink href="#">Nexus Estates</BreadcrumbLink>
+          <BreadcrumbLink asChild>
+            <Link href="/">Nexus Estates</Link>
+          </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator className="hidden md:block" />
         <BreadcrumbItem>
-          <BreadcrumbPage>Bookings</BreadcrumbPage>
+          <Link href="/dashboard">
+            <BreadcrumbPage className="cursor-pointer hover:text-primary transition-colors">
+              Dashboard
+            </BreadcrumbPage>
+          </Link>
         </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>

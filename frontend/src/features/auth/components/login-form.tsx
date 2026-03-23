@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/forms/field"
 import { Input } from "@/components/ui/forms/input"
 import { useState } from "react"
-import { usersAxios } from "@/lib/axiosAPI"
+import { AuthService } from "@/services/auth.service"
 import { toast } from "sonner"
 
 
@@ -52,65 +52,35 @@ export function LoginForm({
    * @returns {Promise<void>} Uma promessa que se resolve após a tentativa de autenticação, 
    * independentemente do sucesso (erros são tratados via toast).
    * 
-   * @version 1.0.1
-   * @todo
-   * * Refactor implementation to simplify and improve error handling.
-   * * Replace use of document.getElementById() for States
+   * @version 1.1
    */
   async function handleLogin() {
-    if (isTryingLogin) return; // Prevent multiple login attempts at the same time
+    if (isTryingLogin) return;
 
     const email = (document.getElementById("email") as HTMLInputElement).value
     const password = (document.getElementById("password") as HTMLInputElement).value
 
-    // email or password not filled
     if (!password || !email){
-      toast.warning("Preenche todas as celulas");
+      toast.warning("Preenche todos os campos");
       return
     }
 
-    // defines the state to prevent multiple calls at the same time.
     setIsTryingLogin(true);
 
-    // use Axios to communicate with the service.
-    await usersAxios.post("/auth/login", JSON.stringify({email, password}), {
-      headers: {
-        "Content-Type": "application/json"
+    try {
+      const success = await AuthService.login({ email, password });
+      
+      if (success) {
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 1500);
       }
-    })
-    .then(response => {
+    } catch (error) {
+      // O erro já é tratado dentro do AuthService via toast
+      console.error("Login component error:", error);
+    } finally {
       setIsTryingLogin(false);
-
-      if (response.status === 200) { // Assuming a successful login returns a 200 status code
-        console.log("Login efetuado!", response.data);
-        toast.error("Bem-vindo!");
-      }
-      else {
-        console.log("resposta:", response);
-      }
-    })
-    .catch(async (error) => {
-      setIsTryingLogin(false);
-
-      console.error("error:", error);
-      if (error.response) {
-        console.error("Mensagem do servidor:", error.response.data);
-
-        switch (error.response.status) {
-          case 401: toast.error("Email ou senha incorretos. Tente novamente."); break;
-          case 404: toast.error("Usuário não encontrado. Verifique seu email ou registre-se."); break;
-          default: toast.error("Erro no servidor. Status: " + error.response.status); break;
-        }
-      }
-      else if (error.request) {
-        console.error("Requisição feita, mas sem resposta:", error.request);
-        toast.error("Nenhuma resposta do servidor. Verifique sua conexão.");
-      }
-      else {
-        console.error("Erro ao configurar a requisição :", error.message);
-        toast.error("Erro ao configurar a requisição da mensagem: " + error.message);
-      }
-    });
+    }
   }
 
 

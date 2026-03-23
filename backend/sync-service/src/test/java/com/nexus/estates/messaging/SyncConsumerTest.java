@@ -3,11 +3,12 @@ package com.nexus.estates.messaging;
 import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.common.messaging.BookingStatusUpdatedMessage;
-import com.nexus.estates.service.ExternalSyncService;
+import com.nexus.estates.service.BookingSyncService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -22,18 +23,19 @@ import static org.mockito.Mockito.when;
 class SyncConsumerTest {
 
     @Mock
-    private ExternalSyncService externalSyncService;
+    private BookingSyncService bookingSyncService;
 
     @Mock
     private RabbitTemplate rabbitTemplate;
 
+    @InjectMocks
+    private BookingEventListener bookingEventListener;
+
     @Test
     @DisplayName("Deve processar booking.created e publicar booking.status.updated")
     void shouldProcessBookingCreatedAndPublishStatusUpdated() {
-        SyncConsumer consumer = new SyncConsumer(externalSyncService, rabbitTemplate);
-
-        ReflectionTestUtils.setField(consumer, "bookingExchangeName", "booking.exchange");
-        ReflectionTestUtils.setField(consumer, "bookingStatusUpdatedRoutingKey", "booking.status.updated");
+        ReflectionTestUtils.setField(bookingEventListener, "bookingExchangeName", "booking.exchange");
+        ReflectionTestUtils.setField(bookingEventListener, "bookingStatusUpdatedRoutingKey", "booking.status.updated");
 
         BookingCreatedMessage input = new BookingCreatedMessage(
                 1L,
@@ -47,13 +49,13 @@ class SyncConsumerTest {
                 "ok"
         );
 
-        when(externalSyncService.processBooking(input)).thenReturn(result);
+        when(bookingSyncService.syncBooking(input)).thenReturn(result);
 
-        consumer.handleBookingCreated(input);
+        bookingEventListener.handleBookingCreated(input);
 
         ArgumentCaptor<BookingStatusUpdatedMessage> captor = ArgumentCaptor.forClass(BookingStatusUpdatedMessage.class);
 
-        verify(externalSyncService).processBooking(input);
+        verify(bookingSyncService).syncBooking(input);
         verify(rabbitTemplate).convertAndSend(
                 eq("booking.exchange"),
                 eq("booking.status.updated"),

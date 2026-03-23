@@ -3,23 +3,29 @@ package com.nexus.estates.service;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Amenity;
 import com.nexus.estates.entity.Property;
+import com.nexus.estates.entity.SeasonalityRule;
 import com.nexus.estates.exception.PropertyNotFoundException;
-import com.nexus.estates.repository.AmenityRepository; // Novo Import
+import com.nexus.estates.repository.AmenityRepository;
 import com.nexus.estates.repository.PropertyRepository;
+import com.nexus.estates.repository.SeasonalityRuleRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Serviço responsável pela lógica de negócio associada às propriedades.
  *
  * <p>Esta camada atua como intermediária entre o controller e o repositório,
- * encapsulando operações de persistência e regras de negócio.</p>
+ * encapsulando operações de persistência e regras de negócio complexas como
+ * o cálculo de preços dinâmicos.</p>
  *
  * @see PropertyRepository
  * @author Nexus Estates Team
@@ -29,17 +35,20 @@ import java.util.Set;
 public class PropertyService {
 
     private final PropertyRepository repository;
-    private final AmenityRepository amenityRepository; // Adicionado para suporte a comodidades
+    private final AmenityRepository amenityRepository;
+    private final SeasonalityRuleRepository seasonalityRuleRepository;
 
     /**
      * Construtor do serviço.
      *
      * @param repository repositório responsável pelo acesso aos dados
      * @param amenityRepository repositório responsável pelas comodidades
+     * @param seasonalityRuleRepository repositório responsável pelas regras de sazonalidade
      */
-    public PropertyService(PropertyRepository repository, AmenityRepository amenityRepository) {
+    public PropertyService(PropertyRepository repository, AmenityRepository amenityRepository, SeasonalityRuleRepository seasonalityRuleRepository) {
         this.repository = repository;
         this.amenityRepository = amenityRepository;
+        this.seasonalityRuleRepository = seasonalityRuleRepository;
     }
 
     /**
@@ -122,5 +131,80 @@ public class PropertyService {
     public Property findById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new PropertyNotFoundException(id));
+    }
+
+    /**
+     * Calcula o preço total de uma estadia para uma propriedade, aplicando regras de sazonalidade.
+     *
+     * <p>Este método itera por cada dia da reserva, aplicando o multiplicador de preço
+     * da regra de sazonalidade mais específica que se aplica a esse dia.
+     * A hierarquia de prioridade é: Regra de Canal > Regra de Dia da Semana > Regra de Período.</p>
+     *
+     * @param propertyId ID da propriedade.
+     * @param checkInDate Data de check-in.
+     * @param checkOutDate Data de check-out.
+     * @param channel Canal de venda (opcional, pode ser null).
+     * @return O preço total da estadia.
+     * @throws PropertyNotFoundException se a propriedade não for encontrada.
+     */
+    public BigDecimal calculateTotalPrice(Long propertyId, LocalDate checkInDate, LocalDate checkOutDate, String channel) {
+        Property property = findById(propertyId);
+        
+        // Busca todas as regras de sazonalidade que se sobrepõem ao período da reserva
+        // O repositório deve ter este método definido para aceitar propertyId, start e end
+        List<SeasonalityRule> allRules = seasonalityRuleRepository.findByPropertyIdAndDateRange(propertyId, checkInDate, checkOutDate);
+
+        BigDecimal total = BigDecimal.ZERO;
+        
+        // Iterar dia a dia desde o check-in até ao dia ANTES do check-out (pois a última noite conta, mas sai-se no dia seguinte)
+        for (LocalDate date = checkInDate; date.isBefore(checkOutDate); date = date.plusDays(1)) {
+            final LocalDate currentDate = date;
+            
+            // Filtra regras aplicáveis a este dia específico
+            List<SeasonalityRule> applicableRules = allRules.stream()
+                .filter(rule -> !currentDate.isBefore(rule.getStartDate()) && !currentDate.isAfter(rule.getEndDate()))
+                .filter(rule -> rule.getDayOfWeek() == null || rule.getDayOfWeek() == currentDate.getDayOfWeek())
+                .filter(rule -> rule.getChannel() == null || (channel != null && rule.getChannel().equalsIgnoreCase(channel)))
+                .collect(Collectors.toList());
+
+            // Determina o multiplicador: Preço base (1.0) ou o da regra mais prioritária
+            BigDecimal modifier = BigDecimal.ONE;
+            
+            if (!applicableRules.isEmpty()) {
+                // Encontra a regra com maior prioridade
+                SeasonalityRule bestRule = applicableRules.stream()
+                        .max(Comparator.comparingInt(this::getRulePriority))
+                        .orElseThrow(); // Seguro pois a lista não está vazia
+                
+                modifier = bestRule.getPriceModifier();
+            }
+
+            // Preço do dia = Preço Base * Multiplicador
+            BigDecimal dailyPrice = property.getBasePrice().multiply(modifier);
+            total = total.add(dailyPrice);
+        }
+
+        return total;
+    }
+
+    /**
+     * Define a prioridade de uma regra de sazonalidade.
+     * Regras com canal e dia da semana são mais prioritárias.
+     *
+     * @param rule A regra de sazonalidade.
+     * @return Um valor inteiro representando a prioridade. Maior valor = maior prioridade.
+     */
+    private int getRulePriority(SeasonalityRule rule) {
+        int priority = 0;
+        // Regra de canal é muito específica
+        if (rule.getChannel() != null && !rule.getChannel().isEmpty()) {
+            priority += 100;
+        }
+        // Regra de dia da semana é específica
+        if (rule.getDayOfWeek() != null) {
+            priority += 50;
+        }
+        // Regras apenas por data têm prioridade base
+        return priority;
     }
 }
