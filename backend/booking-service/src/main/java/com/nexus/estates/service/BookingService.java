@@ -1,9 +1,14 @@
 package com.nexus.estates.service;
 
+import com.nexus.estates.common.dto.ApiResponse;
+import com.nexus.estates.common.dto.PropertyRuleDTO;
 import com.nexus.estates.dto.BookingResponse;
 import com.nexus.estates.dto.CreateBookingRequest;
 import com.nexus.estates.entity.Booking;
 import com.nexus.estates.exception.BookingConflictException;
+import com.nexus.estates.exception.InvalidRefundException;
+import com.nexus.estates.exception.PaymentProcessingException;
+import com.nexus.estates.exception.RuleViolationException;
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.messaging.BookingEventPublisher;
 import com.nexus.estates.repository.BookingRepository;
@@ -12,7 +17,8 @@ import org.springframework.stereotype.Service;
 import com.nexus.estates.client.Proxy;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 /**
  * Serviço de domínio responsável pela execução da lógica de negócio de Reservas.
@@ -23,13 +29,17 @@ import java.util.List;
  *
  * @see BookingRepository
  * @author Nexus Estates Team
- * @version 1.1
+ * @version 1.0
  */
 @Service
 public class BookingService
 {
+
+
     private final BookingRepository bookingRepository;
     private final BookingEventPublisher bookingEventPublisher;
+    private final BookingPaymentService bookingPaymentService;
+
     private final Proxy api;
 
     /**
@@ -37,12 +47,16 @@ public class BookingService
      *
      * @param bookingRepository ‘Interface’ de acesso aos dados persistidos.
      * @param bookingEventPublisher Componente responsável pela publicação de eventos de reserva.
+     * @param bookingPaymentService Serviço para processamento de pagamentos.
      * @param api Facade para comunicação com microservices externos (Propriedades, Utilizadores).
      */
-    public BookingService(BookingRepository bookingRepository, BookingEventPublisher bookingEventPublisher, Proxy api)
+    public BookingService(BookingRepository bookingRepository, BookingEventPublisher bookingEventPublisher, BookingPaymentService bookingPaymentService,Proxy api)
     {
         this.bookingRepository = bookingRepository;
+
         this.bookingEventPublisher = bookingEventPublisher;
+        this.bookingPaymentService = bookingPaymentService;
+
         this.api = api;
     }
 
@@ -76,23 +90,20 @@ public class BookingService
             } catch (Exception e) {
                 throw new IllegalArgumentException("O utilizador informado não existe ou o serviço está indisponível.", e);
             }
-        } else {
-            if (isBlank(request.guestFullName()) ||
-                isBlank(request.guestEmail()) ||
-                isBlank(request.guestPhone()) ||
-                isBlank(request.guestNationality()) ||
-                isBlank(request.guestDocumentType()) ||
-                isBlank(request.guestDocumentNumber())) {
-                throw new IllegalArgumentException("Dados do hóspede são obrigatórios para reservas sem conta.");
+        }
+
+        // 1.6 Validação de Regras da Propriedade (Noites min/max, Lead Time)
+        try {
+            ApiResponse<PropertyRuleDTO> rulesResponse = api.propertyClient().getRules(request.propertyId());
+            if (rulesResponse != null && rulesResponse.isSuccess() && rulesResponse.getData() != null) {
+                validateBookingRules(request, rulesResponse.getData());
             }
-            if (!"PT".equalsIgnoreCase(request.guestNationality())) {
-                if (isBlank(request.guestIssuingCountry())) {
-                    throw new IllegalArgumentException("País emissor é obrigatório para hóspedes estrangeiros.");
-                }
-                if (request.guestDocumentIssueDate() == null) {
-                    throw new IllegalArgumentException("Data de emissão do documento é obrigatória para hóspedes estrangeiros.");
-                }
-            }
+        } catch (RuleViolationException e) {
+            throw e; // Relança a exceção de regra para ser tratada pelo GlobalExceptionHandler
+        } catch (Exception e) {
+             // Em caso de falha na comunicação com o property-service, optamos por bloquear a reserva por segurança
+             // ou poderíamos logar e permitir (Fail Open vs Fail Closed). Aqui opto por Fail Closed.
+             throw new RuntimeException("Não foi possível validar as regras da propriedade. Tente novamente mais tarde.", e);
         }
 
 
@@ -127,12 +138,26 @@ public class BookingService
         bookingEventPublisher.publishBookingCreated(message);
 
         return response;
-        }
-
-    private boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
     }
 
+    private void validateBookingRules(CreateBookingRequest request, PropertyRuleDTO rules) {
+        long nights = ChronoUnit.DAYS.between(request.checkInDate(), request.checkOutDate());
+        
+        if (rules.minNights() != null && nights < rules.minNights()) {
+            throw new RuleViolationException("O número mínimo de noites é " + rules.minNights());
+        }
+        
+        if (rules.maxNights() != null && nights > rules.maxNights()) {
+            throw new RuleViolationException("O número máximo de noites é " + rules.maxNights());
+        }
+        
+        if (rules.bookingLeadTimeDays() != null) {
+            LocalDate minCheckInDate = LocalDate.now().plusDays(rules.bookingLeadTimeDays());
+            if (request.checkInDate().isBefore(minCheckInDate)) {
+                 throw new RuleViolationException("A reserva deve ser feita com pelo menos " + rules.bookingLeadTimeDays() + " dias de antecedência.");
+            }
+        }
+    }
 
 
     /**
@@ -188,7 +213,7 @@ public class BookingService
      * @param propertyId O UUID da propriedade alvo.
      * @return Lista de {@link BookingResponse} contendo as reservas encontradas.
      */
-    public List<BookingResponse> getBookingsByProperty(Long propertyId)
+    public java.util.List<BookingResponse> getBookingsByProperty(Long propertyId)
     {
         return bookingRepository.findByPropertyId(propertyId).stream()
                 .map(BookingResponse::new)
@@ -201,10 +226,65 @@ public class BookingService
      * @param userId O UUID do utilizador.
      * @return Lista de {@link BookingResponse} com o histórico pessoal.
      */
-    public List<BookingResponse> getBookingsByUser(Long userId)
+    public java.util.List<BookingResponse> getBookingsByUser(Long userId)
     {
         return bookingRepository.findByUserId(userId).stream()
                 .map(BookingResponse::new)
                 .toList();
+    }
+
+    /**
+     * Cria uma intenção de pagamento para uma reserva.
+     * 
+     * <p>Esta método permite que o utilizador inicie o processo de pagamento
+     * sem concluir imediatamente. Útil para fluxos de checkout em múltiplos passos.</p>
+     * 
+     * @param bookingId ‘ID’ da reserva
+     * @param paymentMethod Método de pagamento escolhido
+     * @return Detalhes da intenção de pagamento criada ({@link com.nexus.estates.dto.payment.PaymentResponse})
+     * @throws PaymentProcessingException se houver erro no processamento
+     */
+    @Transactional
+    public com.nexus.estates.dto.payment.PaymentResponse createPaymentIntent(Long bookingId, com.nexus.estates.dto.payment.PaymentMethod paymentMethod) {
+        return bookingPaymentService.createPaymentIntent(bookingId, paymentMethod);
+    }
+
+    /**
+     * Confirma um pagamento e atualiza o status da reserva.
+     * 
+     * <p>Após a confirmação bem-sucedida, a reserva é marcada como confirmada
+     * e um evento de atualização é publicado.</p>
+     * 
+     * @param bookingId ‘ID’ da reserva
+     * @param paymentIntentId ‘ID’ da intenção de pagamento a confirmar
+     * @return Confirmação do pagamento ({@link com.nexus.estates.dto.payment.PaymentResponse})
+     * @throws PaymentProcessingException se houver erro na confirmação
+     */
+    @Transactional
+    public com.nexus.estates.dto.payment.PaymentResponse confirmPayment(Long bookingId, String paymentIntentId) {
+        java.util.Map<String, Object> metadata = java.util.Map.of(
+                "bookingId", bookingId.toString(),
+                "confirmedAt", java.time.LocalDateTime.now().toString()
+        );
+        
+        return bookingPaymentService.confirmPayment(paymentIntentId, metadata);
+    }
+
+    /**
+     * Processa um reembolso para uma reserva.
+     * 
+     * <p>Permite reembolsos parciais ou totais, dependendo da política
+     * de cancelamento e do provedor de pagamento.</p>
+     * 
+     * @param bookingId ‘ID’ da reserva
+     * @param amount Valor do reembolso (null para reembolso total)
+     * @param reason Motivo do reembolso
+     * @return Resultado do reembolso
+     * @throws InvalidRefundException se o reembolso for inválido
+     * @throws PaymentProcessingException se houver erro no processamento
+     */
+    @Transactional
+    public com.nexus.estates.dto.payment.RefundResult processRefund(Long bookingId, java.math.BigDecimal amount, String reason) {
+        return bookingPaymentService.processRefund(bookingId, amount, reason);
     }
 }
