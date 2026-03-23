@@ -44,6 +44,25 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Trata violações de regras de negócio da propriedade (ex: Noites mínimas, Lead time).
+     *
+     * @param ex A exceção de violação capturada.
+     * @param request O pedido HTTP que originou o erro.
+     * @return ResponseEntity com status 400 (Bad Request).
+     */
+    @ExceptionHandler(RuleViolationException.class)
+    public ResponseEntity<ErrorResponse> handleRuleViolation(RuleViolationException ex, HttpServletRequest request) {
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Property Rule Violation")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
      * Trata erros de validação de dados de entrada (@Valid).
      * <p>
      * Agrega todos os erros de campo numa única mensagem legível.
