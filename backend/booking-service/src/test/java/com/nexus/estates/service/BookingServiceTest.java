@@ -20,7 +20,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
@@ -58,7 +59,8 @@ class BookingServiceTest {
                 100L,
                 LocalDate.now().plusDays(5),
                 LocalDate.now().plusDays(8), // 3 noites
-                2
+                2,
+                null, null, null, null, null, null, null, null // Campos de guest opcionais
         );
     }
 
