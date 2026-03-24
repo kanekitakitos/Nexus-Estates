@@ -1,11 +1,19 @@
 package com.nexus.estates.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexus.estates.entity.Message;
 import com.nexus.estates.service.interfaces.ChatPlatform;
 import com.nexus.estates.service.MessageService;
 import com.nexus.estates.service.WebhookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,11 +30,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/sync/messages")
 @RequiredArgsConstructor
+@Tag(name = "Sync Messages", description = "Endpoints para mensagens e webhooks de chat (Ably).")
 public class SyncMessageController {
 
     private final MessageService messageService;
     private final ChatPlatform chatPlatform;
     private final WebhookService webhookService;
+    private final ObjectMapper objectMapper;
 
     /**
      * Recupera o histórico completo de mensagens de uma reserva específica.
@@ -34,6 +44,12 @@ public class SyncMessageController {
      * @param bookingId O ID da reserva.
      * @return Uma lista de mensagens ordenadas cronologicamente.
      */
+    @Operation(summary = "Listar mensagens", description = "Retorna o histórico de mensagens associado a uma reserva.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Histórico retornado com sucesso",
+                    content = @Content(schema = @Schema(implementation = Message.class))),
+            @ApiResponse(responseCode = "500", description = "Erro interno", content = @Content)
+    })
     @GetMapping("/{bookingId}")
     public ResponseEntity<List<Message>> getMessages(@PathVariable Long bookingId) {
         log.info("Solicitação de histórico de mensagens para Booking ID: {}", bookingId);
@@ -48,6 +64,13 @@ public class SyncMessageController {
      * @param request   O corpo da requisição contendo o remetente e o conteúdo.
      * @return A mensagem persistida.
      */
+    @Operation(summary = "Enviar mensagem", description = "Persiste a mensagem e publica no canal de tempo real.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Mensagem enviada com sucesso",
+                    content = @Content(schema = @Schema(implementation = Message.class))),
+            @ApiResponse(responseCode = "400", description = "Payload inválido", content = @Content),
+            @ApiResponse(responseCode = "500", description = "Erro interno", content = @Content)
+    })
     @PostMapping("/{bookingId}")
     public ResponseEntity<Message> sendMessage(
             @PathVariable Long bookingId,
@@ -72,17 +95,32 @@ public class SyncMessageController {
     /**
      * Endpoint para receber webhooks do Ably.
      *
-     * @param payload O payload do webhook contendo as mensagens.
+     * @param rawBody O corpo cru do webhook.
      * @param signature A assinatura HMAC-SHA256 enviada no cabeçalho.
      * @return 200 OK se a assinatura for válida e o processamento iniciado.
      */
+    @Operation(summary = "Webhook Ably", description = "Valida assinatura HMAC e processa mensagens recebidas.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Webhook aceite e processamento iniciado", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Payload inválido", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Assinatura inválida", content = @Content),
+            @ApiResponse(responseCode = "500", description = "Erro interno", content = @Content)
+    })
     @PostMapping("/webhook")
     public ResponseEntity<String> handleWebhook(
-            @RequestBody WebhookService.AblyWebhookPayload payload,
-            @RequestHeader("X-Ably-Signature") String signature
+            @RequestBody String rawBody,
+            @Parameter(description = "Assinatura HMAC-SHA256 (formato: sha256=...)") @RequestHeader("X-Ably-Signature") String signature
     ) {
-        // TODO: Em produção, validar a assinatura usando o corpo cru da requisição.
-        // if (!webhookService.isSignatureValid(rawBody, signature)) return ResponseEntity.status(401).build();
+        if (!webhookService.isSignatureValid(rawBody, signature)) {
+            return ResponseEntity.status(401).body("Invalid signature");
+        }
+
+        WebhookService.AblyWebhookPayload payload;
+        try {
+            payload = objectMapper.readValue(rawBody, WebhookService.AblyWebhookPayload.class);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Invalid payload");
+        }
 
         log.info("Recebido webhook do Ably para canal: {}", payload.channel());
 

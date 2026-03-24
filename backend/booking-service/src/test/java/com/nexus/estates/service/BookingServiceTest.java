@@ -3,7 +3,8 @@ package com.nexus.estates.service;
 import com.nexus.estates.client.NexusClients;
 import com.nexus.estates.client.Proxy;
 import com.nexus.estates.common.dto.ApiResponse;
-import com.nexus.estates.common.dto.PropertyRuleDTO;
+import com.nexus.estates.common.dto.PropertyQuoteRequest;
+import com.nexus.estates.common.dto.PropertyQuoteResponse;
 import com.nexus.estates.dto.CreateBookingRequest;
 import com.nexus.estates.entity.Booking;
 import com.nexus.estates.exception.RuleViolationException;
@@ -18,7 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -66,78 +67,52 @@ class BookingServiceTest {
 
     @Test
     void createBooking_ShouldThrowRuleViolation_WhenNightsLessThanMin() {
-        PropertyRuleDTO rules = new PropertyRuleDTO(
-                LocalTime.of(16, 0),
-                LocalTime.of(11, 0),
-                5, // Mínimo 5 noites
-                30,
-                0
-        );
-        ApiResponse<PropertyRuleDTO> response = ApiResponse.success(rules, "OK");
+        PropertyQuoteResponse quote = PropertyQuoteResponse.failure(List.of("O número mínimo de noites é 5"));
+        ApiResponse<PropertyQuoteResponse> response = ApiResponse.success(quote, "OK");
 
         when(api.propertyClient()).thenReturn(propertyClient);
         when(api.userClient()).thenReturn(userClient);
         when(userClient.getUserEmail(anyLong())).thenReturn("user@example.com");
-        when(propertyClient.getRules(anyLong())).thenReturn(response);
+        when(propertyClient.quote(anyLong(), any(PropertyQuoteRequest.class))).thenReturn(response);
 
         assertThrows(RuleViolationException.class, () -> bookingService.createBooking(request));
     }
 
     @Test
     void createBooking_ShouldThrowRuleViolation_WhenNightsMoreThanMax() {
-        PropertyRuleDTO rules = new PropertyRuleDTO(
-                LocalTime.of(16, 0),
-                LocalTime.of(11, 0),
-                1,
-                2, // Máximo 2 noites
-                0
-        );
-        ApiResponse<PropertyRuleDTO> response = ApiResponse.success(rules, "OK");
+        PropertyQuoteResponse quote = PropertyQuoteResponse.failure(List.of("O número máximo de noites é 2"));
+        ApiResponse<PropertyQuoteResponse> response = ApiResponse.success(quote, "OK");
 
         when(api.propertyClient()).thenReturn(propertyClient);
         when(api.userClient()).thenReturn(userClient);
         when(userClient.getUserEmail(anyLong())).thenReturn("user@example.com");
-        when(propertyClient.getRules(anyLong())).thenReturn(response);
+        when(propertyClient.quote(anyLong(), any(PropertyQuoteRequest.class))).thenReturn(response);
 
         assertThrows(RuleViolationException.class, () -> bookingService.createBooking(request));
     }
 
     @Test
     void createBooking_ShouldThrowRuleViolation_WhenLeadTimeNotMet() {
-        // Reserva para daqui a 5 dias, mas lead time é 10 dias
-        PropertyRuleDTO rules = new PropertyRuleDTO(
-                LocalTime.of(16, 0),
-                LocalTime.of(11, 0),
-                1,
-                30,
-                10 // Antecedência de 10 dias
-        );
-        ApiResponse<PropertyRuleDTO> response = ApiResponse.success(rules, "OK");
+        PropertyQuoteResponse quote = PropertyQuoteResponse.failure(List.of("A reserva deve ser feita com pelo menos 10 dias de antecedência."));
+        ApiResponse<PropertyQuoteResponse> response = ApiResponse.success(quote, "OK");
 
         when(api.propertyClient()).thenReturn(propertyClient);
         when(api.userClient()).thenReturn(userClient);
         when(userClient.getUserEmail(anyLong())).thenReturn("user@example.com");
-        when(propertyClient.getRules(anyLong())).thenReturn(response);
+        when(propertyClient.quote(anyLong(), any(PropertyQuoteRequest.class))).thenReturn(response);
 
         assertThrows(RuleViolationException.class, () -> bookingService.createBooking(request));
     }
 
     @Test
     void createBooking_ShouldSucceed_WhenRulesAreMet() {
-        PropertyRuleDTO rules = new PropertyRuleDTO(
-                LocalTime.of(16, 0),
-                LocalTime.of(11, 0),
-                2, // Mínimo ok (3 > 2)
-                10, // Máximo ok (3 < 10)
-                2  // Lead time ok (5 > 2)
-        );
-        ApiResponse<PropertyRuleDTO> response = ApiResponse.success(rules, "OK");
+        PropertyQuoteResponse quote = PropertyQuoteResponse.success(new BigDecimal("300.00"), "EUR");
+        ApiResponse<PropertyQuoteResponse> response = ApiResponse.success(quote, "OK");
 
         when(api.propertyClient()).thenReturn(propertyClient);
         when(api.userClient()).thenReturn(userClient);
         when(userClient.getUserEmail(anyLong())).thenReturn("user@example.com");
-        when(propertyClient.getRules(anyLong())).thenReturn(response);
-        when(propertyClient.getPropertyPrice(anyLong())).thenReturn(BigDecimal.valueOf(100));
+        when(propertyClient.quote(anyLong(), any(PropertyQuoteRequest.class))).thenReturn(response);
         
         when(bookingRepository.existsOverlappingBooking(anyLong(), any(), any())).thenReturn(false);
         when(bookingRepository.save(any(Booking.class))).thenAnswer(i -> {

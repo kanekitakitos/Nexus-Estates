@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf; // Import necessário
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -74,7 +76,7 @@ class AmenityControllerTest {
                         .with(csrf()) // Resolve o erro 403: Adiciona o token CSRF obrigatório em POST
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validAmenity)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(amenityId))
                 .andExpect(jsonPath("$.name.pt").value("Piscina"));
     }
@@ -119,5 +121,31 @@ class AmenityControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(amenityId))
                 .andExpect(jsonPath("$.name.pt").value("Piscina"));
+    }
+
+    @Test
+    void shouldUpdateAmenityWithSuccess() throws Exception {
+        Amenity updated = new Amenity();
+        updated.setId(amenityId);
+        updated.setName(Map.of("pt", "Piscina Aquecida", "en", "Heated Pool"));
+        updated.setCategory(AmenityCategory.LEISURE);
+
+        when(service.update(eq(amenityId), any(Amenity.class))).thenReturn(updated);
+
+        mockMvc.perform(put("/api/amenities/{id}", amenityId)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updated)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(amenityId))
+                .andExpect(jsonPath("$.name.pt").value("Piscina Aquecida"));
+    }
+
+    @Test
+    void shouldDeleteAmenityWithNoContent() throws Exception {
+        doNothing().when(service).delete(amenityId);
+
+        mockMvc.perform(delete("/api/amenities/{id}", amenityId).with(csrf()))
+                .andExpect(status().isNoContent());
     }
 }

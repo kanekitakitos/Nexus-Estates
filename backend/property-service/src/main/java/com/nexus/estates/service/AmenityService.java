@@ -68,4 +68,31 @@ public class AmenityService {
         return repository.findById(id)
                 .orElseThrow(() -> new AmenityNotFoundException(id));
     }
+
+    /**
+     * Atualiza uma comodidade existente.
+     *
+     * @param id identificador da comodidade
+     * @param update payload com os novos valores
+     * @return comodidade atualizada e persistida
+     * @throws AmenityNotFoundException caso o ID não exista
+     */
+    public Amenity update(Long id, Amenity update) {
+        Amenity existing = findById(id);
+        existing.setName(update.getName());
+        existing.setCategory(update.getCategory());
+        existing.setIcon(update.getIcon());
+        return repository.save(existing);
+    }
+
+    /**
+     * Remove uma comodidade existente.
+     *
+     * @param id identificador da comodidade
+     * @throws AmenityNotFoundException caso o ID não exista
+     */
+    public void delete(Long id) {
+        Amenity existing = findById(id);
+        repository.delete(existing);
+    }
 }

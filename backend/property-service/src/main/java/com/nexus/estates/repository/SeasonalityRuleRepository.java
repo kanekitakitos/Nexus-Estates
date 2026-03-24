@@ -23,6 +23,14 @@ import java.util.List;
 public interface SeasonalityRuleRepository extends JpaRepository<SeasonalityRule, Long> {
 
     /**
+     * Lista todas as regras de sazonalidade de uma propriedade, ordenadas por data de início.
+     *
+     * @param propertyId ID da propriedade
+     * @return lista ordenada de regras
+     */
+    List<SeasonalityRule> findByProperty_IdOrderByStartDateAsc(Long propertyId);
+
+    /**
      * Encontra todas as regras de sazonalidade aplicáveis a uma propriedade num determinado intervalo de datas.
      *
      * <p>Esta query implementa a lógica de deteção de sobreposição de intervalos (Interval Overlap).

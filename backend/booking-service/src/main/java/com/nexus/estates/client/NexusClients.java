@@ -1,7 +1,8 @@
 package com.nexus.estates.client;
 
 import com.nexus.estates.common.dto.ApiResponse;
-import com.nexus.estates.common.dto.PropertyRuleDTO;
+import com.nexus.estates.common.dto.PropertyQuoteRequest;
+import com.nexus.estates.common.dto.PropertyQuoteResponse;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.service.annotation.GetExchange;
@@ -36,27 +37,18 @@ public interface NexusClients {
      * Cliente responsável pela comunicação com o serviço de Propriedades.
      */
     interface PropertyClient {
-
         /**
-         * Obtém o preço atual de uma propriedade.
-         * <p>
-         * A implementação deste método é provida via Proxy pelo Spring Boot.
-         * </p>
+         * Valida regras operacionais + sazonalidade e devolve uma cotação.
+         *
+         * <p>Este endpoint consolida a lógica de negócio no property-service para que o booking-service
+         * não precise de conhecer regras internas (mínimo/máximo de noites, lead time, sazonalidade).</p>
          *
          * @param id Identificador único da propriedade.
-         * @return O preço da propriedade (BigDecimal).
+         * @param request Pedido de cotação.
+         * @return Resultado da validação e preço total calculado.
          */
-        @GetExchange("/api/properties/{id}/price")
-        BigDecimal getPropertyPrice(@PathVariable Long id);
-
-        /**
-         * Obtém as regras operacionais de uma propriedade.
-         *
-         * @param id Identificador único da propriedade.
-         * @return As regras da propriedade.
-         */
-        @GetExchange("/api/properties/{id}/rules")
-        ApiResponse<PropertyRuleDTO> getRules(@PathVariable Long id);
+        @PostExchange("/api/properties/{id}/quote")
+        ApiResponse<PropertyQuoteResponse> quote(@PathVariable Long id, @RequestBody PropertyQuoteRequest request);
 
     }
 
