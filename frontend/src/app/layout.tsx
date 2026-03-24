@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/feedback/sonner-brutal";
 import { ChatProvider } from "@/features/chat/ChatProvider";
+import {ViewProvider} from "@/features/view-context";
 
 /**
  * Fonte principal, para textos, botões e menus (fornecida pela Geist)
@@ -50,10 +51,12 @@ export default function RootLayout({
           <div className="min-h-screen">
             {/* inicia o Provider do serviço de chat */}
             <ChatProvider>
+                {/* inicia o Provider*/}
+                <ViewProvider>
 
               {/* Conteodo da page.tsx desta pasta */}
               {children}
-
+                </ViewProvider>
             </ChatProvider>
           </div>
 
