@@ -103,7 +103,6 @@ public class BookingPaymentService {
      * </p>
      *
      * @param paymentIntentId O ID da intenção de pagamento a ser confirmada.
-     * @param metadata Metadados adicionais fornecidos durante a confirmação.
      * @return Um objeto {@link PaymentResponse} com o resultado da operação.
      * @throws PaymentProcessingException Se ocorrer um erro durante a confirmação do pagamento.
      */
