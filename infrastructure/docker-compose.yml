@@ -7,12 +7,12 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
       # Criamos múltiplas DBs num só container para poupar memória
-      POSTGRES_MULTIPLE_DATABASES: "booking_db,property_db,user_db,sync_db"
+      POSTGRES_MULTIPLE_DATABASES: "booking_db,property_db,user_db,sync_db,finance_db"
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # Script mágico para criar as 4 BDs no arranque
+      # Script mágico para criar as 5 BDs no arranque
       - ./postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U admin" ]
