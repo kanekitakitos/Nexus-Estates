@@ -11,6 +11,9 @@ import {
   BreadcrumbPage, 
   BreadcrumbSeparator 
 } from "@/components/ui/navigation/breadcrumb"
+import {useView, ViewProvider} from "@/features/view-context"
+import {PropertyView} from "@/components/layout/properti/property-view";
+
 
 /**
  * @route ´/´
@@ -21,6 +24,16 @@ import {
  * * @notes Esta página é automaticamente envolvida pelo RootLayout (´layout.tsx´), herdando os contextos globais.
  */
 export default function Home() {
+  const { view } = useView()
+
+  const getView = () => {
+    switch (view) {
+      case "booking": return <BookingView key="booking" />
+      case "properties": return <PropertyView key="properties" />
+    }
+  }
+
+
   const header = (
     <Breadcrumb>
       <BreadcrumbList>
@@ -41,9 +54,10 @@ export default function Home() {
     </Breadcrumb>
   )
 
+  // ViewProvider permite que todos os elementos dentro dele possam alterar a view que está ativa
   return (
     <AppShell header={header}>
-      <BookingView />
+      {getView()}
     </AppShell>
   )
 }
