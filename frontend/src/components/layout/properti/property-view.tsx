@@ -3,8 +3,9 @@
 import { useMemo, useState, useEffect } from "react"
 import { PropertyEdit2 } from "./property-edit2"
 import { PropertyList } from "./property-list"
-import { BookingProperty } from "@/components/layout/booking/components/booking-card"
+import { BookingProperty } from "@/features/bookings/components/booking-card"
 import { cn } from "@/lib/utils"
+import {useView} from "@/features/view-context";
 
 const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
 const HERO_CONTAINER_STYLES = "flex flex-col space-y-2 mb-8 transition-all duration-500"
@@ -68,10 +69,10 @@ export const MOCK_PROPERTIES: BookingProperty[] = [
 ]
 
 
-
-
 export function PropertyView(){
+    const { selectedPropertyId, selectPropertyId } = useView()
     const [selectedProperty, setSelectedProperty] = useState<BookingProperty | null>(null)
+
     const [isLeaving, setIsLeaving] = useState(false)
     const [isReturning, setIsReturning] = useState(false)
 
@@ -79,7 +80,7 @@ export function PropertyView(){
      * Manipula a seleção de uma propriedade e inica a animação de saida
      * @param id ID da propriedade
      */
-    function handelSelectedProperty(id:string){
+    const handelSelectedProperty = (id:string)=>{
         const selectProperty = MOCK_PROPERTIES.find((property) => {return property.id === id})
 
         if (selectProperty) {
@@ -90,7 +91,7 @@ export function PropertyView(){
                     setIsLeaving(false)
                     setIsReturning(false)
                     window.scrollTo(0, 0)
-                    
+
                 }, 800) // Sincronizado com a duração da animação CSS
             }
     }
@@ -99,7 +100,7 @@ export function PropertyView(){
     // Manipula o retorno da vista de detalhes para a lista
     const handleBack = () => {
         setIsReturning(true)
-        
+
         setTimeout(() => {
             setSelectedProperty(null)
             setTimeout(() => {
@@ -108,12 +109,21 @@ export function PropertyView(){
         }, 800)
     }
 
+    useEffect(() => {
+        if(selectedPropertyId == null){
+            handleBack()
+        }
+        else if(selectedPropertyId != selectedProperty?.id){
+            handelSelectedProperty(selectedPropertyId)
+        }
+    }, [selectedPropertyId]);
+
 
     if (selectedProperty){
         // dar cast de BookingProperty | null para apenas BookingProperty
         const property :BookingProperty = selectedProperty
         return(
-            <PropertyEdit2 property={property} onBack={handleBack} isExiting={isReturning}/>
+            <PropertyEdit2 property={property} onBack={()=>selectPropertyId(null)} isExiting={isReturning}/>
         )
     }
     else{ // nenhuma propreidade selecionada
@@ -121,7 +131,7 @@ export function PropertyView(){
             <PropertyList
                 variant="CARDS"
                 propertys={MOCK_PROPERTIES}
-                onSelect={(id)=>handelSelectedProperty(id)}
+                onSelect={(id)=>selectPropertyId(id)}
                 isExiting={isLeaving}
                 animate={true}
                 addNewProperty={true}
