@@ -1,13 +1,12 @@
 package com.nexus.estates.service;
 
 import com.nexus.estates.common.dto.ApiResponse;
-import com.nexus.estates.common.dto.PropertyRuleDTO;
+import com.nexus.estates.common.dto.PropertyQuoteRequest;
+import com.nexus.estates.common.dto.PropertyQuoteResponse;
 import com.nexus.estates.dto.BookingResponse;
 import com.nexus.estates.dto.CreateBookingRequest;
 import com.nexus.estates.entity.Booking;
 import com.nexus.estates.exception.BookingConflictException;
-import com.nexus.estates.exception.InvalidRefundException;
-import com.nexus.estates.exception.PaymentProcessingException;
 import com.nexus.estates.exception.RuleViolationException;
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.messaging.BookingEventPublisher;
@@ -17,8 +16,7 @@ import org.springframework.stereotype.Service;
 import com.nexus.estates.client.Proxy;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 /**
  * Serviço de domínio responsável pela execução da lógica de negócio de Reservas.
@@ -67,7 +65,7 @@ public class BookingService
      * <ul>
      *   <li>Validação temporal: Check-out deve ser posterior ao Check-in.</li>
      *   <li>Verificação de disponibilidade: Impede sobreposição de reservas (Double Booking).</li>
-     *   <li>Cálculo financeiro: Determina o custo total com base na tarifa obtida externamente.</li>
+     *   <li>Validação + cotação: Delegada ao property-service via endpoint de quote (regras operacionais + sazonalidade).</li>
      * </ul>
      *
      * @param request O pedido de criação contendo os dados validados.
@@ -92,22 +90,7 @@ public class BookingService
             }
         }
 
-        // 1.6 Validação de Regras da Propriedade (Noites min/max, Lead Time)
-        try {
-            ApiResponse<PropertyRuleDTO> rulesResponse = api.propertyClient().getRules(request.propertyId());
-            if (rulesResponse != null && rulesResponse.isSuccess() && rulesResponse.getData() != null) {
-                validateBookingRules(request, rulesResponse.getData());
-            }
-        } catch (RuleViolationException e) {
-            throw e; // Relança a exceção de regra para ser tratada pelo GlobalExceptionHandler
-        } catch (Exception e) {
-             // Em caso de falha na comunicação com o property-service, optamos por bloquear a reserva por segurança
-             // ou poderíamos logar e permitir (Fail Open vs Fail Closed). Aqui opto por Fail Closed.
-             throw new RuntimeException("Não foi possível validar as regras da propriedade. Tente novamente mais tarde.", e);
-        }
-
-
-        // 2. Verificar Disponibilidade
+        // 2. Verificar Disponibilidade (domínio do booking-service)
         boolean isOccupied = bookingRepository.existsOverlappingBooking(
                 request.propertyId(),
                 request.checkInDate(),
@@ -117,12 +100,34 @@ public class BookingService
         if (isOccupied)
             throw new BookingConflictException("Property is already booked for these dates");
 
+        // 3. Validação + Cotação (Regras Operacionais + Sazonalidade) no property-service
+        PropertyQuoteRequest quoteRequest = new PropertyQuoteRequest(
+                request.checkInDate(),
+                request.checkOutDate(),
+                request.guestCount()
+        );
 
-        // 3. Converter DTO para Entidade
+        PropertyQuoteResponse quote;
+        try {
+            ApiResponse<PropertyQuoteResponse> quoteResponse = api.propertyClient().quote(request.propertyId(), quoteRequest);
+            if (quoteResponse == null || !quoteResponse.isSuccess() || quoteResponse.getData() == null) {
+                throw new RuntimeException("Não foi possível obter a cotação da propriedade.");
+            }
+            quote = quoteResponse.getData();
+        } catch (Exception e) {
+            throw new RuntimeException("Não foi possível validar/cotar a propriedade. Tente novamente mais tarde.", e);
+        }
+
+        if (!quote.valid()) {
+            List<String> errors = quote.validationErrors() != null ? quote.validationErrors() : List.of("Cotação inválida.");
+            throw new RuleViolationException(String.join(", ", errors));
+        }
+
+        // 4. Converter DTO para Entidade
         Booking booking = request.toEntity();
 
-        // 4. Calcular Preço
-        booking.setTotalPrice(this.calculateTotalPrice(request));
+        // 5. Registar preço calculado pelo property-service
+        booking.setTotalPrice(quote.totalPrice());
 
         Booking savedBooking = bookingRepository.save(booking);
 
@@ -138,55 +143,6 @@ public class BookingService
         bookingEventPublisher.publishBookingCreated(message);
 
         return response;
-    }
-
-    private void validateBookingRules(CreateBookingRequest request, PropertyRuleDTO rules) {
-        long nights = ChronoUnit.DAYS.between(request.checkInDate(), request.checkOutDate());
-        
-        if (rules.minNights() != null && nights < rules.minNights()) {
-            throw new RuleViolationException("O número mínimo de noites é " + rules.minNights());
-        }
-        
-        if (rules.maxNights() != null && nights > rules.maxNights()) {
-            throw new RuleViolationException("O número máximo de noites é " + rules.maxNights());
-        }
-        
-        if (rules.bookingLeadTimeDays() != null) {
-            LocalDate minCheckInDate = LocalDate.now().plusDays(rules.bookingLeadTimeDays());
-            if (request.checkInDate().isBefore(minCheckInDate)) {
-                 throw new RuleViolationException("A reserva deve ser feita com pelo menos " + rules.bookingLeadTimeDays() + " dias de antecedência.");
-            }
-        }
-    }
-
-
-    /**
-     * Calcula o preço total da reserva com base na tarifa diária e na duração da estadia.
-     *
-     * <p>Implementação temporária (mock) que aplica um preço fixo por noite. No futuro,
-     * este método será substituído por um {@code PricingService} que considera fatores
-     * sazonais, regras de negócio e descontos.</p>
-     *
-     * @param request dados validados da reserva, incluindo datas de check-in e check-out
-     * @return montante total a pagar pela estadia, em {@link BigDecimal}
-     * @throws IllegalArgumentException caso a duração calculada seja negativa ou zero
-     */
-    private BigDecimal calculateTotalPrice(CreateBookingRequest request)
-    {
-                                        // Entramos no api para outros modulos
-                                        // usamos especificamente o cliente de property
-        BigDecimal pricePerNight;
-        try {
-            // CORREÇÃO: Usar propertyId em vez de userId
-            pricePerNight = api.propertyClient().getPropertyPrice(request.propertyId());
-        } catch (Exception e) {
-            throw new RuntimeException("Falha ao obter o preço da propriedade no serviço externo.", e);
-        }
-
-        if (pricePerNight == null) throw new IllegalStateException("O serviço de propriedades retornou um preço nulo.");
-
-        long days = request.checkOutDate().toEpochDay() - request.checkInDate().toEpochDay();
-        return pricePerNight.multiply(BigDecimal.valueOf(days));
     }
 
 

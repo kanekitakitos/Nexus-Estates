@@ -8,6 +8,8 @@ import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.PropertyRule;
 import com.nexus.estates.entity.SeasonalityRule;
 import com.nexus.estates.repository.AmenityRepository;
+import com.nexus.estates.repository.PermissionRepository;
+import com.nexus.estates.repository.PropertyChangeLogRepository;
 import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.repository.PropertyRuleRepository;
 import com.nexus.estates.repository.SeasonalityRuleRepository;
@@ -56,6 +58,12 @@ class PropertyServiceTest {
     /** Mock do repositório de regras de propriedade. */
     @Mock
     private PropertyRuleRepository propertyRuleRepository;
+
+    @Mock
+    private PermissionRepository permissionRepository;
+
+    @Mock
+    private PropertyChangeLogRepository changeLogRepository;
 
     /** Instância do serviço com as dependências mockadas injetadas. */
     @InjectMocks

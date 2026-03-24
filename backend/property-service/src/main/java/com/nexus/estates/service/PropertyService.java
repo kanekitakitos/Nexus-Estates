@@ -2,17 +2,27 @@ package com.nexus.estates.service;
 
 import com.nexus.estates.common.dto.PropertyQuoteRequest;
 import com.nexus.estates.common.dto.PropertyQuoteResponse;
+import com.nexus.estates.common.dto.PropertyRuleDTO;
+import com.nexus.estates.common.dto.SeasonalityRuleDTO;
 import com.nexus.estates.dto.CreatePropertyRequest;
+import com.nexus.estates.dto.ExpandedPropertyResponse;
+import com.nexus.estates.dto.UpdatePropertyRequest;
 import com.nexus.estates.entity.Amenity;
 import com.nexus.estates.entity.Property;
+import com.nexus.estates.entity.PropertyChangeLog;
 import com.nexus.estates.entity.PropertyRule;
 import com.nexus.estates.entity.SeasonalityRule;
 import com.nexus.estates.exception.PropertyNotFoundException;
 import com.nexus.estates.repository.AmenityRepository;
+import com.nexus.estates.repository.PermissionRepository;
+import com.nexus.estates.repository.PropertyChangeLogRepository;
 import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.repository.PropertyRuleRepository;
 import com.nexus.estates.repository.SeasonalityRuleRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -45,6 +56,8 @@ public class PropertyService {
     private final AmenityRepository amenityRepository;
     private final SeasonalityRuleRepository seasonalityRuleRepository;
     private final PropertyRuleRepository propertyRuleRepository;
+    private final PermissionRepository permissionRepository;
+    private final PropertyChangeLogRepository changeLogRepository;
 
     /**
      * Construtor do serviço.
@@ -54,11 +67,18 @@ public class PropertyService {
      * @param seasonalityRuleRepository repositório responsável pelas regras de sazonalidade
      * @param propertyRuleRepository repositório responsável pelas regras da propriedade
      */
-    public PropertyService(PropertyRepository repository, AmenityRepository amenityRepository, SeasonalityRuleRepository seasonalityRuleRepository, PropertyRuleRepository propertyRuleRepository) {
+    public PropertyService(PropertyRepository repository,
+                           AmenityRepository amenityRepository,
+                           SeasonalityRuleRepository seasonalityRuleRepository,
+                           PropertyRuleRepository propertyRuleRepository,
+                           PermissionRepository permissionRepository,
+                           PropertyChangeLogRepository changeLogRepository) {
         this.repository = repository;
         this.amenityRepository = amenityRepository;
         this.seasonalityRuleRepository = seasonalityRuleRepository;
         this.propertyRuleRepository = propertyRuleRepository;
+        this.permissionRepository = permissionRepository;
+        this.changeLogRepository = changeLogRepository;
     }
 
     /**
@@ -93,6 +113,18 @@ public class PropertyService {
         }
 
         Property savedProperty = repository.save(property);
+
+        try {
+            if (request.ownerId() != null) {
+                com.nexus.estates.entity.PropertyPermission perm = new com.nexus.estates.entity.PropertyPermission();
+                perm.setPropertyId(savedProperty.getId());
+                perm.setUserId(request.ownerId());
+                perm.setAccessLevel(com.nexus.estates.entity.AccessLevel.PRIMARY_OWNER);
+                permissionRepository.save(perm);
+            }
+        } catch (Exception e) {
+            log.warn("Falha ao criar permissão do proprietário para a propriedade {}: {}", savedProperty.getId(), e.getMessage());
+        }
 
         // Cria e associa as regras padrão
         PropertyRule defaultRule = PropertyRule.builder()
@@ -145,6 +177,17 @@ public class PropertyService {
         return repository.findAll();
     }
 
+    @Transactional(readOnly = true)
+    public Page<Property> listByUserWithFilters(Long userId, String city, Boolean isActive,
+                                                BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
+        List<Long> ids = permissionRepository.findByUserId(userId)
+                .stream().map(pp -> pp.getPropertyId()).toList();
+        if (ids.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return repository.findByIdsWithFilters(ids, city, isActive, minPrice, maxPrice, pageable);
+    }
+
     /**
      * Obtém uma propriedade pelo seu identificador.
      *
@@ -155,6 +198,114 @@ public class PropertyService {
     public Property findById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new PropertyNotFoundException(id));
+    }
+
+    @Transactional(readOnly = true)
+    public ExpandedPropertyResponse getExpandedById(Long id) {
+        Property p = repository.findExpandedById(id)
+                .orElseThrow(() -> new PropertyNotFoundException(id));
+        List<String> amenityNames = p.getAmenities().stream()
+                .map(Amenity::getName)
+                .map(this::resolveAmenityName)
+                .toList();
+        var rule = p.getPropertyRule();
+        var ruleDto = rule == null ? null :
+                new PropertyRuleDTO(
+                        rule.getCheckInTime(), rule.getCheckOutTime(),
+                        rule.getMinNights(), rule.getMaxNights(), rule.getBookingLeadTimeDays()
+                );
+        List<SeasonalityRuleDTO> seasonality = p.getSeasonalityRules().stream()
+                .map(r -> new SeasonalityRuleDTO(
+                        r.getId(), r.getStartDate(), r.getEndDate(), r.getPriceModifier(), r.getDayOfWeek(), r.getChannel()
+                )).toList();
+        return new ExpandedPropertyResponse(
+                p.getId(), p.getName(), p.getDescription(), p.getLocation(), p.getCity(), p.getAddress(),
+                p.getBasePrice(), p.getMaxGuests(), p.getIsActive(), amenityNames, ruleDto, seasonality
+        );
+    }
+
+    private String resolveAmenityName(Map<String, String> name) {
+        if (name == null || name.isEmpty()) return null;
+        String pt = name.get("pt");
+        if (pt != null && !pt.isBlank()) return pt;
+        String en = name.get("en");
+        if (en != null && !en.isBlank()) return en;
+        return name.values().stream().filter(v -> v != null && !v.isBlank()).findFirst().orElse(null);
+    }
+
+    @Transactional
+    public Property updateProperty(Long id, UpdatePropertyRequest req, Long actorUserId) {
+        Property p = findById(id);
+        if (req.title() != null) {
+            if (req.title().length() < 3) {
+                throw new IllegalArgumentException("O título deve ter pelo menos 3 caracteres.");
+            }
+            recordChange(id, actorUserId, "UPDATE", "name", p.getName(), req.title());
+            p.setName(req.title());
+        }
+        if (req.description() != null) {
+            recordChange(id, actorUserId, "UPDATE", "description", asString(p.getDescription()), asString(req.description()));
+            p.setDescription(req.description());
+        }
+        if (req.location() != null) {
+            recordChange(id, actorUserId, "UPDATE", "location", p.getLocation(), req.location());
+            p.setLocation(req.location());
+        }
+        if (req.city() != null) {
+            recordChange(id, actorUserId, "UPDATE", "city", p.getCity(), req.city());
+            p.setCity(req.city());
+        }
+        if (req.address() != null) {
+            recordChange(id, actorUserId, "UPDATE", "address", p.getAddress(), req.address());
+            p.setAddress(req.address());
+        }
+        if (req.basePrice() != null) {
+            if (req.basePrice().scale() > 2 || req.basePrice().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("O preço base deve ser positivo e com no máximo 2 casas decimais.");
+            }
+            recordChange(id, actorUserId, "UPDATE", "basePrice", p.getBasePrice() == null ? null : p.getBasePrice().toPlainString(), req.basePrice().toPlainString());
+            p.setBasePrice(req.basePrice());
+        }
+        if (req.maxGuests() != null) {
+            if (req.maxGuests() < 1) {
+                throw new IllegalArgumentException("O número máximo de hóspedes deve ser pelo menos 1.");
+            }
+            recordChange(id, actorUserId, "UPDATE", "maxGuests", p.getMaxGuests() == null ? null : p.getMaxGuests().toString(), req.maxGuests().toString());
+            p.setMaxGuests(req.maxGuests());
+        }
+        if (req.isActive() != null) {
+            recordChange(id, actorUserId, "UPDATE", "isActive", String.valueOf(p.getIsActive()), String.valueOf(req.isActive()));
+            p.setIsActive(req.isActive());
+        }
+        return repository.save(p);
+    }
+
+    @Transactional
+    public void deleteProperty(Long id, Long actorUserId) {
+        Property p = findById(id);
+        repository.delete(p);
+        recordChange(id, actorUserId, "DELETE", null, null, null);
+    }
+
+    private void recordChange(Long propertyId, Long userId, String action, String field, String oldV, String newV) {
+        PropertyChangeLog log = new PropertyChangeLog();
+        log.setPropertyId(propertyId);
+        log.setUserId(userId);
+        log.setAction(action);
+        log.setFieldName(field);
+        log.setOldValue(oldV);
+        log.setNewValue(newV);
+        changeLogRepository.save(log);
+    }
+
+    private String asString(Map<String, String> map) {
+        return map == null ? null : map.toString();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PropertyChangeLog> getHistory(Long propertyId) {
+        findById(propertyId);
+        return changeLogRepository.findByPropertyIdOrderByChangedAtDesc(propertyId);
     }
 
     /**

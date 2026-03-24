@@ -2,6 +2,9 @@ package com.nexus.estates.service;
 
 import com.nexus.estates.client.NexusClients;
 import com.nexus.estates.client.Proxy;
+import com.nexus.estates.common.dto.ApiResponse;
+import com.nexus.estates.common.dto.PropertyQuoteRequest;
+import com.nexus.estates.common.dto.PropertyQuoteResponse;
 import com.nexus.estates.dto.BookingResponse;
 import com.nexus.estates.dto.CreateBookingRequest;
 import com.nexus.estates.entity.Booking;
@@ -30,6 +33,9 @@ class BookingServiceIntegrationTest {
 
     @Mock
     private BookingEventPublisher bookingEventPublisher;
+
+    @Mock
+    private BookingPaymentService bookingPaymentService;
 
     @Mock
     private Proxy api;
@@ -82,7 +88,8 @@ class BookingServiceIntegrationTest {
 
         // 2. Configurar as respostas dos clientes (User e Property)
         when(userClient.getUserEmail(request.userId())).thenReturn("test@nexus.com");
-        when(propertyClient.getPropertyPrice(request.propertyId())).thenReturn(new BigDecimal("100.00"));
+        when(propertyClient.quote(eq(request.propertyId()), any(PropertyQuoteRequest.class)))
+                .thenReturn(ApiResponse.success(PropertyQuoteResponse.success(new BigDecimal("300.00"), "EUR"), "OK"));
 
         when(bookingRepository.existsOverlappingBooking(any(), any(), any())).thenReturn(false);
         when(bookingRepository.save(any(Booking.class))).thenReturn(savedBooking);

@@ -9,7 +9,6 @@ import com.nexus.estates.repository.PropertyRuleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -29,7 +28,6 @@ class PropertyRuleServiceTest {
     @Mock
     private PropertyRuleRepository ruleRepository;
 
-    @InjectMocks
     private PropertyRuleService propertyRuleService;
 
     private Property property;
@@ -37,6 +35,7 @@ class PropertyRuleServiceTest {
 
     @BeforeEach
     void setUp() {
+        propertyRuleService = new PropertyRuleService(propertyRepository, ruleRepository);
         property = new Property();
         property.setId(1L);
 

@@ -7,6 +7,6 @@ package com.nexus.estates.exception;
 public class PropertyNotFoundException extends RuntimeException {
 
     public PropertyNotFoundException(Long id) {
-        super("Property not found with ID: " + id);
+        super("Propriedade não encontrada com o ID: " + id);
     }
 }

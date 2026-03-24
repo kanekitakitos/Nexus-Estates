@@ -3,7 +3,6 @@ package com.nexus.estates.service;
 import com.nexus.estates.common.dto.PropertyRuleDTO;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.PropertyRule;
-import com.nexus.estates.exception.PropertyNotFoundException;
 import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.repository.PropertyRuleRepository;
 import org.springframework.stereotype.Service;
@@ -44,7 +43,7 @@ public class PropertyRuleService {
     @Transactional(readOnly = true)
     public PropertyRuleDTO getRules(Long propertyId) {
         Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new PropertyNotFoundException(propertyId));
+                .orElseThrow(() -> new com.nexus.estates.exception.PropertyNotFoundException(propertyId));
 
         PropertyRule rule = property.getPropertyRule();
         if (rule == null) {
@@ -82,7 +81,7 @@ public class PropertyRuleService {
     @Transactional
     public PropertyRuleDTO updateRules(Long propertyId, PropertyRuleDTO dto) {
         Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new PropertyNotFoundException(propertyId));
+                .orElseThrow(() -> new com.nexus.estates.exception.PropertyNotFoundException(propertyId));
 
         PropertyRule rule = property.getPropertyRule();
         if (rule == null) {

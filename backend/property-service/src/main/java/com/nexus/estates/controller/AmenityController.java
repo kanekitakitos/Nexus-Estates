@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -58,7 +59,7 @@ public class AmenityController {
      */
     @Operation(summary = "Criar nova comodidade", description = "Adiciona uma nova característica (ex: WiFi, Piscina) ao catálogo do sistema.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Comodidade criada com sucesso"),
+            @ApiResponse(responseCode = "201", description = "Comodidade criada com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos ou campos obrigatórios em falta")
     })
     @PostMapping
@@ -68,7 +69,7 @@ public class AmenityController {
             return ResponseEntity.badRequest().build();
         }
 
-        return ResponseEntity.ok(service.create(amenity));
+        return new ResponseEntity<>(service.create(amenity), HttpStatus.CREATED);
     }
 
     /**
@@ -100,5 +101,37 @@ public class AmenityController {
             @Parameter(description = "ID único da comodidade", example = "1")
             @PathVariable Long id) {
         return ResponseEntity.ok(service.findById(id));
+    }
+
+    @Operation(summary = "Atualizar comodidade", description = "Atualiza os campos de uma comodidade existente.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Comodidade atualizada com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou campos obrigatórios em falta"),
+            @ApiResponse(responseCode = "404", description = "Comodidade não encontrada")
+    })
+    @PutMapping("/{id}")
+    public ResponseEntity<Amenity> update(
+            @Parameter(description = "ID único da comodidade", example = "1")
+            @PathVariable Long id,
+            @RequestBody Amenity amenity
+    ) {
+        if (amenity.getName() == null || amenity.getCategory() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(service.update(id, amenity));
+    }
+
+    @Operation(summary = "Remover comodidade", description = "Remove uma comodidade do catálogo.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Comodidade removida com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Comodidade não encontrada")
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            @Parameter(description = "ID único da comodidade", example = "1")
+            @PathVariable Long id
+    ) {
+        service.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

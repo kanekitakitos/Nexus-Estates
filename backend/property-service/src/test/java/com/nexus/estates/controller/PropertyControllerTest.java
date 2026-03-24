@@ -5,8 +5,9 @@ import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.service.PropertyService;
-import com.nexus.estates.service.repository.ImageStorageService;
 import com.nexus.estates.service.PropertyRuleService;
+import com.nexus.estates.service.SeasonalityRuleService;
+import com.nexus.estates.service.repository.ImageStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,7 @@ class PropertyControllerTest {
     private ImageStorageService imageStorageService;
     private PropertyRepository repository;
     private PropertyRuleService ruleService;
+    private SeasonalityRuleService seasonalityRuleService;
     private PropertyController controller;
 
     @BeforeEach
@@ -37,7 +39,8 @@ class PropertyControllerTest {
         repository = mock(PropertyRepository.class);
         ruleService = mock(PropertyRuleService.class);
 
-        controller = new PropertyController(propertyService, imageStorageService, repository, ruleService);
+        seasonalityRuleService = mock(SeasonalityRuleService.class);
+        controller = new PropertyController(propertyService, imageStorageService, repository, ruleService, seasonalityRuleService);
     }
 
     @Test

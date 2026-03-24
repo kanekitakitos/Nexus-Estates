@@ -2,10 +2,17 @@ package com.nexus.estates.controller;
 
 import com.nexus.estates.client.Proxy;
 import com.nexus.estates.service.interfaces.ChatPlatform;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/sync/auth")
 @RequiredArgsConstructor
+@Tag(name = "Sync Auth", description = "Autenticação para serviços de sincronização em tempo real.")
 public class SyncAuthController {
 
     private final Proxy proxy;
@@ -32,15 +40,29 @@ public class SyncAuthController {
      * @param bookingId O ID da reserva, usado como base para o nome do canal.
      * @return Uma resposta contendo o token de acesso ou um erro.
      */
+    @Operation(summary = "Token realtime", description = "Gera token de acesso ao canal de chat de uma reserva.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Token gerado com sucesso", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Utilizador não autenticado", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Acesso negado", content = @Content),
+            @ApiResponse(responseCode = "500", description = "Erro interno", content = @Content)
+    })
     @GetMapping("/realtime")
-    public ResponseEntity<?> getRealtimeToken(@RequestParam String bookingId) {
-        // TODO: Implementar a lógica de validação de segurança:
-        // 1. Extrair o ID do usuário do token JWT (ex: via @AuthenticationPrincipal).
-        // 2. Chamar um serviço de domínio (ex: BookingService) para verificar se o usuário
-        //    autenticado tem permissão para acessar o chat da reserva com o `bookingId` fornecido.
+    public ResponseEntity<?> getRealtimeToken(
+            @Parameter(description = "ID da reserva", example = "123") @RequestParam String bookingId,
+            @Parameter(description = "ID do utilizador autenticado (injetado pelo API Gateway)")
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        if (userIdHeader == null || userIdHeader.isBlank()) {
+            return ResponseEntity.status(401).body("Missing X-User-Id header.");
+        }
 
-        // Simulação: Usando um ID de usuário fixo para fins de desenvolvimento.
-        Long authenticatedUserId = 1L;
+        Long authenticatedUserId;
+        try {
+            authenticatedUserId = Long.parseLong(userIdHeader);
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body("Invalid X-User-Id header.");
+        }
 
         try {
             // Comunica com o user-service via Proxy para obter detalhes do usuário (ex: email).
