@@ -46,6 +46,7 @@
 
     <modules>
         <module>booking-service</module>
+        <module>finance-service</module>
         <module>property-service</module>
         <module>user-service</module>
         <module>sync-service</module>

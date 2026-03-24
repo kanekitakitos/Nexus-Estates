@@ -1,12 +1,16 @@
 package com.nexus.estates.service;
 
+import com.nexus.estates.common.dto.PropertyQuoteRequest;
+import com.nexus.estates.common.dto.PropertyQuoteResponse;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Amenity;
 import com.nexus.estates.entity.Property;
+import com.nexus.estates.entity.PropertyRule;
 import com.nexus.estates.entity.SeasonalityRule;
 import com.nexus.estates.exception.PropertyNotFoundException;
 import com.nexus.estates.repository.AmenityRepository;
 import com.nexus.estates.repository.PropertyRepository;
+import com.nexus.estates.repository.PropertyRuleRepository;
 import com.nexus.estates.repository.SeasonalityRuleRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -37,6 +44,7 @@ public class PropertyService {
     private final PropertyRepository repository;
     private final AmenityRepository amenityRepository;
     private final SeasonalityRuleRepository seasonalityRuleRepository;
+    private final PropertyRuleRepository propertyRuleRepository;
 
     /**
      * Construtor do serviço.
@@ -44,11 +52,13 @@ public class PropertyService {
      * @param repository repositório responsável pelo acesso aos dados
      * @param amenityRepository repositório responsável pelas comodidades
      * @param seasonalityRuleRepository repositório responsável pelas regras de sazonalidade
+     * @param propertyRuleRepository repositório responsável pelas regras da propriedade
      */
-    public PropertyService(PropertyRepository repository, AmenityRepository amenityRepository, SeasonalityRuleRepository seasonalityRuleRepository) {
+    public PropertyService(PropertyRepository repository, AmenityRepository amenityRepository, SeasonalityRuleRepository seasonalityRuleRepository, PropertyRuleRepository propertyRuleRepository) {
         this.repository = repository;
         this.amenityRepository = amenityRepository;
         this.seasonalityRuleRepository = seasonalityRuleRepository;
+        this.propertyRuleRepository = propertyRuleRepository;
     }
 
     /**
@@ -82,7 +92,21 @@ public class PropertyService {
             property.setAmenities(new HashSet<>(amenities));
         }
 
-        return repository.save(property);
+        Property savedProperty = repository.save(property);
+
+        // Cria e associa as regras padrão
+        PropertyRule defaultRule = PropertyRule.builder()
+                .property(savedProperty)
+                .checkInTime(LocalTime.of(16, 0))
+                .checkOutTime(LocalTime.of(11, 0))
+                .minNights(1)
+                .maxNights(30)
+                .bookingLeadTimeDays(0)
+                .build();
+        propertyRuleRepository.save(defaultRule);
+        savedProperty.setPropertyRule(defaultRule);
+
+        return savedProperty;
     }
 
     /**
@@ -131,6 +155,58 @@ public class PropertyService {
     public Property findById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new PropertyNotFoundException(id));
+    }
+
+    /**
+     * Valida as regras da propriedade e calcula o preço total para uma estadia proposta.
+     * <p>
+     * Este método centraliza a lógica de negócio, garantindo que o Booking Service
+     * não precisa de conhecer os detalhes de implementação das regras ou sazonalidade.
+     * </p>
+     *
+     * @param propertyId ID da propriedade.
+     * @param request Pedido de cotação contendo datas e hóspedes.
+     * @return Resposta com validação (sucesso/falha) e preço.
+     */
+    @Transactional(readOnly = true)
+    public PropertyQuoteResponse validateAndQuote(Long propertyId, PropertyQuoteRequest request) {
+        Property property = findById(propertyId);
+        List<String> errors = new ArrayList<>();
+
+        // 1. Validação de Capacidade
+        if (request.guestCount() > property.getMaxGuests()) {
+            errors.add("O número de hóspedes (" + request.guestCount() + ") excede a capacidade máxima de " + property.getMaxGuests());
+        }
+
+        // 2. Validação de Regras Operacionais (Min/Max Nights, Lead Time)
+        PropertyRule rule = property.getPropertyRule();
+        if (rule != null) {
+            long nights = ChronoUnit.DAYS.between(request.checkInDate(), request.checkOutDate());
+            
+            if (rule.getMinNights() != null && nights < rule.getMinNights()) {
+                errors.add("O número mínimo de noites é " + rule.getMinNights());
+            }
+            if (rule.getMaxNights() != null && nights > rule.getMaxNights()) {
+                errors.add("O número máximo de noites é " + rule.getMaxNights());
+            }
+            
+            if (rule.getBookingLeadTimeDays() != null) {
+                LocalDate minCheckInDate = LocalDate.now().plusDays(rule.getBookingLeadTimeDays());
+                if (request.checkInDate().isBefore(minCheckInDate)) {
+                    errors.add("A reserva deve ser feita com pelo menos " + rule.getBookingLeadTimeDays() + " dias de antecedência.");
+                }
+            }
+        }
+
+        // Se houver erros, retorna falha imediatamente
+        if (!errors.isEmpty()) {
+            return PropertyQuoteResponse.failure(errors);
+        }
+
+        // 3. Cálculo de Preço (Sazonalidade)
+        BigDecimal totalPrice = calculateTotalPrice(propertyId, request.checkInDate(), request.checkOutDate(), null);
+        
+        return PropertyQuoteResponse.success(totalPrice, "EUR"); // Assumindo EUR por defeito
     }
 
     /**

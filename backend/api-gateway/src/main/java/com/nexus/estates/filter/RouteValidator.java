@@ -34,6 +34,7 @@ public class RouteValidator {
             "/api/users/auth/register",
             "/api/users/auth/login",
             "/api/properties/search",
+            "/api/finance/webhooks/stripe",
             "/swagger-ui",
             "/swagger-ui.html",
             "/v3/api-docs",
