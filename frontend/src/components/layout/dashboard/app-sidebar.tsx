@@ -11,6 +11,7 @@
 import * as React from "react"
 import { Building2, Calendar, LayoutDashboard, MessageSquare } from "lucide-react"
 import Link from "next/link"
+import { useView } from "@/features/view-context"
 
 import { NavUser } from "@/components/layout/dashboard/nav-user"
 import {
@@ -30,6 +31,7 @@ import { BookingService, type BookingResponse } from "@/services/booking.service
 
 import { PropertyList, PropertyListBars } from "../properti/property-list"
 import { MOCK_PROPERTIES } from "../properti/property-view"
+import {BrutalButton} from "@/components/ui/forms/button";
 
 type UserRole = "ADMIN" | "GUEST" | "OWNER" | "STAFF"
 
@@ -42,7 +44,7 @@ const menuItems = [
   },
   {
     title: "Properties",
-    url: "/",
+    url: "#",
     icon: Building2,
     roles: ["ADMIN", "GUEST", "OWNER", "STAFF"],
   },
@@ -161,6 +163,8 @@ export function AppSidebar({
       item.roles.includes(currentUser.role)
   )
 
+  const { setView, selectPropertyId } = useView()
+
   return (
       <Sidebar
           collapsible="icon"
@@ -178,7 +182,7 @@ export function AppSidebar({
             <SidebarHeader>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0">
+                  <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0" onClick={()=>setView("booking")}>
                     <Link href="/">
                       <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                         <Building2 className="size-4" />
@@ -205,6 +209,13 @@ export function AppSidebar({
                                 setOpen(true)
                                 if (item.url !== "#") window.location.href = item.url
                               }}
+                              onDoubleClick={
+                                item.title === "Properties" ? ()=>setView("properties") :
+                                item.title === "Bookings" ? ()=>setView("booking") :
+                                // sem evento
+                                ()=>{}
+                              }
+
                               isActive={activeItem === item.title}
                               className="px-2.5 md:px-2"
                           >
@@ -254,7 +265,10 @@ export function AppSidebar({
               ) 
               : activeItem === "Properties" ? (
                   <div key={selectedChatId} className="flex-1 h-[calc(100vh-56px)]">
-                    <PropertyListBars propertys={MOCK_PROPERTIES} isExiting={true} animate={false} onSelect={()=>{}}/>
+                    <BrutalButton className={"mt-2 w-full"} onClick={()=>setView("properties")}>
+                      More Details
+                    </BrutalButton>
+                    <PropertyListBars propertys={MOCK_PROPERTIES} isExiting={true} animate={false} onSelect={(id)=>{selectPropertyId(id)}}/>
                   </div>
               )
               : activeItem === "Bookings" ? (
