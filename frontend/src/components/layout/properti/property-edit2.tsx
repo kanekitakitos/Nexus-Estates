@@ -5,9 +5,9 @@ import { ArrowLeft, MapPin, Star, Users, Home, Maximize, Check } from "lucide-re
 import { Button } from "@/components/ui/forms/button"
 import { Badge } from "@/components/ui/badge"
 import { BrutalShard } from "@/components/ui/data-display/card"
-import { BookingProperty } from "../booking/components/booking-card"
+import { BookingProperty } from "@/features/bookings/components/booking-card"
 import { cn } from "@/lib/utils"
-import { DateRangeCalendar } from "../booking/components/date-range-calendar"
+import { DateRangeCalendar } from "@/features/bookings/components/date-range-calendar"
 import { PropertyEditForm } from "./property-form"
 
 

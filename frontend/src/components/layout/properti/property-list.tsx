@@ -5,9 +5,9 @@ import { MapPin, ArrowDown, ArrowDown01, ArrowDown10 } from "lucide-react"
 import { BrutalButton, Button } from "@/components/ui/forms/button"
 import { Badge } from "@/components/ui/badge"
 import { BrutalCard, BrutalShard } from "@/components/ui/data-display/card"
-import { BookingProperty } from "../booking/components/booking-card"
+import { BookingProperty } from "@/features/bookings/components/booking-card"
 import { cn } from "@/lib/utils"
-import { DateRangeCalendar } from "../booking/components/date-range-calendar"
+import { DateRangeCalendar } from "@/features/bookings/components/date-range-calendar"
 import { PropertyEditForm } from "./property-form"
 import { Separator } from "@/components/ui/layout/separator"
 import { BookingDetailsProps } from "./property-edit2"
@@ -134,24 +134,27 @@ function PropertyListCards({propertys, onSelect = ()=>{}, isExiting=true, animat
 /**
  * Sub componete para gerir o texto no botão de ordenar o preço
  */
-const ButtonSortPrice = forwardRef<
-  HTMLButtonElement, 
-  ComponentProps<"button"> & { sortOrder: string } // Passamos o estado como prop
+let ButtonSortPrice: React.ForwardRefExoticComponent<React.PropsWithoutRef<React.ComponentProps<"button"> & {
+    sortOrder: string
+}> & React.RefAttributes<HTMLButtonElement>>;
+ButtonSortPrice = forwardRef<
+    HTMLButtonElement,
+    ComponentProps<"button"> & { sortOrder: string } // Passamos o estado como prop
 >((props, ref) => {
-  const { sortOrder, ...rest } = props;
+    const {sortOrder, ...rest} = props;
 
-  // Usar um objeto é mais limpo que um switch com breaks
-  const icons = {
-    crescente: <ArrowDown01 size={16} />,
-    decrescente: <ArrowDown10 size={16} />,
-    "sem filtro": <>No Order <ArrowDown/> </>
-  };
+    // Usar um objeto é mais limpo que um switch com breaks
+    const icons = {
+        crescente: <ArrowDown01 size={16}/>,
+        decrescente: <ArrowDown10 size={16}/>,
+        "sem filtro": <>No Order <ArrowDown/> </>
+    };
 
-  return (
-    <BrutalButton ref={ref} {...rest} className="text-xs">
-      {icons[sortOrder as keyof typeof icons] || "Order Price"}
-    </BrutalButton>
-  );
+    return (
+        <BrutalButton ref={ref} {...rest} className="text-xs">
+            {icons[sortOrder as keyof typeof icons] || "Order Price"}
+        </BrutalButton>
+    );
 });
 
 
@@ -172,7 +175,7 @@ function PropertyListBars({propertys, onSelect = ()=>{}, isExiting=true, animate
 
     const filteredProp = useMemo(() =>{
             // filtra os estatos
-            let filtered = propertys.filter((p)=>{
+            const filtered = propertys.filter((p)=>{
                     const matchesStatus = (!available && !booked && !maintenance) ||
                         (available && p.status === "AVAILABLE") ||
                         (booked && p.status === "BOOKED") ||

@@ -3,7 +3,7 @@ import { EditableFieldsI } from "./property-edit2";
 import { cn } from "@/lib/utils"
 import { useEffect, useCallback, useState, Dispatch, SetStateAction } from "react"
 
-import { BookingProperty } from "../booking/components/booking-card"
+import { BookingProperty } from "@/features/bookings/components/booking-card"
 
 
 import { BrutalCard, BrutalShard, CardHeader } from "@/components/ui/data-display/card"
