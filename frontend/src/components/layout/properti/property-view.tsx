@@ -6,6 +6,7 @@ import { PropertyList } from "./property-list"
 import { BookingProperty } from "@/features/bookings/components/booking-card"
 import { cn } from "@/lib/utils"
 import {useView} from "@/features/view-context";
+import {PropertyService} from "@/services/property.service";
 
 const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
 const HERO_CONTAINER_STYLES = "flex flex-col space-y-2 mb-8 transition-all duration-500"
@@ -70,6 +71,7 @@ export const MOCK_PROPERTIES: BookingProperty[] = [
 
 
 export function PropertyView(){
+
     const { selectedPropertyId, selectPropertyId } = useView()
     const [selectedProperty, setSelectedProperty] = useState<BookingProperty | null>(null)
 

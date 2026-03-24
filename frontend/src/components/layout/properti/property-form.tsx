@@ -12,6 +12,8 @@ import { FieldGroup, FieldSeparator, FieldLabel, Field } from "@/components/ui/f
 import { Badge } from "@/components/ui/badge"
 import { Check } from "lucide-react"
 import { BrutalButton } from "@/components/ui/forms/button"
+import {CreatePropertyRequest, PropertyService} from "@/services/property.service";
+import {toast} from "sonner";
 
 
 const FIELD_STYLE = "gap-1"
@@ -49,6 +51,8 @@ export interface PropertyEditContext {
     revertFields: (fieldSet: (keyof EditableFieldsI)[]) => void; // restaura dados dos fields no Set
     revertField: (field: keyof EditableFieldsI) => void; // restaura os dados de um field 
 }
+
+
 
 
 
@@ -104,6 +108,24 @@ export function PropertyEditForm({propertyState,  onClose, open} :
         }
     }
 
+
+    async function handleCrate(){
+        const data : CreatePropertyRequest ={
+            amenityIds: new Set([0]),
+            description: new Map().set("en",propertySaved.description),
+            location: propertySaved.location,
+            ownerId: Number(localStorage.getItem("userId")),
+            price: propertySaved.price,
+            title: propertySaved.title
+        }
+
+        const sucess = await PropertyService.creatPropertie(data)
+
+        if (sucess){
+            toast.warning("Property Created");
+        }
+
+    }
 
     function RevertButton({field}: {field : keyof EditableFieldsI}){
         var [didChange, setDidChange]:any = []
@@ -314,6 +336,7 @@ export function PropertyEditForm({propertyState,  onClose, open} :
                     setDescriptionChange(false);
                     setLocationChange(false);
                     setPriceChange(false);
+                    handleCrate();
                 }}> SAVE ALL</Button>
 
 

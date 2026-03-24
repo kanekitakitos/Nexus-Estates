@@ -28,12 +28,21 @@ type PropertyApiItem = {
     tags?: string[];
 };
 
+export type CreatePropertyRequest = {
+    title: string;
+    description: Map<string, string>;
+    price: number;
+    ownerId: number;
+    location:string;
+    amenityIds:Set<number>;
+}
+
 /**
  * Serviço responsável por encapsular todas as chamadas à API relacionadas com Propriedades.
  * Isto facilita a manutenção, testes e reutilização de código em diferentes componentes.
  */
 export class PropertyService {
-    static async creatPropertie(property : PropertyApiItem):Promise<number>{
+    static async creatPropertie(property : CreatePropertyRequest):Promise<number>{
         try {
             const response = await propertiesAxios.post<ApiResponse<PropertyApiItem>>("", property)
 
@@ -77,6 +86,15 @@ export class PropertyService {
             throw error;
         }
     }
+
+    /**
+     * TODO: implement
+     */
+    static async getAllOwnProperties(): Promise<BookingProperty[]>{
+
+        return []
+    }
+
 
     /**
      * Obtém os detalhes de uma propriedade específica pelo seu ID.
