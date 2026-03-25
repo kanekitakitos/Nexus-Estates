@@ -1,6 +1,5 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Full-Stack-System" type="CompoundRunConfigurationType">
-    <toRun name="bd and RabbitMQ" type="docker-deploy" />
     <toRun name="frontend" type="js.build_tools.npm" />
     <toRun name="ApiGateway" type="SpringBootApplicationConfigurationType" />
     <toRun name="BookingService" type="SpringBootApplicationConfigurationType" />
