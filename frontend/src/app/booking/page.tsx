@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { AppShell } from "@/components/layout/app-shell"
-import { HorizontalLanding } from "@/features/landing/HorizontalLanding"
+import { BookingView } from "@/features/bookings/booking-view"
 import { 
   Breadcrumb, 
   BreadcrumbItem, 
@@ -15,7 +15,10 @@ import {
 /**
  * @route ´/´
  * 
- * Landing page horizontal com robot guia.
+ * Ponto de entrada principal da aplicação
+ * Fornece uma visualização de reservas (Bookings).
+ * Configura a estrutura de navegação superior com Breadcrumbs para fornecer á `AppShell`.
+ * * @notes Esta página é automaticamente envolvida pelo RootLayout (´layout.tsx´), herdando os contextos globais.
  */
 export default function Home() {
   const header = (
@@ -40,7 +43,7 @@ export default function Home() {
 
   return (
     <AppShell header={header}>
-      <HorizontalLanding />
+      <BookingView />
     </AppShell>
   )
 }
