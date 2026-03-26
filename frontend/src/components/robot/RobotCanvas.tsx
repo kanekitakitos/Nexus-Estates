@@ -1,202 +1,223 @@
 "use client"
 
-import {
-  Canvas,
-  useFrame,
-  useThree,
-} from "@react-three/fiber"
-import {
-  OrbitControls,
-  useGLTF,
-  useAnimations,
-  Environment,
-} from "@react-three/drei"
-import { Suspense, useEffect, useMemo, useRef, useState, useCallback } from "react"
+import { Canvas, useThree } from "@react-three/fiber"
+import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
+import type { ThreeEvent } from "@react-three/fiber"
 import * as THREE from "three"
 
-// ========================================
-// TIPOS & ANIMAÇÕES DO ROBOT
-// ========================================
+const ANIMATION_STATES = ["Idle", "Walking", "Running", "Dance", "Death", "Sitting", "Standing"] as const
+const ALL_ANIMATION_NAMES: readonly string[] = ANIMATION_STATES
+const LIGHT_COLOR = new THREE.Color("#ffffff")
 
-const STATES = ["Idle", "Walking", "Running", "Dance", "Death", "Sitting", "Standing"] as const
-const EMOTES = ["Jump", "Yes", "No", "Wave", "Punch", "ThumbsUp"] as const
+type RobotMood = "idle" | "walk" | "run" | "dance" | "angry"
 
-type RobotState = (typeof STATES)[number]
-type RobotEmote = (typeof EMOTES)[number]
-type RobotMood = "idle" | "walk" | "angry" | "dead"
-
-// ========================================
-// HELPERS
-// ========================================
-
-const findClip = (
-    candidates: string[],
-    clips: THREE.AnimationClip[]
-): THREE.AnimationClip | null => {
-  const lower = candidates.map((s) => s.toLowerCase())
-  return (
-      clips.find((clip) =>
-          lower.some((name) => clip.name.toLowerCase().includes(name))
-      ) ?? null
-  )
+const MOOD_CANDIDATES: Record<RobotMood, readonly string[]> = {
+  idle: ["idle"],
+  walk: ["walk", "walking"],
+  run: ["run", "running"],
+  dance: ["dance"],
+  angry: ["angry", "shout", "rage"],
 }
 
-// ========================================
-// 3D MODEL COMPONENT (ROBOT)
-// ========================================
+function findClip(
+  candidates: readonly string[],
+  clips: THREE.AnimationClip[]
+): THREE.AnimationClip | undefined {
+  const lower = candidates.map((s) => s.toLowerCase())
+  return clips.find((clip) => lower.some((name) => clip.name.toLowerCase().includes(name)))
+}
 
 function RobotModel({
-                      mood,
-                      scale,
-                      onClick,
-                    }: {
+  mood,
+  scale,
+  onClick,
+}: {
   mood: RobotMood
   scale: number
   onClick: () => void
 }) {
   const gltf = useGLTF("/model/RobotExpressive.glb")
-  const { clips, actions } = useAnimations(gltf.animations, gltf.scene)
+  const scene = useMemo(() => gltf.scene.clone(true), [gltf.scene])
+  const { clips, actions } = useAnimations(gltf.animations, scene)
   const rootRef = useRef<THREE.Group>(null)
+  const currentActionRef = useRef<THREE.AnimationAction | null>(null)
 
-  // Sync animations with mood
   useEffect(() => {
     if (!actions || clips.length === 0) return
 
-    // Stop all actions
-    Object.values(actions).forEach((a) => a?.stop())
+    currentActionRef.current?.fadeOut(0.2)
 
-    // Reset position/rotation
     if (rootRef.current) {
       rootRef.current.rotation.x = 0
       rootRef.current.position.y = -0.7
     }
 
-    let clip: THREE.AnimationClip | null = null
+    const candidates = MOOD_CANDIDATES[mood]
+    let clip = findClip(candidates, clips)
 
-    if (mood === "angry") {
-      clip =
-          findClip(["angry", "shout", "rage"], clips) ??
-          findClip(["run", "walk"], clips) ??
-          clips[0]
-    } else if (mood === "walk") {
-      clip =
-          findClip(["walk"], clips) ??
-          findClip(["run"], clips) ??
-          findClip(["idle"], clips) ??
-          clips[0]
-    } else if (mood === "dead") {
-      clip = findClip(["death", "dead", "die"], clips)
-      if (!clip && rootRef.current) {
-        rootRef.current.rotation.x = -Math.PI / 2
-        rootRef.current.position.y = -0.2
-      }
-    } else {
-      // idle
-      clip =
-          findClip(["idle"], clips) ??
-          findClip(STATES, clips) ??
-          clips[0]
+    if (!clip) {
+      if (mood === "angry") clip = findClip(["run", "walk"], clips) ?? clips[0]
+      else if (mood === "dance") clip = findClip(["idle"], clips) ?? clips[0]
+      else if (mood === "walk") clip = findClip(["run"], clips) ?? clips[0]
+      else if (mood === "run") clip = findClip(["walk"], clips) ?? clips[0]
+      else clip = findClip(ALL_ANIMATION_NAMES, clips) ?? clips[0]
     }
 
     if (clip && actions[clip.name]) {
-      actions[clip.name]!.reset().fadeIn(0.1).play()
+      currentActionRef.current = actions[clip.name]!.reset().fadeIn(0.2).play()
     }
   }, [actions, clips, mood])
 
+  const handleClick = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation()
+    onClick()
+  }
+
   return (
+    <group ref={rootRef} position={[0, -0.7, 0]} rotation={[0, 0, 0]}>
       <primitive
-          ref={rootRef}
-          object={gltf.scene}
-          position={[0.5, -0.7, 0]}
-          rotation={[0, Math.PI, 0]}
-          scale={scale}
-          onClick={onClick}
-          castShadow
-          receiveShadow
+        object={scene}
+        scale={scale}
+        onClick={handleClick}
+        castShadow
+        receiveShadow
       />
+    </group>
   )
 }
 
-// ========================================
-// ROBOT CANVAS (WRAPPER)
-// ========================================
+function ResponsiveRobot({
+  mood,
+  pitch,
+  yaw,
+  onClick,
+}: {
+  mood: RobotMood
+  pitch: number
+  yaw: number
+  onClick: () => void
+}) {
+  const size = useThree((s) => s.size)
 
-export function RobotCanvas({ sectionIndex, moving = false }: { sectionIndex: number; moving?: boolean }) {
-  const [mood, setMood] = useState<RobotMood>("idle")
-  const [scale, setScale] = useState(0.58)
-  const [heightVh, setHeightVh] = useState(30)
-  const lightColor = useMemo(() => new THREE.Color("#ffffff"), [])
-
-  // Resize + scale responsive
-  useEffect(() => {
-    const calc = () => {
-      const h = window.innerHeight
-      const w = window.innerWidth
-      const s = Math.max(0.5, Math.min(0.65, (Math.min(w, h) / 1400) * 0.9))
-      setScale(s)
-      setHeightVh(h < 760 ? 24 : 30)
-    }
-    calc()
-    window.addEventListener("resize", calc)
-    return () => window.removeEventListener("resize", calc)
-  }, [])
-
-  // anger → death cooldown
-  useEffect(() => {
-    if (mood === "angry") {
-      const t = setTimeout(() => setMood("dead"), 800)
-      return () => clearTimeout(t)
-    }
-  }, [mood])
-
-  // Sincroniza o robot com o fluxo do site (ex.: walk ao scroll)
-  useFrame(() => {
-    // Se quiseres, podes usar o scroll/sectionIndex para mudar o mood:
-    // ex.: se estiver a “andar” entre seções, mood = "walk"
-    // Mas isso depende do teu scroll horizontal (pode ser feito fora do Canvas)
-  })
+  const scale = useMemo(() => {
+    const min = Math.min(size.width, size.height)
+    return Math.max(0.6, Math.min(0.8, (min / 1400) * 1.1)) 
+  }, [size.height, size.width])
 
   return (
-      <div
-          className="pointer-events-none fixed inset-x-0 bottom-20 select-none z-10"
-          style={{ width: "100vw", height: `${heightVh}vh` }}
-      >
-        <Canvas
-            className="pointer-events-auto"
-            camera={{ position: [0.35, 0.45, 3.3], fov: 28 }}
-            gl={{ antialias: true, alpha: true, stencil: true }}
-        >
-          <ambientLight intensity={0.6} />
-          <directionalLight
-              color={lightColor}
-              position={[2, 3, 2]}
-              intensity={1.2}
-              castShadow
-          />
-          <Environment preset="studio" />
-
-          <Suspense fallback={null}>
-            <RobotModel
-                mood={mood === "idle" ? (moving ? "walk" : "idle") : mood}
-                scale={scale}
-                onClick={() => setMood("angry")}
-            />
-          </Suspense>
-
-          <OrbitControls
-              enablePan={false}
-              enableZoom={false}
-              enableRotate={false}
-              enableDamping
-              // só se quiseres
-          />
-        </Canvas>
-      </div>
+    <group rotation={[pitch, yaw, 0]}>
+      <RobotModel mood={mood} scale={scale} onClick={onClick} />
+    </group>
   )
 }
 
-// ========================================
-// PRELOAD
-// ========================================
+export function RobotCanvas({
+  sectionIndex,
+  moving = false,
+  enableOrbitRotate = false,
+  initialYaw = 0,
+  initialPitch = 0,
+}: {
+  sectionIndex: number
+  moving?: boolean
+  enableOrbitRotate?: boolean
+  initialYaw?: number
+  initialPitch?: number
+}) {
+  const [interactionMood, setInteractionMood] = useState<RobotMood | null>(null)
+  const [travelMood, setTravelMood] = useState<RobotMood | null>(null)
+  const [yaw] = useState(initialYaw)
+  const [pitch] = useState(initialPitch)
+  const danceTimerRef = useRef<number | null>(null)
+  const angryTimerRef = useRef<number | null>(null)
+  const travelTimerRef = useRef<number | null>(null)
+  const lastSectionRef = useRef<{ index: number; t: number } | null>(null)
+
+  useEffect(() => {
+    if (danceTimerRef.current) window.clearTimeout(danceTimerRef.current)
+    if (moving || interactionMood === "angry") {
+      if (interactionMood === "dance") {
+        const t = window.setTimeout(() => setInteractionMood(null), 0) as unknown as number
+        return () => window.clearTimeout(t)
+      }
+      return
+    }
+    danceTimerRef.current = window.setTimeout(() => {
+      setInteractionMood((current) => (current === "angry" ? current : "dance"))
+    }, 6500) as unknown as number
+    return () => {
+      if (danceTimerRef.current) window.clearTimeout(danceTimerRef.current)
+    }
+  }, [moving, interactionMood])
+
+  useEffect(() => {
+    const now = performance.now()
+    const last = lastSectionRef.current
+    const dt = last ? now - last.t : Number.POSITIVE_INFINITY
+
+    if (interactionMood === "dance") {
+      const t = window.setTimeout(() => setInteractionMood(null), 0) as unknown as number
+      return () => window.clearTimeout(t)
+    }
+
+    if (travelTimerRef.current) window.clearTimeout(travelTimerRef.current)
+
+    const nextTravelMood: RobotMood = dt < 260 ? "run" : "walk"
+    const startTravel = window.setTimeout(
+      () => setTravelMood(nextTravelMood),
+      0
+    ) as unknown as number
+    travelTimerRef.current = window.setTimeout(() => setTravelMood(null), 700) as unknown as number
+
+    lastSectionRef.current = { index: sectionIndex, t: now }
+
+    return () => {
+      window.clearTimeout(startTravel)
+      if (travelTimerRef.current) window.clearTimeout(travelTimerRef.current)
+    }
+  }, [interactionMood, sectionIndex])
+
+  const baseMood: RobotMood = moving ? "walk" : "idle"
+  const currentMood: RobotMood = interactionMood ?? travelMood ?? baseMood
+
+  return (
+    <div className="w-[200px] h-[200px] sm:w-[250px] sm:h-[250px] flex-shrink-0">
+      <Canvas
+        className="pointer-events-auto"
+        camera={{ position: [0.0, 0.2, 3.5], fov: 60 }} 
+        gl={{ antialias: true, alpha: true, stencil: true }}
+      >
+        <ambientLight intensity={0.6} />
+        <directionalLight
+          color={LIGHT_COLOR}
+          position={[0, 50, 20]}
+          intensity={0.8}
+          castShadow
+        />
+        <Environment preset="studio" />
+
+        <Suspense fallback={null}>
+          <ResponsiveRobot
+            mood={currentMood}
+            pitch={pitch}
+            yaw={yaw}
+            onClick={() => {
+              if (danceTimerRef.current) window.clearTimeout(danceTimerRef.current)
+              if (angryTimerRef.current) window.clearTimeout(angryTimerRef.current)
+              setInteractionMood("angry")
+              angryTimerRef.current = window.setTimeout(
+                () => setInteractionMood(null),
+                1200
+              ) as unknown as number
+            }}
+          />
+        </Suspense>
+
+        <OrbitControls enablePan={false} enableZoom={false} enableRotate={enableOrbitRotate} />
+      </Canvas>
+    </div>
+  )
+}
 
 useGLTF.preload("/model/RobotExpressive.glb")

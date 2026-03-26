@@ -183,11 +183,7 @@
     background-attachment: fixed;
     background-position: 0 0, 0 0, 0 0;
   }
-  h1,
-  h2,
-  h3 {
-    @apply font-mono tracking-[0.14em] uppercase;
-  }
+  /* h1/h2/h3 font is set at component level — not forced globally */
 }
 
 @keyframes comic-bg-drift {

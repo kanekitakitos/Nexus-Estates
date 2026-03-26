@@ -1,46 +1,15 @@
 "use client"
 
-import Link from "next/link"
 import { AppShell } from "@/components/layout/app-shell"
 import { HorizontalLanding } from "@/features/landing/HorizontalLanding"
-import { 
-  Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbList, 
-  BreadcrumbPage, 
-  BreadcrumbSeparator 
-} from "@/components/ui/navigation/breadcrumb"
 
 /**
  * @route ´/´
- * 
+ *
  * Landing page horizontal com robot guia.
  */
 export default function Home() {
-  const header = (
-    <Breadcrumb>
-      <BreadcrumbList>
-        <BreadcrumbItem className="hidden md:block">
-          <BreadcrumbLink asChild>
-            <Link href="/">Nexus Estates</Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator className="hidden md:block" />
-        <BreadcrumbItem>
-          <Link href="/dashboard">
-            <BreadcrumbPage className="cursor-pointer hover:text-primary transition-colors">
-              Dashboard
-            </BreadcrumbPage>
-          </Link>
-        </BreadcrumbItem>
-      </BreadcrumbList>
-    </Breadcrumb>
-  )
-
   return (
-    <AppShell header={header}>
       <HorizontalLanding />
-    </AppShell>
   )
 }
