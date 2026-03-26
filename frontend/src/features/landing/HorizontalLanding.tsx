@@ -3,9 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
-import { RobotCanvas } from "@/components/robot/RobotCanvas"
 import { MorphingText } from "@/components/ui/morphing-text"
-import { SpinningText } from "@/components/ui/spinning-text"
 import { Dock, DockIcon } from "@/components/ui/dock"
 import { BentoCard, BentoGrid } from "@/components/ui/bento-grid"
 import Link from "next/link"
@@ -23,6 +21,44 @@ const BRAND = {
 }
 
 /* ─────────────────────────────────────────────
+   Brutalist helpers (internos e reutilizáveis)
+ ───────────────────────────────────────────── */
+
+function SectionKicker({ label, fg }: { label: string; fg: string }) {
+  return (
+    <span
+      className="font-mono text-[9px] uppercase tracking-[0.32em] mb-3 inline-block"
+      style={{ color: `${fg}55` }}
+    >
+      {label}
+    </span>
+  )
+}
+
+function BrutalCTA({
+  href,
+  children,
+  variant = "primary",
+  onClick,
+}: {
+  href: string
+  children: React.ReactNode
+  variant?: "primary" | "outline"
+  onClick?: () => void
+}) {
+  const base = "inline-flex items-center rounded-md px-4 py-2 text-sm font-medium transition-opacity"
+  const styles =
+    variant === "primary"
+      ? "bg-primary text-primary-foreground hover:opacity-90"
+      : "border hover:bg-muted"
+  return (
+    <Link href={href} onClick={onClick} className={`${base} ${styles}`}>
+      {children}
+    </Link>
+  )
+}
+
+/* ─────────────────────────────────────────────
    DATA
 ───────────────────────────────────────────── */
 const SECTIONS = [
@@ -32,7 +68,6 @@ const SECTIONS = [
     title: ["Gestão de", "Alojamento", "Local"],
     italic: [false, true, false],
     sub: "Automatize. Sincronize. Liberte-se da burocracia.",
-    message: "Olá! Sou o NexusBot. Deixa-me mostrar-te o futuro do teu AL.",
     bg: BRAND.cream,
     fg: BRAND.black,
   },
@@ -42,7 +77,6 @@ const SECTIONS = [
     title: ["Quem", "Somos"],
     italic: [false, true],
     sub: "Tecnologia que liberta o anfitrião para focar no que importa.",
-    message: "Somos obcecados com automação para Alojamento Local.",
     bg: BRAND.black,
     fg: BRAND.cream,
   },
@@ -52,7 +86,6 @@ const SECTIONS = [
     title: ["O Que", "Oferecemos"],
     italic: [false, true],
     sub: "Inventário, motor de reservas, sincronização e burocracia automática.",
-    message: "Cada funcionalidade foi desenhada para poupar o teu tempo.",
     bg: BRAND.cream,
     fg: BRAND.black,
   },
@@ -62,7 +95,6 @@ const SECTIONS = [
     title: ["Como", "Funciona"],
     italic: [false, true],
     sub: "Do login às faturas — tudo sincronizado num só lugar.",
-    message: "Veja como o seu dia a dia muda completamente.",
     bg: BRAND.black,
     fg: BRAND.cream,
   },
@@ -72,7 +104,6 @@ const SECTIONS = [
     title: ["Escolhe", "o Teu Plano"],
     italic: [false, true],
     sub: "Starter, Pro e Enterprise — crescemos contigo.",
-    message: "Encontra o plano que encaixa na fase do teu negócio.",
     bg: BRAND.cream,
     fg: BRAND.black,
   },
@@ -82,7 +113,6 @@ const SECTIONS = [
     title: ["Pronto", "Para", "Começar?"],
     italic: [false, false, true],
     sub: "Clientes poupam 5–10 horas por semana em burocracia.",
-    message: "Vamos nessa! O teu AL vai agradecer.",
     bg: BRAND.orange,
     fg: BRAND.cream,
   },
@@ -159,11 +189,7 @@ function Marquee({ fg = BRAND.black }: { fg?: string }) {
   const items = [...MARQUEE_ITEMS, ...MARQUEE_ITEMS]
   return (
     <div className="relative overflow-hidden w-full py-3 border-t" style={{ borderColor: `${fg}18` }}>
-      <motion.div
-        className="flex gap-8 whitespace-nowrap"
-        animate={{ x: ["0%", "-50%"] }}
-        transition={{ duration: 32, ease: "linear", repeat: Infinity }}
-      >
+      <div className="flex gap-8 whitespace-nowrap marquee">
         {items.map((item, i) => (
           <span
             key={i}
@@ -173,7 +199,17 @@ function Marquee({ fg = BRAND.black }: { fg?: string }) {
             {item} <span className="mx-2" style={{ color: `${fg}18` }}>✦</span>
           </span>
         ))}
-      </motion.div>
+      </div>
+      <style>{`
+        .marquee {
+          animation: marquee 28s linear infinite;
+          will-change: transform;
+        }
+        @keyframes marquee {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
+        }
+      `}</style>
     </div>
   )
 }
@@ -181,19 +217,7 @@ function Marquee({ fg = BRAND.black }: { fg?: string }) {
 /* ─────────────────────────────────────────────
    COUNTER
 ───────────────────────────────────────────── */
-function CountUp({ end, suffix = "" }: { end: number; suffix?: string }) {
-  const [count, setCount] = useState(0)
-  useEffect(() => {
-    let start = 0
-    const timer = setInterval(() => {
-      start += Math.ceil(end / 60)
-      if (start >= end) { setCount(end); clearInterval(timer) }
-      else setCount(start)
-    }, 24)
-    return () => clearInterval(timer)
-  }, [end])
-  return <>{count}{suffix}</>
-}
+/* (removed CountUp) */
 
 /* ─────────────────────────────────────────────
    DOCK NAV — macOS-style magnification bar
@@ -247,10 +271,10 @@ function DockNav({
       {/* Dock section nav — the 'goma' interactive center */}
       <div className="absolute left-1/2 -translate-x-1/2">
         <Dock
-          iconSize={40}
-          iconMagnification={58}
-          iconDistance={140}
-          className="bg-white/10 dark:bg-black/20 backdrop-blur-2xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-full px-6 py-3 gap-3 mt-0 h-auto ring-1 ring-black/5"
+          iconSize={34}
+          iconMagnification={48}
+          iconDistance={120}
+          className="bg-white/10 dark:bg-black/20 backdrop-blur-2xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-full px-5 py-2.5 gap-3 mt-0 h-auto ring-1 ring-black/5"
         >
           {navItems.slice(1).map((item) => (
             <DockIcon
@@ -402,65 +426,19 @@ function EditorialTitle({
   )
 }
 
-/* ─────────────────────────────────────────────
-   SPINNING CTA — circular rotating text button
-   (like the "REACH OUT" in the reference site)
-───────────────────────────────────────────── */
-function SpinningCTA({
-  text,
-  href,
-  fg,
-  bg,
-}: {
-  text: string
-  href: string
-  fg: string
-  bg: string
-}) {
-  return (
-    <Link href={href} className="group relative inline-flex items-center justify-center">
-      <motion.div
-        className="relative w-24 h-24 flex items-center justify-center"
-        whileHover={{ scale: 1.08 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      >
-        {/* Circle bg */}
-        <div
-          className="absolute inset-0 rounded-full transition-all duration-300 group-hover:scale-110"
-          style={{ background: bg }}
-        />
-        {/* Arrow center */}
-        <span
-          className="relative z-10 text-xl font-black transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-          style={{ color: fg }}
-        >
-          ↗
-        </span>
-        {/* Spinning text ring */}
-        <SpinningText
-          radius={4.2}
-          duration={12}
-          className="absolute inset-0 text-[7px] font-mono uppercase tracking-[0.22em]"
-          style={{ color: `${fg}90` } as React.CSSProperties}
-        >
-          {text}
-        </SpinningText>
-      </motion.div>
-    </Link>
-  )
-}
+/* (removed circular CTA) */
 
 /* ─────────────────────────────────────────────
    HERO SECTION
 ───────────────────────────────────────────── */
-function HeroSection({ s, goNext }: { s: (typeof SECTIONS)[0]; goNext: () => void }) {
+function HeroSection({ s }: { s: (typeof SECTIONS)[0] }) {
   return (
-    <div className="relative w-full h-full flex flex-col justify-center pl-14 pr-12 md:pr-48 pt-20 overflow-hidden">
+    <div className="relative w-full h-full flex flex-col justify-center pl-12 pr-10 md:pr-40 pt-16 overflow-hidden">
       {/* Ghost BG text */}
       <div
         className="absolute right-0 top-1/2 -translate-y-1/2 font-black leading-none pointer-events-none select-none"
         style={{
-          fontSize: "28vw",
+          fontSize: "22vw",
           color: "transparent",
           WebkitTextStroke: `1px ${BRAND.black}06`,
           fontFamily: "'Georgia', serif",
@@ -470,15 +448,15 @@ function HeroSection({ s, goNext }: { s: (typeof SECTIONS)[0]; goNext: () => voi
         AL
       </div>
 
-      {/* Tag */}
+      {/* Tag + Badge */}
       <motion.div
         initial={{ opacity: 0, x: -12 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.2 }}
-        className="flex items-center gap-3 mb-8"
+        className="flex items-center gap-3 mb-6"
       >
         <span className="w-7 h-[1px]" style={{ background: `${BRAND.black}28` }} />
-        <span className="font-mono text-[9px] uppercase tracking-[0.32em]" style={{ color: `${BRAND.black}45` }}>
+        <span className="font-mono text-[9px] uppercase tracking-[0.32em]" style={{ color: `${BRAND.black}65` }}>
           Property Management System
         </span>
       </motion.div>
@@ -489,17 +467,17 @@ function HeroSection({ s, goNext }: { s: (typeof SECTIONS)[0]; goNext: () => voi
         italics={s.italic}
         fg={s.fg}
         accent={BRAND.orange}
-        size="clamp(4.5rem, 10vw, 9.5rem)"
+        size="clamp(3.6rem, 8vw, 7.6rem)"
       />
 
       {/* MorphingText subtitle — gummy liquid morph effect */}
       <motion.div
-        className="mt-8 mb-6"
+        className="mt-6 mb-5"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.9 }}
         style={{
-          fontSize: "clamp(1.6rem, 3vw, 2.6rem)",
+          fontSize: "clamp(1.3rem, 2.4vw, 2.1rem)",
           fontFamily: "'Georgia', serif",
           fontStyle: "italic",
           color: BRAND.orange,
@@ -507,68 +485,29 @@ function HeroSection({ s, goNext }: { s: (typeof SECTIONS)[0]; goNext: () => voi
       >
         <MorphingText
           texts={MORPHING_SUBTITLES}
-          className="text-left h-10 md:h-12"
+          className="text-left h-8 md:h-10"
         />
       </motion.div>
 
       {/* Sub + CTA row */}
       <motion.div
-        className="flex flex-col sm:flex-row items-start sm:items-center gap-8"
+        className="flex flex-col sm:flex-row items-start sm:items-center gap-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.0, duration: 0.55 }}
       >
-        <p className="max-w-xs text-sm leading-relaxed font-light" style={{ color: `${BRAND.black}55` }}>
-          {s.sub}
-        </p>
-
-        <div className="flex items-center gap-6 ml-auto">
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.96 }}
-            onClick={goNext}
-            className="font-mono text-xs uppercase tracking-widest px-7 py-4 font-bold transition-all"
-            style={{ background: BRAND.black, color: BRAND.cream }}
-          >
-            Descobrir →
-          </motion.button>
-
-          {/* Spinning CTA circle */}
-          <SpinningCTA
-            text="Demo Live • Demo Live • "
-            href="/booking"
-            fg={BRAND.black}
-            bg={`${BRAND.black}10`}
-          />
-        </div>
+        <motion.span
+          className="ml-auto font-mono text-[20px] uppercase tracking-widest"
+          style={{ color: `${BRAND.black}60` }}
+          animate={{ x: [0, 6, 0] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+        >
+          Faz scroll {">>"}
+        </motion.span>
       </motion.div>
 
       {/* Stats */}
-      <motion.div
-        className="mt-12 grid grid-cols-3 gap-8 max-w-md border-t pt-7"
-        style={{ borderColor: `${BRAND.black}10` }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.15 }}
-      >
-        {[
-          { val: 500, suf: "+", label: "Propriedades" },
-          { val: 10, suf: "h", label: "Poupadas/semana" },
-          { val: 99, suf: "%", label: "Uptime" },
-        ].map((stat) => (
-          <div key={stat.label}>
-            <div
-              className="font-black text-3xl"
-              style={{ color: BRAND.orange, fontFamily: "'Georgia', serif", fontStyle: "italic" }}
-            >
-              <CountUp end={stat.val} suffix={stat.suf} />
-            </div>
-            <div className="font-mono text-[8px] uppercase tracking-widest mt-1" style={{ color: `${BRAND.black}30` }}>
-              {stat.label}
-            </div>
-          </div>
-        ))}
-      </motion.div>
+      {/* removed stats panel */}
     </div>
   )
 }
@@ -578,25 +517,17 @@ function HeroSection({ s, goNext }: { s: (typeof SECTIONS)[0]; goNext: () => voi
 ───────────────────────────────────────────── */
 function AboutSection({ s }: { s: (typeof SECTIONS)[0] }) {
   return (
-    <div className="relative w-full h-full flex flex-col justify-center pl-14 pr-12 md:pr-52 pt-20 overflow-hidden">
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.15 }}
-        className="font-mono text-[9px] uppercase tracking-[0.32em] mb-6 block"
-        style={{ color: `${BRAND.cream}35` }}
-      >
-        {s.label} — Sobre
-      </motion.span>
+    <div className="relative w-full h-full flex flex-col justify-center pl-12 pr-10 md:pr-44 pt-16 overflow-hidden">
+      <SectionKicker label={`${s.label} — Sobre`} fg={BRAND.cream} />
 
-      <div className="grid md:grid-cols-2 gap-12 items-center">
+      <div className="grid md:grid-cols-2 gap-10 items-center">
         {/* Title */}
         <EditorialTitle
           lines={s.title}
           italics={s.italic}
           fg={s.fg}
           accent={BRAND.orange}
-          size="clamp(3.5rem, 8vw, 8rem)"
+          size="clamp(2.8rem, 6.4vw, 6.4rem)"
         />
 
         {/* Cards */}
@@ -611,7 +542,7 @@ function AboutSection({ s }: { s: (typeof SECTIONS)[0] }) {
               initial={{ opacity: 0, x: 28 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 + i * 0.1 }}
-              className="border p-5 group cursor-default transition-all duration-300 hover:border-orange-600/40"
+              className="border p-4 group cursor-default transition-all duration-300 hover:border-orange-600/40"
               style={{ borderColor: `${BRAND.cream}12` }}
             >
               <div className="flex justify-between items-start mb-2">
@@ -653,7 +584,7 @@ function FeaturesSection({ s }: { s: (typeof SECTIONS)[0] }) {
       cta: "Explorar",
       background: (
         <div className="absolute inset-0 flex items-end justify-end p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
-          <span className="text-[12rem] font-serif italic font-black text-black leading-none -mb-8 -mr-4 select-none">01</span>
+          <span className="text-[9.5rem] font-serif italic font-black text-black leading-none -mb-6 -mr-3 select-none">01</span>
         </div>
       ),
       className: "col-span-3 md:col-span-1",
@@ -666,7 +597,7 @@ function FeaturesSection({ s }: { s: (typeof SECTIONS)[0] }) {
       cta: "Explorar",
       background: (
         <div className="absolute inset-0 flex items-end justify-end p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
-          <span className="text-[12rem] font-serif italic font-black text-black leading-none -mb-8 -mr-4 select-none">02</span>
+          <span className="text-[9.5rem] font-serif italic font-black text-black leading-none -mb-6 -mr-3 select-none">02</span>
         </div>
       ),
       className: "col-span-3 md:col-span-2",
@@ -679,7 +610,7 @@ function FeaturesSection({ s }: { s: (typeof SECTIONS)[0] }) {
       cta: "Explorar",
       background: (
         <div className="absolute inset-0 flex items-end justify-end p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
-          <span className="text-[12rem] font-serif italic font-black text-black leading-none -mb-8 -mr-4 select-none">03</span>
+          <span className="text-[9.5rem] font-serif italic font-black text-black leading-none -mb-6 -mr-3 select-none">03</span>
         </div>
       ),
       className: "col-span-3 md:col-span-2",
@@ -692,7 +623,7 @@ function FeaturesSection({ s }: { s: (typeof SECTIONS)[0] }) {
       cta: "Explorar",
       background: (
         <div className="absolute inset-0 flex items-end justify-end p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
-          <span className="text-[12rem] font-serif italic font-black text-black leading-none -mb-8 -mr-4 select-none">04</span>
+          <span className="text-[9.5rem] font-serif italic font-black text-black leading-none -mb-6 -mr-3 select-none">04</span>
         </div>
       ),
       className: "col-span-3 md:col-span-1",
@@ -700,15 +631,8 @@ function FeaturesSection({ s }: { s: (typeof SECTIONS)[0] }) {
   ]
 
   return (
-    <div className="relative w-full h-full flex flex-col justify-center pl-14 pr-12 md:pr-52 pt-20 pb-16 overflow-hidden">
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="font-mono text-[9px] uppercase tracking-[0.32em] mb-5 block"
-        style={{ color: `${BRAND.black}38` }}
-      >
-        {s.label} — Produto
-      </motion.span>
+    <div className="relative w-full h-full flex flex-col justify-center pl-12 pr-10 md:pr-44 pt-16 pb-12 overflow-hidden">
+      <SectionKicker label={`${s.label} — Produto`} fg={BRAND.black} />
 
       <div className="mb-6">
         <EditorialTitle
@@ -716,7 +640,7 @@ function FeaturesSection({ s }: { s: (typeof SECTIONS)[0] }) {
           italics={s.italic}
           fg={s.fg}
           accent={BRAND.orange}
-          size="clamp(2.6rem, 5.5vw, 6rem)"
+          size="clamp(2.1rem, 4.4vw, 4.8rem)"
         />
       </div>
 
@@ -725,7 +649,7 @@ function FeaturesSection({ s }: { s: (typeof SECTIONS)[0] }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
       >
-        <BentoGrid className="auto-rows-[14rem] gap-4" style={{ maxWidth: "calc(100% - 240px)" }}>
+        <BentoGrid className="auto-rows-[12rem] gap-4" style={{ maxWidth: "calc(100% - 200px)" }}>
           {bentoFeatures.map((f) => (
             <BentoCard 
               key={f.name} 
@@ -749,17 +673,9 @@ function WorkflowSection({ s }: { s: (typeof SECTIONS)[0] }) {
     { n: "03", title: "Recebe Reservas", desc: "O motor confirma, bloqueia e notifica. Zero intervenção manual necessária." },
     { n: "04", title: "Faturação Auto", desc: "Faturas e registos SEF gerados e enviados assim que a reserva é confirmada." },
   ]
-  const [hovered, setHovered] = useState<number | null>(null)
   return (
-    <div className="relative w-full h-full flex flex-col justify-center pl-14 pr-12 md:pr-52 pt-20 overflow-hidden">
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="font-mono text-[9px] uppercase tracking-[0.32em] mb-6 block"
-        style={{ color: `${BRAND.cream}30` }}
-      >
-        {s.label} — Fluxo
-      </motion.span>
+    <div className="relative w-full h-full flex flex-col justify-center pl-12 pr-10 md:pr-44 pt-16 overflow-hidden">
+      <SectionKicker label={`${s.label} — Fluxo`} fg={BRAND.cream} />
 
       <div className="mb-10">
         <EditorialTitle
@@ -767,7 +683,7 @@ function WorkflowSection({ s }: { s: (typeof SECTIONS)[0] }) {
           italics={s.italic}
           fg={s.fg}
           accent={BRAND.orange}
-          size="clamp(2.6rem, 5.5vw, 6rem)"
+          size="clamp(2.1rem, 4.4vw, 4.8rem)"
         />
       </div>
 
@@ -802,15 +718,8 @@ function WorkflowSection({ s }: { s: (typeof SECTIONS)[0] }) {
 ───────────────────────────────────────────── */
 function PlansSection({ s }: { s: (typeof SECTIONS)[0] }) {
   return (
-    <div className="relative w-full h-full flex flex-col justify-center pl-14 pr-12 md:pr-52 pt-20 overflow-hidden">
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="font-mono text-[9px] uppercase tracking-[0.32em] mb-6 block"
-        style={{ color: `${BRAND.black}38` }}
-      >
-        {s.label} — Planos
-      </motion.span>
+    <div className="relative w-full h-full flex flex-col justify-center pl-12 pr-10 md:pr-44 pt-16 overflow-hidden">
+      <SectionKicker label={`${s.label} — Planos`} fg={BRAND.black} />
 
       <div className="mb-8">
         <EditorialTitle
@@ -818,7 +727,7 @@ function PlansSection({ s }: { s: (typeof SECTIONS)[0] }) {
           italics={s.italic}
           fg={s.fg}
           accent={BRAND.orange}
-          size="clamp(2.2rem, 5vw, 5.5rem)"
+          size="clamp(1.8rem, 4vw, 4.4rem)"
         />
       </div>
 
@@ -887,7 +796,7 @@ function PlansSection({ s }: { s: (typeof SECTIONS)[0] }) {
 ───────────────────────────────────────────── */
 function CtaSection({ s }: { s: (typeof SECTIONS)[0] }) {
   return (
-    <div className="relative w-full h-full flex flex-col justify-center pl-14 pr-12 md:pr-52 pt-20 overflow-hidden">
+    <div className="relative w-full h-full flex flex-col justify-center pl-12 pr-10 md:pr-44 pt-16 overflow-hidden">
       {/* Dot grid */}
       <div
         className="absolute inset-0 pointer-events-none opacity-10"
@@ -897,14 +806,7 @@ function CtaSection({ s }: { s: (typeof SECTIONS)[0] }) {
         }}
       />
 
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="font-mono text-[9px] uppercase tracking-[0.32em] mb-6 block relative z-10"
-        style={{ color: `${BRAND.cream}55` }}
-      >
-        {s.label} — Start
-      </motion.span>
+      <SectionKicker label={`${s.label} — Start`} fg={BRAND.cream} />
 
       {/* MorphingText for CTA headline variation */}
       <div className="relative z-10 overflow-hidden mb-4">
@@ -918,7 +820,7 @@ function CtaSection({ s }: { s: (typeof SECTIONS)[0] }) {
             <h1
               className="leading-[0.88] uppercase font-black"
               style={{
-                fontSize: "clamp(4rem, 11vw, 10rem)",
+                fontSize: "clamp(3.2rem, 8.8vw, 8rem)",
                 fontFamily: "'Georgia', 'Times New Roman', serif",
                 fontStyle: s.italic[i] ? "italic" : "normal",
                 color: s.italic[i] ? BRAND.black : BRAND.cream,
@@ -938,22 +840,9 @@ function CtaSection({ s }: { s: (typeof SECTIONS)[0] }) {
         transition={{ delay: 0.75 }}
       >
         <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-          <Link
-            href="/booking"
-            className="font-mono text-xs uppercase tracking-widest px-8 py-4 font-bold transition-all inline-block text-center"
-            style={{ background: BRAND.black, color: BRAND.cream }}
-          >
-            Criar Conta Grátis →
-          </Link>
+          <BrutalCTA href="/booking">Criar Conta Grátis →</BrutalCTA>
         </motion.div>
-
-        {/* Spinning CTA circle — orange section variant */}
-        <SpinningCTA
-          text="Começar Agora • Grátis • "
-          href="/booking"
-          fg={BRAND.cream}
-          bg={`${BRAND.black}20`}
-        />
+        {/* removed circular CTA */}
       </motion.div>
 
       <motion.p
@@ -972,9 +861,9 @@ function CtaSection({ s }: { s: (typeof SECTIONS)[0] }) {
 /* ─────────────────────────────────────────────
    SECTION RENDERER
 ───────────────────────────────────────────── */
-function SectionContent({ s, goNext }: { s: (typeof SECTIONS)[0]; goNext: () => void }) {
+function SectionContent({ s }: { s: (typeof SECTIONS)[0] }) {
   switch (s.id) {
-    case "hero": return <HeroSection s={s} goNext={goNext} />
+    case "hero": return <HeroSection s={s} />
     case "about": return <AboutSection s={s} />
     case "features": return <FeaturesSection s={s} />
     case "workflow": return <WorkflowSection s={s} />
@@ -990,17 +879,12 @@ function SectionContent({ s, goNext }: { s: (typeof SECTIONS)[0]; goNext: () => 
 export function HorizontalLanding() {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState(0)
-  const [moving, setMoving] = useState(false)
-  const scrollTimer = useRef<number | null>(null)
 
   const onScroll = useCallback(() => {
     const el = scrollerRef.current
     if (!el) return
     const idx = Math.round(el.scrollLeft / el.clientWidth)
     if (idx !== active) setActive(Math.max(0, Math.min(idx, SECTIONS.length - 1)))
-    setMoving(true)
-    if (scrollTimer.current) window.clearTimeout(scrollTimer.current)
-    scrollTimer.current = window.setTimeout(() => setMoving(false), 220) as unknown as number
   }, [active])
 
   useEffect(() => {
@@ -1027,7 +911,6 @@ export function HorizontalLanding() {
     if (!el) return
     el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" })
   }
-  const goNext = () => goTo(active + 1)
 
   const currentSection = SECTIONS[active]
   const currentFg = currentSection?.fg ?? BRAND.black
@@ -1035,7 +918,7 @@ export function HorizontalLanding() {
 
   return (
     <div
-      className="relative h-screen w-screen overflow-hidden transition-colors duration-700"
+      className="relative isolate h-screen w-screen overflow-hidden transition-colors duration-700"
       style={{ background: currentBg, color: currentFg }}
     >
       <GrainOverlay />
@@ -1068,7 +951,7 @@ export function HorizontalLanding() {
           <motion.section
             key={s.id}
             id={s.id}
-            className="relative flex h-full w-screen flex-none snap-center overflow-hidden transition-colors duration-700"
+            className="relative isolate flex h-full w-screen flex-none snap-center overflow-hidden transition-colors duration-700"
             style={{ background: s.bg }}
             animate={{
               filter: active === index ? "blur(0px)" : "blur(2px)",
@@ -1078,7 +961,7 @@ export function HorizontalLanding() {
           >
             {/* Dot grid bg */}
             <div
-              className="absolute inset-0 pointer-events-none"
+              className="absolute inset-0 pointer-events-none z-0"
               style={{
                 backgroundImage: `radial-gradient(circle, ${s.fg}07 1px, transparent 1px)`,
                 backgroundSize: "22px 22px",
@@ -1086,10 +969,12 @@ export function HorizontalLanding() {
             />
 
             {/* Left vertical band */}
-            <VerticalBand fg={s.fg} />
+            <div className="relative z-10">
+              <VerticalBand fg={s.fg} />
+            </div>
 
             {/* Content */}
-            <div className="flex-1 pl-9">
+            <div className="relative z-20 flex-1 pl-9">
               <AnimatePresence mode="wait">
                 {active === index && (
                   <motion.div
@@ -1100,7 +985,7 @@ export function HorizontalLanding() {
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.32 }}
                   >
-                    <SectionContent s={s} goNext={goNext} />
+                    <SectionContent s={s} />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1108,9 +993,9 @@ export function HorizontalLanding() {
 
             {/* Ghost section number */}
             <div
-              className="absolute bottom-8 right-12 font-black leading-none pointer-events-none select-none"
+              className="absolute bottom-8 right-12 z-10 font-black leading-none pointer-events-none select-none"
               style={{
-                fontSize: "8rem",
+                fontSize: "6.5rem",
                 color: "transparent",
                 WebkitTextStroke: `1px ${s.fg}07`,
                 fontFamily: "'Georgia', serif",
@@ -1124,49 +1009,11 @@ export function HorizontalLanding() {
       </div>
 
       {/* ── Bottom bar ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 flex flex-col pointer-events-none">
-        {/* Speech bubble */}
-        <div className="flex justify-center mb-2 pointer-events-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={active}
-              initial={{ opacity: 0, y: 8, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -5, scale: 0.97 }}
-              transition={{ duration: 0.2 }}
-              className="font-mono text-[9px] uppercase tracking-widest border px-4 py-2"
-              style={{
-                borderColor: `${BRAND.orange}45`,
-                background: `${currentBg}ee`,
-                color: `${currentFg}55`,
-                backdropFilter: "blur(14px)",
-              }}
-            >
-              ✦ {SECTIONS[active]?.message}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+      <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col pointer-events-none">
         <Marquee fg={currentFg} />
       </div>
 
-      {/* ── Robot mascot — bottom-right decorative ── */}
-      <div
-        className="pointer-events-none fixed z-10 transition-all duration-700"
-        style={{ right: "0px", bottom: "55px", opacity: 0.82 }}
-      >
-        <motion.div
-          animate={{ y: moving ? [0, -6, 0] : [0, -3, 0] }}
-          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <RobotCanvas
-            sectionIndex={active}
-            moving={moving}
-            enableOrbitRotate={false}
-            initialYaw={0}
-            initialPitch={0}
-          />
-        </motion.div>
-      </div>
+      {/* bottom-right callout removed */}
 
       {/* Styles */}
       <style>{`
