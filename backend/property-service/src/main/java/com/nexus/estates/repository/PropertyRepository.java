@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -20,15 +21,17 @@ import java.util.Optional;
 @Repository
 public interface PropertyRepository extends JpaRepository<Property, Long> {
 
-    @org.springframework.data.jpa.repository.Query(
-            value = "SELECT DISTINCT p FROM Property p " +
+    @Query("SELECT DISTINCT p FROM Property p LEFT JOIN FETCH p.amenities")
+    List<Property> findAllWithAmenities();
+
+    @Query(value = "SELECT DISTINCT p FROM Property p " +
                     "LEFT JOIN FETCH p.amenities " +
                     "LEFT JOIN FETCH p.propertyRule " +
                     "LEFT JOIN FETCH p.seasonalityRules " +
                     "WHERE p.id = :id")
-    java.util.Optional<Property> findExpandedById(@Param("id") Long id);
+    Optional<Property> findExpandedById(@Param("id") Long id);
 
-    @org.springframework.data.jpa.repository.Query(
+    @Query(
             value = "SELECT p FROM Property p " +
                     "WHERE p.id IN :ids " +
                     "AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%'))) " +
