@@ -88,4 +88,13 @@ public class User {
     @Column(nullable = false)
     @Schema(description = "Papel do utilizador", example = "GUEST")
     private UserRole role;
+
+    /**
+     * Integrações externas associadas ao utilizador.
+     * <p>
+     * Contém credenciais encriptadas para canais externos (Airbnb, Booking, etc.).
+     * </p>
+     */
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<ExternalIntegration> integrations;
 }
