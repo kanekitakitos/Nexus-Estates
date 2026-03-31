@@ -5,10 +5,10 @@ import { ArrowLeft, MapPin, Star, Users, Home, Maximize, Check } from "lucide-re
 import { Button } from "@/components/ui/forms/button"
 import { Badge } from "@/components/ui/badge"
 import { BrutalShard } from "@/components/ui/data-display/card"
-import { BookingProperty } from "@/features/bookings/components/booking-card"
 import { cn } from "@/lib/utils"
 import { DateRangeCalendar } from "@/features/bookings/components/date-range-calendar"
 import { PropertyEditForm } from "./property-form"
+import {OwnProperty} from "@/components/layout/properti/property-view";
 
 
 const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-4 md:p-6 lg:px-[150px] min-h-screen overflow-x-hidden"
@@ -19,7 +19,7 @@ const PRICE_TEXT_STYLES = "font-mono font-bold text-primary text-lg md:text-xl"
 const SUMMARY_CARD_STYLES = "flex items-center gap-2 md:gap-3 border-[2px] border-foreground p-2 md:p-3 bg-secondary/30"
 
 export interface BookingDetailsProps {
-    property: BookingProperty
+    property: OwnProperty
     onBack: () => void
     isExiting?: boolean
     checkInDate?: Date | null
@@ -29,7 +29,7 @@ export interface BookingDetailsProps {
 /**
  * Fields que o Owner pode editar
  */
-export interface EditableFieldsI extends Pick<BookingProperty, "title" | "description" | "location" | "price" | "imageUrl" |"tags">
+export interface EditableFieldsI extends Pick<OwnProperty, "title" | "description" | "location" | "city" | "address" | "price" | "maxGuests" | "imageUrl" |"tags">
     {/*sem campos extra*/}
 
 
@@ -54,7 +54,7 @@ export function PropertyEdit2({ property : initialProperty, onBack, isExiting, c
     }, [onBack])
 
 
-    const [property, setProperty] = useState<BookingProperty>(initialProperty);
+    const [property, setProperty] = useState<OwnProperty>(initialProperty);
 
     function updateProperty<K extends keyof EditableFieldsI>(key: K, value: EditableFieldsI[K]){
         setProperty(prevData => ({...prevData, [key]:value}))
@@ -151,7 +151,7 @@ export function PropertyEdit2({ property : initialProperty, onBack, isExiting, c
  * 
  * Utiliza o componente `BrutalShard` para manter a consistência visual do design system.
  */
-function PropertyHeaderCard({ property }: { property: BookingProperty }) {
+function PropertyHeaderCard({ property }: { property: OwnProperty }) {
     return (
         <BrutalShard rotate="primary">
             <div className="flex flex-col space-y-6">
@@ -185,7 +185,7 @@ function PropertyHeaderCard({ property }: { property: BookingProperty }) {
  * Apresenta o texto descritivo da propriedade e um grid de ícones
  * resumindo as características físicas (capacidade, quartos, metragem).
  */
-function PropertyDescriptionCard({ property }: { property: BookingProperty }) {
+function PropertyDescriptionCard({ property }: { property: OwnProperty }) {
     return (
         <BrutalShard rotate="secondary">
             <div className="border-t-[3px] border-b-[3px] border-foreground py-6 space-y-4">
@@ -216,7 +216,7 @@ function PropertyDescriptionCard({ property }: { property: BookingProperty }) {
  * Lista as tags de amenidades (ex: Wi-Fi, Piscina) e contém o botão
  * de chamada para ação (CTA) principal "Book Now".
  */
-function PropertyActionCard({ property }: { property: BookingProperty }) {
+function PropertyActionCard({ property }: { property: OwnProperty }) {
     return (
         <BrutalShard rotate="primary">
             <div className="space-y-4">
@@ -247,7 +247,7 @@ function PropertyActionCard({ property }: { property: BookingProperty }) {
  * Inclui funcionalidade de rotação automática (slideshow) a cada 6 segundos.
  */
 
-function PropertyGallery({ property }: { property: BookingProperty }) {
+function PropertyGallery({ property }: { property: OwnProperty }) {
     const galleryImages = [
         property.imageUrl,
         "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=1200&auto=format&fit=crop",
