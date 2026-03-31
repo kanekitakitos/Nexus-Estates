@@ -151,6 +151,40 @@ public class PropertyController {
     }
 
     /**
+     * Adiciona uma comodidade específica a uma propriedade.
+     */
+    @Operation(summary = "Adicionar comodidade", description = "Associa uma nova comodidade à propriedade sem remover as existentes. Requer role OWNER.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Comodidade adicionada com sucesso"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade ou Comodidade não encontrada")
+    })
+    @PostMapping("/{id}/amenities/{amenityId}")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<ApiResponse<Property>> addAmenity(
+            @Parameter(description = "ID da propriedade") @PathVariable Long id,
+            @Parameter(description = "ID da comodidade") @PathVariable Long amenityId) {
+        Property property = service.addAmenity(id, amenityId);
+        return ResponseEntity.ok(ApiResponse.success(property, "Comodidade adicionada com sucesso."));
+    }
+
+    /**
+     * Remove uma comodidade específica de uma propriedade.
+     */
+    @Operation(summary = "Remover comodidade da propriedade", description = "Desassocia uma comodidade específica da propriedade. Requer role OWNER.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Comodidade removida com sucesso"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade ou Comodidade não encontrada")
+    })
+    @DeleteMapping("/{id}/amenities/{amenityId}")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<ApiResponse<Property>> removeAmenity(
+            @Parameter(description = "ID da propriedade") @PathVariable Long id,
+            @Parameter(description = "ID da comodidade") @PathVariable Long amenityId) {
+        Property property = service.removeAmenity(id, amenityId);
+        return ResponseEntity.ok(ApiResponse.success(property, "Comodidade removida com sucesso."));
+    }
+
+    /**
      * Lista todas as propriedades registadas.
      *
      * @return lista de propriedades
@@ -159,7 +193,7 @@ public class PropertyController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Sucesso ao retornar lista")
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<List<Property>>> listAll() {
-        List<Property> properties = service.findAll();
+        List<Property> properties = repository.findAllWithAmenities();
         return ResponseEntity.ok(ApiResponse.success(properties, "Propriedades listadas com sucesso."));
     }
 
