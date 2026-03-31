@@ -8,11 +8,14 @@ import { BrutalCard, BrutalShard } from "@/components/ui/data-display/card"
 import { BookingProperty } from "@/features/bookings/components/booking-card"
 import { cn } from "@/lib/utils"
 import { DateRangeCalendar } from "@/features/bookings/components/date-range-calendar"
-import { PropertyEditForm } from "./property-form"
+// import { PropertyEditForm } from "./property-form"
+import {PropertyCreateForm, PropertyEditForm} from "./property-form"
 import { Separator } from "@/components/ui/layout/separator"
 import { BookingDetailsProps } from "./property-edit2"
 import { Input } from "@/components/ui/forms/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/overlay/dropdown-menu"
+import {OwnProperty} from "@/components/layout/properti/property-view";
+import {CreatePropertyRequest, PropertyService} from "@/services/property.service";
 
 
 const PAGE_CONTAINER_STYLES = "grid grid-flow-row min-h-screen"
@@ -23,34 +26,20 @@ type PropertyListProps = {
     filter?: boolean
     addNewProperty?: boolean
 
-    propertys: BookingProperty[];
+    propertys: OwnProperty[];
 
     onSelect?: (id: string) => void;
     isExiting?: boolean;
     animate?: boolean;
 };
 
-function NewPropertyData(id:string) {
-    const genericProperty : BookingProperty = {
-            id: id,
-            title: "",
-            description: "",
-            location: "",
-            price: 100,
-            imageUrl: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=1000&auto=format&fit=crop",
-            status: "MAINTENANCE",
-            rating: 0.0,
-            tags: []
-        }
-    return genericProperty
-}
 
 
 function AddNewPropertyForm({id, open, onClose} : {id:string; open:boolean; onClose:()=>void}){
-    const [newProperty, setNewProperty] = useState<BookingProperty>(NewPropertyData(id))
+
     return(
         <>
-            <PropertyEditForm propertyState={[newProperty, setNewProperty]} onClose={onClose} open={open}/>
+            <PropertyCreateForm onClose={onClose} open={open}/>
         </>
     )
 }
@@ -213,6 +202,21 @@ function PropertyListBars({propertys, onSelect = ()=>{}, isExiting=true, animate
             "felx flex-col",
             animate && (isExiting ? "animate-fly-out-right" : "animate-fly-in"),
         )}>
+            <BrutalButton onClick={()=>PropertyService.editPropertie(
+                19,
+                {
+                    address: "987",
+                    amenityIds: [1],
+                    city: "123456",
+                    description: {"en":"1234566", "pt":"1234566"},
+                    location: "123456",
+                    maxGuests: 3,
+                    ownerId: Number(localStorage.getItem("userId")),
+                    price: 999,
+                    title: "123987"
+                } as CreatePropertyRequest
+                )}>
+            </BrutalButton>
             {/* Fitros */}
             <div 
                 className="flex flex-col gap-2 p-3 group items-stretch border-b" 

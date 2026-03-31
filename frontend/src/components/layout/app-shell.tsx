@@ -26,8 +26,10 @@ function AppHeaderNav({ pathname }: { pathname: string }) {
   const links = [
     { href: "/", label: "Home" },
     { href: "/dashboard", label: "Dashboard" },
+    { href: "/properties", label: "Properties" },
     { href: "/booking", label: "Booking" },
     { href: "/login", label: "Login" },
+
   ]
 
   return (
