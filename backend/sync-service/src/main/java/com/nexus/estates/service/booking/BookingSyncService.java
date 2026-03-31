@@ -1,9 +1,10 @@
-package com.nexus.estates.service;
+package com.nexus.estates.service.booking;
 
 import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.common.messaging.BookingStatusUpdatedMessage;
 import com.nexus.estates.dto.ExternalApiConfig;
+import com.nexus.estates.service.external.connectors.ChannelConnectorFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,19 +15,22 @@ import java.util.Optional;
 /**
  * Serviço de domínio responsável pela sincronização de reservas com parceiros externos.
  * <p>
- * Atua como uma camada de tradução entre os eventos internos do Nexus Estates e os
- * contratos de API das OTAs (Online Travel Agencies).
+ * Converte eventos internos do Nexus Estates em chamadas a APIs externas (OTAs),
+ * aplicando resiliência (Circuit Breaker/Retry) através do conector HTTP genérico.
  * </p>
  *
- * @author Nexus Estates Architect
+ * @author Nexus Estates Team
  * @version 1.0
+ * @since 2026-03-31
+ * @see com.nexus.estates.service.external.ExternalSyncService
+ * @see com.nexus.estates.service.external.connectors.ChannelConnectorFactory
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookingSyncService {
 
-    private final ExternalSyncService externalSyncService;
+    private final ChannelConnectorFactory connectorFactory;
 
     @Value("${ota.api.base-url:http://mock-ota.com/api/v1}")
     private String otaBaseUrl;
@@ -35,19 +39,18 @@ public class BookingSyncService {
     private String otaApiKey;
 
     /**
-     * Sincroniza uma reserva recém-criada com a plataforma externa configurada.
+     * Sincroniza a reserva com a OTA configurada, aplicando resiliência via conector genérico.
      * <p>
-     * Constrói o contexto de integração (URL, Autenticação) e utiliza o
-     * {@code ExternalSyncService} para realizar a chamada de forma segura e resiliente.
+     * Constrói a configuração de API externa, invoca o conector e traduz o resultado
+     * para um evento {@link BookingStatusUpdatedMessage}.
      * </p>
      *
-     * @param message Mensagem recebida do RabbitMQ contendo os dados da reserva.
-     * @return {@code BookingStatusUpdatedMessage} indicando o sucesso ou falha da operação.
+     * @param message evento de criação de reserva recebido via mensageria
+     * @return mensagem de atualização de estado (CONFIRMED ou CANCELLED) com razão
      */
     public BookingStatusUpdatedMessage syncBooking(BookingCreatedMessage message) {
         log.info("Sincronizando reserva {} com plataforma externa", message.bookingId());
 
-        // Define a configuração para a OTA específica
         ExternalApiConfig config = ExternalApiConfig.builder()
                 .baseUrl(otaBaseUrl)
                 .endpoint("/bookings/sync")
@@ -55,12 +58,7 @@ public class BookingSyncService {
                 .credentials(otaApiKey)
                 .build();
 
-        // Executa a chamada via serviço resiliente
-        Optional<ExternalSyncResult> result = externalSyncService.post(
-                config,
-                message,
-                ExternalSyncResult.class
-        );
+        Optional<ExternalSyncResult> result = connectorFactory.generic().call(config, message, ExternalSyncResult.class);
 
         return result.map(body -> {
             BookingStatus status = body.approved() ? BookingStatus.CONFIRMED : BookingStatus.CANCELLED;
@@ -72,11 +70,5 @@ public class BookingSyncService {
         ));
     }
 
-    /**
-     * DTO interno para mapear a resposta da API externa.
-     *
-     * @param approved Indica se a reserva foi aceite e sincronizada com sucesso.
-     * @param reason   Mensagem descritiva do resultado da operação (sucesso ou erro).
-     */
     public record ExternalSyncResult(boolean approved, String reason) {}
 }

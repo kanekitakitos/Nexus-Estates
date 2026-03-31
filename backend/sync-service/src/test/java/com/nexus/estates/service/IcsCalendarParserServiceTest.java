@@ -1,6 +1,7 @@
 package com.nexus.estates.service;
 
 import com.nexus.estates.dto.SyncBlockDTO;
+import com.nexus.estates.service.calendar.IcsCalendarParserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

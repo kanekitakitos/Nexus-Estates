@@ -3,6 +3,8 @@ package com.nexus.estates.service;
 import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.dto.ExternalApiConfig;
+import com.nexus.estates.service.booking.BookingSyncService;
+import com.nexus.estates.service.external.ExternalSyncService;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import okhttp3.mockwebserver.MockResponse;

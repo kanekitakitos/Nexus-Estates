@@ -1,6 +1,8 @@
 package com.nexus.estates.service;
 
 import com.nexus.estates.dto.ExternalApiConfig;
+import com.nexus.estates.service.external.ExternalAuthService;
+import com.nexus.estates.service.external.ExternalSyncService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

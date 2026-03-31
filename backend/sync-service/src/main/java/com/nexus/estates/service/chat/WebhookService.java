@@ -1,9 +1,9 @@
-package com.nexus.estates.service;
+package com.nexus.estates.service.chat;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.nexus.estates.client.NexusClients;
 import com.nexus.estates.client.Proxy;
-import com.nexus.estates.entity.Message;
+import com.nexus.estates.service.notification.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,12 +22,17 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Serviço unificado para gestão de Webhooks do Ably.
+ * Serviço de processamento de webhooks do Ably para chat em tempo real.
  * <p>
- * Responsável por:
- * 1. Validar a segurança (assinatura HMAC).
- * 2. Processar mensagens recebidas (persistência e notificações).
+ * Responsável por validar assinatura HMAC, persistir mensagens recebidas e disparar notificações
+ * por email (quando permitido) para participantes de uma reserva.
  * </p>
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
+ * @since 2026-03-31
+ * @see MessageService
+ * @see EmailService
  */
 @Slf4j
 @Service
@@ -44,7 +49,11 @@ public class WebhookService {
     private static final String HMAC_SHA256 = "HmacSHA256";
 
     /**
-     * Valida a assinatura de uma requisição de webhook.
+     * Valida a assinatura HMAC-SHA256 do webhook.
+     *
+     * @param requestBody corpo bruto do webhook
+     * @param signatureHeader cabeçalho com a assinatura (sha256=...)
+     * @return true se a assinatura corresponder ao corpo, caso contrário false
      */
     public boolean isSignatureValid(String requestBody, String signatureHeader) {
         if (signatureHeader == null || requestBody == null) return false;
@@ -61,12 +70,14 @@ public class WebhookService {
     }
 
     /**
-     * Processa o payload do webhook de forma assíncrona.
+     * Processa o payload do webhook de forma assíncrona, persistindo e notificando participantes.
+     *
+     * @param payload payload já desserializado do Ably
      */
     @Async
     public void processPayload(AblyWebhookPayload payload) {
         if (payload.messages() == null) return;
-        
+
         payload.messages().forEach(msg -> {
             try {
                 processSingleMessage(payload.channel(), msg);
@@ -76,6 +87,12 @@ public class WebhookService {
         });
     }
 
+    /**
+     * Processa uma única mensagem do webhook para um canal específico.
+     *
+     * @param channel nome do canal (ex.: booking-chat:123)
+     * @param message mensagem recebida
+     */
     private void processSingleMessage(String channel, AblyWebhookMessage message) {
         Long bookingId = extractBookingId(channel);
         if (bookingId == null) return;
@@ -83,11 +100,9 @@ public class WebhookService {
         String senderId = message.clientId();
         String content = message.data();
 
-        // 1. Persistir
         messageService.saveMessage(bookingId, senderId, content);
         log.info("Mensagem persistida via webhook para Booking ID {}", bookingId);
 
-        // 2. Identificar Destinatário
         Set<Long> participants = proxy.bookingClient().getBookingParticipants(bookingId);
         Long receiverId = participants.stream()
                 .filter(id -> !id.toString().equals(senderId))
@@ -96,7 +111,6 @@ public class WebhookService {
 
         if (receiverId == null) return;
 
-        // 3. Verificar Preferências e Enviar Email
         NexusClients.UserPreferencesDTO preferences = proxy.userClient().getUserPreferences(receiverId);
         if (preferences != null && preferences.emailNotificationsEnabled()) {
             String receiverEmail = proxy.userClient().getUserEmail(receiverId);
@@ -104,6 +118,12 @@ public class WebhookService {
         }
     }
 
+    /**
+     * Extrai o ID de reserva de um nome de canal (booking-chat:<id>).
+     *
+     * @param channel nome do canal
+     * @return id da reserva ou null se inválido
+     */
     private Long extractBookingId(String channel) {
         if (channel != null && channel.startsWith("booking-chat:")) {
             try {
@@ -115,14 +135,19 @@ public class WebhookService {
         return null;
     }
 
+    /**
+     * Envia notificação de email sobre nova mensagem do chat.
+     *
+     * @param email destinatário
+     * @param messageContent conteúdo da mensagem
+     * @param bookingId id da reserva
+     */
     private void sendEmailNotification(String email, String messageContent, Long bookingId) {
         Map<String, Object> variables = new HashMap<>();
         variables.put("bookingId", bookingId);
         variables.put("messageContent", messageContent);
         emailService.sendEmailFromTemplate(email, "Nova mensagem na reserva #" + bookingId, "chat-notification", variables);
     }
-
-    // --- DTOs Internos ---
 
     public record AblyWebhookPayload(
             @JsonProperty("channel") String channel,

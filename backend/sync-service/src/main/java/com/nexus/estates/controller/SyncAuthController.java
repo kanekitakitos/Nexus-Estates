@@ -1,7 +1,7 @@
 package com.nexus.estates.controller;
 
 import com.nexus.estates.client.Proxy;
-import com.nexus.estates.service.interfaces.ChatPlatform;
+import com.nexus.estates.service.chat.ChatPlatform;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

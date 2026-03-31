@@ -1,4 +1,4 @@
-package com.nexus.estates.service;
+package com.nexus.estates.service.external;
 
 import com.nexus.estates.dto.ExternalApiConfig;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -25,6 +25,7 @@ import java.util.Optional;
  *
  * @author Nexus Estates Architect
  * @version 2.0
+ * @since 2026-03-31
  */
 @Slf4j
 @Service
@@ -35,17 +36,13 @@ public class ExternalSyncService {
     private final ExternalAuthService authService;
 
     /**
-     * Executa uma requisição HTTP POST para um serviço externo com proteção de resiliência.
-     * <p>
-     * Se a chamada falhar repetidamente ou se o circuito estiver aberto, o método
-     * retorna um {@code Optional.empty()} em vez de propagar uma exceção.
-     * </p>
+     * Executa POST resiliente esperando um corpo de resposta.
      *
-     * @param config   Configurações da API (Base URL, Endpoint, Auth).
-     * @param payload  Objeto a ser enviado no corpo da requisição (JSON).
-     * @param respType Classe do tipo de resposta esperada para o mapeamento.
-     * @param <T>      Tipo genérico do objeto de resposta.
-     * @return {@code Optional<T>} com o resultado se bem-sucedido; {@code Optional.empty()} caso contrário.
+     * @param config   configuração de API externa
+     * @param payload  corpo da requisição
+     * @param respType tipo da resposta esperada
+     * @param <T>      tipo genérico de resposta
+     * @return Optional com resposta ou vazio em falha
      */
     @Retry(name = "externalApi", fallbackMethod = "fallbackGenericRequest")
     @CircuitBreaker(name = "externalApi")
@@ -64,11 +61,11 @@ public class ExternalSyncService {
     }
 
     /**
-     * Versão simplificada do POST que não espera corpo de resposta (204 No Content ou similar).
+     * Executa POST resiliente sem esperar corpo de resposta.
      *
-     * @param config  Configuração da API.
-     * @param payload Objeto a ser enviado.
-     * @return true se a requisição foi bem-sucedida, false se falhou após retries/circuit breaker.
+     * @param config  configuração de API externa
+     * @param payload corpo da requisição
+     * @return true em sucesso; false em fallback/falha
      */
     @Retry(name = "externalApi", fallbackMethod = "fallbackBodilessRequest")
     @CircuitBreaker(name = "externalApi")
@@ -87,18 +84,7 @@ public class ExternalSyncService {
     }
 
     /**
-     * Método de Fallback para requisições que esperam um corpo de resposta.
-     * <p>
-     * Invocado quando o Circuit Breaker está aberto ou após todas as tentativas de
-     * Retry falharem. Regista o erro e retorna um {@code Optional.empty()}.
-     * </p>
-     *
-     * @param config   A configuração original da requisição.
-     * @param payload  O payload que falhou ao ser enviado.
-     * @param respType O tipo de resposta esperado.
-     * @param ex       A exceção que originou a falha.
-     * @param <T>      Tipo genérico da resposta.
-     * @return {@code Optional.empty()} indicando falha na operação.
+     * Fallback para POST com resposta.
      */
     private <T> Optional<T> fallbackGenericRequest(ExternalApiConfig config, Object payload, Class<T> respType, Throwable ex) {
         log.error("Circuit Breaker ou Retry falhou para {}. Motivo: {}", config.baseUrl(), ex.getMessage());
@@ -106,16 +92,7 @@ public class ExternalSyncService {
     }
 
     /**
-     * Método de Fallback para requisições sem corpo de resposta.
-     * <p>
-     * Semelhante ao {@link #fallbackGenericRequest}, mas adaptado para métodos
-     * que retornam um booleano de sucesso.
-     * </p>
-     *
-     * @param config  A configuração original da requisição.
-     * @param payload O payload que falhou ao ser enviado.
-     * @param ex      A exceção que originou a falha.
-     * @return {@code false} indicando que a operação falhou.
+     * Fallback para POST sem resposta.
      */
     private boolean fallbackBodilessRequest(ExternalApiConfig config, Object payload, Throwable ex) {
         log.error("Falha crítica ao enviar dados para {}: {}", config.baseUrl(), ex.getMessage());

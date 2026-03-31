@@ -1,4 +1,4 @@
-package com.nexus.estates.service;
+package com.nexus.estates.service.calendar;
 
 import biweekly.Biweekly;
 import biweekly.ICalendar;
@@ -7,16 +7,16 @@ import biweekly.io.TimezoneAssignment;
 import biweekly.io.TimezoneInfo;
 import biweekly.property.DateEnd;
 import biweekly.property.DateStart;
-import biweekly.property.Summary;
 import biweekly.property.ICalProperty;
+import biweekly.property.Summary;
 import biweekly.property.Uid;
 import biweekly.util.DateTimeComponents;
 import biweekly.util.ICalDate;
 import com.nexus.estates.dto.SyncBlockDTO;
 import org.springframework.stereotype.Service;
 
-import java.io.InputStream;
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -24,37 +24,27 @@ import java.util.List;
 import java.util.TimeZone;
 
 /**
- * Serviço responsável por interpretar ficheiros iCal (.ics) e normalizar
- * os eventos de bloqueio em instantes UTC.
+ * Serviço responsável por interpretar ficheiros iCalendar (.ics) e normalizar eventos em UTC.
  * <p>
- * Este componente isola toda a complexidade de parsing do formato iCalendar,
- * garantindo que:
+ * Este componente isola a complexidade de parsing iCalendar, convertendo diferentes representações
+ * temporais (TZID, floating, VALUE=DATE) para {@link Instant} UTC e devolvendo uma lista de
+ * {@link SyncBlockDTO} pronta para publicação/consumo por outros serviços.
  * </p>
- * <ul>
- *   <li>Eventos com timezone explícito ({@code TZID}) são convertidos corretamente para UTC;</li>
- *   <li>Eventos {@code floating} (sem timezone) são resolvidos com base na configuração local;</li>
- *   <li>Eventos de dia inteiro ({@code VALUE=DATE}) são tratados como limites de dia em UTC;</li>
- *   <li>Datas resultantes são sempre expostas como {@link java.time.Instant} em UTC.</li>
- * </ul>
- * <p>
- * A saída é uma lista de {@link SyncBlockDTO} pronta a ser consumida pelo
- * restante domínio de sincronização de calendários (ex.: publicação de eventos
- * AMQP para o booking-service).
- * </p>
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
+ * @since 2026-03-31
+ * @see SyncBlockDTO
  */
 @Service
 public class IcsCalendarParserService {
 
     /**
-     * Faz o parsing de um ficheiro iCal (.ics) a partir de um {@link InputStream}.
-     * <p>
-     * Use este método quando o conteúdo for recebido como ficheiro (ex.: upload
-     * multipart ou leitura de disco). O stream não é fechado pelo método.
-     * </p>
+     * Interpreta o conteúdo .ics de um InputStream e extrai blocos normalizados.
      *
-     * @param icsInputStream stream com o conteúdo bruto do ficheiro .ics.
-     * @return lista de blocos normalizados extraídos do calendário.
-     * @throws IllegalArgumentException se o conteúdo não respeitar o formato iCal.
+     * @param icsInputStream stream com conteúdo iCalendar
+     * @return lista de blocos normalizados em UTC
+     * @throws IllegalArgumentException se o conteúdo estiver inválido
      */
     public List<SyncBlockDTO> parseBlocks(InputStream icsInputStream) {
         try {
@@ -70,15 +60,11 @@ public class IcsCalendarParserService {
     }
 
     /**
-     * Faz o parsing de um ficheiro iCal (.ics) recebido como {@link String}.
-     * <p>
-     * O conteúdo é convertido internamente para UTF-8 antes de ser processado
-     * pela biblioteca biweekly.
-     * </p>
+     * Interpreta o conteúdo .ics textual e extrai blocos normalizados.
      *
-     * @param icsContents conteúdo textual completo de um ficheiro .ics.
-     * @return lista de blocos normalizados extraídos do calendário.
-     * @throws IllegalArgumentException se o conteúdo não respeitar o formato iCal.
+     * @param icsContents conteúdo iCalendar em texto
+     * @return lista de blocos normalizados em UTC
+     * @throws IllegalArgumentException se o conteúdo estiver inválido
      */
     public List<SyncBlockDTO> parseBlocks(String icsContents) {
         try (InputStream is = new ByteArrayInputStream(icsContents.getBytes(StandardCharsets.UTF_8))) {
@@ -94,15 +80,10 @@ public class IcsCalendarParserService {
     }
 
     /**
-     * Converte uma coleção de {@link ICalendar} em blocos normalizados.
-     * <p>
-     * Apenas eventos ({@link VEvent}) que possuam ambas as propriedades
-     * {@code DTSTART} e {@code DTEND} são considerados válidos. Cada par
-     * é convertido para instantes UTC através de {@link #toInstantUtc(ICalDate, TimezoneInfo, ICalProperty)}.
-     * </p>
+     * Converte calendários parseados em uma lista de blocos de sincronização.
      *
-     * @param calendars lista de calendários iCal já parseados.
-     * @return lista de blocos normalizados representando os eventos de bloqueio.
+     * @param calendars lista de calendários iCal já parseados
+     * @return blocos normalizados com instantes UTC
      */
     private List<SyncBlockDTO> extractBlocks(List<ICalendar> calendars) {
         List<SyncBlockDTO> result = new ArrayList<>();
@@ -134,21 +115,12 @@ public class IcsCalendarParserService {
     }
 
     /**
-     * Converte uma data/hora iCal para um {@link Instant} em UTC.
-     * <p>
-     * A resolução do fuso horário respeita a configuração de {@link TimezoneInfo}:
-     * </p>
-     * <ul>
-     *   <li>Datas sem componente de hora ({@code VALUE=DATE}) são assumidas em UTC;</li>
-     *   <li>Datas {@code floating} utilizam o timezone por omissão da JVM;</li>
-     *   <li>Datas com {@code TZID} usam a {@link TimezoneAssignment} correspondente;</li>
-     *   <li>Na ausência de mapeamento, é utilizado UTC como valor por defeito.</li>
-     * </ul>
+     * Converte uma data iCal para {@link Instant} em UTC, respeitando TZID/floating/DATE.
      *
-     * @param icalDate data/hora proveniente da propriedade iCal.
-     * @param tzinfo   contexto de timezones do calendário.
-     * @param property propriedade original (ex.: {@link DateStart} ou {@link DateEnd}) usada para resolução de timezone.
-     * @return instante UTC equivalente.
+     * @param icalDate data iCal
+     * @param tzinfo   contexto de timezone do calendário
+     * @param property propriedade original (DTSTART/DTEND)
+     * @return instante em UTC
      */
     private Instant toInstantUtc(ICalDate icalDate, TimezoneInfo tzinfo, ICalProperty property) {
         DateTimeComponents comps = icalDate.getRawComponents();

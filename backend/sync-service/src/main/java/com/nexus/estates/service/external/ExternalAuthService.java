@@ -1,4 +1,4 @@
-package com.nexus.estates.service;
+package com.nexus.estates.service.external;
 
 import com.nexus.estates.dto.ExternalApiConfig;
 import org.springframework.http.HttpHeaders;
@@ -16,22 +16,18 @@ import java.util.Base64;
  *
  * @author Nexus Estates Architect
  * @version 1.0
+ * @since 2026-03-31
  */
 @Service
 public class ExternalAuthService {
 
     /**
-     * Aplica os cabeçalhos de autenticação e headers customizados num objeto {@code HttpHeaders}.
-     * <p>
-     * Este método é chamado automaticamente durante o fluxo de uma requisição resiliente
-     * para garantir que as credenciais são injetadas no formato esperado pelo fornecedor.
-     * </p>
+     * Aplica autenticação e headers customizados aos cabeçalhos HTTP.
      *
-     * @param headers O objeto de cabeçalhos do Spring que será modificado.
-     * @param config  A configuração da API externa contendo o tipo de autenticação e credenciais.
+     * @param headers cabeçalhos a serem preenchidos
+     * @param config  configuração da API externa (tipo de auth, credenciais, headers)
      */
     public void applyAuthentication(HttpHeaders headers, ExternalApiConfig config) {
-        // Primeiro aplicamos a autenticação
         if (config.authType() != null && config.authType() != ExternalApiConfig.AuthType.NONE) {
             switch (config.authType()) {
                 case BEARER -> headers.setBearerAuth(config.credentials());
@@ -41,17 +37,16 @@ public class ExternalAuthService {
             }
         }
 
-        // DEPOIS aplicamos os headers customizados (sempre, mesmo que authType seja NONE)
         if (config.customHeaders() != null) {
             config.customHeaders().forEach(headers::add);
         }
     }
 
     /**
-     * Aplica autenticação HTTP Basic aos cabeçalhos.
+     * Aplica autenticação Basic (Base64 de user:pass).
      *
-     * @param headers     O objeto de cabeçalhos a ser modificado.
-     * @param credentials String no formato "utilizador:password" a ser codificada em Base64.
+     * @param headers     cabeçalhos
+     * @param credentials credenciais user:pass
      */
     private void applyBasicAuth(HttpHeaders headers, String credentials) {
         if (credentials != null && !credentials.isBlank()) {
@@ -61,17 +56,12 @@ public class ExternalAuthService {
     }
 
     /**
-     * Aplica uma API Key aos cabeçalhos da requisição.
-     * <p>
-     * Por defeito, utiliza o cabeçalho {@code X-API-Key}, a menos que um cabeçalho
-     * com o mesmo nome já tenha sido definido nas configurações customizadas.
-     * </p>
+     * Aplica API Key num header padrão X-API-Key (se não customizado).
      *
-     * @param headers O objeto de cabeçalhos a ser modificado.
-     * @param config  A configuração da API contendo a chave.
+     * @param headers cabeçalhos
+     * @param config  configuração com chave
      */
     private void applyApiKey(HttpHeaders headers, ExternalApiConfig config) {
-        // Por padrão, assume que API Key vai no header X-API-Key se não houver custom headers
         if (config.customHeaders() == null || !config.customHeaders().containsKey("X-API-Key")) {
             headers.set("X-API-Key", config.credentials());
         }

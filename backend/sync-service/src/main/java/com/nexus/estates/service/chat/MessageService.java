@@ -1,4 +1,4 @@
-package com.nexus.estates.service;
+package com.nexus.estates.service.chat;
 
 import com.nexus.estates.entity.Message;
 import com.nexus.estates.repository.MessageRepository;
@@ -10,11 +10,16 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Serviço responsável pela gestão do histórico de mensagens de chat.
+ * Serviço responsável pela persistência e consulta do histórico de mensagens de chat.
  * <p>
- * Garante que todas as mensagens trocadas em tempo real sejam persistidas localmente
- * para auditoria e recuperação futura, independente da retenção do provedor externo.
+ * Mantém uma cópia local das mensagens trocadas em tempo real para auditoria e recuperação,
+ * independente da retenção e disponibilidade do fornecedor externo.
  * </p>
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
+ * @since 2026-03-31
+ * @see com.nexus.estates.entity.Message
  */
 @Slf4j
 @Service
@@ -24,12 +29,12 @@ public class MessageService {
     private final MessageRepository messageRepository;
 
     /**
-     * Salva uma nova mensagem no histórico local.
+     * Persiste uma nova mensagem associada a uma reserva.
      *
-     * @param bookingId O ID da reserva associada.
-     * @param senderId  O ID do remetente.
-     * @param content   O conteúdo da mensagem.
-     * @return A entidade {@link Message} persistida.
+     * @param bookingId id da reserva
+     * @param senderId  id do remetente
+     * @param content   conteúdo da mensagem
+     * @return entidade persistida
      */
     @Transactional
     public Message saveMessage(Long bookingId, String senderId, String content) {
@@ -43,10 +48,10 @@ public class MessageService {
     }
 
     /**
-     * Recupera o histórico completo de mensagens de uma reserva.
+     * Obtém o histórico completo de mensagens para uma reserva.
      *
-     * @param bookingId O ID da reserva.
-     * @return Uma lista de mensagens ordenadas cronologicamente.
+     * @param bookingId id da reserva
+     * @return lista cronológica de mensagens
      */
     @Transactional(readOnly = true)
     public List<Message> getMessagesByBookingId(Long bookingId) {

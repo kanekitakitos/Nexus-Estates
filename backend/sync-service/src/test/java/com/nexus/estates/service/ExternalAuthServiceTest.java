@@ -1,6 +1,7 @@
 package com.nexus.estates.service;
 
 import com.nexus.estates.dto.ExternalApiConfig;
+import com.nexus.estates.service.external.ExternalAuthService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
