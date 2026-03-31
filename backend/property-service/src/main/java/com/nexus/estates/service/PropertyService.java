@@ -101,6 +101,9 @@ public class PropertyService {
         // Conversão de Double (DTO) para BigDecimal (Entity)
         property.setBasePrice(BigDecimal.valueOf(request.price()));
         property.setLocation(request.location());
+        property.setCity(request.city());
+        property.setAddress(request.address());
+        property.setMaxGuests(request.maxGuests());
 
         // Atribui o mapa de descrições (que será guardado como JSONB no Postgres)
         property.setDescription(request.description());

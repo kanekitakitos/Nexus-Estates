@@ -83,7 +83,10 @@ class PropertyServiceTest {
                 Map.of("pt", "Descrição detalhada", "en", "Detailed description"),
                 100.0, // Preço base de 100 para facilitar cálculos
                 1L,
+                "Lisboa",
+                "Lisboa",
                 "Avenida Principal, 123",
+                4,
                 Set.of(5L, 10L)
         );
 

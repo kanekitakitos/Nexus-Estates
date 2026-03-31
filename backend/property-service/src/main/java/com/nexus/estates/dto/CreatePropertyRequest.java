@@ -48,6 +48,19 @@ public record CreatePropertyRequest(
         @NotBlank(message = "Location is required")
         String location,
 
+        @Schema(description = "Cidade onde o imóvel se localiza", example = "Lagos")
+        @NotBlank(message = "City is required")
+        String city,
+
+        @Schema(description = "Morada completa do imóvel", example = "Rua das Gaivotas, Lote 2")
+        @NotBlank(message = "Address is required")
+        String address,
+
+        @Schema(description = "Número máximo de hóspedes", example = "4")
+        @NotNull(message = "Maximum number of guests is required")
+        @Min(value = 1, message = "Property must accommodate at least 1 guest")
+        Integer maxGuests,
+
         @Schema(description = "Lista de IDs das comodidades associadas", example = "[1, 5, 12]")
         Set<Long> amenityIds
 
