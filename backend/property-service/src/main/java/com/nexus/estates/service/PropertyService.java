@@ -12,6 +12,7 @@ import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.PropertyChangeLog;
 import com.nexus.estates.entity.PropertyRule;
 import com.nexus.estates.entity.SeasonalityRule;
+import com.nexus.estates.exception.AmenityNotFoundException;
 import com.nexus.estates.exception.PropertyNotFoundException;
 import com.nexus.estates.repository.AmenityRepository;
 import com.nexus.estates.repository.PermissionRepository;
@@ -21,7 +22,6 @@ import com.nexus.estates.repository.PropertyRuleRepository;
 import com.nexus.estates.repository.SeasonalityRuleRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -145,15 +145,11 @@ public class PropertyService {
     }
 
     /**
-     * Atualiza a lista de comodidades de uma propriedade existente.
-     *
-     * <p>Este método permite a gestão dinâmica de atributos da propriedade,
-     * resolvendo a relação Many-to-Many entre Property e Amenity.</p>
+     * Substitui a lista de comodidades de uma propriedade.
      *
      * @param propertyId identificador da propriedade a atualizar
      * @param amenityIds conjunto de IDs das novas comodidades
      * @return propriedade atualizada
-     * @throws PropertyNotFoundException caso o ID seja inválido
      */
     @Transactional
     public Property updateAmenities(Long propertyId, Set<Long> amenityIds) {
@@ -168,6 +164,42 @@ public class PropertyService {
             property.getAmenities().clear();
         }
 
+        return repository.save(property);
+    }
+
+    /**
+     * Adiciona uma comodidade específica a uma propriedade.
+     *
+     * @param propertyId ID da propriedade.
+     * @param amenityId ID da comodidade a adicionar.
+     * @return Propriedade atualizada.
+     */
+    @Transactional
+    public Property addAmenity(Long propertyId, Long amenityId) {
+        log.info("Adicionando comodidade {} à propriedade {}", amenityId, propertyId);
+        Property property = findById(propertyId);
+        Amenity amenity = amenityRepository.findById(amenityId)
+                .orElseThrow(() -> new AmenityNotFoundException(amenityId));
+        
+        property.getAmenities().add(amenity);
+        return repository.save(property);
+    }
+
+    /**
+     * Remove uma comodidade específica de uma propriedade.
+     *
+     * @param propertyId ID da propriedade.
+     * @param amenityId ID da comodidade a remover.
+     * @return Propriedade atualizada.
+     */
+    @Transactional
+    public Property removeAmenity(Long propertyId, Long amenityId) {
+        log.info("Removendo comodidade {} da propriedade {}", amenityId, propertyId);
+        Property property = findById(propertyId);
+        Amenity amenity = amenityRepository.findById(amenityId)
+                .orElseThrow(() -> new AmenityNotFoundException(amenityId));
+        
+        property.getAmenities().remove(amenity);
         return repository.save(property);
     }
 

@@ -38,8 +38,8 @@ class PropertyControllerTest {
         imageStorageService = mock(ImageStorageService.class);
         repository = mock(PropertyRepository.class);
         ruleService = mock(PropertyRuleService.class);
-
         seasonalityRuleService = mock(SeasonalityRuleService.class);
+        
         controller = new PropertyController(propertyService, imageStorageService, repository, ruleService, seasonalityRuleService);
     }
 
@@ -67,6 +67,36 @@ class PropertyControllerTest {
     }
 
     @Test
+    @DisplayName("Should add amenity to property successfully")
+    void shouldAddAmenityToProperty() {
+        Long propertyId = 1L;
+        Long amenityId = 5L;
+        when(propertyService.addAmenity(propertyId, amenityId)).thenReturn(new Property());
+
+        ResponseEntity<ApiResponse<Property>> response = controller.addAmenity(propertyId, amenityId);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().isSuccess());
+        verify(propertyService).addAmenity(propertyId, amenityId);
+    }
+
+    @Test
+    @DisplayName("Should remove amenity from property successfully")
+    void shouldRemoveAmenityFromProperty() {
+        Long propertyId = 1L;
+        Long amenityId = 5L;
+        when(propertyService.removeAmenity(propertyId, amenityId)).thenReturn(new Property());
+
+        ResponseEntity<ApiResponse<Property>> response = controller.removeAmenity(propertyId, amenityId);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().isSuccess());
+        verify(propertyService).removeAmenity(propertyId, amenityId);
+    }
+
+    @Test
     @DisplayName("Should return upload parameters asynchronously")
     void shouldReturnUploadParameters() throws Exception {
         Map<String, Object> mockParams = Map.of("signature", "123", "timestamp", "456");
@@ -74,7 +104,6 @@ class PropertyControllerTest {
 
         CompletableFuture<ResponseEntity<ApiResponse<Map<String, Object>>>> futureResponse = controller.getUploadParams();
         
-        // Adiciona timeout para evitar bloqueio no CI
         ResponseEntity<ApiResponse<Map<String, Object>>> response = futureResponse.get(2, TimeUnit.SECONDS);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());

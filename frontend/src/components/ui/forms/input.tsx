@@ -39,4 +39,18 @@ function Input({ className, type, variant="default", ...props }: React.Component
   )
 }
 
-export { Input }
+function BrutalInput({ className, type, variant="brutal", ...props }: React.ComponentProps<"input"> & VariantProps<typeof inputVariants>) {
+  return (
+    <input
+      type={type}
+      data-variant={variant}
+      data-slot="input"
+      className={cn(
+        inputVariants({ variant, className }),
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Input, BrutalInput }
