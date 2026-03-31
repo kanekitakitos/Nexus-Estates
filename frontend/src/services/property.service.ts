@@ -2,6 +2,8 @@ import { propertiesAxios, ApiResponse } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import { BookingProperty } from "@/features/bookings/components/booking-card";
 import { toast } from "sonner";
+import {extend} from "zod/v4-mini";
+import {OwnProperty} from "@/components/layout/properti/property-view";
 
 type PropertyTranslation = {
     pt?: string;
@@ -30,11 +32,57 @@ type PropertyApiItem = {
 
 export type CreatePropertyRequest = {
     title: string;
-    description: Map<string, string>;
+    description: Record<string, string>;
     price: number;
     ownerId: number;
     location:string;
-    amenityIds:Set<number>;
+    city: string;
+    address: string;
+    maxGuests:number;
+    amenityIds:number[];
+}
+export type EditPropertyRequest = {
+    title: string;
+    description: Record<string, string>;
+    price: number;
+    ownerId: number; // Este costuma ir no header, mas deixamos se a API pedir
+    location: string;
+    city: string;
+    address: string;
+    maxGuests: number;
+    amenityIds: number[];
+    isActive: boolean;
+}
+
+export interface SortInfo {
+    direction: string;
+    ascending: boolean;
+    property: string;
+    ignoreCase: boolean;
+    nullHandling: string;
+}
+
+export interface PageableInfo {
+    offset: number;
+    pageSize: number;
+    pageNumber: number;
+    paged: boolean;
+    unpaged: boolean;
+    sort: SortInfo[];
+}
+
+export type OwnPropertiesPage = {
+    content: OwnProperty[];
+    totalElements: number;
+    totalPages: number;
+    size: number;
+    number: number;
+    sort: SortInfo[];
+    first: boolean;
+    last: boolean;
+    numberOfElements: number;
+    pageable: PageableInfo;
+    empty: boolean;
 }
 
 /**
@@ -45,6 +93,34 @@ export class PropertyService {
     static async creatPropertie(property : CreatePropertyRequest):Promise<number>{
         try {
             const response = await propertiesAxios.post<ApiResponse<PropertyApiItem>>("", property)
+
+            return response.status
+        }catch (error) {
+            this.handleError(error, "criar propriedade");
+            throw error;
+        }
+    }
+
+    static async editPropertie(id : string | number, property : CreatePropertyRequest):Promise<number>{
+        try {
+            const userId = localStorage.getItem("userId")
+
+            /* TODO: Melhorar*/
+            if (!userId) {
+                const authError = new Error("Sessão expirada ou utilizador não autenticado.");
+                this.handleError(authError, "validar utilizador");
+                throw authError;
+            }
+
+            const response = await propertiesAxios.patch<ApiResponse<PropertyApiItem>>(
+                `/${id}`,
+                property,
+                {
+                    headers: {
+                        "X-Actor-UserId": userId ? Number(userId) : 0
+                    }
+                }
+            )
 
             return response.status
         }catch (error) {
@@ -88,11 +164,27 @@ export class PropertyService {
     }
 
     /**
-     * TODO: implement
+     * Procura todas as propriedades pertencentes ao utilizador logado.
+     * Retorna o array de propriedades (content) da página.
      */
-    static async getAllOwnProperties(): Promise<BookingProperty[]>{
+    static async getAllOwnProperties(): Promise<OwnProperty[]>{
+        try {
+            const ownerID = localStorage.getItem("userId")
+            if (!ownerID) {
+                console.error("User ID não encontrado no localStorage");
+                return [];
+            }
 
-        return []
+            const response = await propertiesAxios.get<ApiResponse<OwnPropertiesPage>>(`/by-user/${ownerID}`)
+            // O Spring Boot coloca os dados dentro de .data.content
+            if (response.data.success && response.data.data) {
+                return response.data.data.content;
+            }
+            return []
+        }catch (error){
+            this.handleError(error, "listar propriedades do utilizador");
+            return [];
+        }
     }
 
 

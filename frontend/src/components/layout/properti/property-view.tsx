@@ -7,25 +7,39 @@ import { BookingProperty } from "@/features/bookings/components/booking-card"
 import { cn } from "@/lib/utils"
 import {useView} from "@/features/view-context";
 import {PropertyService} from "@/services/property.service";
-
-const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
-const HERO_CONTAINER_STYLES = "flex flex-col space-y-2 mb-8 transition-all duration-500"
-const HERO_TITLE_STYLES = "text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter uppercase mb-2"
-const HERO_PILL_PRIMARY_STYLES = "bg-primary text-primary-foreground px-2 inline-block -rotate-1 mr-2 shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)]"
-const HERO_UNDERLINE_TEXT_STYLES = "text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/70 underline decoration-4 decoration-primary underline-offset-4"
-const HERO_SUBTITLE_STYLES = "text-lg md:text-xl text-muted-foreground font-mono max-w-2xl border-l-4 border-primary pl-4"
-const SEARCH_WRAPPER_ANIMATION_LEAVE = "animate-fly-out-chaos-2 delay-100"
-const SEARCH_WRAPPER_ANIMATION_RETURN = "animate-fly-in-chaos-2 delay-100"
-const LIST_CONTAINER_STYLES = "relative"
-const LIST_DECORATOR_STYLES = "absolute -left-4 top-0 bottom-0 w-1 bg-foreground/10"
+import {Toaster} from "@/components/ui/feedback/sonner-brutal";
+import {toast} from "sonner";
 
 
-export const MOCK_PROPERTIES: BookingProperty[] = [
+const VIEW_CONTAINER_STYLES = "relative"
+
+
+export interface OwnProperty {
+    id: string
+    title: string
+    description: string
+    location: string
+    city: string
+    address: string
+    maxGuests: number
+    price: number
+    imageUrl: string
+    status: "AVAILABLE" | "BOOKED" | "MAINTENANCE"
+    rating?: number
+    featured?: boolean
+    tags?: string[]
+}
+
+
+export const MOCK_PROPERTIES: OwnProperty[] = [
     {
         id: "1",
         title: "Modern Loft in Downtown",
         description: "Experience city living at its finest in this spacious loft with floor-to-ceiling windows and modern amenities.",
         location: "New York, NY",
+        city: "New York",
+        address: "Rua das Gaivotas, Lote 2",
+        maxGuests: 2,
         price: 250,
         imageUrl: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1000&auto=format&fit=crop",
         status: "AVAILABLE",
@@ -38,9 +52,12 @@ export const MOCK_PROPERTIES: BookingProperty[] = [
         title: "Cozy Mountain Cabin",
         description: "Escape to the mountains in this rustic yet luxurious cabin. Perfect for winter getaways and summer hikes.",
         location: "Aspen, CO",
+        city: "Aspen",
+        address: "Pine Tree Road, 45",
+        maxGuests: 4,
         price: 450,
         imageUrl: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?q=80&w=1000&auto=format&fit=crop",
-        status: "BOOKED", // Should be filtered out
+        status: "BOOKED",
         rating: 4.9,
         featured: true,
         tags: ["Fireplace", "Snow Nearby", "Hot Tub"]
@@ -50,10 +67,14 @@ export const MOCK_PROPERTIES: BookingProperty[] = [
         title: "Seaside Villa with Pool",
         description: "Relax by the ocean in this stunning villa featuring a private infinity pool and direct beach access.",
         location: "Malibu, CA",
+        city: "Malibu",
+        address: "Pacific Coast Highway, 1020",
+        maxGuests: 8,
         price: 1200,
         imageUrl: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=1000&auto=format&fit=crop",
         status: "AVAILABLE",
         rating: 5.0,
+        featured: false,
         tags: ["Oceanfront", "Infinity Pool", "Private Beach", "Luxury"]
     },
     {
@@ -61,29 +82,40 @@ export const MOCK_PROPERTIES: BookingProperty[] = [
         title: "Lakefront Cottage",
         description: "Peaceful cottage right on the water's edge. Enjoy fishing, kayaking, or just watching the sunset.",
         location: "Lake Tahoe, NV",
+        city: "Lake Tahoe",
+        address: "Emerald Bay Rd, 5",
+        maxGuests: 3,
         price: 280,
         imageUrl: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=1000&auto=format&fit=crop",
         status: "AVAILABLE",
         rating: 4.6,
+        featured: false,
         tags: ["Lakefront", "Sunset View", "Kayak Included"]
     }
-]
+];
 
 
 export function PropertyView(){
-
     const { selectedPropertyId, selectPropertyId } = useView()
-    const [selectedProperty, setSelectedProperty] = useState<BookingProperty | null>(null)
+    const [selectedProperty, setSelectedProperty] = useState<OwnProperty | null>(null)
 
     const [isLeaving, setIsLeaving] = useState(false)
     const [isReturning, setIsReturning] = useState(false)
+
+
+    let ownProperties: OwnProperty[] = []
+
+    PropertyService.getAllOwnProperties()
+        .then((props: OwnProperty[]) => ownProperties = props)
+        .catch((err)=>{toast.warning("Error ate geting properies, see console"); console.error(err)})
+
 
     /**
      * Manipula a seleção de uma propriedade e inica a animação de saida
      * @param id ID da propriedade
      */
     const handelSelectedProperty = (id:string)=>{
-        const selectProperty = MOCK_PROPERTIES.find((property) => {return property.id === id})
+        const selectProperty = ownProperties.find((property) => {return property.id === id})
 
         if (selectProperty) {
                 setIsLeaving(true)
@@ -122,22 +154,26 @@ export function PropertyView(){
 
 
     if (selectedProperty){
-        // dar cast de BookingProperty | null para apenas BookingProperty
-        const property :BookingProperty = selectedProperty
+        // dar cast de OwnProperty | null para apenas OwnProperty
+        const property :OwnProperty = selectedProperty
         return(
-            <PropertyEdit2 property={property} onBack={()=>selectPropertyId(null)} isExiting={isReturning}/>
-        )
+            <div className={VIEW_CONTAINER_STYLES}>
+                <PropertyEdit2 property={property} onBack={()=>selectPropertyId(null)} isExiting={isReturning}/>
+            </div>
+            )
     }
     else{ // nenhuma propreidade selecionada
         return(
-            <PropertyList
-                variant="CARDS"
-                propertys={MOCK_PROPERTIES}
-                onSelect={(id)=>selectPropertyId(id)}
-                isExiting={isLeaving}
-                animate={true}
-                addNewProperty={true}
-            />)
+            <div className={VIEW_CONTAINER_STYLES}>
+                <PropertyList
+                    variant="CARDS"
+                    propertys={ownProperties}
+                    onSelect={(id)=>selectPropertyId(id)}
+                    isExiting={isLeaving}
+                    animate={true}
+                    addNewProperty={true}
+                />
+        </div>
+        )
     }
-
 }
