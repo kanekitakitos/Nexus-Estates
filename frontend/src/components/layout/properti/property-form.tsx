@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/forms/button";
-import { EditableFieldsI } from "./property-edit2";
+import { EditableFields } from "./property-edit2";
 import { cn } from "@/lib/utils"
 import { useEffect, useCallback, useState, Dispatch, SetStateAction } from "react"
 
@@ -10,7 +10,6 @@ import { BrutalCard, BrutalShard, CardHeader } from "@/components/ui/data-displa
 import { BrutalInput } from "@/components/ui/forms/input"
 import { FieldGroup, FieldSeparator, FieldLabel, Field } from "@/components/ui/forms/field";
 import { Badge } from "@/components/ui/badge"
-import { Check } from "lucide-react"
 import { BrutalButton } from "@/components/ui/forms/button"
 import {CreatePropertyRequest, PropertyService} from "@/services/property.service";
 import {toast} from "sonner";
@@ -43,13 +42,13 @@ export interface PropertyEditContext {
     propertySaved: BookingProperty;
     
     // Funções de update
-    updateProperty: <K extends keyof EditableFieldsI>(field: K, value: EditableFieldsI[K]) => void; //atualiza o estado atual 
+    updateProperty: <K extends keyof EditableFields>(field: K, value: EditableFields[K]) => void; //atualiza o estado atual 
     updateTags: (index:number, value :  string)=>void;
-    savePropertyData: <K extends keyof EditableFieldsI>(field: K, value: EditableFieldsI[K]) => void;  // salva um dos dados
+    savePropertyData: <K extends keyof EditableFields>(field: K, value: EditableFields[K]) => void;  // salva um dos dados
     savePropertyDataAll: () => void; // salva TODOS os dados
     revertToSavedData: () => void; // restaura TODOS os dados
-    revertFields: (fieldSet: (keyof EditableFieldsI)[]) => void; // restaura dados dos fields no Set
-    revertField: (field: keyof EditableFieldsI) => void; // restaura os dados de um field 
+    revertFields: (fieldSet: (keyof EditableFields)[]) => void; // restaura dados dos fields no Set
+    revertField: (field: keyof EditableFields) => void; // restaura os dados de um field 
 }
 
 
@@ -86,14 +85,11 @@ export function PropertyEditForm({propertyState,  onClose, open} :
             setPropertyConcrete(propertySaved)
         },
         revertFields(fields) {
-            setPropertyConcrete((prevData): BookingProperty => {
-                return {
-                    ...prevData,
-                    ...Object.fromEntries(
-                        fields.map(field => [field, propertySaved[field ?? '']]) as any
-                    )
-                };
-            });
+            const patch = fields.reduce((acc, field) => {
+                acc[field] = propertySaved[field];
+                return acc;
+            }, {} as Partial<BookingProperty>);
+            setPropertyConcrete(prevData => ({ ...prevData, ...patch }));
         },
         revertField(field) {
             setPropertyConcrete(prevData => ({...prevData, [field]: propertySaved[field]}))
@@ -127,40 +123,24 @@ export function PropertyEditForm({propertyState,  onClose, open} :
 
     }
 
-    function RevertButton({field}: {field : keyof EditableFieldsI}){
-        var [didChange, setDidChange]:any = []
-        switch(field){
-            case "description": [didChange, setDidChange] = [DescriptionChange, setDescriptionChange]
-                break;
-            case "location": [didChange, setDidChange] = [LocationChange, setLocationChange]
-                break;
-            case "price": [didChange, setDidChange] = [PriceChange, setPriceChange]
-                break;
-            case "tags": [didChange, setDidChange] = [AmenetiesChange, setAmenetiesChange]
-                break;
-            case "title": [didChange, setDidChange] = [TitleChange, setTitleChange]
-                break;
-            default:
-                return(
-                    <></>
-                )
+    const renderRevertButton = (field: keyof EditableFields) => {
+        const map: Partial<Record<keyof EditableFields, [boolean, Dispatch<SetStateAction<boolean>>]>> = {
+            title: [TitleChange, setTitleChange],
+            description: [DescriptionChange, setDescriptionChange],
+            location: [LocationChange, setLocationChange],
+            price: [PriceChange, setPriceChange],
+            tags: [AmenetiesChange, setAmenetiesChange],
         }
-
-        if (didChange){
-            return(
-                <BrutalButton
-                    className="flex-1"
-                    onClick={()=>{context.revertField(field); setDidChange(false)}}
-                >
-                    Revert
-                </BrutalButton>
-            )
-        }
-        else{
-            return(
-                <></>
-            )
-        }
+        const tuple = map[field]
+        if (!tuple) return null
+        const didChange = tuple[0]
+        const setDidChange = tuple[1]
+        if (!didChange) return null
+        return (
+            <BrutalButton className="flex-1" onClick={()=>{context.revertField(field); setDidChange(false)}}>
+                Revert
+            </BrutalButton>
+        )
     }
     
 
@@ -195,7 +175,7 @@ export function PropertyEditForm({propertyState,  onClose, open} :
                                 onChange={(e)=>{context.updateProperty("title", e.target.value); setTitleChange(true)}}
                             >
                             </BrutalInput>
-                            <RevertButton field="title"/>
+                            {renderRevertButton("title")}
                         </div>
                     </Field>
                     <Field className={FIELD_STYLE}>
@@ -210,7 +190,7 @@ export function PropertyEditForm({propertyState,  onClose, open} :
 
                             >
                             </BrutalInput>
-                            <RevertButton field="location"/>
+                            {renderRevertButton("location")}
                         </div>
                     </Field>
 
@@ -233,7 +213,7 @@ export function PropertyEditForm({propertyState,  onClose, open} :
                                 }}
                             >
                             </BrutalInput>
-                            <RevertButton field="price"/>
+                            {renderRevertButton("price")}
                         </div>
                     </Field>
 
@@ -250,7 +230,7 @@ export function PropertyEditForm({propertyState,  onClose, open} :
                                 onChange={(e)=>{context.updateProperty("description", e.target.value); setDescriptionChange(true)}}
                             >
                             </BrutalInput>
-                            <RevertButton field="description"/>
+                            {renderRevertButton("description")}
                         </div>
                     </Field>
 
@@ -309,7 +289,7 @@ export function PropertyEditForm({propertyState,  onClose, open} :
                                     + New Amemity
                                 </Badge>  
                             </div>
-                            <RevertButton field="tags"/>
+                            {renderRevertButton("tags")}
                         </div>
                     </Field>
                     

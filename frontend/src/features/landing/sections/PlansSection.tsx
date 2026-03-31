@@ -3,12 +3,13 @@
 import { motion } from "framer-motion"
 import { B, PLANS, SECTIONS } from "../tokens"
 import { Title } from "../ui/Title"
+import { ease, revealTransition } from "../motion"
 
 export function PlansSection({ s }: { s: typeof SECTIONS[0] }) {
   return (
-      <div className="relative w-full h-full flex flex-col justify-center pl-12 pr-10 md:pr-44 pt-10 pb-8 overflow-hidden">
+      <div className="relative w-full h-full flex flex-col justify-center pl-12 pr-10 md:pr-44 pt-10 pb-8 overflow-hidden" data-bg-obstacle>
         <motion.span className="font-mono text-[9px] uppercase tracking-[0.32em] mb-2 block relative z-20"
-                     style={{ color:`${B.black}45` }}
+                     style={{ color:`${B.black}54` }}
                      initial={{ opacity:0 }} animate={{ opacity:1 }}>
           {s.label} — Planos
         </motion.span>
@@ -19,7 +20,7 @@ export function PlansSection({ s }: { s: typeof SECTIONS[0] }) {
           {PLANS.map((plan, i) => (
               <motion.div key={plan.name}
                           initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }}
-                          transition={{ delay:0.35 + i*0.12, duration:0.7, ease:[0.16,1,0.3,1] }}
+                          transition={{ ...revealTransition, delay: 0.35 + i * 0.12 }}
                           className="relative p-5 flex flex-col group"
                           style={{
                             background: plan.featured ? B.black : B.cream,
@@ -31,13 +32,13 @@ export function PlansSection({ s }: { s: typeof SECTIONS[0] }) {
                 {plan.featured && (
                     <motion.div className="absolute -top-3 left-5 font-mono text-[8px] uppercase tracking-widest px-3 py-1 z-10"
                                  animate={{ y:[-1,1,-1] }}
-                                 transition={{ duration:1.8, repeat:Infinity, ease:"easeInOut" }}
+                                 transition={{ duration: 1.8, repeat: Infinity, ease: ease.inOut }}
                          style={{ background:B.orange, color:B.cream, border:`1px solid ${B.black}` }}>
                       Mais Popular
                     </motion.div>
                 )}
                 <div className="font-mono text-[9px] tracking-widest uppercase mb-2 mt-1"
-                     style={{ color:plan.featured ? `${B.cream}45` : `${B.black}38` }}>
+                     style={{ color:plan.featured ? `${B.cream}54` : `${B.black}43` }}>
                   {plan.name}
                 </div>
                 <div className="flex items-baseline gap-1 mb-1">
@@ -47,15 +48,15 @@ export function PlansSection({ s }: { s: typeof SECTIONS[0] }) {
                   fontFamily:"'Georgia',serif", fontStyle:"italic" }}
                 initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
                 animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                transition={{ delay: 0.48 + i * 0.12, duration: 0.55, ease: [0.16,1,0.3,1] }}
+                transition={{ delay: 0.48 + i * 0.12, duration: 0.55, ease: ease.out }}
               >
                 {plan.price}
               </motion.span>
-                  <span className="font-mono text-[10px] lg:text-xs" style={{ color:plan.featured ? `${B.cream}30` : `${B.black}30` }}>
+                  <span className="font-mono text-[10px] lg:text-xs" style={{ color:plan.featured ? `${B.cream}3A` : `${B.black}3A` }}>
                 {plan.period}
               </span>
                 </div>
-                <p className="text-[11px] lg:text-xs mb-4" style={{ color:plan.featured ? `${B.cream}38` : `${B.black}38` }}>
+                <p className="text-[11px] lg:text-xs mb-4" style={{ color:plan.featured ? `${B.cream}43` : `${B.black}43` }}>
                   {plan.desc}
                 </p>
                 <ul className="flex-1 space-y-1.5 mb-5">
@@ -63,10 +64,10 @@ export function PlansSection({ s }: { s: typeof SECTIONS[0] }) {
                       <motion.li
                         key={f}
                         className="flex items-start gap-2 text-[11px] lg:text-xs leading-tight"
-                        style={{ color:plan.featured ? `${B.cream}55` : `${B.black}55` }}
+                        style={{ color:plan.featured ? `${B.cream}66` : `${B.black}66` }}
                         initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.62 + i * 0.12 + j * 0.06, duration: 0.45, ease: [0.16,1,0.3,1] }}
+                        transition={{ delay: 0.62 + i * 0.12 + j * 0.06, duration: 0.45, ease: ease.out }}
                       >
                         <span style={{ color:B.orange }} className="mt-0.5 text-[8px] lg:text-[9px]">✦</span>{f}
                       </motion.li>
@@ -78,7 +79,7 @@ export function PlansSection({ s }: { s: typeof SECTIONS[0] }) {
                        ? { borderColor:B.orange, color:B.cream, background:B.orange, borderWidth:2 }
                        : { borderColor:B.black, color:B.black, background:"transparent", borderWidth:2 }}
                    animate={plan.featured ? { scale: [1, 1.03, 1] } : undefined}
-                   transition={plan.featured ? { duration: 1.9, repeat: Infinity, ease: "easeInOut", delay: 0.6 } : undefined}
+                   transition={plan.featured ? { duration: 1.9, repeat: Infinity, ease: ease.inOut, delay: 0.6 } : undefined}
                    whileHover={{ rotate: plan.featured ? 0 : -0.4 }}
                    data-hover>
                   Escolher {plan.name} →

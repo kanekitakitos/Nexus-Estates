@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { SECTIONS, B } from "../tokens"
+import { springBounce } from "../motion"
 
 export function Nav({ active, goTo, fg }: { active:number; goTo:(i:number)=>void; fg:string }) {
   return (
@@ -11,7 +12,7 @@ export function Nav({ active, goTo, fg }: { active:number; goTo:(i:number)=>void
           <motion.span className="w-7 h-7 flex items-center justify-center text-[11px] font-black rounded-sm"
                        style={{ background:B.orange, color:B.cream }}
                        whileHover={{ scale:1.1, rotate:-5 }}
-                       transition={{ type:"spring", stiffness:400, damping:17 }}>
+                       transition={springBounce}>
             N
           </motion.span>
           <span className="font-mono text-[11px] font-bold tracking-[0.18em] uppercase hidden sm:block transition-opacity"

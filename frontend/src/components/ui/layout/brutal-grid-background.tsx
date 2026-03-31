@@ -12,6 +12,7 @@ export function BrutalGridBackground({ defaultVariant = "none" }: { defaultVaria
   const shouldReduceMotion = useReducedMotion()
   const [variant, setVariant] = React.useState<BackgroundVariant>(defaultVariant)
   const [viewport, setViewport] = React.useState({ width: 0, height: 0 })
+  const [animationsEnabled, setAnimationsEnabled] = React.useState(true)
 
   React.useEffect(() => {
     if (typeof window === "undefined") return
@@ -37,11 +38,16 @@ export function BrutalGridBackground({ defaultVariant = "none" }: { defaultVaria
     const onResize = () => setViewport({ width: window.innerWidth, height: window.innerHeight })
     onResize()
 
+    const onVisibility = () => setAnimationsEnabled(document.visibilityState === "visible")
+    onVisibility()
+
     window.addEventListener("resize", onResize)
     window.addEventListener(VARIANT_EVENT, sync as EventListener)
+    document.addEventListener("visibilitychange", onVisibility)
     return () => {
       window.removeEventListener("resize", onResize)
       window.removeEventListener(VARIANT_EVENT, sync as EventListener)
+      document.removeEventListener("visibilitychange", onVisibility)
     }
   }, [defaultVariant])
 
@@ -60,7 +66,7 @@ export function BrutalGridBackground({ defaultVariant = "none" }: { defaultVaria
         }}
       />
 
-      {shouldReduceMotion || variant === "none" ? null : (
+      {shouldReduceMotion || variant === "none" || !animationsEnabled ? null : (
         <AnimatePresence mode="wait">
           {variant === "data-pulses" ? <DataPulses key="data-pulses" viewport={viewport} /> : null}
           {variant === "calendar-tetris" ? <CalendarTetris key="calendar-tetris" /> : null}

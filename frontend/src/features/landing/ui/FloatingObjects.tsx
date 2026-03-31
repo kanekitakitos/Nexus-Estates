@@ -1,6 +1,7 @@
 "use client"
-
-import { motion } from "framer-motion"
+ 
+import { useLayoutEffect, useRef } from "react"
+import { useReducedMotion } from "framer-motion"
 
 const ICONS = [
   { // House (Imóveis)
@@ -46,19 +47,190 @@ const ICONS = [
 ]
 
 export function FloatingObjects() {
+  const reduce = useReducedMotion()
+  const iconRefs = useRef<(SVGSVGElement | null)[]>([])
+  const metaRef = useRef<Array<{ tx: number; ty: number; vx: number; vy: number; bxp: number; byp: number; r: number }>>([])
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  useLayoutEffect(() => {
+    if (reduce) return
+    if (metaRef.current.length === 0) {
+      metaRef.current = iconRefs.current.map((_, i) => {
+        const angle = Math.random() * Math.PI * 2
+        const speed = 18 + Math.random() * 24 // px/s
+        // Base position percent to keep icons within central bands (visible without scroll)
+        const bxp = 0.18 + Math.random() * 0.64 // 18% .. 82% width
+        const byp = 0.20 + Math.random() * 0.60 // 20% .. 80% height
+        const sizeMatch = ICONS[i]?.size?.match(/w-(\d+)/)
+        const sizePx = sizeMatch ? parseInt(sizeMatch[1], 10) : 24
+        const r = Math.max(12, sizePx / 2)
+        return {
+          tx: 0,
+          ty: 0,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          bxp,
+          byp,
+          r,
+        }
+      })
+    }
+    // Initial layout pass before first paint
+    const cw0 = containerRef.current?.clientWidth ?? window.innerWidth
+    const ch0 = containerRef.current?.clientHeight ?? window.innerHeight
+    iconRefs.current.forEach((el, i) => {
+      if (!el) return
+      const m = metaRef.current[i]
+      // small jitter to avoid clustering on exact base positions
+      m.tx += (Math.random() - 0.5) * 8
+      m.ty += (Math.random() - 0.5) * 8
+      const baseX = cw0 * m.bxp
+      const baseY = ch0 * m.byp
+      el.style.left = `${baseX}px`
+      el.style.top = `${baseY}px`
+      el.style.transform = `translate3d(${m.tx}px, ${m.ty}px, 0)`
+      el.style.opacity = "0.12"
+      el.style.willChange = "transform, opacity"
+    })
+    let raf = 0
+    let last = performance.now()
+    let obstacles: Array<{ x: number; y: number; w: number; h: number }> = []
+    const refreshObstacles = () => {
+      const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-bg-obstacle]"))
+      obstacles = nodes.map((n) => {
+        const r = n.getBoundingClientRect()
+        return { x: r.left, y: r.top, w: r.width, h: r.height }
+      })
+    }
+    refreshObstacles()
+    window.addEventListener("resize", refreshObstacles)
+    window.addEventListener("scroll", refreshObstacles, { passive: true })
+    const update = () => {
+      const now = performance.now()
+      const dt = (now - last) / 1000
+      last = now
+      const cw = containerRef.current?.clientWidth ?? window.innerWidth
+      const ch = containerRef.current?.clientHeight ?? window.innerHeight
+      const rangeX = cw * 0.18
+      const rangeY = ch * 0.14
+      const posX: number[] = []
+      const posY: number[] = []
+      for (let i = 0; i < metaRef.current.length; i++) {
+        const m = metaRef.current[i]
+        const baseX = cw * m.bxp
+        const baseY = ch * m.byp
+        m.tx += m.vx * dt
+        m.ty += m.vy * dt
+        if (m.tx > rangeX || m.tx < -rangeX) m.vx *= -1
+        if (m.ty > rangeY || m.ty < -rangeY) m.vy *= -1
+        posX[i] = baseX + m.tx
+        posY[i] = baseY + m.ty
+      }
+      for (let i = 0; i < metaRef.current.length; i++) {
+        for (let j = i + 1; j < metaRef.current.length; j++) {
+          const mi = metaRef.current[i]
+          const mj = metaRef.current[j]
+          const dx = posX[j] - posX[i]
+          const dy = posY[j] - posY[i]
+          const minDist = mi.r + mj.r + 6
+          const dist2 = dx * dx + dy * dy
+          if (dist2 > 0 && dist2 < minDist * minDist) {
+            const dist = Math.sqrt(dist2)
+            const nx = dx / dist
+            const ny = dy / dist
+            const overlap = minDist - dist
+            mi.tx -= nx * (overlap * 0.5)
+            mi.ty -= ny * (overlap * 0.5)
+            mj.tx += nx * (overlap * 0.5)
+            mj.ty += ny * (overlap * 0.5)
+            const viDot = mi.vx * nx + mi.vy * ny
+            const vjDot = mj.vx * nx + mj.vy * ny
+            mi.vx -= viDot * nx
+            mi.vy -= viDot * ny
+            mj.vx -= vjDot * nx
+            mj.vy -= vjDot * ny
+          }
+        }
+      }
+      const margin = 12
+      for (let i = 0; i < metaRef.current.length; i++) {
+        const m = metaRef.current[i]
+        const cx = posX[i]
+        const cy = posY[i]
+        for (let k = 0; k < obstacles.length; k++) {
+          const o = obstacles[k]
+          const closestX = Math.max(o.x - margin, Math.min(cx, o.x + o.w + margin))
+          const closestY = Math.max(o.y - margin, Math.min(cy, o.y + o.h + margin))
+          const dx = cx - closestX
+          const dy = cy - closestY
+          const dist2 = dx * dx + dy * dy
+          const minDist = m.r + 8
+          if (dist2 < minDist * minDist) {
+            const dist = Math.max(0.0001, Math.sqrt(dist2))
+            const nx = dx / dist
+            const ny = dy / dist
+            const push = (minDist - dist) * 0.65
+            m.tx += nx * push
+            m.ty += ny * push
+            const vDot = m.vx * nx + m.vy * ny
+            m.vx -= vDot * nx * 0.5
+            m.vy -= vDot * ny * 0.5
+          }
+        }
+      }
+      iconRefs.current.forEach((el, i) => {
+        if (!el) return
+        const m = metaRef.current[i]
+        const baseX = cw * m.bxp
+        const baseY = ch * m.byp
+        const rot = Math.sin(now * 0.001 + i) * 2
+        el.style.left = `${baseX}px`
+        el.style.top = `${baseY}px`
+        el.style.transform = `translate3d(${m.tx}px, ${m.ty}px, 0) rotate(${rot}deg)`
+        const base = 0.03
+        const vary = 0.03
+        const op = base + vary * (0.5 + 0.5 * Math.sin(now * 0.0012 + i))
+        el.style.opacity = String(op)
+        el.style.willChange = "transform, opacity"
+      })
+      raf = requestAnimationFrame(update)
+    }
+    raf = requestAnimationFrame(update)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener("resize", refreshObstacles)
+      window.removeEventListener("scroll", refreshObstacles)
+    }
+  }, [reduce])
   return (
-    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-      {ICONS.map((icon, i) => (
-        <motion.svg
-          key={i}
-          className={`absolute ${icon.pos} ${icon.size} opacity-[0.04] text-current`}
-          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}
-          animate={icon.anim}
-          transition={{ duration: icon.dur, repeat: Infinity, ease: "easeInOut", delay: icon.del }}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d={icon.path} />
-        </motion.svg>
-      ))}
+    <div ref={containerRef} className="fixed inset-0 pointer-events-none z-10 overflow-hidden">
+      <div
+        style={{
+          animation: reduce ? "none" : "bgPulse 12s ease-in-out infinite",
+          willChange: reduce ? undefined : "transform",
+        }}
+      >
+        {ICONS.map((icon, i) => (
+          <svg
+            key={i}
+            ref={(el) => (iconRefs.current[i] = el)}
+            className={`absolute ${icon.size} opacity-[0.12] text-current`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+            style={{ mixBlendMode: "overlay", filter: "drop-shadow(0 0 4px rgba(255,255,255,0.02))" }}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d={icon.path} strokeOpacity={0.75} fill="currentColor" fillOpacity={0.02} />
+          </svg>
+        ))}
+      </div>
+      <style>{`
+        @keyframes bgPulse {
+          0%   { transform: translateZ(0) scale(1) rotate(0deg); }
+          50%  { transform: translateZ(0) scale(1.02) rotate(0.4deg); }
+          100% { transform: translateZ(0) scale(1) rotate(0deg); }
+        }
+      `}</style>
     </div>
   )
 }

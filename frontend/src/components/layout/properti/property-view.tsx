@@ -1,24 +1,10 @@
 "use client"
 
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState } from "react"
 import { PropertyEdit2 } from "./property-edit2"
 import { PropertyList } from "./property-list"
 import { BookingProperty } from "@/features/bookings/components/booking-card"
-import { cn } from "@/lib/utils"
 import {useView} from "@/features/view-context";
-import {PropertyService} from "@/services/property.service";
-
-const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
-const HERO_CONTAINER_STYLES = "flex flex-col space-y-2 mb-8 transition-all duration-500"
-const HERO_TITLE_STYLES = "text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter uppercase mb-2"
-const HERO_PILL_PRIMARY_STYLES = "bg-primary text-primary-foreground px-2 inline-block -rotate-1 mr-2 shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)]"
-const HERO_UNDERLINE_TEXT_STYLES = "text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/70 underline decoration-4 decoration-primary underline-offset-4"
-const HERO_SUBTITLE_STYLES = "text-lg md:text-xl text-muted-foreground font-mono max-w-2xl border-l-4 border-primary pl-4"
-const SEARCH_WRAPPER_ANIMATION_LEAVE = "animate-fly-out-chaos-2 delay-100"
-const SEARCH_WRAPPER_ANIMATION_RETURN = "animate-fly-in-chaos-2 delay-100"
-const LIST_CONTAINER_STYLES = "relative"
-const LIST_DECORATOR_STYLES = "absolute -left-4 top-0 bottom-0 w-1 bg-foreground/10"
-
 
 export const MOCK_PROPERTIES: BookingProperty[] = [
     {
@@ -105,27 +91,19 @@ export function PropertyView(){
 
         setTimeout(() => {
             setSelectedProperty(null)
+            selectPropertyId(null)
             setTimeout(() => {
                 setIsReturning(false)
             }, 1000)
         }, 800)
     }
 
-    useEffect(() => {
-        if(selectedPropertyId == null){
-            handleBack()
-        }
-        else if(selectedPropertyId != selectedProperty?.id){
-            handelSelectedProperty(selectedPropertyId)
-        }
-    }, [selectedPropertyId]);
-
 
     if (selectedProperty){
         // dar cast de BookingProperty | null para apenas BookingProperty
         const property :BookingProperty = selectedProperty
         return(
-            <PropertyEdit2 property={property} onBack={()=>selectPropertyId(null)} isExiting={isReturning}/>
+            <PropertyEdit2 property={property} onBack={handleBack} isExiting={isReturning}/>
         )
     }
     else{ // nenhuma propreidade selecionada
@@ -133,7 +111,7 @@ export function PropertyView(){
             <PropertyList
                 variant="CARDS"
                 propertys={MOCK_PROPERTIES}
-                onSelect={(id)=>selectPropertyId(id)}
+                onSelect={(id)=>{ selectPropertyId(id); handelSelectedProperty(id) }}
                 isExiting={isLeaving}
                 animate={true}
                 addNewProperty={true}

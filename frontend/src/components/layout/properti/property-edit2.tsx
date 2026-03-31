@@ -26,11 +26,7 @@ export interface BookingDetailsProps {
     checkOutDate?: Date | null
 }
 
-/**
- * Fields que o Owner pode editar
- */
-export interface EditableFieldsI extends Pick<BookingProperty, "title" | "description" | "location" | "price" | "imageUrl" |"tags">
-    {/*sem campos extra*/}
+export type EditableFields = Pick<BookingProperty, "title" | "description" | "location" | "price" | "imageUrl" | "tags">
 
 
 // TODO: recolher user do BD
@@ -56,11 +52,11 @@ export function PropertyEdit2({ property : initialProperty, onBack, isExiting, c
 
     const [property, setProperty] = useState<BookingProperty>(initialProperty);
 
-    function updateProperty<K extends keyof EditableFieldsI>(key: K, value: EditableFieldsI[K]){
+    function updateProperty<K extends keyof EditableFields>(key: K, value: EditableFields[K]){
         setProperty(prevData => ({...prevData, [key]:value}))
     }
 
-    const [editField, setEditField] = useState<keyof EditableFieldsI | null>(null)
+    const [editField, setEditField] = useState<keyof EditableFields | null>(null)
 
     const [editFormOpen, setEditFormOpen] = useState<boolean>(false)
 

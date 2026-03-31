@@ -3,12 +3,13 @@
 import { motion } from "framer-motion"
 import { B, SECTIONS } from "../tokens"
 import { Title } from "../ui/Title"
+import { ease, revealTransition } from "../motion"
 
 export function AboutSection({ s }: { s: typeof SECTIONS[0] }) {
   return (
-      <div className="relative w-full h-full flex flex-col justify-center pl-12 pr-10 md:pr-44 pt-16 overflow-hidden">
+      <div className="relative w-full h-full flex flex-col justify-center pl-12 pr-10 md:pr-44 pt-16 overflow-hidden" data-bg-obstacle>
         <motion.span className="font-mono text-[9px] uppercase tracking-[0.32em] mb-4 block relative z-20"
-                     style={{ color:`${B.cream}45` }}
+                     style={{ color:`${B.cream}53` }}
                      initial={{ opacity:0 }} animate={{ opacity:1 }}>
           {s.label} — Sobre
         </motion.span>
@@ -22,7 +23,7 @@ export function AboutSection({ s }: { s: typeof SECTIONS[0] }) {
             ].map((card, i) => (
                 <motion.div key={card.n}
                             initial={{ opacity:0, x:32 }} animate={{ opacity:1, x:0 }}
-                            transition={{ delay:0.3 + i * 0.12, duration:0.7, ease:[0.16,1,0.3,1] }}
+                            transition={{ ...revealTransition, delay: 0.3 + i * 0.12 }}
                             className="p-5 relative overflow-hidden"
                             style={{
                               border:`2px solid rgba(240,236,217,0.55)`,
@@ -45,9 +46,9 @@ export function AboutSection({ s }: { s: typeof SECTIONS[0] }) {
                   </div>
                   <motion.p
                     className="text-xs leading-relaxed relative z-10"
-                    style={{ color:`${B.cream}45` }}
+                    style={{ color:`${B.cream}53` }}
                     animate={{ opacity: [0.92, 1, 0.92] }}
-                    transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
+                    transition={{ duration: 3.6, repeat: Infinity, ease: ease.inOut, delay: i * 0.2 }}
                   >
                     {card.body}
                   </motion.p>

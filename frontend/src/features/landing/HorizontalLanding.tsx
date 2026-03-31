@@ -16,6 +16,7 @@ import { WorkflowSection } from "./sections/WorkflowSection"
 import { PlansSection } from "./sections/PlansSection"
 import { CtaSection } from "./sections/CtaSection"
 import { FloatingObjects } from "./ui/FloatingObjects"
+import { contentFadeTransition, ghostActiveTransition, ghostIdleTransition, sectionTransition } from "./motion"
 
 /* ─────────────────────────────────────────────
    SECTION RENDERER
@@ -90,6 +91,19 @@ export function HorizontalLanding() {
         >
           <BrutalGridBackground defaultVariant="none" />
           <FloatingObjects />
+          <div
+            className="fixed inset-0 z-30 pointer-events-none opacity-[0.18]"
+            style={{
+              backgroundImage:
+                "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.0' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.9'/%3E%3C/svg%3E\") , repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0px, rgba(0,0,0,0.22) 1px, rgba(0,0,0,0) 4px, rgba(0,0,0,0) 7px)",
+              backgroundSize: "180px 180px, 100% 15px",
+              backgroundBlendMode: "overlay, multiply",
+              mixBlendMode: "overlay",
+              animation: "noiseShift 1.6s steps(2) infinite",
+              filter: "contrast(50)",
+            }}
+            aria-hidden
+          />
 
         {/* Progress bar */}
         <motion.div className="fixed top-0 left-0 h-[2px] z-50"
@@ -122,7 +136,7 @@ export function HorizontalLanding() {
                                 opacity: active === index ? 1 : 0.35,
                                 scale: active === index ? 1 : 0.98,
                               }}
-                              transition={{ duration:0.5, ease:[0.16,1,0.3,1] }}>
+                              transition={sectionTransition}>
 
                 {/* Vertical band */}
                 <div className="relative z-10"><VBand fg={s.fg} /></div>
@@ -135,7 +149,7 @@ export function HorizontalLanding() {
                                     initial={{ opacity:0 }}
                                     animate={{ opacity:1 }}
                                     exit={{ opacity:0 }}
-                                    transition={{ duration:0.3 }}>
+                                    transition={contentFadeTransition}>
                           <SectionContent s={s} />
                         </motion.div>
                     )}
@@ -154,7 +168,7 @@ export function HorizontalLanding() {
                         ? { rotate: [0, -1.6, 1.6, 0], scale: [1, 1.035, 1], y: [0, -2, 0] }
                         : { rotate: 0, scale: 1, y: 0 }
                     }
-                    transition={active === index ? { duration: 0.55, ease: [0.16,1,0.3,1] } : { duration: 0.2 }}
+                    transition={active === index ? ghostActiveTransition : ghostIdleTransition}
                   >
                   {String(index+1).padStart(2,"0")}
                   </motion.span>
@@ -164,13 +178,28 @@ export function HorizontalLanding() {
         </div>
 
         {/* Bottom ticker */}
-        <div className="fixed bottom-0 left-0 right-0 z-20 pointer-events-none">
-          <Ticker fg={fg} />
+        <div className="fixed bottom-4 left-4 right-4 z-20 pointer-events-none">
+          <div className="mx-auto w-full max-w-7xl">
+            <div
+              className="overflow-hidden rounded-sm"
+              style={{
+                border: `5px solid ${fg}20`,
+                boxShadow: `6px 6px 0 0 ${fg}18`,
+                background: `${fg}10`,
+              }}
+            >
+              <Ticker fg={fg} />
+            </div>
+          </div>
         </div>
 
         <style>{`
         html,body { overflow:hidden; }
         ::-webkit-scrollbar { display:none; }
+        @keyframes noiseShift {
+          0% { background-position: 0 0; }
+          100% { background-position: 180px 180px; }
+        }
       `}</style>
         </div>
       </ClickSpark>

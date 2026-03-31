@@ -1,7 +1,7 @@
 export const B = {
   cream: "#F0ECD9",
   black: "#0D0D0D",
-  orange: "#E8560A",
+  orange: "#e2621cff",
   muted: "#8C7B6B",
   border: "rgba(13,13,13,0.12)",
 }

@@ -134,10 +134,7 @@ function PropertyListCards({propertys, onSelect = ()=>{}, isExiting=true, animat
 /**
  * Sub componete para gerir o texto no botão de ordenar o preço
  */
-let ButtonSortPrice: React.ForwardRefExoticComponent<React.PropsWithoutRef<React.ComponentProps<"button"> & {
-    sortOrder: string
-}> & React.RefAttributes<HTMLButtonElement>>;
-ButtonSortPrice = forwardRef<
+const ButtonSortPrice = forwardRef<
     HTMLButtonElement,
     ComponentProps<"button"> & { sortOrder: string } // Passamos o estado como prop
 >((props, ref) => {
@@ -156,6 +153,7 @@ ButtonSortPrice = forwardRef<
         </BrutalButton>
     );
 });
+ButtonSortPrice.displayName = "ButtonSortPrice"
 
 
 
