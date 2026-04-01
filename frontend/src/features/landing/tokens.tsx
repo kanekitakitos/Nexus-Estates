@@ -1,3 +1,11 @@
+/**
+ * Tokens visuais e conteúdo estático da landing.
+ *
+ * - B: paleta base (neo-brutal).
+ * - SECTIONS: define ordem/cores/títulos para o scroller horizontal.
+ * - TICKER_ITEMS / MORPHING: textos para componentes animadas.
+ * - PLANS / BENTO_FEATURES / STEPS: conteúdo das secções.
+ */
 export const B = {
   cream: "#F0ECD9",
   black: "#0D0D0D",

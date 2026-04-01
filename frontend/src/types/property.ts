@@ -75,21 +75,27 @@ export type Page<T> = {
  */
 export type CreatePropertyRequest = {
   title: string;
-  description: Map<string, string>;
+  description: Record<string, string>;
   price: number;
   ownerId: number;
   location: string;
-  amenityIds: Set<number>;
+  city: string;
+  address: string;
+  maxGuests: number;
+  amenityIds: number[];
 };
 
 /**
  * Payload de atualização parcial de uma propriedade (PATCH).
  */
 export type UpdatePropertyRequest = Partial<{
-  name: string;
+  title: string;
   description: Record<string, string>;
+  location: string;
   city: string;
+  address: string;
   basePrice: number;
+  maxGuests: number;
   isActive: boolean;
 }>;
 

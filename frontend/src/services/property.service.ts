@@ -34,7 +34,9 @@ type PropertyApiItem = {
     name?: string | PropertyTranslation;
     title?: string;
     description?: string | PropertyTranslation;
+    city?: string;
     address?: string;
+    maxGuests?: number;
     location?: string;
     basePrice?: number;
     base_price?: number;
@@ -77,6 +79,27 @@ export class PropertyService {
             return response.status
         }catch (error) {
             this.handleError(error, "criar propriedade");
+            throw error;
+        }
+    }
+
+    static async editPropertie(id: string | number, request: CreatePropertyRequest): Promise<number> {
+        try {
+            const actorUserIdRaw = typeof window === "undefined" ? null : localStorage.getItem("userId")
+            const actorUserId = actorUserIdRaw ? Number(actorUserIdRaw) : undefined
+            const patch: UpdatePropertyRequest = {
+                title: request.title,
+                description: request.description,
+                location: request.location,
+                city: request.city,
+                address: request.address,
+                basePrice: request.price,
+                maxGuests: request.maxGuests,
+            }
+            await this.patchProperty(Number(id), patch, actorUserId)
+            return 200
+        } catch (error) {
+            this.handleError(error, "atualizar propriedade");
             throw error;
         }
     }

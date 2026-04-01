@@ -38,6 +38,12 @@ function SectionContent({ s }: { s: typeof SECTIONS[0] }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+/**
+ * Landing horizontal (snap por secção) com:
+ * - IntroPreloader (monta a landing só após o preloader terminar, para as animações iniciarem no timing certo)
+ * - Scroller horizontal (scrollLeft) com snap por secção
+ * - Mapeamento de wheel/touch vertical → scroll horizontal (para baixo = direita; para cima = esquerda)
+ */
 export function HorizontalLanding() {
   const rootRef     = useRef<HTMLDivElement>(null)
   const scrollerRef = useRef<HTMLDivElement>(null)
@@ -101,6 +107,9 @@ export function HorizontalLanding() {
     }
   }, [introDone])
 
+  /**
+   * Navegação programática entre secções (usado pelo Nav/SideProgress e teclado).
+   */
   const goTo = (i: number) => {
     const el = scrollerRef.current
     if (!el) return
@@ -120,6 +129,11 @@ export function HorizontalLanding() {
 
   const fg = SECTIONS[active]?.fg ?? B.black
   const bg = SECTIONS[active]?.bg ?? B.cream
+  const isCta = SECTIONS[active]?.id === "cta"
+  const navFg = isCta ? B.black : fg
+  const navAccent = isCta ? B.cream : B.orange
+  const navActiveLinkColor = isCta ? B.black : B.orange
+  const navCtaColor = isCta ? B.black : B.orange
 
   return (
     <>
@@ -152,7 +166,14 @@ export function HorizontalLanding() {
             <FloatingObjects />
             <NoiseOverlay pattern="scanlines" opacity={0.12} />
 
-            <Nav active={active} goTo={goTo} fg={fg} />
+            <Nav
+              active={active}
+              goTo={goTo}
+              fg={navFg}
+              accentColor={navAccent}
+              activeLinkColor={navActiveLinkColor}
+              ctaColor={navCtaColor}
+            />
             <SideProgress active={active} fg={fg} />
 
             <motion.div

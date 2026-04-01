@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/forms/button";
 import { EditableFieldsI } from "./property-edit2";
 import { cn } from "@/lib/utils"
-import { useEffect, useCallback, useState, Dispatch, SetStateAction } from "react"
+import { useState, Dispatch, SetStateAction } from "react"
 
 import { BookingProperty } from "@/features/bookings/components/booking-card"
 
@@ -50,7 +50,13 @@ function NewPropertyData(id: string) : OwnProperty {
 }
 
 // Funções de API
-async function handleCrate(property: OwnProperty) {
+async function handleCrate(property: OwnProperty): Promise<boolean> {
+    if (typeof window === "undefined") return false
+    const userIdRaw = localStorage.getItem("userId")
+    if (!userIdRaw) {
+        toast.warning("Sem userId. Faz login novamente.")
+        return false
+    }
     const data: CreatePropertyRequest = {
         title: property.title,
         description: {
@@ -58,7 +64,7 @@ async function handleCrate(property: OwnProperty) {
             pt: property.description || "Sem descrição"
         },
         price: property.price,
-        ownerId: Number(localStorage.getItem("userId")),
+        ownerId: Number(userIdRaw),
         location: property.location,
         city: property.city,
         address: property.address,
@@ -67,16 +73,26 @@ async function handleCrate(property: OwnProperty) {
     }
 
     try {
-        const sucess = await PropertyService.creatPropertie(data)
-        if (sucess) {
-            toast.warning("Property Created");
+        const status = await PropertyService.creatPropertie(data)
+        if (status >= 200 && status < 300) {
+            toast.success("Property Created")
+            return true
         }
+        toast.warning("Não foi possível criar a propriedade.")
+        return false
     } catch (err) {
         console.error(err);
+        return false
     }
 }
 
-async function handleEdit(property: OwnProperty) {
+async function handleEdit(property: OwnProperty): Promise<boolean> {
+    if (typeof window === "undefined") return false
+    const userIdRaw = localStorage.getItem("userId")
+    if (!userIdRaw) {
+        toast.warning("Sem userId. Faz login novamente.")
+        return false
+    }
     const data: CreatePropertyRequest = {
         title: property.title,
         description: {
@@ -84,7 +100,7 @@ async function handleEdit(property: OwnProperty) {
             pt: property.description || "Sem descrição"
         },
         price: property.price,
-        ownerId: Number(localStorage.getItem("userId")),
+        ownerId: Number(userIdRaw),
         location: property.location,
         address: property.address,
         city: property.city,
@@ -93,17 +109,21 @@ async function handleEdit(property: OwnProperty) {
     }
 
     try {
-        const sucess = await PropertyService.editPropertie(property.id, data)
-        if (sucess) {
-            toast.warning("Property Updated");
+        const status = await PropertyService.editPropertie(property.id, data)
+        if (status >= 200 && status < 300) {
+            toast.success("Property Updated")
+            return true
         }
+        toast.warning("Não foi possível atualizar a propriedade.")
+        return false
     } catch (err) {
         console.error(err);
+        return false
     }
 }
 
 // --- COMPONENTE DE CRIAÇÃO ---
-export function PropertyCreateForm({ onClose, open }: { onClose: () => void, open: boolean }) {
+export function PropertyCreateForm({ onClose, open, onSaved }: { onClose: () => void; open: boolean; onSaved?: () => void | Promise<void> }) {
     const [TitleChange, setTitleChange] = useState(false)
     const [LocationChange, setLocationChange] = useState(false)
     const [AdressChange, setAdressChange] = useState(false)
@@ -127,14 +147,17 @@ export function PropertyCreateForm({ onClose, open }: { onClose: () => void, ope
             onClose={onClose}
             states={{setTitleChange, setLocationChange, setCityChange, setAdressChange, setPriceChange, setDescriptionChange, setAmenetiesChange, setMaxGuestChange}}
             statesValues={{TitleChange, LocationChange, CityChange, AdressChange, PriceChange, DescriptionChange, AmenetiesChange, MaxGuestChange}}
-            onSave={() => handleCrate(propertyConcrete)}
+            onSave={async () => {
+                const ok = await handleCrate(propertyConcrete)
+                if (ok) await onSaved?.()
+            }}
         />
     )
 }
 
 // --- COMPONENTE DE EDIÇÃO ---
-export function PropertyEditForm({ propertyState, onClose, open }:
-                                 { propertyState: [OwnProperty, Dispatch<SetStateAction<OwnProperty>>], onClose: () => void, open: boolean }) {
+export function PropertyEditForm({ propertyState, onClose, open, onSaved }:
+                                 { propertyState: [OwnProperty, Dispatch<SetStateAction<OwnProperty>>]; onClose: () => void; open: boolean; onSaved?: () => void | Promise<void> }) {
 
     const [TitleChange, setTitleChange] = useState(false)
     const [LocationChange, setLocationChange] = useState(false)
@@ -159,7 +182,10 @@ export function PropertyEditForm({ propertyState, onClose, open }:
             onClose={onClose}
             states={{setTitleChange, setLocationChange, setCityChange, setAdressChange, setPriceChange, setDescriptionChange, setAmenetiesChange, setMaxGuestChange}}
             statesValues={{TitleChange, LocationChange, CityChange, AdressChange, PriceChange, DescriptionChange, AmenetiesChange, MaxGuestChange}}
-            onSave={() => handleEdit(propertyConcrete)}
+            onSave={async () => {
+                const ok = await handleEdit(propertyConcrete)
+                if (ok) await onSaved?.()
+            }}
         />
     )
 }
@@ -222,13 +248,35 @@ function RevertButton({ didChange, onRevert }: RevertButtonProps) {
     );
 }
 
+type FormChangeSetters = {
+    setTitleChange: Dispatch<SetStateAction<boolean>>;
+    setLocationChange: Dispatch<SetStateAction<boolean>>;
+    setAdressChange: Dispatch<SetStateAction<boolean>>;
+    setCityChange: Dispatch<SetStateAction<boolean>>;
+    setPriceChange: Dispatch<SetStateAction<boolean>>;
+    setDescriptionChange: Dispatch<SetStateAction<boolean>>;
+    setAmenetiesChange: Dispatch<SetStateAction<boolean>>;
+    setMaxGuestChange: Dispatch<SetStateAction<boolean>>;
+};
+
+type FormChangeValues = {
+    TitleChange: boolean;
+    LocationChange: boolean;
+    AdressChange: boolean;
+    CityChange: boolean;
+    PriceChange: boolean;
+    DescriptionChange: boolean;
+    AmenetiesChange: boolean;
+    MaxGuestChange: boolean;
+};
+
 interface FormLayoutProps {
     title: string;
     context: PropertyEditContext;
     onClose: () => void;
-    onSave: () => void;
-    states: any;
-    statesValues: any;
+    onSave: () => void | Promise<void>;
+    states: FormChangeSetters;
+    statesValues: FormChangeValues;
 }
 
 function FormLayout({ title, context, onClose, onSave, states, statesValues }: FormLayoutProps) {
@@ -412,7 +460,7 @@ function FormLayout({ title, context, onClose, onSave, states, statesValues }: F
                                 context.savePropertyDataAll();
                                 onClose();
                                 setTitleChange(false); setAmenetiesChange(false); setDescriptionChange(false); setLocationChange(false); setPriceChange(false);
-                                onSave();
+                                void onSave();
                             }}> SAVE ALL</Button>
                         </div>
                     </FieldGroup>

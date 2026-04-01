@@ -109,28 +109,6 @@ function PrimaryCtaButton({ reduce }: { reduce: boolean | null }) {
   )
 }
 
-function SecondaryCtaButton({ reduce }: { reduce: boolean | null }) {
-  return (
-    <motion.a
-      href="/demo"
-      className="font-mono text-[10px] uppercase tracking-widest px-8 py-4"
-      style={{
-        border:    `2px solid ${B.black}`,
-        color:     B.black,
-        background: B.cream,
-        boxShadow: `6px 6px 0 0 ${B.black}`,
-      }}
-      animate={reduce ? undefined : { rotate: [0, -0.6, 0.6, 0] }}
-      transition={{ duration: 4.8, repeat: Infinity, ease: ease.inOut, delay: 0.4 }}
-      whileHover={{ x: 2, y: 2, boxShadow: "0px 0px 0 0 rgba(0,0,0,0)" }}
-      aria-label="Ver demo"
-      data-hover
-    >
-      Ver Demo
-    </motion.a>
-  )
-}
-
 function CtaActions() {
   const reduce = useReducedMotion()
   return (
@@ -142,7 +120,6 @@ function CtaActions() {
     >
       <FloatingShapes />
       <PrimaryCtaButton reduce={reduce} />
-      <SecondaryCtaButton reduce={reduce} />
     </motion.div>
   )
 }

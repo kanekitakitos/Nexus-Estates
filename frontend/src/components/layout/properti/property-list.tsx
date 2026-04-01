@@ -1,21 +1,15 @@
 "use client"
 
-import { useEffect, useCallback, useState, forwardRef, ComponentProps, useMemo } from "react"
+import { useState, forwardRef, ComponentProps, useMemo } from "react"
 import { MapPin, ArrowDown, ArrowDown01, ArrowDown10 } from "lucide-react"
-import { BrutalButton, Button } from "@/components/ui/forms/button"
-import { Badge } from "@/components/ui/badge"
+import { BrutalButton } from "@/components/ui/forms/button"
 import { BrutalCard, BrutalShard } from "@/components/ui/data-display/card"
-import { BookingProperty } from "@/features/bookings/components/booking-card"
 import { cn } from "@/lib/utils"
-import { DateRangeCalendar } from "@/features/bookings/components/date-range-calendar"
-// import { PropertyEditForm } from "./property-form"
-import {PropertyCreateForm, PropertyEditForm} from "./property-form"
+import { PropertyCreateForm } from "./property-form"
 import { Separator } from "@/components/ui/layout/separator"
-import { BookingDetailsProps } from "./property-edit2"
 import { Input } from "@/components/ui/forms/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/overlay/dropdown-menu"
 import {OwnProperty} from "@/components/layout/properti/property-view";
-import {CreatePropertyRequest, PropertyService} from "@/services/property.service";
 
 
 const PAGE_CONTAINER_STYLES = "grid grid-flow-row min-h-screen"
@@ -29,38 +23,39 @@ type PropertyListProps = {
     propertys: OwnProperty[];
 
     onSelect?: (id: string) => void;
+    onDelete?: (id: string) => void | Promise<void>;
+    onSaved?: () => void | Promise<void>;
+    isLoading?: boolean;
     isExiting?: boolean;
     animate?: boolean;
 };
 
 
 
-function AddNewPropertyForm({id, open, onClose} : {id:string; open:boolean; onClose:()=>void}){
+function AddNewPropertyForm({open, onClose, onSaved} : {open:boolean; onClose:()=>void; onSaved?: () => void | Promise<void>}){
 
     return(
         <>
-            <PropertyCreateForm onClose={onClose} open={open}/>
+            <PropertyCreateForm onClose={onClose} open={open} onSaved={onSaved}/>
         </>
     )
 }
 
 
-function PropertyList({variant="CARDS", propertys, onSelect = ()=>{}, isExiting=true, animate=false, filter=false, addNewProperty=false}: PropertyListProps){
+function PropertyList({variant="CARDS", propertys, onSelect = ()=>{}, onDelete, onSaved, isLoading=false, isExiting=true, animate=false, filter=false, addNewProperty=false}: PropertyListProps){
     const props ={
-        propertys, onSelect, isExiting, animate, filter, addNewProperty,
+        propertys, onSelect, onDelete, onSaved, isLoading, isExiting, animate, filter, addNewProperty,
     }
 
-    console.log("addNewProperty1:", addNewProperty)
     switch (variant){
         case "BARS": return (<PropertyListBars {...props}/>)
-        case "CARDS": return (<PropertyListCards {...props}/>)   
+        case "CARDS": return (<PropertyListCards {...props}/>)
     }
 }
 
 
-function PropertyListCards({propertys, onSelect = ()=>{}, isExiting=true, animate=false, addNewProperty=false ,filter=false}: PropertyListProps){
+function PropertyListCards({propertys, onSelect = ()=>{}, onDelete, onSaved, isLoading=false, isExiting=true, animate=false, addNewProperty=false ,filter=false}: PropertyListProps){
     const [editFormOpen, setEditFormOpen] = useState<boolean>(false)
-    console.log("addNewProperty:", addNewProperty)
 
     return(
         <div id="abc" className={cn(
@@ -82,7 +77,7 @@ function PropertyListCards({propertys, onSelect = ()=>{}, isExiting=true, animat
 
             {addNewProperty 
                 ?   <>
-                        <AddNewPropertyForm id={`${propertys.length}`} open={editFormOpen} onClose={()=>setEditFormOpen(false)}/>
+                        <AddNewPropertyForm open={editFormOpen} onClose={()=>setEditFormOpen(false)} onSaved={onSaved}/>
 
                         <BrutalCard className="gap-2">
                             <BrutalButton onClick={()=>setEditFormOpen(true)} className="w-full">
@@ -93,6 +88,11 @@ function PropertyListCards({propertys, onSelect = ()=>{}, isExiting=true, animat
                 :   <></>
             }
 
+            {isLoading && (
+                <BrutalCard className="p-4">
+                    <p className="font-mono text-xs uppercase opacity-70">A carregar propriedades...</p>
+                </BrutalCard>
+            )}
 
             {
             propertys.map((prop) => (
@@ -108,7 +108,10 @@ function PropertyListCards({propertys, onSelect = ()=>{}, isExiting=true, animat
                 
                     <BrutalButton
                         className="w-1/5 bg-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e)=>e.stopPropagation()}
+                        onClick={(e)=>{
+                            e.stopPropagation()
+                            void onDelete?.(prop.id)
+                        }}
                     >
                         X
                     </BrutalButton>
@@ -147,7 +150,7 @@ ButtonSortPrice.displayName = "ButtonSortPrice"
 
 
 
-function PropertyListBars({propertys, onSelect = ()=>{}, isExiting=true, animate=false, addNewProperty=false ,filter=false}: PropertyListProps){
+function PropertyListBars({propertys, onSelect = ()=>{}, onDelete, onSaved, isLoading=false, isExiting=true, animate=false, addNewProperty=false ,filter=false}: PropertyListProps){
     const [editFormOpen, setEditFormOpen] = useState<boolean>(false)
 
     const [queryNome, setQueryNome] = useState("")
@@ -202,21 +205,6 @@ function PropertyListBars({propertys, onSelect = ()=>{}, isExiting=true, animate
             "felx flex-col",
             animate && (isExiting ? "animate-fly-out-right" : "animate-fly-in"),
         )}>
-            <BrutalButton onClick={()=>PropertyService.editPropertie(
-                19,
-                {
-                    address: "987",
-                    amenityIds: [1],
-                    city: "123456",
-                    description: {"en":"1234566", "pt":"1234566"},
-                    location: "123456",
-                    maxGuests: 3,
-                    ownerId: Number(localStorage.getItem("userId")),
-                    price: 999,
-                    title: "123987"
-                } as CreatePropertyRequest
-                )}>
-            </BrutalButton>
             {/* Fitros */}
             <div 
                 className="flex flex-col gap-2 p-3 group items-stretch border-b" 
@@ -313,7 +301,7 @@ function PropertyListBars({propertys, onSelect = ()=>{}, isExiting=true, animate
             {/* Botão para adicionar uma nova propriedade (OPCIONAL) */}
             {addNewProperty 
                 ?   <>
-                        <AddNewPropertyForm id={`${propertys.length}`} open={editFormOpen} onClose={()=>setEditFormOpen(false)}/>
+                        <AddNewPropertyForm open={editFormOpen} onClose={()=>setEditFormOpen(false)} onSaved={onSaved}/>
 
                         <BrutalCard className="gap-2">
                             <BrutalButton onClick={()=>setEditFormOpen(true)} className="w-full">
@@ -323,6 +311,12 @@ function PropertyListBars({propertys, onSelect = ()=>{}, isExiting=true, animate
                     </>
                 :   <></>
             }
+
+            {isLoading && (
+                <div className="p-3">
+                    <span className="font-mono text-xs uppercase opacity-70">A carregar propriedades...</span>
+                </div>
+            )}
 
             {/* Lista de botões com propriedades */}
             {filteredProp.map((prop) => {
@@ -366,6 +360,18 @@ function PropertyListBars({propertys, onSelect = ()=>{}, isExiting=true, animate
                             </div>
                         </div>
                         
+                        <div className="flex justify-end">
+                            <BrutalButton
+                                className="bg-destructive text-xs"
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    void onDelete?.(prop.id)
+                                }}
+                            >
+                                Delete
+                            </BrutalButton>
+                        </div>
 
                     </button>
                 )})

@@ -1,7 +1,7 @@
 "use client"
 
-import { motion } from "framer-motion"
 import { SECTIONS, B } from "../tokens"
+import { BoingText } from "@/components/BoingText"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -9,6 +9,9 @@ type NavProps = {
   active: number
   goTo: (i: number) => void
   fg: string
+  accentColor?: string
+  activeLinkColor?: string
+  ctaColor?: string
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -20,34 +23,33 @@ const containerStyle = (fg: string) => ({
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function Logo({ goTo, fg }: { goTo: NavProps["goTo"]; fg: string }) {
+function Logo({ goTo, fg, accentColor }: { goTo: NavProps["goTo"]; fg: string; accentColor?: string }) {
   return (
     <button
       onClick={() => goTo(0)}
-      className="font-black uppercase tracking-tight text-[18px] md:text-[20px] hover:opacity-70 transition-opacity"
+      className="font-black uppercase tracking-tight text-[18px] md:text-[20px]"
       style={{ color: fg }}
-      data-hover
     >
-      Nexus Estates
+      <BoingText text="Nexus Estates" color={fg} activeColor={accentColor ?? B.orange} />
     </button>
   )
 }
 
-function NavLinks({ active, goTo, fg }: NavProps) {
+function NavLinks({ active, goTo, fg, accentColor, activeLinkColor }: NavProps) {
   return (
     <div className="hidden md:flex items-center gap-10">
       {SECTIONS.slice(1).map((s, i) => {
         const idx = i + 1
         const isActive = active === idx
+        const baseColor = isActive ? (activeLinkColor ?? B.orange) : fg
         return (
           <button
             key={s.id}
             onClick={() => goTo(idx)}
-            className="font-black uppercase tracking-widest text-[14px] hover:opacity-70 transition-opacity"
-            style={{ color: isActive ? B.orange : fg, opacity: isActive ? 1 : 0.88 }}
-            data-hover
+            className="font-black uppercase tracking-widest text-[14px]"
+            style={{ color: baseColor, opacity: isActive ? 1 : 0.88 }}
           >
-            {s.label}
+            <BoingText text={s.label} color={baseColor} activeColor={accentColor ?? B.orange} />
           </button>
         )
       })}
@@ -55,24 +57,22 @@ function NavLinks({ active, goTo, fg }: NavProps) {
   )
 }
 
-function NavActions({ fg }: { fg: string }) {
+function NavActions({ fg, accentColor, ctaColor }: { fg: string; accentColor?: string; ctaColor?: string }) {
   return (
     <div className="flex items-center gap-8">
       <a
         href="/login"
-        className="hidden md:inline font-black uppercase tracking-widest text-[14px] hover:opacity-70 transition-opacity"
+        className="hidden md:inline font-black uppercase tracking-widest text-[14px]"
         style={{ color: fg, opacity: 0.88 }}
-        data-hover
       >
-        Login
+        <BoingText text="Login" color={fg} activeColor={accentColor ?? B.orange} />
       </a>
       <a
         href="/booking"
-        className="font-black uppercase tracking-widest text-[14px] hover:opacity-70 transition-opacity"
-        style={{ color: B.orange }}
-        data-hover
+        className="font-black uppercase tracking-widest text-[14px]"
+        style={{ color: ctaColor ?? B.orange }}
       >
-        Começar
+        <BoingText text="Começar" color={ctaColor ?? B.orange} activeColor={accentColor ?? B.orange} />
       </a>
     </div>
   )
@@ -80,21 +80,16 @@ function NavActions({ fg }: { fg: string }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function Nav({ active, goTo, fg }: NavProps) {
+export function Nav({ active, goTo, fg, accentColor, activeLinkColor, ctaColor }: NavProps) {
   return (
-    <motion.nav
-      className="fixed top-0 left-0 right-0 z-50 px-2 md:px-3 py-3"
-      initial={{ opacity: 0, y: -16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-    >
+    <nav className="fixed top-0 left-0 right-0 z-50 px-2 md:px-3 py-3">
       <div className="mx-auto w-full max-w-7xl rounded-md h-full" style={containerStyle(fg)}>
         <div className="flex items-center justify-between px-5 md:px-7 py-3">
-          <Logo goTo={goTo} fg={fg} />
-          <NavLinks active={active} goTo={goTo} fg={fg} />
-          <NavActions fg={fg} />
+          <Logo goTo={goTo} fg={fg} accentColor={accentColor} />
+          <NavLinks active={active} goTo={goTo} fg={fg} accentColor={accentColor} activeLinkColor={activeLinkColor} ctaColor={ctaColor} />
+          <NavActions fg={fg} accentColor={accentColor} ctaColor={ctaColor} />
         </div>
       </div>
-    </motion.nav>
+    </nav>
   )
 }
