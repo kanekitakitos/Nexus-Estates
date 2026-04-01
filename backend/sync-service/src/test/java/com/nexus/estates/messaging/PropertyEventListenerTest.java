@@ -1,6 +1,6 @@
 package com.nexus.estates.messaging; // Confirma se este é o teu pacote de mensagens
 
-import com.nexus.estates.service.EmailService;
+import com.nexus.estates.service.notification.EmailService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

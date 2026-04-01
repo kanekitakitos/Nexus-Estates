@@ -1,33 +1,26 @@
 import { usersAxios, ApiResponse } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import { toast } from "sonner";
+import type { AuthCredentials, AuthResponse } from "@/types/auth";
 
-/**
- * Interface para os dados de resposta de autenticação.
- */
-export interface AuthResponse {
-    token: string;
-    id: number;
-    email: string;
-    role: string;
-}
-
-/**
- * Interface para as credenciais de login e registo.
- */
-export interface AuthCredentials {
-    email: string;
-    password?: string;
-    phone?: string;
-}
+export type { AuthCredentials, AuthResponse } from "@/types/auth";
 
 /**
  * Serviço responsável por encapsular a lógica de autenticação e gestão de erros.
+ *
+ * Base path no API Gateway:
+ * - /api/users
+ *
+ * Instância Axios utilizada:
+ * - usersAxios (baseURL: {NEXT_PUBLIC_API_URL}/users)
  */
 export class AuthService {
     
     /**
      * Realiza o login do utilizador e gere o armazenamento da sessão.
+     *
+     * Endpoint backend:
+     * - POST /api/users/auth/login
      */
     static async login(credentials: AuthCredentials): Promise<AuthResponse | null> {
         try {
@@ -48,6 +41,9 @@ export class AuthService {
 
     /**
      * Regista um novo utilizador e inicia sessão automaticamente.
+     *
+     * Endpoint backend:
+     * - POST /api/users/auth/register
      */
     static async register(credentials: AuthCredentials): Promise<AuthResponse | null> {
         try {
@@ -62,6 +58,49 @@ export class AuthService {
             return null;
         } catch (error: unknown) {
             this.handleAuthError(error, "register");
+            throw error;
+        }
+    }
+
+    /**
+     * Inicia o fluxo de recuperação de password (envio de email com token).
+     *
+     * Endpoint backend:
+     * - POST /api/users/auth/password/forgot
+     *
+     * Comportamento esperado:
+     * - Resposta é genérica para evitar enumeração de utilizadores.
+     */
+    static async forgotPassword(email: string): Promise<boolean> {
+        try {
+            const response = await usersAxios.post<ApiResponse<void>>("/auth/password/forgot", { email });
+            if (response.status === 200 && response.data.success) {
+                toast.success("Se o email existir, enviámos instruções para recuperar a password.");
+                return true;
+            }
+            return false;
+        } catch (error: unknown) {
+            toast.error("Não foi possível iniciar a recuperação de password.");
+            throw error;
+        }
+    }
+
+    /**
+     * Conclui o reset de password usando token + nova password.
+     *
+     * Endpoint backend:
+     * - POST /api/users/auth/password/reset
+     */
+    static async resetPassword(token: string, newPassword: string): Promise<boolean> {
+        try {
+            const response = await usersAxios.post<ApiResponse<void>>("/auth/password/reset", { token, newPassword });
+            if (response.status === 200 && response.data.success) {
+                toast.success("Password alterada com sucesso. Faça login novamente.");
+                return true;
+            }
+            return false;
+        } catch (error: unknown) {
+            toast.error("Token inválido ou expirado.");
             throw error;
         }
     }

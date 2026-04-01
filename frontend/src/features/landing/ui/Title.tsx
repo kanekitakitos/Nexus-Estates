@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { B } from "../tokens"
+import { titleLineTransition } from "../motion"
 
 export function Title({ lines, italics, fg, size = "clamp(3.6rem,8vw,7.6rem)", wiggle = false }: {
   lines: string[]; italics: boolean[]; fg: string; size?: string; wiggle?: boolean
@@ -25,7 +26,7 @@ export function Title({ lines, italics, fg, size = "clamp(3.6rem,8vw,7.6rem)", w
                       ? { y: "0%", x: [0, -2, 2, 0], rotate: [0, -1.2, 1.2, 0] }
                       : { y: "0%" }
                   }
-                  transition={{ delay: 0.25 + i * 0.14, duration: 0.95, ease: [0.16,1,0.3,1] }}
+                  transition={titleLineTransition(i)}
               >
                 {line}
               </motion.h1>

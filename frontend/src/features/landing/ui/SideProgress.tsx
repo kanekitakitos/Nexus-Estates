@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { SECTIONS, B } from "../tokens"
+import { sideProgressTransition, slideInLeftEnter } from "../motion"
 
 export function SideProgress({ active, fg }: { active: number; fg: string }) {
   return (
@@ -9,12 +10,12 @@ export function SideProgress({ active, fg }: { active: number; fg: string }) {
         {SECTIONS.map((s, i) => (
             <motion.div key={s.id} className="flex items-center gap-2"
                         animate={{ opacity: i === active ? 1 : 0.18 }}
-                        transition={{ duration: 0.4 }}>
+                        transition={sideProgressTransition}>
               <motion.div className="h-[1.5px]" style={{ background: i === active ? B.orange : fg }}
                           animate={{ width: i === active ? 22 : 5 }}
-                          transition={{ duration: 0.4 }} />
+                          transition={sideProgressTransition} />
               {i === active && (
-                  <motion.span initial={{ opacity:0, x:-6 }} animate={{ opacity:1, x:0 }}
+                  <motion.span {...slideInLeftEnter(0, -6)}
                                className="font-mono text-[8px] uppercase tracking-[0.3em] whitespace-nowrap"
                                style={{ color: B.orange }}>
                     {s.label}

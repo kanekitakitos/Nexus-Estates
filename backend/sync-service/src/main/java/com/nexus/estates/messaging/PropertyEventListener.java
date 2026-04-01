@@ -1,6 +1,6 @@
 package com.nexus.estates.messaging;
 
-import com.nexus.estates.service.EmailService;
+import com.nexus.estates.service.notification.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;

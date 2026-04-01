@@ -115,22 +115,64 @@ export const usersAxios = axios.create({
 usersAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
 usersAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
 
+/**
+ * Cliente para o Property Service.
+ *
+ * Base path:
+ * - /api/properties
+ */
 export const propertiesAxios = axios.create({
     baseURL: `${API_BASE_URL}/properties`,
 });
 propertiesAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
 propertiesAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
 
+/**
+ * Cliente para o catálogo de Amenities.
+ *
+ * Base path:
+ * - /api/amenities
+ */
+export const amenitiesAxios = axios.create({
+    baseURL: `${API_BASE_URL}/amenities`,
+});
+amenitiesAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
+amenitiesAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
+
+/**
+ * Cliente para o Sync Service (realtime, chat, webhooks internos).
+ *
+ * Base path:
+ * - /api/sync
+ */
 export const syncAxios = axios.create({
     baseURL: `${API_BASE_URL}/sync`,
 });
 syncAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
 syncAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
 
+/**
+ * Cliente para o Booking Service.
+ *
+ * Base path:
+ * - /api/bookings
+ */
 export const bookingsAxios = axios.create({
     baseURL: `${API_BASE_URL}/bookings`,
 });
 bookingsAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
 bookingsAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
+
+/**
+ * Cliente para o Finance Service.
+ *
+ * Base path:
+ * - /api/finance
+ */
+export const financeAxios = axios.create({
+    baseURL: `${API_BASE_URL}/finance`,
+});
+financeAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
+financeAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
 
 export default api;

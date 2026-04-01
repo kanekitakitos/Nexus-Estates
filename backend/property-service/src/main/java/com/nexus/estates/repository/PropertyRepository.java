@@ -34,13 +34,13 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     @Query(
             value = "SELECT p FROM Property p " +
                     "WHERE p.id IN :ids " +
-                    "AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%'))) " +
+                    "AND (:city IS NULL OR LOWER(CAST(p.city AS string)) LIKE LOWER(CONCAT('%', CAST(:city AS string), '%'))) " +
                     "AND (:isActive IS NULL OR p.isActive = :isActive) " +
                     "AND (:minPrice IS NULL OR p.basePrice >= :minPrice) " +
                     "AND (:maxPrice IS NULL OR p.basePrice <= :maxPrice)",
             countQuery = "SELECT COUNT(p) FROM Property p " +
                     "WHERE p.id IN :ids " +
-                    "AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%'))) " +
+                    "AND (:city IS NULL OR LOWER(CAST(p.city AS string)) LIKE LOWER(CONCAT('%', CAST(:city AS string), '%'))) " +
                     "AND (:isActive IS NULL OR p.isActive = :isActive) " +
                     "AND (:minPrice IS NULL OR p.basePrice >= :minPrice) " +
                     "AND (:maxPrice IS NULL OR p.basePrice <= :maxPrice)"

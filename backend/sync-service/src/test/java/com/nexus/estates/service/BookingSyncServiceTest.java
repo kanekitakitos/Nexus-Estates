@@ -4,6 +4,9 @@ import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
 import com.nexus.estates.common.messaging.BookingStatusUpdatedMessage;
 import com.nexus.estates.dto.ExternalApiConfig;
+import com.nexus.estates.service.booking.BookingSyncService;
+import com.nexus.estates.service.external.connectors.ChannelConnector;
+import com.nexus.estates.service.external.connectors.ChannelConnectorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +28,10 @@ import static org.mockito.Mockito.when;
 class BookingSyncServiceTest {
 
     @Mock
-    private ExternalSyncService externalSyncService;
+    private ChannelConnectorFactory connectorFactory;
+
+    @Mock
+    private ChannelConnector genericConnector;
 
     @InjectMocks
     private BookingSyncService bookingSyncService;
@@ -34,6 +40,7 @@ class BookingSyncServiceTest {
     void setUp() {
         ReflectionTestUtils.setField(bookingSyncService, "otaBaseUrl", "http://ota.com");
         ReflectionTestUtils.setField(bookingSyncService, "otaApiKey", "secret-key");
+        when(connectorFactory.generic()).thenReturn(genericConnector);
     }
 
     @Test
@@ -42,7 +49,7 @@ class BookingSyncServiceTest {
         BookingCreatedMessage message = new BookingCreatedMessage(1L, 10L, 20L, BookingStatus.PENDING_PAYMENT);
         BookingSyncService.ExternalSyncResult result = new BookingSyncService.ExternalSyncResult(true, "OK");
 
-        when(externalSyncService.post(any(ExternalApiConfig.class), eq(message), eq(BookingSyncService.ExternalSyncResult.class)))
+        when(genericConnector.call(any(ExternalApiConfig.class), eq(message), eq(BookingSyncService.ExternalSyncResult.class)))
                 .thenReturn(Optional.of(result));
 
         BookingStatusUpdatedMessage response = bookingSyncService.syncBooking(message);
@@ -50,7 +57,7 @@ class BookingSyncServiceTest {
         assertThat(response.status()).isEqualTo(BookingStatus.CONFIRMED);
         assertThat(response.reason()).isEqualTo("OK");
         
-        verify(externalSyncService).post(any(ExternalApiConfig.class), eq(message), eq(BookingSyncService.ExternalSyncResult.class));
+        verify(genericConnector).call(any(ExternalApiConfig.class), eq(message), eq(BookingSyncService.ExternalSyncResult.class));
     }
 
     @Test
@@ -59,7 +66,7 @@ class BookingSyncServiceTest {
         BookingCreatedMessage message = new BookingCreatedMessage(1L, 10L, 20L, BookingStatus.PENDING_PAYMENT);
         BookingSyncService.ExternalSyncResult result = new BookingSyncService.ExternalSyncResult(false, "No availability");
 
-        when(externalSyncService.post(any(ExternalApiConfig.class), eq(message), eq(BookingSyncService.ExternalSyncResult.class)))
+        when(genericConnector.call(any(ExternalApiConfig.class), eq(message), eq(BookingSyncService.ExternalSyncResult.class)))
                 .thenReturn(Optional.of(result));
 
         BookingStatusUpdatedMessage response = bookingSyncService.syncBooking(message);
@@ -73,7 +80,7 @@ class BookingSyncServiceTest {
     void shouldReturnCancelledWhenIntegrationFails() {
         BookingCreatedMessage message = new BookingCreatedMessage(1L, 10L, 20L, BookingStatus.PENDING_PAYMENT);
 
-        when(externalSyncService.post(any(ExternalApiConfig.class), eq(message), eq(BookingSyncService.ExternalSyncResult.class)))
+        when(genericConnector.call(any(ExternalApiConfig.class), eq(message), eq(BookingSyncService.ExternalSyncResult.class)))
                 .thenReturn(Optional.empty());
 
         BookingStatusUpdatedMessage response = bookingSyncService.syncBooking(message);

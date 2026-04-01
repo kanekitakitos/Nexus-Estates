@@ -192,8 +192,20 @@ public class PropertyController {
     @Operation(summary = "Listar todas as propriedades", description = "Retorna uma lista de todos os imóveis")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Sucesso ao retornar lista")
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<Property>>> listAll() {
-        List<Property> properties = repository.findAllWithAmenities();
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> listAll() {
+        List<Map<String, Object>> properties = repository.findAll().stream().map(p -> {
+            Map<String, Object> m = new java.util.HashMap<>();
+            m.put("id", p.getId());
+            m.put("name", p.getName());
+            m.put("description", p.getDescription());
+            m.put("location", p.getLocation());
+            m.put("city", p.getCity());
+            m.put("address", p.getAddress());
+            m.put("basePrice", p.getBasePrice());
+            m.put("maxGuests", p.getMaxGuests());
+            m.put("isActive", Boolean.TRUE.equals(p.getIsActive()));
+            return m;
+        }).toList();
         return ResponseEntity.ok(ApiResponse.success(properties, "Propriedades listadas com sucesso."));
     }
 
@@ -327,13 +339,19 @@ public class PropertyController {
         Sort.Order order = new Sort.Order(Sort.Direction.fromString(sortParts.length > 1 ? sortParts[1] : "asc"), sortParts[0]);
         Pageable pageable = PageRequest.of(page, size, Sort.by(order));
         Page<Property> result = service.listByUserWithFilters(userId, city, isActive, minPrice, maxPrice, pageable);
-        Page<Map<String, Object>> mapped = result.map(p -> Map.of(
-                "id", p.getId(),
-                "name", p.getName(),
-                "city", p.getCity(),
-                "basePrice", p.getBasePrice(),
-                "isActive", p.getIsActive()
-        ));
+        Page<Map<String, Object>> mapped = result.map(p -> {
+            Map<String, Object> m = new java.util.HashMap<>();
+            m.put("id", p.getId());
+            m.put("name", p.getName());
+            m.put("description", p.getDescription());
+            m.put("location", p.getLocation());
+            m.put("city", p.getCity());
+            m.put("address", p.getAddress());
+            m.put("basePrice", p.getBasePrice());
+            m.put("maxGuests", p.getMaxGuests());
+            m.put("isActive", Boolean.TRUE.equals(p.getIsActive()));
+            return m;
+        });
         return ResponseEntity.ok(ApiResponse.success(mapped, "Propriedades do utilizador listadas."));
     }
 

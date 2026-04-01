@@ -2,9 +2,9 @@ package com.nexus.estates.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexus.estates.entity.Message;
-import com.nexus.estates.service.interfaces.ChatPlatform;
-import com.nexus.estates.service.MessageService;
-import com.nexus.estates.service.WebhookService;
+import com.nexus.estates.service.chat.ChatPlatform;
+import com.nexus.estates.service.chat.MessageService;
+import com.nexus.estates.service.chat.WebhookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;

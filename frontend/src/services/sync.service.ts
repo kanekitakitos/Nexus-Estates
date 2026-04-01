@@ -1,24 +1,29 @@
 import { syncAxios } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import { toast } from "sonner";
+import type { SyncMessage } from "@/types/sync";
 
-/**
- * Interface base para mensagens de chat.
- */
-export interface SyncMessage {
-    id: string | number;
-    senderId: string;
-    content: string;
-    createdAt: string;
-}
+export type { SyncMessage } from "@/types/sync";
 
 /**
  * Serviço responsável pela comunicação em tempo real e sincronização de dados externos.
+ *
+ * Base path no API Gateway:
+ * - /api/sync
+ *
+ * Instância Axios utilizada:
+ * - syncAxios (baseURL: {NEXT_PUBLIC_API_URL}/sync)
  */
 export class SyncService {
     
     /**
      * Obtém um token de autenticação temporário para o Ably, restrito ao canal do booking.
+     *
+     * Endpoint backend:
+     * - GET /api/sync/auth/realtime?bookingId={bookingId}
+     *
+     * Auth:
+     * - Requer JWT; o API Gateway injeta X-User-Id no backend
      */
     static async getRealtimeToken(bookingId: string | number): Promise<Record<string, unknown>> {
         try {
@@ -34,6 +39,9 @@ export class SyncService {
 
     /**
      * Obtém o histórico de mensagens de uma reserva.
+     *
+     * Endpoint backend:
+     * - GET /api/sync/messages/{bookingId}
      */
     static async getBookingMessages(bookingId: string | number): Promise<SyncMessage[]> {
         try {
@@ -41,6 +49,26 @@ export class SyncService {
             return response.data;
         } catch (error) {
             this.handleError(error, "obter histórico do chat");
+            throw error;
+        }
+    }
+
+    /**
+     * Envia uma mensagem para o chat da reserva.
+     *
+     * Endpoint backend:
+     * - POST /api/sync/messages/{bookingId}
+     *
+     * Payload:
+     * - senderId: string (identificador lógico do remetente)
+     * - content: string
+     */
+    static async sendMessage(bookingId: string | number, payload: { senderId: string; content: string }): Promise<SyncMessage> {
+        try {
+            const response = await syncAxios.post<SyncMessage>(`/messages/${bookingId}`, payload);
+            return response.data;
+        } catch (error) {
+            this.handleError(error, "enviar mensagem");
             throw error;
         }
     }

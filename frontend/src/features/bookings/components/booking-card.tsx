@@ -20,6 +20,7 @@ import { motion, useReducedMotion } from "framer-motion"
 import { MapPin, ArrowRight, Star, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/forms/button"
+import Image from "next/image"
 import {
   brutalShadow,
   brutalShadowHover,
@@ -117,12 +118,16 @@ function CardImage({ property }: { property: BookingProperty }) {
   return (
     <div className="relative h-52 md:h-56 w-full overflow-hidden">
       {property.imageUrl ? (
-        <motion.img
-          src={property.imageUrl}
-          alt={property.title}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          referrerPolicy="no-referrer"
-        />
+        <div className="absolute inset-0">
+          <Image
+            src={property.imageUrl}
+            alt={property.title}
+            fill
+            sizes="(max-width: 768px) 100vw, 50vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            priority={false}
+          />
+        </div>
       ) : (
         <div className="h-full w-full bg-muted/50 grid place-items-center">
           <span className="font-mono text-[10px] uppercase text-muted-foreground tracking-widest">

@@ -1,18 +1,26 @@
+/**
+ * Tokens visuais e conteúdo estático da landing.
+ *
+ * - B: paleta base (neo-brutal).
+ * - SECTIONS: define ordem/cores/títulos para o scroller horizontal.
+ * - TICKER_ITEMS / MORPHING: textos para componentes animadas.
+ * - PLANS / BENTO_FEATURES / STEPS: conteúdo das secções.
+ */
 export const B = {
   cream: "#F0ECD9",
   black: "#0D0D0D",
-  orange: "#E8560A",
+  orange: "#e2621cff",
   muted: "#8C7B6B",
   border: "rgba(13,13,13,0.12)",
 }
 
 export const SECTIONS = [
-  { id: "hero",     label: "00", title: ["Gestão de","Alojamento","Local"],        italic:[false,true,false],  bg: B.cream,  fg: B.black },
-  { id: "about",    label: "01", title: ["Quem","Somos"],                           italic:[false,true],        bg: B.black,  fg: B.cream },
-  { id: "features", label: "02", title: ["O Que","Oferecemos"],                    italic:[false,true],        bg: B.cream,  fg: B.black },
-  { id: "workflow", label: "03", title: ["Como","Funciona"],                       italic:[false,true],        bg: B.black,  fg: B.cream },
-  { id: "plans",    label: "04", title: ["Escolhe","o Teu Plano"],                 italic:[false,true],        bg: B.cream,  fg: B.black },
-  { id: "cta",      label: "05", title: ["Pronto","Para","Começar?"],               italic:[false,false,true],  bg: B.orange, fg: B.cream },
+  { id: "hero",     label: "00", title: ["Gestão de","Alojamento","Local"],        italic:[false,true,false],  desc: "", bg: B.cream,  fg: B.black },
+  { id: "about",    label: "01", title: ["Quem","Somos"],                           italic:[false,true],        desc: "", bg: B.black,  fg: B.cream },
+  { id: "features", label: "02", title: ["O Que","Oferecemos"],                    italic:[false,true],        desc: "O essencial para gerir, sincronizar e automatizar o teu Alojamento Local num só lugar.", bg: B.cream,  fg: B.black },
+  { id: "workflow", label: "03", title: ["Como","Funciona"],                       italic:[false,true],        desc: "", bg: B.black,  fg: B.cream },
+  { id: "plans",    label: "04", title: ["Escolhe","o Teu Plano"],                 italic:[false,true],        desc: "", bg: B.cream,  fg: B.black },
+  { id: "cta",      label: "05", title: ["Pronto","Para","Começar"],               italic:[false,false,true],  desc: "", bg: B.orange, fg: B.cream },
 ]
 
 export const TICKER_ITEMS = [

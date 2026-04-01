@@ -17,7 +17,8 @@
  * - Zod garante regras formais antes do submit (inclui campos SEF dinâmicos).
  *
  * Integrações (não alterar lógica de negócio)
- * - `BookingService.createBooking` + `createPaymentIntent` mantêm-se como fonte de verdade.
+ * - `BookingService.createBooking` mantém-se como fonte de verdade para reservas.
+ * - `FinanceService` gere intents/confirmations de pagamento via finance-service.
  * - Sessão: pré-preenche contacto se existir JWT válido (localStorage) e mantém modo Guest.
  *
  * Acessibilidade
@@ -38,17 +39,18 @@ import {
 } from "react-hook-form"
 import { z } from "zod"
 import { toast } from "sonner"
-import { Check, ChevronRight, Lock, Loader2, Copy, ArrowLeft } from "lucide-react"
+import { Check, ChevronRight, Lock, Loader2, ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/forms/button"
 import { Input } from "@/components/ui/forms/input"
 import { Switch } from "@/components/ui/forms/switch"
 import type { BookingProperty } from "@/features/bookings/components/booking-card"
-import {
-  BookingService,
-  type PaymentResponse as BookingPaymentResponse,
-} from "@/services/booking.service"
+import { BookingService } from "@/services/booking.service"
+import { FinanceService } from "@/services/finance.service"
+import type { PaymentResponse, ProviderInfo } from "@/types/finance"
 import { cn } from "@/lib/utils"
+import { PaymentDetails } from "@/features/finance/components/payment-details"
+import { StripePaymentPanel } from "@/features/finance/components/stripe-payment-panel"
 
 // ─────────────────────────────────────────────
 // Types
@@ -191,18 +193,6 @@ function padBase64(s: string) {
   return s + "=".repeat((4 - (s.length % 4)) % 4)
 }
 
-function readPaymentStatus(p: BookingPaymentResponse | null) {
-  if (!p || typeof p !== "object") return "—"
-  const s = (p as Record<string, unknown>)["status"]
-  return typeof s === "string" ? s : "—"
-}
-
-function readClientSecret(p: BookingPaymentResponse | null): string | null {
-  if (!p || typeof p !== "object") return null
-  const s = (p as Record<string, unknown>)["clientSecret"]
-  return typeof s === "string" && s.length > 0 ? s : null
-}
-
 // ─────────────────────────────────────────────
 // Validation schema
 // ─────────────────────────────────────────────
@@ -250,8 +240,47 @@ function useBookingSubmit(
 ) {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [bookingId, setBookingId] = React.useState<number | null>(null)
-  const [payment, setPayment] = React.useState<BookingPaymentResponse | null>(null)
-  const [providerInfo, setProviderInfo] = React.useState<Record<string, unknown> | null>(null)
+  const [payment, setPayment] = React.useState<PaymentResponse | null>(null)
+  const [providerInfo, setProviderInfo] = React.useState<ProviderInfo | null>(null)
+  const [paymentError, setPaymentError] = React.useState<string | null>(null)
+  const [paymentAmount, setPaymentAmount] = React.useState<number | null>(null)
+  const [paymentCurrency, setPaymentCurrency] = React.useState<string | null>(null)
+
+  const confirmPayment = React.useCallback(async (paymentIntentId: string) => {
+    if (!bookingId) return
+    try {
+      setPaymentError(null)
+      const confirmed = await FinanceService.confirmPayment({
+        bookingId,
+        paymentIntentId,
+        metadata: { bookingId },
+      })
+      setPayment(confirmed)
+    } catch {
+      setPaymentError("Falhou confirmar pagamento.")
+    }
+  }, [bookingId])
+
+  const retryPayment = React.useCallback(async () => {
+    if (!bookingId || paymentAmount == null || !paymentCurrency) return
+    try {
+      setPaymentError(null)
+      const [info, intent] = await Promise.all([
+        FinanceService.getPaymentProviderInfo(),
+        FinanceService.createPaymentIntent({
+          bookingId,
+          amount: paymentAmount,
+          currency: paymentCurrency,
+          paymentMethod: "CREDIT_CARD",
+          metadata: { bookingId },
+        }),
+      ])
+      setProviderInfo(info)
+      setPayment(intent)
+    } catch {
+      setPaymentError("Não foi possível iniciar o pagamento.")
+    }
+  }, [bookingId, paymentAmount, paymentCurrency])
 
   const submit = React.useCallback(
     async (values: CheckoutFormValues): Promise<boolean> => {
@@ -292,12 +321,22 @@ function useBookingSubmit(
         })
 
         setBookingId(created.id)
-        const [info, intent] = await Promise.all([
-          BookingService.getPaymentProviderInfo(),
-          BookingService.createPaymentIntent(created.id, "CREDIT_CARD"),
-        ])
-        setProviderInfo(info)
-        setPayment(intent)
+        setPaymentAmount(created.totalPrice)
+        setPaymentCurrency(created.currency)
+
+        try {
+          const [info, intent] = await Promise.all([
+            FinanceService.getPaymentProviderInfo(),
+            FinanceService.createPaymentIntent({ bookingId: created.id, paymentMethod: "CREDIT_CARD" }),
+          ])
+          setProviderInfo(info)
+          setPayment(intent)
+          setPaymentError(null)
+        } catch {
+          setProviderInfo(null)
+          setPayment(null)
+          setPaymentError("Reserva criada, mas falhou iniciar pagamento.")
+        }
         return true
       } catch {
         toast.error("Erro ao criar reserva. Tenta novamente.")
@@ -309,7 +348,18 @@ function useBookingSubmit(
     [checkIn, checkOut, getAuth, isGuest, property.id]
   )
 
-  return { isSubmitting, bookingId, payment, providerInfo, submit }
+  return {
+    isSubmitting,
+    bookingId,
+    payment,
+    providerInfo,
+    paymentError,
+    paymentAmount,
+    paymentCurrency,
+    confirmPayment,
+    retryPayment,
+    submit,
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -369,8 +419,32 @@ export function BookingCheckoutForm({
   const getAuth = React.useCallback(() => authSession, [authSession])
   const isGuest = React.useCallback(() => checkoutAsGuest, [checkoutAsGuest])
 
-  const { isSubmitting, bookingId, payment, providerInfo, submit } =
+  const {
+    isSubmitting,
+    bookingId,
+    payment,
+    providerInfo,
+    paymentError,
+    paymentAmount,
+    paymentCurrency,
+    confirmPayment,
+    retryPayment,
+    submit,
+  } =
     useBookingSubmit(checkIn, checkOut, property, getAuth, isGuest)
+
+  const stripeClientSecret = React.useMemo(() => {
+    if (!payment || typeof payment !== "object") return null
+    const s = (payment as Record<string, unknown>)["clientSecret"]
+    return typeof s === "string" && s.length > 0 ? s : null
+  }, [payment])
+
+  const stripePublishableKey = React.useMemo(() => {
+    const caps = providerInfo?.capabilities as Record<string, unknown> | undefined
+    const fromCaps = caps && typeof caps["publishableKey"] === "string" ? (caps["publishableKey"] as string) : ""
+    const fromEnv = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ""
+    return (fromCaps || fromEnv).trim()
+  }, [providerInfo])
 
   // Seed session on mount
   React.useEffect(() => {
@@ -652,41 +726,25 @@ export function BookingCheckoutForm({
                 locked={!paymentOpen}
                 completed={progress.payment}
               >
-                <div className="divide-y divide-foreground/10">
-                  <ReviewRow label="Reserva" value={`#${bookingId ?? "—"}`} />
-                  <ReviewRow label="Estado" value={readPaymentStatus(payment)} />
-                  {providerInfo && (
-                    <ReviewRow label="Provider" value={String(providerInfo["name"] ?? "—")} />
-                  )}
-                </div>
+                <PaymentDetails
+                  bookingId={bookingId}
+                  payment={payment}
+                  providerInfo={providerInfo}
+                  labelClassName={tk.label}
+                  error={paymentError}
+                  onRetry={retryPayment}
+                />
 
-                {readClientSecret(payment) && (
-                  <div className="space-y-2 pt-4 border-t border-foreground/10">
-                    <div className={tk.label}>Client secret</div>
-                    <Input
-                      id="payment-client-secret"
-                      variant="brutal"
-                      readOnly
-                      value={readClientSecret(payment) ?? ""}
-                    />
-                    <Button
-                      variant="brutal-outline"
-                      type="button"
-                      size="sm"
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(readClientSecret(payment) ?? "")
-                          toast.success("Copiado.")
-                        } catch {
-                          toast.error("Não foi possível copiar.")
-                        }
-                      }}
-                    >
-                      <Copy className="h-3.5 w-3.5 mr-1.5" />
-                      Copiar
-                    </Button>
-                  </div>
-                )}
+                {bookingId && providerInfo?.name === "Stripe" && stripeClientSecret && stripePublishableKey ? (
+                  <StripePaymentPanel
+                    publishableKey={stripePublishableKey}
+                    clientSecret={stripeClientSecret}
+                    bookingId={bookingId}
+                    total={paymentAmount ?? total}
+                    currency={paymentCurrency ?? "EUR"}
+                    onConfirmed={confirmPayment}
+                  />
+                ) : null}
 
                 <SectionCTA onClick={onSuccess} disabled={!bookingId}>
                   Concluir reserva
