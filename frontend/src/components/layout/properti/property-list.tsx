@@ -336,10 +336,18 @@ function PropertyListBars({propertys, onSelect = ()=>{}, onDelete, onSaved, isLo
                 };
 
                 return(
-                    <button 
-                        key={prop.id} 
-                        className={`flex flex-col w-full gap-2 px-3 py-3 text-left border-b hover:bg-sidebar-accent transition-colors`}
-                        onClick={()=>{onSelect(prop.id)}} 
+                    <div
+                        key={prop.id}
+                        role="button"
+                        tabIndex={0}
+                        className={`flex flex-col w-full gap-2 px-3 py-3 text-left border-b hover:bg-sidebar-accent transition-colors cursor-pointer`}
+                        onClick={()=>{onSelect(prop.id)}}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault()
+                                onSelect(prop.id)
+                            }
+                        }}
                     >
                         <div className="flex w-full items-start justify-between">
                             <span className="font-medium">{prop.title}</span>
@@ -360,20 +368,22 @@ function PropertyListBars({propertys, onSelect = ()=>{}, onDelete, onSaved, isLo
                             </div>
                         </div>
                         
-                        <div className="flex justify-end">
-                            <BrutalButton
-                                className="bg-destructive text-xs"
-                                onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    void onDelete?.(prop.id)
-                                }}
-                            >
-                                Delete
-                            </BrutalButton>
-                        </div>
+                        {onDelete ? (
+                            <div className="flex justify-end">
+                                <BrutalButton
+                                    className="bg-destructive text-xs"
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        e.stopPropagation()
+                                        void onDelete(prop.id)
+                                    }}
+                                >
+                                    Delete
+                                </BrutalButton>
+                            </div>
+                        ) : null}
 
-                    </button>
+                    </div>
                 )})
             }
 

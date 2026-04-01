@@ -11,6 +11,7 @@ import type {
     PropertyRuleDTO,
     SeasonalityRuleDTO,
     UpdatePropertyRequest,
+    PropertyListItem,
 } from "@/types/property";
 
 export type {
@@ -22,6 +23,7 @@ export type {
     PropertyRuleDTO,
     SeasonalityRuleDTO,
     UpdatePropertyRequest,
+    PropertyListItem,
 } from "@/types/property";
 
 type PropertyTranslation = {
@@ -116,20 +118,28 @@ export class PropertyService {
             
             if (response.data.success) {
                 const properties = Array.isArray(response.data.data) ? response.data.data : [];
-                return properties.map((p: PropertyApiItem) => ({
-                    id: String(p.id),
-                    title: typeof p.name === 'string' ? p.name : (p.name?.pt || p.name?.en || p.title || "Propriedade sem título"),
-                    description: typeof p.description === 'string' ? p.description : (p.description?.pt || p.description?.en || ""),
-                    location: p.address || p.location || "Localização não disponível",
-                    price: p.basePrice || p.base_price || p.pricePerNight || p.price_per_night || 0,
-                    imageUrl: p.imageUrl || p.image_url || "",
-                    status: (p.status === "ACTIVE" || p.isActive === true || p.status === "AVAILABLE")
-                      ? "AVAILABLE"
-                      : (p.status === "MAINTENANCE" ? "MAINTENANCE" : "BOOKED"),
-                    rating: p.rating || 0,
-                    featured: p.featured || false,
-                    tags: p.tags || []
-                }));
+                return properties.map((p: PropertyApiItem) => {
+                    const anyP = p as unknown as Record<string, unknown>;
+                    const rawIsActive = (p.isActive ?? (anyP["active"] as unknown) ?? (anyP["is_active"] as unknown)) as unknown;
+                    const isActive = rawIsActive === true || rawIsActive === "true";
+                    const rawStatus = (p.status ?? (anyP["status"] as unknown)) as unknown;
+                    const status = typeof rawStatus === "string" ? rawStatus : "";
+
+                    return {
+                        id: String(p.id),
+                        title: typeof p.name === 'string' ? p.name : (p.name?.pt || p.name?.en || p.title || "Propriedade sem título"),
+                        description: typeof p.description === 'string' ? p.description : (p.description?.pt || p.description?.en || ""),
+                        location: p.address || p.location || "Localização não disponível",
+                        price: Number(p.basePrice ?? p.base_price ?? p.pricePerNight ?? p.price_per_night ?? 0),
+                        imageUrl: p.imageUrl || p.image_url || "",
+                        status: (status === "ACTIVE" || status === "AVAILABLE" || isActive)
+                          ? "AVAILABLE"
+                          : (status === "MAINTENANCE" ? "MAINTENANCE" : "BOOKED"),
+                        rating: Number(p.rating ?? 0),
+                        featured: Boolean(p.featured ?? false),
+                        tags: p.tags || []
+                    }
+                });
             }
             return [];
         } catch (error) {
@@ -282,14 +292,14 @@ export class PropertyService {
         isActive?: boolean;
         minPrice?: number;
         maxPrice?: number;
-    }): Promise<Page<Record<string, unknown>>> {
+    }): Promise<Page<PropertyListItem>> {
         try {
-            const response = await propertiesAxios.get<ApiResponse<Page<Record<string, unknown>>>>(`/by-user/${params.userId}`, {
+            const response = await propertiesAxios.get<ApiResponse<Page<PropertyListItem>>>(`/by-user/${params.userId}`, {
                 params: {
                     page: params.page ?? 0,
                     size: params.size ?? 20,
                     sort: params.sort ?? "name,asc",
-                    city: params.city,
+                    city: params.city?.trim() ? params.city.trim() : undefined,
                     isActive: params.isActive,
                     minPrice: params.minPrice,
                     maxPrice: params.maxPrice,
@@ -425,14 +435,14 @@ export class PropertyService {
             const userId = localStorage.getItem("userId");
             if (!userId) return [];
             const page = await this.listByUser({ userId: Number(userId), page: 0, size: 100, sort: "name,asc" });
-            return page.content.map((p: Record<string, unknown>) => ({
-                id: String(p["id"]),
-                title: String(p["name"] ?? ""),
+            return page.content.map((p) => ({
+                id: String(p.id),
+                title: p.name,
                 description: "",
-                location: String(p["city"] ?? ""),
-                price: Number(p["basePrice"] ?? 0),
+                location: p.city,
+                price: Number(p.basePrice ?? 0),
                 imageUrl: "",
-                status: p["isActive"] ? "AVAILABLE" : "BOOKED",
+                status: p.isActive ? "AVAILABLE" : "MAINTENANCE",
                 rating: 0,
                 featured: false,
                 tags: [],

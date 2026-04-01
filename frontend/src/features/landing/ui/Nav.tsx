@@ -2,6 +2,7 @@
 
 import { SECTIONS, B } from "../tokens"
 import { BoingText } from "@/components/BoingText"
+import { useSyncExternalStore } from "react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,16 +58,36 @@ function NavLinks({ active, goTo, fg, accentColor, activeLinkColor }: NavProps) 
   )
 }
 
-function NavActions({ fg, accentColor, ctaColor }: { fg: string; accentColor?: string; ctaColor?: string }) {
+function NavActions({
+  fg,
+  accentColor,
+  ctaColor,
+  isAuthenticated,
+}: {
+  fg: string
+  accentColor?: string
+  ctaColor?: string
+  isAuthenticated: boolean
+}) {
   return (
     <div className="flex items-center gap-8">
-      <a
-        href="/login"
-        className="hidden md:inline font-black uppercase tracking-widest text-[14px]"
-        style={{ color: fg, opacity: 0.88 }}
-      >
-        <BoingText text="Login" color={fg} activeColor={accentColor ?? B.orange} />
-      </a>
+      {isAuthenticated ? (
+        <a
+          href="/dashboard"
+          className="hidden md:inline font-black uppercase tracking-widest text-[14px]"
+          style={{ color: fg, opacity: 0.88 }}
+        >
+          <BoingText text="Dashboard" color={fg} activeColor={accentColor ?? B.orange} />
+        </a>
+      ) : (
+        <a
+          href="/login"
+          className="hidden md:inline font-black uppercase tracking-widest text-[14px]"
+          style={{ color: fg, opacity: 0.88 }}
+        >
+          <BoingText text="Login" color={fg} activeColor={accentColor ?? B.orange} />
+        </a>
+      )}
       <a
         href="/booking"
         className="font-black uppercase tracking-widest text-[14px]"
@@ -81,13 +102,30 @@ function NavActions({ fg, accentColor, ctaColor }: { fg: string; accentColor?: s
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function Nav({ active, goTo, fg, accentColor, activeLinkColor, ctaColor }: NavProps) {
+  const isAuthenticated = useSyncExternalStore(
+    (onStoreChange) => {
+      window.addEventListener("storage", onStoreChange)
+      window.addEventListener("auth-change", onStoreChange)
+      return () => {
+        window.removeEventListener("storage", onStoreChange)
+        window.removeEventListener("auth-change", onStoreChange)
+      }
+    },
+    () => {
+      const token = localStorage.getItem("token") ?? ""
+      const userId = localStorage.getItem("userId") ?? ""
+      return Boolean(token && userId)
+    },
+    () => false,
+  )
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-2 md:px-3 py-3">
       <div className="mx-auto w-full max-w-7xl rounded-md h-full" style={containerStyle(fg)}>
         <div className="flex items-center justify-between px-5 md:px-7 py-3">
           <Logo goTo={goTo} fg={fg} accentColor={accentColor} />
           <NavLinks active={active} goTo={goTo} fg={fg} accentColor={accentColor} activeLinkColor={activeLinkColor} ctaColor={ctaColor} />
-          <NavActions fg={fg} accentColor={accentColor} ctaColor={ctaColor} />
+          <NavActions fg={fg} accentColor={accentColor} ctaColor={ctaColor} isAuthenticated={isAuthenticated} />
         </div>
       </div>
     </nav>

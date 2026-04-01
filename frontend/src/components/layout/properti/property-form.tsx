@@ -42,7 +42,7 @@ function NewPropertyData(id: string) : OwnProperty {
         address: "",
         maxGuests: 1,
         price: 100,
-        imageUrl: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=1000&auto=format&fit=crop",
+        imageUrl: "",
         status: "MAINTENANCE",
         rating: 0.0,
         tags: []
@@ -69,7 +69,7 @@ async function handleCrate(property: OwnProperty): Promise<boolean> {
         city: property.city,
         address: property.address,
         maxGuests: property.maxGuests,
-        amenityIds: [1],
+        amenityIds: [],
     }
 
     try {
@@ -105,7 +105,7 @@ async function handleEdit(property: OwnProperty): Promise<boolean> {
         address: property.address,
         city: property.city,
         maxGuests: property.maxGuests,
-        amenityIds: [1]
+        amenityIds: []
     }
 
     try {

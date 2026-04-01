@@ -28,10 +28,12 @@ import {
 } from "@/components/ui/layout/sidebar"
 import { useChatStrategy } from "@/features/chat/ChatProvider"
 import { BookingService, type BookingResponse } from "@/services/booking.service"
+import { toast } from "sonner"
 
 import { PropertyList, PropertyListBars } from "../properti/property-list"
-import { MOCK_PROPERTIES } from "../properti/property-view"
+import type { OwnProperty } from "../properti/property-view"
 import {BrutalButton} from "@/components/ui/forms/button";
+import { PropertyService } from "@/services/property.service"
 
 type UserRole = "ADMIN" | "GUEST" | "OWNER" | "STAFF"
 
@@ -83,6 +85,8 @@ export function AppSidebar({
   const [selectedChatId, setSelectedChatId] = React.useState<string | undefined>(undefined)
   const [bookings, setBookings] = React.useState<BookingResponse[]>([])
   const [isLoadingBookings, setIsLoadingBookings] = React.useState(false)
+  const [properties, setProperties] = React.useState<OwnProperty[]>([])
+  const [isLoadingProperties, setIsLoadingProperties] = React.useState(false)
 
   // Estado real do utilizador vindo do localStorage
   const [currentUser, setCurrentUser] = React.useState({
@@ -153,6 +157,50 @@ export function AppSidebar({
         setBookings(data)
       } finally {
         setIsLoadingBookings(false)
+      }
+    }
+
+    load()
+  }, [activeItem, currentUser.isAuthenticated])
+
+  React.useEffect(() => {
+    const load = async () => {
+      if (activeItem !== "Properties") return
+      if (!currentUser.isAuthenticated) { setProperties([]); return }
+      if (typeof window === "undefined") return
+      const userIdRaw = localStorage.getItem("userId")
+      if (!userIdRaw) { setProperties([]); return }
+      try {
+        setIsLoadingProperties(true)
+        const page = await PropertyService.listByUser({ userId: Number(userIdRaw), page: 0, size: 25, sort: "name,asc" })
+        const mapped: OwnProperty[] = page.content.map((p) => {
+          const city = String(p.city ?? "")
+          const location = String(p.location ?? city)
+          const address = String(p.address ?? "")
+          const maxGuests = Number(p.maxGuests ?? 1)
+          return {
+            id: String(p.id ?? ""),
+            title: String(p.name ?? ""),
+            description: "",
+            location,
+            city,
+            address,
+            maxGuests,
+            price: Number(p.basePrice ?? 0),
+            imageUrl: "",
+            status: p.isActive ? "AVAILABLE" : "MAINTENANCE",
+            rating: 0,
+            featured: false,
+            tags: [],
+          }
+        })
+        setProperties(mapped)
+      } catch (err) {
+        console.error(err)
+        setProperties([])
+        toast.error("Não foi possível carregar as tuas propriedades.")
+      } finally {
+        setIsLoadingProperties(false)
       }
     }
 
@@ -268,7 +316,13 @@ export function AppSidebar({
                     <BrutalButton className={"mt-2 w-full"} onClick={()=>setView("properties")}>
                       More Details
                     </BrutalButton>
-                    <PropertyListBars propertys={MOCK_PROPERTIES} isExiting={true} animate={false} onSelect={(id)=>{selectPropertyId(id)}}/>
+                    {isLoadingProperties ? (
+                      <div className="p-3">
+                        <span className="font-mono text-xs uppercase opacity-70">A carregar propriedades...</span>
+                      </div>
+                    ) : (
+                      <PropertyListBars propertys={properties} isExiting={true} animate={false} onSelect={(id)=>{selectPropertyId(id)}}/>
+                    )}
                   </div>
               )
               : activeItem === "Bookings" ? (

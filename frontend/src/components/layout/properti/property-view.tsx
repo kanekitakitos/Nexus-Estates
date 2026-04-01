@@ -27,70 +27,21 @@ export interface OwnProperty {
     tags?: string[]
 }
 
-
-export const MOCK_PROPERTIES: OwnProperty[] = [
-    {
-        id: "1",
-        title: "Modern Loft in Downtown",
-        description: "Experience city living at its finest in this spacious loft with floor-to-ceiling windows and modern amenities.",
-        location: "New York, NY",
-        city: "New York",
-        address: "Rua das Gaivotas, Lote 2",
-        maxGuests: 2,
-        price: 250,
-        imageUrl: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1000&auto=format&fit=crop",
-        status: "AVAILABLE",
-        rating: 4.8,
-        featured: true,
-        tags: ["City View", "Loft", "High Floor", "Workspace"]
-    },
-    {
-        id: "2",
-        title: "Cozy Mountain Cabin",
-        description: "Escape to the mountains in this rustic yet luxurious cabin. Perfect for winter getaways and summer hikes.",
-        location: "Aspen, CO",
-        city: "Aspen",
-        address: "Pine Tree Road, 45",
-        maxGuests: 4,
-        price: 450,
-        imageUrl: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?q=80&w=1000&auto=format&fit=crop",
-        status: "BOOKED",
-        rating: 4.9,
-        featured: true,
-        tags: ["Fireplace", "Snow Nearby", "Hot Tub"]
-    },
-    {
-        id: "3",
-        title: "Seaside Villa with Pool",
-        description: "Relax by the ocean in this stunning villa featuring a private infinity pool and direct beach access.",
-        location: "Malibu, CA",
-        city: "Malibu",
-        address: "Pacific Coast Highway, 1020",
-        maxGuests: 8,
-        price: 1200,
-        imageUrl: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=1000&auto=format&fit=crop",
-        status: "AVAILABLE",
-        rating: 5.0,
-        featured: false,
-        tags: ["Oceanfront", "Infinity Pool", "Private Beach", "Luxury"]
-    },
-    {
-        id: "18",
-        title: "Lakefront Cottage",
-        description: "Peaceful cottage right on the water's edge. Enjoy fishing, kayaking, or just watching the sunset.",
-        location: "Lake Tahoe, NV",
-        city: "Lake Tahoe",
-        address: "Emerald Bay Rd, 5",
-        maxGuests: 3,
-        price: 280,
-        imageUrl: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=1000&auto=format&fit=crop",
-        status: "AVAILABLE",
-        rating: 4.6,
-        featured: false,
-        tags: ["Lakefront", "Sunset View", "Kayak Included"]
+function resolveTranslation(value: unknown): string {
+    if (!value) return ""
+    if (typeof value === "string") return value
+    if (typeof value === "object") {
+        const v = value as Record<string, unknown>
+        const pt = typeof v["pt"] === "string" ? (v["pt"] as string) : ""
+        const en = typeof v["en"] === "string" ? (v["en"] as string) : ""
+        return pt || en || ""
     }
-];
+    return ""
+}
 
+function resolveBoolean(value: unknown): boolean {
+    return value === true || value === "true"
+}
 
 export function PropertyView(){
     const { selectedPropertyId, selectPropertyId } = useView()
@@ -112,19 +63,23 @@ export function PropertyView(){
 
             setIsLoading(true)
             const page = await PropertyService.listByUser({ userId: Number(userIdRaw), page: 0, size: 200, sort: "name,asc" })
-            const mapped: OwnProperty[] = page.content.map((p: Record<string, unknown>) => {
-                const city = String(p["city"] ?? "")
+            const mapped: OwnProperty[] = page.content.map((p) => {
+                const city = String(p.city ?? "")
+                const location = String(p.location ?? city)
+                const address = String(p.address ?? "")
+                const maxGuests = Number(p.maxGuests ?? 1)
+                const description = resolveTranslation(p.description)
                 return {
-                    id: String(p["id"] ?? ""),
-                    title: String(p["name"] ?? ""),
-                    description: "",
-                    location: city,
+                    id: String(p.id ?? ""),
+                    title: String(p.name ?? ""),
+                    description,
+                    location,
                     city,
-                    address: "",
-                    maxGuests: 1,
-                    price: Number(p["basePrice"] ?? 0),
+                    address,
+                    maxGuests,
+                    price: Number(p.basePrice ?? 0),
                     imageUrl: "",
-                    status: p["isActive"] ? "AVAILABLE" : "MAINTENANCE",
+                    status: resolveBoolean(p.isActive) ? "AVAILABLE" : "MAINTENANCE",
                     rating: 0,
                     featured: false,
                     tags: [],
@@ -208,7 +163,7 @@ export function PropertyView(){
         else if(selectedPropertyId != selectedProperty?.id){
             handelSelectedProperty(selectedPropertyId)
         }
-    }, [selectedPropertyId]);
+    }, [selectedPropertyId, selectedProperty?.id]);
 
     const handleDelete = useCallback(async (id: string) => {
         try {

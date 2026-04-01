@@ -66,6 +66,18 @@ export type Page<T> = {
   last: boolean;
 };
 
+export type PropertyListItem = {
+  id: number;
+  name: string;
+  description?: Record<string, string> | null;
+  location: string;
+  city: string;
+  address: string;
+  basePrice: number;
+  maxGuests: number;
+  isActive: boolean;
+};
+
 /**
  * Payload de criação de propriedade.
  *

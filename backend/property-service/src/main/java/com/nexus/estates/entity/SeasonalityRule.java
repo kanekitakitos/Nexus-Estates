@@ -1,5 +1,6 @@
 package com.nexus.estates.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
@@ -40,6 +41,7 @@ public class SeasonalityRule {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", nullable = false)
     @NotNull(message = "A regra deve estar associada a uma propriedade")
+    @JsonIgnore
     private Property property;
 
     @Schema(description = "Data de início da aplicação da regra", example = "2024-06-01")

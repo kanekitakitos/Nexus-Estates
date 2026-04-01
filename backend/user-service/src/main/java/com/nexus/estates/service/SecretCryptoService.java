@@ -28,13 +28,13 @@ public class SecretCryptoService {
     private final byte[] keyBytes;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public SecretCryptoService(@Value("${MASTER_KEY}") String masterKey) {
+    public SecretCryptoService(@Value("${master.key}") String masterKey) {
         if (masterKey == null || masterKey.isBlank()) {
-            throw new IllegalStateException("MASTER_KEY não configurada. Defina a variável de ambiente MASTER_KEY com a chave AES-256 em Base64.");
+            throw new IllegalStateException("master.key não configurada. Defina a variável de ambiente MASTER_KEY (ou a propriedade master.key) com a chave AES-256 em Base64.");
         }
         byte[] decoded = Base64.getDecoder().decode(masterKey);
         if (decoded.length != 32) {
-            throw new IllegalStateException("MASTER_KEY inválida. Deve ser uma chave AES-256 (32 bytes) em Base64.");
+            throw new IllegalStateException("master.key inválida. Deve ser uma chave AES-256 (32 bytes) em Base64.");
         }
         this.keyBytes = decoded;
         INSTANCE = this;
@@ -42,7 +42,7 @@ public class SecretCryptoService {
 
     public static SecretCryptoService getInstance() {
         if (INSTANCE == null) {
-            throw new IllegalStateException("SecretCryptoService não inicializado. Verifique configuração da MASTER_KEY.");
+            throw new IllegalStateException("SecretCryptoService não inicializado. Verifique configuração de master.key/MASTER_KEY.");
         }
         return INSTANCE;
     }
