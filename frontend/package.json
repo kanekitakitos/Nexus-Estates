@@ -18,6 +18,8 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
+    "@stripe/react-stripe-js": "^3.9.0",
+    "@stripe/stripe-js": "^6.1.0",
     "@types/three": "^0.183.1",
     "ably": "^2.18.0",
     "axios": "^1.13.6",

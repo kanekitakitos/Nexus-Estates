@@ -163,4 +163,16 @@ export const bookingsAxios = axios.create({
 bookingsAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
 bookingsAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
 
+/**
+ * Cliente para o Finance Service.
+ *
+ * Base path:
+ * - /api/finance
+ */
+export const financeAxios = axios.create({
+    baseURL: `${API_BASE_URL}/finance`,
+});
+financeAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
+financeAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
+
 export default api;

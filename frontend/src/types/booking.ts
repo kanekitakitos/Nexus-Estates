@@ -1,5 +1,5 @@
 /**
- * Tipos do módulo de reservas (Bookings) e pagamentos.
+ * Tipos do módulo de reservas (Bookings).
  *
  * Origem backend (API Gateway):
  * - /api/bookings (booking-service)
@@ -32,47 +32,6 @@ export interface BookingResponse {
 /**
  * Métodos de pagamento suportados (alinhados com o enum do backend).
  */
-export type PaymentMethod =
-  | "CREDIT_CARD"
-  | "DEBIT_CARD"
-  | "BANK_TRANSFER"
-  | "MULTIBANCO"
-  | "MB_WAY"
-  | "PAYPAL";
-
-/**
- * Estados possíveis de uma transação no gateway de pagamentos.
- */
-export type PaymentStatus =
-  | "PENDING"
-  | "REQUIRES_ACTION"
-  | "PROCESSING"
-  | "REQUIRES_CAPTURE"
-  | "SUCCEEDED"
-  | "FAILED"
-  | "CANCELLED"
-  | "UNKNOWN";
-
-/**
- * Resposta “unificada” de pagamento (criar intenção, confirmar, direto, etc.).
- *
- * Nota:
- * - Pode vir como objeto genérico dependendo do provider/flow.
- */
-export type PaymentResponse =
-  | {
-      transactionId: string;
-      status: PaymentStatus;
-      clientSecret?: string;
-      amount?: number;
-      currency?: string;
-      actionType?: string;
-      redirectUrl?: string | null;
-      errorCode?: string;
-      errorMessage?: string;
-    }
-  | Record<string, unknown>;
-
 /**
  * Payload de criação de reserva no frontend.
  *
