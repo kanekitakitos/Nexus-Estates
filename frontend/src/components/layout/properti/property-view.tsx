@@ -109,6 +109,10 @@ export function PropertyView(){
         .then((props: OwnProperty[]) => ownProperties = props)
         .catch((err)=>{toast.warning("Error ate geting properies, see console"); console.error(err)})
 
+    if (ownProperties.length == 0){
+        toast.warning("Using MOCK_PROPERTIES")
+        ownProperties = MOCK_PROPERTIES
+    }
 
     /**
      * Manipula a seleção de uma propriedade e inica a animação de saida
