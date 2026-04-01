@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from "framer-motion"
 import { B, SECTIONS } from "../tokens"
 import { ease } from "../motion"
+import { CassetteCard } from "../ui/CassetteCard"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,7 +90,7 @@ function FloatingShapes() {
 function PrimaryCtaButton({ reduce }: { reduce: boolean | null }) {
   return (
     <motion.a
-      href="/booking"
+      href="/register"
       className="font-mono text-[10px] uppercase tracking-widest px-8 py-4 relative overflow-hidden"
       style={{
         background:  B.black,
@@ -157,9 +158,17 @@ export function CtaSection({ s }: { s: Section }) {
         {s.label} — Start
       </motion.span>
 
-      <CtaTitle s={s} />
-      <CtaActions />
-      <Disclaimer />
+      <div className="relative z-20 flex flex-col lg:flex-row lg:items-start gap-8 lg:gap-2">
+        <div className="min-w-0 relative z-30">
+          <CtaTitle s={s} />
+          <CtaActions />
+          <Disclaimer />
+        </div>
+
+        <div className="hidden lg:block flex-none relative z-10 pointer-events-none">
+          <CassetteCard />
+        </div>
+      </div>
     </div>
   )
 }

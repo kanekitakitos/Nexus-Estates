@@ -15,12 +15,12 @@ export const B = {
 }
 
 export const SECTIONS = [
-  { id: "hero",     label: "00", title: ["Gestão de","Alojamento","Local"],        italic:[false,true,false],  bg: B.cream,  fg: B.black },
-  { id: "about",    label: "01", title: ["Quem","Somos"],                           italic:[false,true],        bg: B.black,  fg: B.cream },
-  { id: "features", label: "02", title: ["O Que","Oferecemos"],                    italic:[false,true],        bg: B.cream,  fg: B.black },
-  { id: "workflow", label: "03", title: ["Como","Funciona"],                       italic:[false,true],        bg: B.black,  fg: B.cream },
-  { id: "plans",    label: "04", title: ["Escolhe","o Teu Plano"],                 italic:[false,true],        bg: B.cream,  fg: B.black },
-  { id: "cta",      label: "05", title: ["Pronto","Para","Começar?"],               italic:[false,false,true],  bg: B.orange, fg: B.cream },
+  { id: "hero",     label: "00", title: ["Gestão de","Alojamento","Local"],        italic:[false,true,false],  desc: "", bg: B.cream,  fg: B.black },
+  { id: "about",    label: "01", title: ["Quem","Somos"],                           italic:[false,true],        desc: "", bg: B.black,  fg: B.cream },
+  { id: "features", label: "02", title: ["O Que","Oferecemos"],                    italic:[false,true],        desc: "O essencial para gerir, sincronizar e automatizar o teu Alojamento Local num só lugar.", bg: B.cream,  fg: B.black },
+  { id: "workflow", label: "03", title: ["Como","Funciona"],                       italic:[false,true],        desc: "", bg: B.black,  fg: B.cream },
+  { id: "plans",    label: "04", title: ["Escolhe","o Teu Plano"],                 italic:[false,true],        desc: "", bg: B.cream,  fg: B.black },
+  { id: "cta",      label: "05", title: ["Pronto","Para","Começar"],               italic:[false,false,true],  desc: "", bg: B.orange, fg: B.cream },
 ]
 
 export const TICKER_ITEMS = [
