@@ -1,7 +1,7 @@
 package com.nexus.estates.controller;
 
 import com.nexus.estates.dto.SyncBlockDTO;
-import com.nexus.estates.service.IcsCalendarParserService;
+import com.nexus.estates.service.calendar.IcsCalendarParserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;

@@ -1,92 +1,32 @@
 import { bookingsAxios } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import { toast } from "sonner";
+import type {
+    BookingResponse,
+    CreateBookingRequest,
+} from "@/types/booking";
 
-/**
- * Estados possíveis para uma reserva (alinhados com o backend).
- */
-export type BookingStatus =
-  | "PENDING_PAYMENT"
-  | "CONFIRMED"
-  | "CANCELLED"
-  | "COMPLETED"
-  | "REFUNDED";
-
-/**
- * Representação de uma reserva devolvida pelo backend booking-service.
- */
-export interface BookingResponse {
-    id: number;
-    propertyId: number;
-    userId?: number | null;
-    checkInDate: string;
-    checkOutDate: string;
-    guestCount: number;
-    totalPrice: number;
-    currency: string;
-    status: BookingStatus;
-}
-
-export type PaymentMethod =
-  | "CREDIT_CARD"
-  | "DEBIT_CARD"
-  | "BANK_TRANSFER"
-  | "MULTIBANCO"
-  | "MB_WAY"
-  | "PAYPAL";
-
-export type PaymentStatus =
-  | "PENDING"
-  | "REQUIRES_ACTION"
-  | "PROCESSING"
-  | "REQUIRES_CAPTURE"
-  | "SUCCEEDED"
-  | "FAILED"
-  | "CANCELLED"
-  | "UNKNOWN";
-
-export type PaymentResponse =
-  | {
-      transactionId: string;
-      status: PaymentStatus;
-      clientSecret?: string;
-      amount?: number;
-      currency?: string;
-      actionType?: string;
-      redirectUrl?: string | null;
-      errorCode?: string;
-      errorMessage?: string;
-    }
-  | Record<string, unknown>;
-
-/**
- * Payload de criação de reserva (DTO de entrada do backend).
- */
-export interface CreateBookingRequest {
-    propertyId: number;
-    userId?: number | null;
-    checkInDate: string;
-    checkOutDate: string;
-    guestCount: number;
-    guestDetails?: {
-        fullName: string;
-        email: string;
-        phone: string;
-        nationality: string;
-        issuingCountry: string;
-        documentType: "CC" | "PASSPORT";
-        documentNumber: string;
-        documentIssueDate?: string;
-    };
-}
+export type {
+    BookingResponse,
+    CreateBookingRequest,
+} from "@/types/booking";
 
 /**
  * Serviço responsável pelas operações de reserva.
+ *
+ * Base path no API Gateway:
+ * - /api/bookings
+ *
+ * Instância Axios utilizada:
+ * - bookingsAxios (baseURL: {NEXT_PUBLIC_API_URL}/bookings)
  */
 export class BookingService {
     
     /**
      * Obtém todas as reservas do utilizador autenticado (via localStorage).
+     *
+     * Endpoint backend:
+     * - GET /api/bookings/user/{userId}
      */
     static async getMyBookings(): Promise<BookingResponse[]> {
         try {
@@ -102,6 +42,12 @@ export class BookingService {
 
     /**
      * Cria uma nova reserva.
+     *
+     * Endpoint backend:
+     * - POST /api/bookings
+     *
+     * Notas:
+     * - bookingData.guestDetails é mapeado para o formato flatten do backend (guestFullName, guestEmail, ...)
      */
     static async createBooking(bookingData: CreateBookingRequest): Promise<BookingResponse> {
         try {
@@ -138,6 +84,9 @@ export class BookingService {
 
     /**
      * Obtém o histórico de reservas de um utilizador específico.
+     *
+     * Endpoint backend:
+     * - GET /api/bookings/user/{userId}
      */
     static async getBookingsByUser(userId: number): Promise<BookingResponse[]> {
         try {
@@ -149,24 +98,34 @@ export class BookingService {
         }
     }
 
-    static async createPaymentIntent(bookingId: number, paymentMethod: PaymentMethod): Promise<PaymentResponse> {
+    /**
+     * Obtém uma reserva pelo ID.
+     *
+     * Endpoint backend:
+     * - GET /api/bookings/{id}
+     */
+    static async getBookingById(id: number): Promise<BookingResponse> {
         try {
-            const response = await bookingsAxios.post<PaymentResponse>(`/${bookingId}/payments/intent`, {
-                paymentMethod,
-            });
+            const response = await bookingsAxios.get<BookingResponse>(`/${id}`);
             return response.data;
         } catch (error) {
-            this.handleError(error, "iniciar pagamento");
+            this.handleError(error, "obter reserva por ID");
             throw error;
         }
     }
 
-    static async getPaymentProviderInfo(): Promise<Record<string, unknown>> {
+    /**
+     * Lista reservas de uma propriedade.
+     *
+     * Endpoint backend:
+     * - GET /api/bookings/property/{propertyId}
+     */
+    static async getBookingsByProperty(propertyId: number): Promise<BookingResponse[]> {
         try {
-            const response = await bookingsAxios.get<Record<string, unknown>>(`/payments/provider`);
+            const response = await bookingsAxios.get<BookingResponse[]>(`/property/${propertyId}`);
             return response.data;
         } catch (error) {
-            this.handleError(error, "obter info do provedor de pagamento");
+            this.handleError(error, "obter reservas por propriedade");
             throw error;
         }
     }

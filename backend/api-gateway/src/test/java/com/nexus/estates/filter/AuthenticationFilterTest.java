@@ -9,11 +9,12 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -42,20 +43,23 @@ class AuthenticationFilterTest {
 
         when(filterChain.filter(exchange)).thenReturn(Mono.empty());
 
-        authenticationFilter.apply(new AuthenticationFilter.Config()).filter(exchange, filterChain);
+        authenticationFilter.apply(new AuthenticationFilter.Config()).filter(exchange, filterChain).block();
 
         verify(jwtUtil, never()).validateToken(anyString());
         verify(filterChain).filter(exchange);
     }
 
     @Test
-    void shouldThrowExceptionWhenAuthHeaderIsMissingForSecuredRoute() {
+    void shouldReturn401WhenAuthHeaderIsMissingForSecuredRoute() {
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/bookings").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
-        assertThrows(RuntimeException.class, () -> 
-            authenticationFilter.apply(new AuthenticationFilter.Config()).filter(exchange, filterChain)
-        );
+        routeValidator.isSecured = req -> true;
+
+        authenticationFilter.apply(new AuthenticationFilter.Config()).filter(exchange, filterChain).block();
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+        verify(filterChain, never()).filter(any());
     }
 
     @Test
@@ -65,6 +69,7 @@ class AuthenticationFilterTest {
                 .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
+        routeValidator.isSecured = req -> true;
         when(filterChain.filter(any())).thenReturn(Mono.empty());
         doNothing().when(jwtUtil).validateToken("valid-token");
         io.jsonwebtoken.Claims claims = mock(io.jsonwebtoken.Claims.class);
@@ -73,7 +78,7 @@ class AuthenticationFilterTest {
         when(claims.getSubject()).thenReturn("user@example.com");
         when(jwtUtil.getAllClaimsFromToken("valid-token")).thenReturn(claims);
 
-        authenticationFilter.apply(new AuthenticationFilter.Config()).filter(exchange, filterChain);
+        authenticationFilter.apply(new AuthenticationFilter.Config()).filter(exchange, filterChain).block();
 
         verify(jwtUtil).validateToken("valid-token");
         verify(filterChain).filter(any());

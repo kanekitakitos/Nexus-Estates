@@ -25,13 +25,16 @@ export interface BookingDetailsProps {
     isExiting?: boolean
     checkInDate?: Date | null
     checkOutDate?: Date | null
+    onSaved?: () => void | Promise<void>
 }
 
 /**
  * Fields que o Owner pode editar
  */
-export interface EditableFieldsI extends Pick<OwnProperty, "title" | "description" | "location" | "city" | "address" | "price" | "maxGuests" | "imageUrl" |"tags">
-    {/*sem campos extra*/}
+export type EditableFieldsI = Pick<
+    OwnProperty,
+    "title" | "description" | "location" | "city" | "address" | "price" | "maxGuests" | "imageUrl" | "tags"
+>
 
 
 // TODO: recolher user do BD
@@ -49,19 +52,13 @@ type UserRole = "GUEST" | "OWNER"
  * @param param0 
  * @returns 
  */
-export function PropertyEdit2({ property : initialProperty, onBack, isExiting, checkInDate = null, checkOutDate = null }: BookingDetailsProps) {
+export function PropertyEdit2({ property : initialProperty, onBack, isExiting, checkInDate = null, checkOutDate = null, onSaved }: BookingDetailsProps) {
     const handleBack = useCallback(() => {
         onBack()
     }, [onBack])
 
 
     const [property, setProperty] = useState<OwnProperty>(initialProperty);
-
-    function updateProperty<K extends keyof EditableFieldsI>(key: K, value: EditableFieldsI[K]){
-        setProperty(prevData => ({...prevData, [key]:value}))
-    }
-
-    const [editField, setEditField] = useState<keyof EditableFieldsI | null>(null)
 
     const [editFormOpen, setEditFormOpen] = useState<boolean>(false)
 
@@ -72,7 +69,12 @@ export function PropertyEdit2({ property : initialProperty, onBack, isExiting, c
             isExiting ? "animate-fly-out-right fill-mode-forwards" : "animate-fly-in fill-mode-forwards"
         )}>
 
-            <PropertyEditForm propertyState={[property, setProperty]} onClose={()=>setEditFormOpen(false)} open={editFormOpen}/>
+            <PropertyEditForm
+                propertyState={[property, setProperty]}
+                onClose={()=>setEditFormOpen(false)}
+                open={editFormOpen}
+                onSaved={onSaved}
+            />
 
             <div className="mb-4 flex justify-between gap-10 max-[330]:flex-col">
                 <Button 

@@ -9,6 +9,7 @@ import com.stripe.model.PaymentIntent;
 import com.stripe.model.Refund;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.RefundCreateParams;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,6 +19,9 @@ import java.util.*;
 
 @Service
 public class StripePaymentProvider implements PaymentGatewayProvider {
+
+    @Value("${stripe.publishable.key:}")
+    private String stripePublishableKey;
 
     /**
      * Identificador do provider (Strategy).
@@ -58,8 +62,10 @@ public class StripePaymentProvider implements PaymentGatewayProvider {
     public PaymentResponse confirmPaymentIntent(String paymentIntentId, Map<String, Object> metadata) {
         try {
             PaymentIntent stripeIntent = PaymentIntent.retrieve(paymentIntentId);
-            PaymentIntent confirmedIntent = stripeIntent.confirm();
-            return mapToPaymentResponse(confirmedIntent);
+            if ("requires_confirmation".equals(stripeIntent.getStatus())) {
+                stripeIntent = stripeIntent.confirm();
+            }
+            return mapToPaymentResponse(stripeIntent);
         } catch (StripeException e) {
             throw new PaymentProcessingException("Failed to confirm Stripe payment: " + e.getMessage(), e);
         }
@@ -178,7 +184,7 @@ public class StripePaymentProvider implements PaymentGatewayProvider {
                 "Payment processing via Stripe API",
                 List.of(PaymentMethod.CREDIT_CARD, PaymentMethod.DEBIT_CARD, PaymentMethod.BANK_TRANSFER),
                 List.of("EUR", "USD", "GBP"),
-                Map.of("3ds", true, "automatic_tax", true),
+                Map.of("3ds", true, "automatic_tax", true, "publishableKey", stripePublishableKey),
                 true,
                 true,
                 true,

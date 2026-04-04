@@ -3,6 +3,7 @@ package com.nexus.estates.config;
 import io.ably.lib.rest.AblyRest;
 import io.ably.lib.types.AblyException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,6 +21,7 @@ import org.springframework.context.annotation.Configuration;
  * @see <a href="https://ably.com/docs/rest">Ably REST Client Documentation</a>
  */
 @Configuration
+@ConditionalOnProperty(name = "ably.api.key")
 public class AblyConfig {
 
     /**
