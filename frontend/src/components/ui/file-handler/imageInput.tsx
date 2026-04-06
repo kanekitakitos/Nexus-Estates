@@ -2,7 +2,10 @@
 import {useState, useRef, useEffect} from 'react';
 import {Camera, Check, X} from 'lucide-react'
 import {BrutalButton} from "@/components/ui/forms/button";
-
+import axios from "axios"
+import {AxiosError, AxiosResponse} from "axios";
+import {toast} from "sonner";
+import {getCloudinarySignature} from "@/../signatureCreat"
 
 /**
  * tipos de imagens permitidas
@@ -11,13 +14,72 @@ import {BrutalButton} from "@/components/ui/forms/button";
  */
 const imageTypeAllowed:Set<string> = new Set<string>()
 
-function ImageInput({onSave}:{onSave? : ()=>void}){
+function ImageInput(){
     const [imagesURL, setImagesURL] = useState<string[]>([]);
     const [imagesFiles, setImagesFiles] = useState<File[]>([]);
 
-    const handleClear = () => {
+    const handleClear = async (e :React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation()
+
         setImagesFiles((prev)=>([]))
         setImagesURL(prev => ([]))
+    }
+
+    const handleSave = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation()
+
+        try{
+
+            const api_key:string = process.env.CLOUDINARY_PUBLIC_API_KEY || ""
+            if(api_key == "")
+                console.error("api_key nao foi defenida como variavel do sistema")
+
+
+            const upload_preset:string = process.env.CLOUDINARY_UPLOAD_PRESET || ""
+            if(upload_preset == "")
+                console.error("upload_preset nao foi defenida como variavel do sistema")
+
+
+            imagesFiles.forEach(async (file)=>{
+            const {signature, timestamp} :{signature:string, timestamp:number} = await getCloudinarySignature()
+
+            const formData = new FormData()
+            formData.append("file", file)
+            formData.append("upload_preset", upload_preset)
+            formData.append("timestamp", timestamp.toString())
+            formData.append("api_key", api_key)
+            formData.append("signature", signature)
+
+            console.log({
+                "upload_preset" : upload_preset,
+                "api_key": api_key,
+                "signature" : signature
+            })
+
+
+            axios.post("https://api.cloudinary.com/v1_1/dw4lcrxn7/image/upload", formData)
+                .then((e:AxiosResponse)=> {
+                    toast.warning("Images Uploadod Suscess")
+                    console.log(e)
+            }).catch((err:AxiosError)=> {
+                const respostas : Map<number, string> = new Map<number, string>()
+                respostas.set(400,"Bad Request\nUpload preset must be specified when using unsigned upload")
+                respostas.set(404, "No conection to server")
+                respostas.set(401, "Assinatura com dados invalidos.")
+
+
+                if(err.status != undefined && respostas.has(err.status))
+                    toast.warning(respostas.get(err.status))
+                else {
+                    toast.warning("Updload Fail\nError " + err.status != undefined ? err.status : "undefined")
+                }
+
+                console.log(err)
+            })
+        })
+        }catch (e){
+            console.log(e)
+        }
     }
 
     const [isDragOver, setIsDragOver] = useState<boolean>(false)
@@ -126,7 +188,7 @@ function ImageInput({onSave}:{onSave? : ()=>void}){
             </div>
             {imagesFiles.length > 0 && (
                 <div className={"flex justify-around px-10 gap-x-5"}>
-                    <BrutalButton onClick={onSave}>
+                    <BrutalButton onClick={handleSave}>
                         SAVE
                     </BrutalButton>
 
