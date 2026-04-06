@@ -32,21 +32,16 @@ function ImageInput(){
 
             const api_key:string = process.env.CLOUDINARY_PUBLIC_API_KEY || ""
             if(api_key == "")
-                console.error("api_key nao foi defenida como variavel do sistema")
-
-
-            const upload_preset:string = process.env.CLOUDINARY_UPLOAD_PRESET || ""
-            if(upload_preset == "")
-                console.error("upload_preset nao foi defenida como variavel do sistema")
+                console.error("api_key nao foi defenida como variavel do s istema")
 
 
             imagesFiles.forEach(async (file)=>{
-            const {signature, timestamp} :{signature:string, timestamp:number} = await getCloudinarySignature()
-
+            const {signature, timestamp, upload_preset} :{signature:string, timestamp:string, upload_preset:string} = await getCloudinarySignature()
+                
             const formData = new FormData()
             formData.append("file", file)
             formData.append("upload_preset", upload_preset)
-            formData.append("timestamp", timestamp.toString())
+            formData.append("timestamp", timestamp)
             formData.append("api_key", api_key)
             formData.append("signature", signature)
 
