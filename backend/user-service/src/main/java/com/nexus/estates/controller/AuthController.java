@@ -13,6 +13,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -94,6 +96,15 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse authResponse = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.success(authResponse, "Login efetuado com sucesso."));
+    }
+
+    @PostMapping("/clerk/exchange")
+    public ResponseEntity<ApiResponse<AuthResponse>> clerkExchange(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
+        String token = authorization != null && authorization.startsWith("Bearer ")
+                ? authorization.substring(7)
+                : authorization;
+        AuthResponse authResponse = authService.exchangeClerkToken(token);
         return ResponseEntity.ok(ApiResponse.success(authResponse, "Login efetuado com sucesso."));
     }
 }

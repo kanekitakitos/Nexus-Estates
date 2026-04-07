@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/feedback/sonner-brutal";
 import { ChatProvider } from "@/features/chat/ChatProvider";
 import {ViewProvider} from "@/features/view-context";
+import { ClerkProvider } from "@clerk/nextjs";
 
 /**
  * Fonte principal, para textos, botões e menus (fornecida pela Geist)
@@ -40,6 +41,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const idp = (process.env.NEXT_PUBLIC_IDP ?? "clerk").toLowerCase();
+  const enableClerk = Boolean(clerkPublishableKey) && idp === "clerk";
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -50,14 +55,21 @@ export default function RootLayout({
 
           <div className="min-h-screen">
             {/* inicia o Provider do serviço de chat */}
-            <ChatProvider>
-                {/* inicia o Provider*/}
-                <ViewProvider>
+            {enableClerk ? (
+              <ClerkProvider publishableKey={clerkPublishableKey}>
+                <ChatProvider>
+                  <ViewProvider>
 
-              {/* Conteodo da page.tsx desta pasta */}
-              {children}
-                </ViewProvider>
-            </ChatProvider>
+                {/* Conteodo da page.tsx desta pasta */}
+                {children}
+                  </ViewProvider>
+                </ChatProvider>
+              </ClerkProvider>
+            ) : (
+              <ChatProvider>
+                <ViewProvider>{children}</ViewProvider>
+              </ChatProvider>
+            )}
           </div>
 
       </body>

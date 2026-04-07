@@ -31,6 +31,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final ExternalIdentityProviderStrategy externalIdentityProvider;
 
     /**
      * Regista um novo utilizador no sistema.
@@ -89,6 +90,33 @@ public class AuthService {
             user = userRepository.save(user);
         }
 
+        var token = jwtService.generateToken(user);
+
+        return AuthResponse.builder()
+                .token(token)
+                .id(user.getId())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .build();
+    }
+
+    public AuthResponse exchangeClerkToken(String clerkToken) {
+        var identity = externalIdentityProvider.verify(clerkToken);
+
+        var user = externalIdentityProvider.findExistingUser(userRepository, identity).orElse(null);
+
+        if (user == null) {
+            user = User.builder()
+                    .email(identity.email())
+                    .password(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
+                    .phone(null)
+                    .role(UserRole.OWNER)
+                    .build();
+        }
+
+        externalIdentityProvider.applyIdentity(user, identity);
+
+        user = userRepository.save(user);
         var token = jwtService.generateToken(user);
 
         return AuthResponse.builder()

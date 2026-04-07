@@ -239,24 +239,7 @@ public class PropertyService {
     public ExpandedPropertyResponse getExpandedById(Long id) {
         Property p = repository.findExpandedById(id)
                 .orElseThrow(() -> new PropertyNotFoundException(id));
-        List<String> amenityNames = p.getAmenities().stream()
-                .map(Amenity::getName)
-                .map(this::resolveAmenityName)
-                .toList();
-        var rule = p.getPropertyRule();
-        var ruleDto = rule == null ? null :
-                new PropertyRuleDTO(
-                        rule.getCheckInTime(), rule.getCheckOutTime(),
-                        rule.getMinNights(), rule.getMaxNights(), rule.getBookingLeadTimeDays()
-                );
-        List<SeasonalityRuleDTO> seasonality = p.getSeasonalityRules().stream()
-                .map(r -> new SeasonalityRuleDTO(
-                        r.getId(), r.getStartDate(), r.getEndDate(), r.getPriceModifier(), r.getDayOfWeek(), r.getChannel()
-                )).toList();
-        return new ExpandedPropertyResponse(
-                p.getId(), p.getName(), p.getDescription(), p.getLocation(), p.getCity(), p.getAddress(),
-                p.getBasePrice(), p.getMaxGuests(), p.getIsActive(), amenityNames, ruleDto, seasonality
-        );
+        return convertToExpandedDto(p);
     }
 
     private String resolveAmenityName(Map<String, String> name) {
@@ -468,5 +451,31 @@ public class PropertyService {
         }
         // Regras apenas por data têm prioridade base
         return priority;
+    }
+
+
+
+    public ExpandedPropertyResponse convertToExpandedDto(Property p) {
+        List<String> amenityNames = p.getAmenities().stream()
+                .map(Amenity::getName)
+                .map(this::resolveAmenityName)
+                .toList();
+
+        var rule = p.getPropertyRule();
+        var ruleDto = rule == null ? null :
+                new PropertyRuleDTO(
+                        rule.getCheckInTime(), rule.getCheckOutTime(),
+                        rule.getMinNights(), rule.getMaxNights(), rule.getBookingLeadTimeDays()
+                );
+
+        List<SeasonalityRuleDTO> seasonality = p.getSeasonalityRules().stream()
+                .map(r -> new SeasonalityRuleDTO(
+                        r.getId(), r.getStartDate(), r.getEndDate(), r.getPriceModifier(), r.getDayOfWeek(), r.getChannel()
+                )).toList();
+
+        return new ExpandedPropertyResponse(
+                p.getId(), p.getName(), p.getDescription(), p.getLocation(), p.getCity(), p.getAddress(),
+                p.getBasePrice(), p.getMaxGuests(), p.getIsActive(), amenityNames, ruleDto, seasonality
+        );
     }
 }

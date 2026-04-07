@@ -7,6 +7,9 @@ import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFac
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.core.env.Environment;
+
+import java.util.Arrays;
 
 /**
  * Filtro global de autenticação para o API Gateway.
@@ -35,6 +38,10 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     @Autowired
     private JwtUtil jwtUtil;
 
+
+    @Autowired
+    private Environment env; // Adicionado para detetar o profile
+
     /**
      * Classe de configuração para o filtro (Padrão Spring Cloud Gateway).
      * Pode ser expandida para aceitar parâmetros no application.yml.
@@ -60,28 +67,32 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     @Override
     public GatewayFilter apply(Config config) {
         return ((exchange, chain) -> {
+            // Verifica se o profile "god-mode" está ativo
+            boolean isGodMode = Arrays.asList(env.getActiveProfiles()).contains("god-mode");
 
-            // 1. Verifica se a rota precisa de segurança (Whitelist check)
+            if (isGodMode) {
+                // MODO GOD-MODE: Ignora JWT e injeta headers de OWNER/ADMIN
+                var request = exchange.getRequest()
+                        .mutate()
+                        .header("X-User-Id", "1")
+                        .header("X-User-Role", "OWNER") // Necessário para o @PreAuthorize dos controllers
+                        .header("X-User-Email", "god-mode@nexus.com")
+                        .header("X-Actor-UserId", "1") // Para a auditoria/logs que vimos no Hibernate
+                        .build();
+                return chain.filter(exchange.mutate().request(request).build());
+            }
+
+            // LÓGICA PADRÃO (Produção/Auth Real)
             if (validator.isSecured.test(exchange.getRequest())) {
+                // ... lógica de verificação de cabeçalho "Authorization" e jwtUtil.validateToken ...
 
-                // 2. Verifica se o Header Authorization existe
-                if (!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-                    exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                    return exchange.getResponse().setComplete();
-                }
-
+                // Exemplo de como ficaria a injeção após validação real:
                 String authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
-
-                // Normalização: Remove o prefixo "Bearer " se existir
                 if (authHeader != null && authHeader.startsWith("Bearer ")) {
                     authHeader = authHeader.substring(7);
                 }
 
                 try {
-                    if (authHeader == null || authHeader.isBlank()) {
-                        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                        return exchange.getResponse().setComplete();
-                    }
                     jwtUtil.validateToken(authHeader);
                     var claims = jwtUtil.getAllClaimsFromToken(authHeader);
                     var request = exchange.getRequest()

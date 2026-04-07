@@ -9,6 +9,7 @@
 import {
   BadgeCheck,
   ChevronsUpDown,
+  KeyRound,
   LogIn,
   LogOut,
 } from "lucide-react"
@@ -129,7 +130,15 @@ export function NavUser({
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <BadgeCheck />
-                Account
+                <Link href="/profile" className="flex-1">
+                  Account
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <KeyRound />
+                <Link href="/profile#apis" className="flex-1">
+                  APIs
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
