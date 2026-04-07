@@ -11,7 +11,7 @@ import { FieldGroup, FieldSeparator, FieldLabel, Field } from "@/components/ui/f
 import { Badge } from "@/components/ui/badge"
 import { Check } from "lucide-react"
 import { BrutalButton } from "@/components/ui/forms/button"
-import { CreatePropertyRequest, PropertyService } from "@/services/property.service";
+import {CreatePropertyRequest, PropertyService, UpdatePropertyRequest} from "@/services/property.service";
 import { toast } from "sonner";
 import {OwnProperty} from "@/components/layout/properti/property-view";
 
@@ -93,19 +93,18 @@ async function handleEdit(property: OwnProperty): Promise<boolean> {
         toast.warning("Sem userId. Faz login novamente.")
         return false
     }
-    const data: CreatePropertyRequest = {
+    const data: UpdatePropertyRequest = {
         title: property.title,
         description: {
             en: property.description || "No description provided",
             pt: property.description || "Sem descrição"
         },
-        price: property.price,
-        ownerId: Number(userIdRaw),
+        basePrice: property.price,
         location: property.location,
         address: property.address,
         city: property.city,
         maxGuests: property.maxGuests,
-        amenityIds: []
+        isActive: false
     }
 
     try {
