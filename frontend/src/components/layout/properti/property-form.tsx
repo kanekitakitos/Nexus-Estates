@@ -11,7 +11,7 @@ import { FieldGroup, FieldSeparator, FieldLabel, Field } from "@/components/ui/f
 import { Badge } from "@/components/ui/badge"
 import { Check } from "lucide-react"
 import { BrutalButton } from "@/components/ui/forms/button"
-import { CreatePropertyRequest, PropertyService } from "@/services/property.service";
+import {CreatePropertyRequest, PropertyService, UpdatePropertyRequest} from "@/services/property.service";
 import { toast } from "sonner";
 import {OwnProperty} from "@/components/layout/properti/property-view";
 
@@ -54,7 +54,7 @@ async function handleCrate(property: OwnProperty): Promise<boolean> {
     if (typeof window === "undefined") return false
     const userIdRaw = localStorage.getItem("userId")
     if (!userIdRaw) {
-        toast.warning("Sem userId. Faz login novamente.")
+        toast.error("Sem userId. Faz login novamente.")
         return false
     }
     const data: CreatePropertyRequest = {
@@ -93,19 +93,18 @@ async function handleEdit(property: OwnProperty): Promise<boolean> {
         toast.warning("Sem userId. Faz login novamente.")
         return false
     }
-    const data: CreatePropertyRequest = {
+    const data: UpdatePropertyRequest = {
         title: property.title,
         description: {
             en: property.description || "No description provided",
             pt: property.description || "Sem descrição"
         },
-        price: property.price,
-        ownerId: Number(userIdRaw),
+        basePrice: property.price,
         location: property.location,
         address: property.address,
         city: property.city,
         maxGuests: property.maxGuests,
-        amenityIds: []
+        isActive: false
     }
 
     try {
@@ -277,11 +276,44 @@ interface FormLayoutProps {
     onSave: () => void | Promise<void>;
     states: FormChangeSetters;
     statesValues: FormChangeValues;
+    variant?: "create" | "edit"
 }
 
-function FormLayout({ title, context, onClose, onSave, states, statesValues }: FormLayoutProps) {
+
+
+function FormLayout({ title, context, onClose, onSave, states, statesValues, variant="create" }: FormLayoutProps) {
     const { setTitleChange, setLocationChange, setCityChange, setAdressChange, setPriceChange, setDescriptionChange, setAmenetiesChange, setMaxGuestChange } = states;
     const { TitleChange, LocationChange, CityChange, AdressChange, PriceChange, DescriptionChange, AmenetiesChange, MaxGuestChange } = statesValues;
+
+
+    const checkFormData = () => {
+        const prop: OwnProperty = context.property;
+
+        // 1. Tratamento da descrição
+        if (!prop.description) {
+            context.updateProperty("description", "No Description");
+        }
+
+        // 2. Verificação de campos obrigatórios
+        if (!prop.title || !prop.location || !prop.address || !prop.city) {
+            toast.warning("Fill all inputs");
+            return; // Interrompe a execução aqui
+        }
+
+        // 3. Sucesso: Salvar dados
+        context.savePropertyDataAll();
+        onClose();
+
+        // Reset de estados
+        setTitleChange(false);
+        setAmenetiesChange(false);
+        setDescriptionChange(false);
+        setLocationChange(false);
+        setPriceChange(false);
+
+        void onSave?.();
+    };
+
 
     return(
         <div
@@ -457,11 +489,14 @@ function FormLayout({ title, context, onClose, onSave, states, statesValues }: F
                             </Button>
 
                             <Button className="flex-1" type="button" onClick={()=>{
-                                context.savePropertyDataAll();
-                                onClose();
-                                setTitleChange(false); setAmenetiesChange(false); setDescriptionChange(false); setLocationChange(false); setPriceChange(false);
-                                void onSave();
-                            }}> SAVE ALL</Button>
+                                checkFormData();
+                            }}>
+                                {
+                                    variant == "create"
+                                    ? "SAVE ALL EDIT"
+                                    : "SAVE ALL"
+                                }
+                            </Button>
                         </div>
                     </FieldGroup>
                 </form>
