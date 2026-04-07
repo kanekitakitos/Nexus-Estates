@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, forwardRef, ComponentProps, useMemo } from "react"
-import { MapPin, ArrowDown, ArrowDown01, ArrowDown10, Home, Building2, Users2 } from "lucide-react"
+import {useState, forwardRef, ComponentProps, useMemo, Dispatch, SetStateAction} from "react"
+import { MapPin, ArrowDown, ArrowDown01, ArrowDown10, Home, Building2, Users2, Pencil } from "lucide-react"
 import { BrutalButton } from "@/components/ui/forms/button"
 import { BrutalCard, BrutalShard } from "@/components/ui/data-display/card"
 import { cn } from "@/lib/utils"
-import { PropertyCreateForm } from "./property-form"
+import {PropertyCreateForm, PropertyEditForm} from "./property-form"
 import { Separator } from "@/components/ui/layout/separator"
 import { Input } from "@/components/ui/forms/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/overlay/dropdown-menu"
@@ -65,7 +65,9 @@ function PropertyList({variant="CARDS", propertys, onSelect = ()=>{}, onDelete, 
 
 
 function PropertyListCards({propertys, onSelect = ()=>{}, onDelete, onSaved, isLoading=false, isExiting=true, animate=false, addNewProperty=false ,filter=false}: PropertyListProps){
+    const [creatFormOpen, setCreatFormOpen] = useState<boolean>(false)
     const [editFormOpen, setEditFormOpen] = useState<boolean>(false)
+    const [propertySelected, setPropertySelected] = useState<OwnProperty>()
 
     return(
         <div id="abc" className={cn(
@@ -85,18 +87,37 @@ function PropertyListCards({propertys, onSelect = ()=>{}, onDelete, onSaved, isL
 
             </BrutalShard>
 
-            {addNewProperty 
+            {addNewProperty
                 ?   <>
-                        <AddNewPropertyForm open={editFormOpen} onClose={()=>setEditFormOpen(false)} onSaved={onSaved}/>
+                        <AddNewPropertyForm open={creatFormOpen} onClose={()=>setCreatFormOpen(false)} onSaved={onSaved}/>
 
                         <BrutalCard className="gap-2">
-                            <BrutalButton onClick={()=>setEditFormOpen(true)} className="w-full">
+                            <BrutalButton onClick={()=> {
+                                setCreatFormOpen(true)
+                                setEditFormOpen(false)
+                            }} className="w-full">
                             + ADD NEW PROPERTY
                             </BrutalButton>
                         </BrutalCard>
                     </>
                 :   <></>
             }
+
+            {propertySelected != undefined
+                ?<PropertyEditForm
+                    open={editFormOpen}
+                    onClose={() => setEditFormOpen(false)}
+                    propertyState={[propertySelected, setPropertySelected as Dispatch<SetStateAction<OwnProperty>>]}
+                    onSaved={onSaved}
+                />
+                :<AddNewPropertyForm
+                    open={creatFormOpen}
+                    onClose={()=>setCreatFormOpen(false)}
+                    onSaved={onSaved}
+                />
+            }
+
+
 
             {isLoading && (
                 <BrutalCard className="p-4">
@@ -168,9 +189,20 @@ function PropertyListCards({propertys, onSelect = ()=>{}, onDelete, onSaved, isL
 
                        </div>
                    </div>
-                    <div className={"flex items-center"}>
+                    <div className={"flex flex-col justify-around"}>
                         <BrutalButton
-                            className="w-1/5 bg-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="w-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e)=>{
+                                e.stopPropagation()
+                                setEditFormOpen(true)
+                                setCreatFormOpen(false)
+                                setPropertySelected(prop)
+                            }}
+                        >
+                            <Pencil/>
+                        </BrutalButton>
+                        <BrutalButton
+                            className="w-full bg-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={(e)=>{
                                 e.stopPropagation()
                                 void onDelete?.(prop.id)
@@ -215,7 +247,7 @@ ButtonSortPrice.displayName = "ButtonSortPrice"
 
 
 function PropertyListBars({propertys, onSelect = ()=>{}, onDelete, onSaved, isLoading=false, isExiting=true, animate=false, addNewProperty=false ,filter=false}: PropertyListProps){
-    const [editFormOpen, setEditFormOpen] = useState<boolean>(false)
+    const [creatFormOpen, setCreatFormOpen] = useState<boolean>(false)
 
     const [queryNome, setQueryNome] = useState("")
     const [queryLocal, setQueryLocal] = useState("")
@@ -365,10 +397,10 @@ function PropertyListBars({propertys, onSelect = ()=>{}, onDelete, onSaved, isLo
             {/* Botão para adicionar uma nova propriedade (OPCIONAL) */}
             {addNewProperty 
                 ?   <>
-                        <AddNewPropertyForm open={editFormOpen} onClose={()=>setEditFormOpen(false)} onSaved={onSaved}/>
+                        <AddNewPropertyForm open={creatFormOpen} onClose={()=>setCreatFormOpen(false)} onSaved={onSaved}/>
 
                         <BrutalCard className="gap-2">
-                            <BrutalButton onClick={()=>setEditFormOpen(true)} className="w-full">
+                            <BrutalButton onClick={()=>setCreatFormOpen(true)} className="w-full">
                             + ADD NEW PROPERTY
                             </BrutalButton>
                         </BrutalCard>
