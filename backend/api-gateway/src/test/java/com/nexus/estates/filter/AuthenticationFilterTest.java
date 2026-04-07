@@ -1,6 +1,7 @@
 package com.nexus.estates.filter;
 
 import com.nexus.estates.util.JwtUtil;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -8,10 +9,12 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,13 +31,26 @@ class AuthenticationFilterTest {
     private JwtUtil jwtUtil;
 
     @Mock
+    private Environment env;
+
+    @Mock
     private GatewayFilterChain filterChain;
 
     @InjectMocks
     private AuthenticationFilter authenticationFilter;
 
+    @BeforeEach
+    void setUp() {
+        // As injecções do mock podem não acontecer de imediato no construtor do AbstractGatewayFilterFactory
+        ReflectionTestUtils.setField(authenticationFilter, "env", env);
+        ReflectionTestUtils.setField(authenticationFilter, "validator", routeValidator);
+        ReflectionTestUtils.setField(authenticationFilter, "jwtUtil", jwtUtil);
+    }
+
     @Test
     void shouldPassThroughWhenRouteIsNotSecured() {
+        when(env.getActiveProfiles()).thenReturn(new String[]{"test"});
+
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/users/auth/login").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
@@ -51,6 +67,8 @@ class AuthenticationFilterTest {
 
     @Test
     void shouldReturn401WhenAuthHeaderIsMissingForSecuredRoute() {
+        when(env.getActiveProfiles()).thenReturn(new String[]{"test"});
+
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/bookings").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
@@ -64,6 +82,8 @@ class AuthenticationFilterTest {
 
     @Test
     void shouldValidateTokenWhenAuthHeaderIsPresent() {
+        when(env.getActiveProfiles()).thenReturn(new String[]{"test"});
+
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/bookings")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
                 .build();
@@ -81,6 +101,23 @@ class AuthenticationFilterTest {
         authenticationFilter.apply(new AuthenticationFilter.Config()).filter(exchange, filterChain).block();
 
         verify(jwtUtil).validateToken("valid-token");
+        verify(filterChain).filter(any());
+    }
+
+    @Test
+    void shouldBypassValidationWhenGodModeIsActive() {
+        // Altera o environment para fingir que o god-mode está ativo
+        when(env.getActiveProfiles()).thenReturn(new String[]{"god-mode", "test"});
+
+        MockServerHttpRequest request = MockServerHttpRequest.get("/api/bookings").build();
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+        when(filterChain.filter(any())).thenReturn(Mono.empty());
+
+        authenticationFilter.apply(new AuthenticationFilter.Config()).filter(exchange, filterChain).block();
+
+        // O filtro saltou a lógica real, logo, nunca devia usar o jwtUtil
+        verify(jwtUtil, never()).validateToken(anyString());
         verify(filterChain).filter(any());
     }
 }

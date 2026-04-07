@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.core.env.Environment;
 
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Filtro global de autenticação para o API Gateway.
@@ -37,7 +38,6 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
     @Autowired
     private JwtUtil jwtUtil;
-
 
     @Autowired
     private Environment env; // Adicionado para detetar o profile
@@ -67,8 +67,12 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     @Override
     public GatewayFilter apply(Config config) {
         return ((exchange, chain) -> {
-            // Verifica se o profile "god-mode" está ativo
-            boolean isGodMode = Arrays.asList(env.getActiveProfiles()).contains("god-mode");
+            
+            // Segurança extra para os testes Unitários quando env for null
+            boolean isGodMode = false;
+            if (env != null) {
+                isGodMode = Arrays.asList(env.getActiveProfiles()).contains("god-mode");
+            }
 
             if (isGodMode) {
                 // MODO GOD-MODE: Ignora JWT e injeta headers de OWNER/ADMIN
@@ -83,11 +87,16 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
             }
 
             // LÓGICA PADRÃO (Produção/Auth Real)
-            if (validator.isSecured.test(exchange.getRequest())) {
-                // ... lógica de verificação de cabeçalho "Authorization" e jwtUtil.validateToken ...
+            if (validator != null && validator.isSecured.test(exchange.getRequest())) {
+                
+                // 1. Verifica se tem cabeçalho AUTHORIZATION
+                List<String> authHeaders = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION);
+                if (authHeaders == null || authHeaders.isEmpty()) {
+                    exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                    return exchange.getResponse().setComplete();
+                }
 
-                // Exemplo de como ficaria a injeção após validação real:
-                String authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
+                String authHeader = authHeaders.get(0);
                 if (authHeader != null && authHeader.startsWith("Bearer ")) {
                     authHeader = authHeader.substring(7);
                 }
