@@ -30,8 +30,8 @@ import { useChatStrategy } from "@/features/chat/ChatProvider"
 import { BookingService, type BookingResponse } from "@/services/booking.service"
 import { toast } from "sonner"
 
-import { PropertyList, PropertyListBars } from "../properti/property-list"
-import type { OwnProperty } from "../properti/property-view"
+import { PropertyList, PropertyListBars } from "../../../features/property/property-list"
+import type { OwnProperty } from "../../../features/property/property-view"
 import {BrutalButton} from "@/components/ui/forms/button";
 import { PropertyService } from "@/services/property.service"
 
