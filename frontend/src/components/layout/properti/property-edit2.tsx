@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { DateRangeCalendar } from "@/features/bookings/components/date-range-calendar"
 import { PropertyEditForm } from "./property-form"
 import {OwnProperty} from "@/components/layout/properti/property-view";
+import {ImageInput} from "@/components/ui/file-handler/imageInput";
 
 
 const PAGE_CONTAINER_STYLES = "flex flex-col space-y-6 p-4 md:p-6 lg:px-[150px] min-h-screen overflow-x-hidden"
@@ -310,6 +311,8 @@ function PropertyGallery({ property }: { property: OwnProperty }) {
                     ))}
                 </div>
             </div>
+
+            <ImageInput/>
 
         </div>
     )

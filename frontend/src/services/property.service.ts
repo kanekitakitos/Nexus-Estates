@@ -85,7 +85,7 @@ export class PropertyService {
         }
     }
 
-    static async editPropertie(id: string | number, request: CreatePropertyRequest): Promise<number> {
+    static async editPropertie(id: string | number, request: UpdatePropertyRequest): Promise<number> {
         try {
             const actorUserIdRaw = typeof window === "undefined" ? null : localStorage.getItem("userId")
             const actorUserId = actorUserIdRaw ? Number(actorUserIdRaw) : undefined
@@ -95,13 +95,16 @@ export class PropertyService {
                 location: request.location,
                 city: request.city,
                 address: request.address,
-                basePrice: request.price,
+                basePrice: request.basePrice,
                 maxGuests: request.maxGuests,
+                isActive: request.isActive
             }
+
             await this.patchProperty(Number(id), patch, actorUserId)
             return 200
         } catch (error) {
             this.handleError(error, "atualizar propriedade");
+
             throw error;
         }
     }
@@ -340,7 +343,7 @@ export class PropertyService {
     static async patchProperty(id: number, request: UpdatePropertyRequest, actorUserId?: number): Promise<Record<string, unknown>> {
         try {
             const response = await propertiesAxios.patch<ApiResponse<Record<string, unknown>>>(`/${id}`, request, {
-                headers: actorUserId ? { "X-Actor-UserId": String(actorUserId) } : undefined,
+                headers: actorUserId ? { "X-Actor-UserId": actorUserId } : undefined,
             });
             toast.success("Propriedade atualizada.");
             return response.data.data;

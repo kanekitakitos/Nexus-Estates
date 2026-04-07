@@ -1,19 +1,17 @@
 "use client"
 
-import { useState, forwardRef, ComponentProps, useMemo } from "react"
-import { MapPin, ArrowDown, ArrowDown01, ArrowDown10 } from "lucide-react"
+import {useState, forwardRef, ComponentProps, useMemo, Dispatch, SetStateAction} from "react"
+import { MapPin, ArrowDown, ArrowDown01, ArrowDown10, Home, Building2, Users2, Pencil } from "lucide-react"
 import { BrutalButton } from "@/components/ui/forms/button"
 import { BrutalCard, BrutalShard } from "@/components/ui/data-display/card"
 import { cn } from "@/lib/utils"
-import { PropertyCreateForm } from "./property-form"
+import {PropertyCreateForm, PropertyEditForm} from "./property-form"
 import { Separator } from "@/components/ui/layout/separator"
 import { Input } from "@/components/ui/forms/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/overlay/dropdown-menu"
 import {OwnProperty} from "@/components/layout/properti/property-view";
 
-
-const PAGE_CONTAINER_STYLES = "grid grid-flow-row min-h-screen"
-
+const PAGE_CONTAINER_STYLES = "flex flex-col min-h-screen"
 
 type PropertyListProps = {
     variant?: "CARDS" | "BARS"
@@ -30,7 +28,19 @@ type PropertyListProps = {
     animate?: boolean;
 };
 
+// cores do background para indicar o estado
+const backgroundColors = {
+    AVAILABLE: "bg-red-300",
+    BOOKED: "bg-green-300",
+    MAINTENANCE: "bg-yellow-300",
+};
 
+// cores do texto para indicar o estado
+const statusColors = {
+    AVAILABLE: "text-red-900",
+    BOOKED: "text-green-900",
+    MAINTENANCE: "text-yellow-900",
+};
 
 function AddNewPropertyForm({open, onClose, onSaved} : {open:boolean; onClose:()=>void; onSaved?: () => void | Promise<void>}){
 
@@ -55,7 +65,9 @@ function PropertyList({variant="CARDS", propertys, onSelect = ()=>{}, onDelete, 
 
 
 function PropertyListCards({propertys, onSelect = ()=>{}, onDelete, onSaved, isLoading=false, isExiting=true, animate=false, addNewProperty=false ,filter=false}: PropertyListProps){
+    const [creatFormOpen, setCreatFormOpen] = useState<boolean>(false)
     const [editFormOpen, setEditFormOpen] = useState<boolean>(false)
+    const [propertySelected, setPropertySelected] = useState<OwnProperty>()
 
     return(
         <div id="abc" className={cn(
@@ -65,28 +77,47 @@ function PropertyListCards({propertys, onSelect = ()=>{}, onDelete, onSaved, isL
         )}>
             
             <BrutalShard 
-                className="flex gap-0 group items-stretch p-1" 
+                className="flex gap-0 group items-stretch p-1"
             >
                 <p className="w-2/5 uppercase font-bold">TITLE</p>
-                <Separator orientation="vertical" className="h-20 mx-4 bg-black" />
+
                 <p className="w-2/5 uppercase font-bold">location</p>
 
                 <p className="w-1/5 uppercase font-bold"></p> 
 
             </BrutalShard>
 
-            {addNewProperty 
+            {addNewProperty
                 ?   <>
-                        <AddNewPropertyForm open={editFormOpen} onClose={()=>setEditFormOpen(false)} onSaved={onSaved}/>
+                        <AddNewPropertyForm open={creatFormOpen} onClose={()=>setCreatFormOpen(false)} onSaved={onSaved}/>
 
                         <BrutalCard className="gap-2">
-                            <BrutalButton onClick={()=>setEditFormOpen(true)} className="w-full">
+                            <BrutalButton onClick={()=> {
+                                setCreatFormOpen(true)
+                                setEditFormOpen(false)
+                            }} className="w-full">
                             + ADD NEW PROPERTY
                             </BrutalButton>
                         </BrutalCard>
                     </>
                 :   <></>
             }
+
+            {propertySelected != undefined
+                ?<PropertyEditForm
+                    open={editFormOpen}
+                    onClose={() => setEditFormOpen(false)}
+                    propertyState={[propertySelected, setPropertySelected as Dispatch<SetStateAction<OwnProperty>>]}
+                    onSaved={onSaved}
+                />
+                :<AddNewPropertyForm
+                    open={creatFormOpen}
+                    onClose={()=>setCreatFormOpen(false)}
+                    onSaved={onSaved}
+                />
+            }
+
+
 
             {isLoading && (
                 <BrutalCard className="p-4">
@@ -101,20 +132,85 @@ function PropertyListCards({propertys, onSelect = ()=>{}, onDelete, onSaved, isL
                     className="flex gap-0 group items-stretch"
                     onClick={()=>{onSelect(prop.id)}} 
                 >
-                    <p className="w-2/5 uppercase">{prop.title}</p>
-                    <Separator orientation="vertical" className="h-20 mx-4 bg-black" />
+                   <div className={"flex flex-col w-full"}>
+                       <div id={"id data"} className={"flex justify-between items-center border-b-4 border-black"}>
+                           <div id={"text id data"}>
+                               <div className="flex flex-row w-full items-start justify-between">
+                                   <div className={"flex items-center"}>
+                                       <Home size={24}/>
+                                       <h3 className="text-4xl font-bold">{prop.title}</h3>
+                                   </div>
+                               </div>
 
-                    <p className="w-2/5 uppercase">{prop.location}</p>
-                
-                    <BrutalButton
-                        className="w-1/5 bg-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e)=>{
-                            e.stopPropagation()
-                            void onDelete?.(prop.id)
-                        }}
-                    >
-                        X
-                    </BrutalButton>
+                               <div className="flex flex-row items-center gap-6">
+                                   <div className={"flex items-center"}>
+                                       <MapPin size={24} className="shrink-0"/>
+                                       <span className="text-2xl font-light">{ prop.location }</span>
+                                   </div>
+                                   <div className={"flex items-center"}>
+                                       <Building2/>
+                                       <span className="text-2xl font-light">{ prop.city }</span>
+                                   </div>
+                               </div>
+                               <div className={"flex items-center"}>
+                                   <span className="text-md font-light">{"Address:  " +  prop.address }</span>
+                               </div>
+                           </div>
+
+                           <BrutalCard className={cn("m-2", backgroundColors[prop.status])}>
+                               <span className={cn("font-mediu", statusColors[prop.status])}>{prop.status}</span>
+                           </BrutalCard>
+                       </div>
+
+                       <div className="flex flex-col gap-4 mt-3 pl-2 border-l-4 border-black">
+                           <div className={"flex justify-evenly w-full"}>
+                                <BrutalCard variant={"primary"} className={"flex flex-col justify-evenly items-center"}>
+                                    <Users2/>
+                                    <h1 className={"text-3xl font-black"}>{prop.maxGuests}</h1>
+                                    <h1>Max Guests</h1>
+                                </BrutalCard>
+                               <BrutalCard variant={"primary"} className={"flex flex-col justify-evenly items-center"}>
+                                   <div className={"flex items-center"}>
+                                       <MapPin size={24} className="shrink-0"/>
+                                       <span className="text-2xl font-black">{ prop.location }</span>
+                                   </div>
+                                   <div className={"flex items-center"}>
+                                       <Building2/>
+                                       <span className="text-2xl font-black">{ prop.city }</span>
+                                   </div>
+                               </BrutalCard>
+                               <BrutalCard variant={"primary"} className={"flex flex-col justify-evenly items-center"}>
+                                   <h1 className="text-3xl font-black">{prop.price}</h1>
+                                   <h1 className="text-sm font-bold uppercase">€/Mês</h1>
+                               </BrutalCard>
+                           </div>
+
+                           <h1 className="text-xl font-medium ">{ prop.description }</h1>
+
+                       </div>
+                   </div>
+                    <div className={"flex flex-col justify-around"}>
+                        <BrutalButton
+                            className="w-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e)=>{
+                                e.stopPropagation()
+                                setEditFormOpen(true)
+                                setCreatFormOpen(false)
+                                setPropertySelected(prop)
+                            }}
+                        >
+                            <Pencil/>
+                        </BrutalButton>
+                        <BrutalButton
+                            className="w-full bg-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e)=>{
+                                e.stopPropagation()
+                                void onDelete?.(prop.id)
+                            }}
+                        >
+                            X
+                        </BrutalButton>
+                    </div>
                 </BrutalShard>
                 ))
             }
@@ -151,7 +247,7 @@ ButtonSortPrice.displayName = "ButtonSortPrice"
 
 
 function PropertyListBars({propertys, onSelect = ()=>{}, onDelete, onSaved, isLoading=false, isExiting=true, animate=false, addNewProperty=false ,filter=false}: PropertyListProps){
-    const [editFormOpen, setEditFormOpen] = useState<boolean>(false)
+    const [creatFormOpen, setCreatFormOpen] = useState<boolean>(false)
 
     const [queryNome, setQueryNome] = useState("")
     const [queryLocal, setQueryLocal] = useState("")
@@ -301,10 +397,10 @@ function PropertyListBars({propertys, onSelect = ()=>{}, onDelete, onSaved, isLo
             {/* Botão para adicionar uma nova propriedade (OPCIONAL) */}
             {addNewProperty 
                 ?   <>
-                        <AddNewPropertyForm open={editFormOpen} onClose={()=>setEditFormOpen(false)} onSaved={onSaved}/>
+                        <AddNewPropertyForm open={creatFormOpen} onClose={()=>setCreatFormOpen(false)} onSaved={onSaved}/>
 
                         <BrutalCard className="gap-2">
-                            <BrutalButton onClick={()=>setEditFormOpen(true)} className="w-full">
+                            <BrutalButton onClick={()=>setCreatFormOpen(true)} className="w-full">
                             + ADD NEW PROPERTY
                             </BrutalButton>
                         </BrutalCard>
@@ -320,20 +416,6 @@ function PropertyListBars({propertys, onSelect = ()=>{}, onDelete, onSaved, isLo
 
             {/* Lista de botões com propriedades */}
             {filteredProp.map((prop) => {
-
-                // cores do background para indicar o estado
-                const backgroundColors = {
-                    AVAILABLE: "bg-red-300",
-                    BOOKED: "bg-green-300",
-                    MAINTENANCE: "bg-yellow-300",
-                };
-
-                // cores do texto para indicar o estado
-                const statusColors = {
-                    AVAILABLE: "text-red-900",
-                    BOOKED: "text-green-900",
-                    MAINTENANCE: "text-yellow-900",
-                };
 
                 return(
                     <div
