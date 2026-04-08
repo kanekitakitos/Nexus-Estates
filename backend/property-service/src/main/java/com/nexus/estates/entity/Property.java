@@ -100,6 +100,13 @@ public class Property {
     private Boolean isActive = true;
 
     /**
+     * URL da imagem principal da propriedade.
+     */
+    @Column
+    @Schema(description = "URL da imagem principal", example = "https://res.cloudinary.com/...")
+    private String imageUrl;
+
+    /**
      * Conjunto de comodidades associadas à propriedade.
      *
      * <p>Relação Many-to-Many que utiliza uma tabela de junção para mapear
@@ -155,4 +162,6 @@ public class Property {
     public void setSeasonalityRules(Set<SeasonalityRule> seasonalityRules) { this.seasonalityRules = seasonalityRules; }
     public PropertyRule getPropertyRule() { return propertyRule; }
     public void setPropertyRule(PropertyRule propertyRule) { this.propertyRule = propertyRule; }
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 }

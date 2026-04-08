@@ -34,6 +34,7 @@ class PropertyTest {
         property.setBasePrice(new BigDecimal("150.00"));
         property.setMaxGuests(4);
         property.setIsActive(true);
+        property.setImageUrl("https://example.com/image.jpg");
 
         assertEquals(id, property.getId());
         assertEquals("Apartamento", property.getName());
@@ -44,5 +45,6 @@ class PropertyTest {
         assertEquals(new BigDecimal("150.00"), property.getBasePrice());
         assertEquals(4, property.getMaxGuests());
         assertTrue(property.getIsActive());
+        assertEquals("https://example.com/image.jpg", property.getImageUrl());
     }
 }

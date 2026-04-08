@@ -47,7 +47,7 @@ class PropertyServiceNewTest {
         p.setName("Casa");
         when(propertyRepository.findById(1L)).thenReturn(Optional.of(p));
         assertThrows(IllegalArgumentException.class, () ->
-                service.updateProperty(1L, new UpdatePropertyRequest(null, null, null, null, null, BigDecimal.ZERO, null, null), null)
+                service.updateProperty(1L, new UpdatePropertyRequest(null, null, null, null, null, BigDecimal.ZERO, null, null, null), null)
         );
     }
 
@@ -59,7 +59,7 @@ class PropertyServiceNewTest {
         p.setName("Casa");
         when(propertyRepository.findById(1L)).thenReturn(Optional.of(p));
         when(propertyRepository.save(any(Property.class))).thenAnswer(inv -> inv.getArgument(0));
-        Property updated = service.updateProperty(1L, new UpdatePropertyRequest("Nova", null, null, null, null, new BigDecimal("100.00"), 2, true), 10L);
+        Property updated = service.updateProperty(1L, new UpdatePropertyRequest("Nova", null, null, null, null, new BigDecimal("100.00"), 2, true, null), 10L);
         assertEquals("Nova", updated.getName());
         assertEquals(new BigDecimal("100.00"), updated.getBasePrice());
         assertEquals(2, updated.getMaxGuests());

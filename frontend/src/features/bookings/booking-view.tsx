@@ -43,6 +43,15 @@ import {
   shimmerX,
   springSnap, springBounce,
 } from "@/features/bookings/motion"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 
 // ─────────────────────────────────────────────
 // Types
@@ -99,6 +108,8 @@ export function BookingView() {
   const [screen, setScreen] = useState<BookingViewScreen>("list")
   const [exitCleanup, setExitCleanup] = useState<ExitCleanup>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 6
 
   /**
    * Setter utilitário: aplica update parcial ao objecto de filtros.
@@ -146,6 +157,17 @@ export function BookingView() {
 
     return list
   }, [properties, filters.destination, filters.maxPrice])
+
+  const totalPages = Math.ceil(filteredProperties.length / itemsPerPage)
+  const paginatedProperties = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage
+    return filteredProperties.slice(start, start + itemsPerPage)
+  }, [filteredProperties, currentPage, itemsPerPage])
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filters])
 
   // ── Navegação entre ecrãs (máquina de estados simples)
 
@@ -284,7 +306,14 @@ export function BookingView() {
                   count={filteredProperties.length}
                   hasFilter={Boolean(filters.destination || filters.maxPrice !== "")}
                 />
-                <BookingList properties={filteredProperties} onBook={navigateToDetails} />
+                <BookingList properties={paginatedProperties} onBook={navigateToDetails} />
+
+                {/* Pagination Control */}
+                <BookingPagination 
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
               </>
             )}
           </div>
@@ -441,6 +470,92 @@ function ResultsHeader({ count, hasFilter }: { count: number; hasFilter: boolean
         {hasFilter ? "resultados filtrados" : "propriedades disponíveis"}
       </span>
     </div>
+  )
+}
+
+// ─────────────────────────────────────────────
+// BookingPagination — isolated pagination logic
+// ─────────────────────────────────────────────
+
+interface BookingPaginationProps {
+  currentPage: number
+  totalPages: number
+  onPageChange: (page: number) => void
+}
+
+/**
+ * Sub-componente de paginação.
+ *
+ * Responsabilidade:
+ * - Renderizar UI de paginação compatível com Neo-Brutalism.
+ * - Gerir lógica de visibilidade de páginas (elipses).
+ */
+function BookingPagination({ currentPage, totalPages, onPageChange }: BookingPaginationProps) {
+  if (totalPages <= 1) return null
+
+  return (
+    <motion.div
+      {...fadeUpEnter(0.4, 10, 0.3)}
+      className="mt-12 py-6 border-t-2 border-foreground/10"
+    >
+      <Pagination>
+        <PaginationContent>
+          {/* Previous Button */}
+          <PaginationItem>
+            <PaginationPrevious
+              href="#"
+              onClick={(e) => {
+                e.preventDefault()
+                if (currentPage > 1) onPageChange(currentPage - 1)
+              }}
+            />
+          </PaginationItem>
+
+          {Array.from({ length: totalPages }).map((_, i) => {
+            const pageNum = i + 1
+            const isNearAction = Math.abs(currentPage - pageNum) <= 1
+            const isEnd = pageNum === 1 || pageNum === totalPages
+
+            if (!isNearAction && !isEnd) {
+              if (pageNum === 2 || pageNum === totalPages - 1) {
+                return (
+                  <PaginationItem key={pageNum}>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                )
+              }
+              return null
+            }
+
+            return (
+              <PaginationItem key={pageNum}>
+                <PaginationLink
+                  href="#"
+                  isActive={currentPage === pageNum}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    onPageChange(pageNum)
+                  }}
+                >
+                  {pageNum}
+                </PaginationLink>
+              </PaginationItem>
+            )
+          })}
+
+          {/* Next Button */}
+          <PaginationItem>
+            <PaginationNext
+              href="#"
+              onClick={(e) => {
+                e.preventDefault()
+                if (currentPage < totalPages) onPageChange(currentPage + 1)
+              }}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    </motion.div>
   )
 }
 

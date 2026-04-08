@@ -9,13 +9,19 @@ const MAIN_IMAGE_WRAPPER_STYLES = "relative w-full overflow-hidden rounded-xl md
 const THUMBNAIL_STYLES = "relative aspect-[4/3] overflow-hidden rounded-lg md:rounded-xl border-[2px] border-foreground/70 bg-muted/50 hover:bg-primary/10 transition-colors cursor-pointer group snap-center"
 const THUMBNAIL_LABEL_STYLES = "absolute inset-0 flex items-center justify-center bg-background/40 opacity-0 group-hover:opacity-100 font-mono text-[8px] md:text-[10px] font-bold uppercase tracking-[0.18em] text-foreground"
 
-export function PropertyGallery({ property }: { property: OwnProperty }) {
-    const galleryImages = [
-        property.imageUrl,
-        "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=1200&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=1200&auto=format&fit=crop",
-        // Podes adicionar mais aqui como tinhas no original...
-    ]
+// 1. Adicionamos a prop onUpdateImage
+interface PropertyGalleryProps {
+    property: OwnProperty;
+    onUpdateImage?: (newImageUrl: string) => void;
+}
+
+export function PropertyGallery({ property, onUpdateImage }: PropertyGalleryProps) {
+    const galleryImages = property.imageUrl
+        ? [property.imageUrl]
+        : [
+            "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=1200&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=1200&auto=format&fit=crop",
+        ]
 
     const [activeImageIndex, setActiveImageIndex] = useState(0)
 
@@ -54,7 +60,14 @@ export function PropertyGallery({ property }: { property: OwnProperty }) {
                 </div>
             </div>
 
-            <ImageInput/>
+            <ImageInput
+                onUploadComplete={(novosUrls) => {
+                    // 2. Usamos o primeiro URL da lista para atualizar a imagem principal da propriedade
+                    if (novosUrls.length > 0 && onUpdateImage) {
+                        onUpdateImage(novosUrls[0]);
+                    }
+                }}
+            />
         </div>
     )
 }

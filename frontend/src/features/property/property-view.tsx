@@ -23,6 +23,7 @@ export interface OwnProperty {
     rating?: number
     featured?: boolean
     tags?: string[]
+    amenityIds?: number[]
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -60,11 +61,12 @@ function mapListItemToProperty(p: Record<string, unknown>): OwnProperty {
         address:     String(p.address ?? ""),
         maxGuests:   Number(p.maxGuests ?? 1),
         price:       Number(p.basePrice ?? 0),
-        imageUrl:    "",
+        imageUrl:    String(p.imageUrl ?? p.image_url ?? ""),
         status:      resolveBoolean(p.isActive) ? "AVAILABLE" : "MAINTENANCE",
         rating:      0,
         featured:    false,
         tags:        [],
+        amenityIds:  [],
     }
 }
 
@@ -82,7 +84,8 @@ function mapDetailToProperty(p: Record<string, unknown>): OwnProperty {
         status:      p.isActive ? "AVAILABLE" : "MAINTENANCE",
         rating:      Number(p.rating ?? 0),
         featured:    Boolean(p.featured ?? false),
-        tags:        Array.isArray(p.tags) ? p.tags : [],
+        tags:        Array.isArray(p.amenities) ? p.amenities : (Array.isArray(p.tags) ? p.tags : []),
+        amenityIds:  Array.isArray(p.amenityIds) ? p.amenityIds : [],
     }
 }
 

@@ -62,6 +62,9 @@ public record CreatePropertyRequest(
         Integer maxGuests,
 
         @Schema(description = "Lista de IDs das comodidades associadas", example = "[1, 5, 12]")
-        Set<Long> amenityIds
+        Set<Long> amenityIds,
+
+        @Schema(description = "URL da imagem principal da propriedade", example = "https://res.cloudinary.com/...")
+        String imageUrl
 
 ) {}

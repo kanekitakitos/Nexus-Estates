@@ -24,7 +24,7 @@ export interface BookingDetailsProps {
 
 export type EditableFieldsI = Pick<
     OwnProperty,
-    "title" | "description" | "location" | "city" | "address" | "price" | "maxGuests" | "imageUrl" | "tags"
+    "title" | "description" | "location" | "city" | "address" | "price" | "maxGuests" | "imageUrl" | "tags" | "amenityIds"
 >
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -34,12 +34,6 @@ const STYLES = {
     priceText: "font-mono font-bold text-primary text-lg md:text-xl",
     summaryCard: "flex items-center gap-2 md:gap-3 border-[2px] border-foreground p-2 md:p-3 bg-secondary/30",
 } as const
-
-const PROPERTY_SPECS = [
-    { icon: Users, label: "2 Guests" },
-    { icon: Home,  label: "1 Bedroom" },
-    { icon: Maximize, label: "85 m²" },
-] as const
 
 // ─── Root Component ───────────────────────────────────────────────────────────
 
@@ -78,7 +72,10 @@ export function PropertyEdit({
             <NavigationBar onBack={handleBack} onEdit={() => setEditFormOpen(true)} />
 
             <div className="space-y-6">
-                <PropertyGallery property={property} />
+                <PropertyGallery
+                    property={property}
+                    onUpdateImage={(url) => setProperty(prev => ({ ...prev, imageUrl: url }))}
+                />
 
                 <div className="space-y-6">
                     <PropertyHeaderCard property={property} />
@@ -139,7 +136,7 @@ function PropertyHeaderCard({ property }: { property: OwnProperty }) {
                 <h1 className="text-3xl md:text-4xl lg:text-6xl font-black uppercase leading-[0.9] tracking-tight mb-4 text-foreground drop-shadow-[2px_2px_0_rgba(0,0,0,0.1)]">
                     {property.title}
                 </h1>
-                <RatingPriceRow rating={property.rating} price={property.price} />
+                <RatingPriceRow rating={property.rating ?? 0} price={property.price} />
             </div>
         </BrutalShard>
     )
@@ -173,14 +170,20 @@ function RatingPriceRow({ rating, price }: { rating: number; price: number }) {
 }
 
 function PropertyDescriptionCard({ property }: { property: OwnProperty }) {
+    const specs = [
+        { icon: Users, label: `${property.maxGuests || 0} Guests` },
+        { icon: Home,  label: "1 Bedroom" }, // Assuming 1 bedroom if not specified, could be expanded later
+        { icon: Maximize, label: "85 m²" },
+    ]
+
     return (
         <BrutalShard rotate="secondary">
             <div className="border-t-[3px] border-b-[3px] border-foreground py-6 space-y-4">
-                <p className="font-mono text-base md:text-lg leading-relaxed text-muted-foreground">
+                <p className="font-mono text-base md:text-lg leading-relaxed text-muted-foreground whitespace-pre-wrap">
                     {property.description}
                 </p>
                 <div className="grid grid-cols-2 gap-3 md:gap-4 mt-6">
-                    {PROPERTY_SPECS.map(({ icon: Icon, label }) => (
+                    {specs.map(({ icon: Icon, label }) => (
                         <div key={label} className={STYLES.summaryCard}>
                             <Icon className="h-4 w-4 md:h-5 md:w-5" />
                             <span className="font-mono font-bold uppercase text-xs md:text-sm">{label}</span>

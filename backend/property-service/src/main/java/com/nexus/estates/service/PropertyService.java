@@ -104,6 +104,7 @@ public class PropertyService {
         property.setCity(request.city());
         property.setAddress(request.address());
         property.setMaxGuests(request.maxGuests());
+        property.setImageUrl(request.imageUrl());
 
         // Atribui o mapa de descrições (que será guardado como JSONB no Postgres)
         property.setDescription(request.description());
@@ -295,6 +296,10 @@ public class PropertyService {
             recordChange(id, actorUserId, "UPDATE", "isActive", String.valueOf(p.getIsActive()), String.valueOf(req.isActive()));
             p.setIsActive(req.isActive());
         }
+        if (req.imageUrl() != null) {
+            recordChange(id, actorUserId, "UPDATE", "imageUrl", p.getImageUrl(), req.imageUrl());
+            p.setImageUrl(req.imageUrl());
+        }
         return repository.save(p);
     }
 
@@ -475,7 +480,8 @@ public class PropertyService {
 
         return new ExpandedPropertyResponse(
                 p.getId(), p.getName(), p.getDescription(), p.getLocation(), p.getCity(), p.getAddress(),
-                p.getBasePrice(), p.getMaxGuests(), p.getIsActive(), amenityNames, ruleDto, seasonality
+                p.getBasePrice(), p.getMaxGuests(), p.getIsActive(), amenityNames, ruleDto, seasonality,
+                p.getImageUrl()
         );
     }
 }

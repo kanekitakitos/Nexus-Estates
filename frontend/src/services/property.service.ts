@@ -74,7 +74,7 @@ export class PropertyService {
      * - Map/Set não são JSON nativo. Se este endpoint falhar, envia description como Record<string,string>
      *   e amenityIds como number[].
      */
-    static async creatPropertie(property : CreatePropertyRequest):Promise<number>{
+    static async createProperty(property : CreatePropertyRequest):Promise<number>{
         try {
             const response = await propertiesAxios.post<ApiResponse<PropertyApiItem>>("", property)
 
@@ -85,7 +85,7 @@ export class PropertyService {
         }
     }
 
-    static async editPropertie(id: string | number, request: UpdatePropertyRequest): Promise<number> {
+    static async updateProperty(id: string | number, request: UpdatePropertyRequest): Promise<number> {
         try {
             const actorUserIdRaw = typeof window === "undefined" ? null : localStorage.getItem("userId")
             const actorUserId = actorUserIdRaw ? Number(actorUserIdRaw) : undefined
@@ -97,7 +97,8 @@ export class PropertyService {
                 address: request.address,
                 basePrice: request.basePrice,
                 maxGuests: request.maxGuests,
-                isActive: request.isActive
+                isActive: request.isActive,
+                imageUrl: request.imageUrl
             }
 
             await this.patchProperty(Number(id), patch, actorUserId)

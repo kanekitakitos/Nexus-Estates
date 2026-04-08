@@ -74,7 +74,8 @@ function buildCreateRequest(property: OwnProperty, ownerId: number): CreatePrope
         city: property.city,
         address: property.address,
         maxGuests: property.maxGuests,
-        amenityIds: [],
+        amenityIds: property.amenityIds ?? [],
+        imageUrl: property.imageUrl
     }
 }
 
@@ -88,7 +89,8 @@ function buildUpdateRequest(property: OwnProperty): UpdatePropertyRequest {
         address: property.address,
         city: property.city,
         maxGuests: property.maxGuests,
-        isActive: false,
+        isActive: property.status === "AVAILABLE",
+        imageUrl: property.imageUrl
     }
 }
 
@@ -105,7 +107,7 @@ async function handleCreate(property: OwnProperty): Promise<boolean> {
     if (!ownerId) { toast.error("Sem userId."); return false }
 
     try {
-        const status = await PropertyService.creatPropertie(buildCreateRequest(property, ownerId))
+        const status = await PropertyService.createProperty(buildCreateRequest(property, ownerId))
         if (status >= 200 && status < 300) { toast.success("Property Created"); return true }
         toast.warning("Erro ao criar a propriedade.")
         return false
@@ -120,7 +122,7 @@ async function handleEdit(property: OwnProperty): Promise<boolean> {
     if (!ownerId) { toast.warning("Sem userId."); return false }
 
     try {
-        const status = await PropertyService.editPropertie(property.id, buildUpdateRequest(property))
+        const status = await PropertyService.updateProperty(property.id, buildUpdateRequest(property))
         if (status >= 200 && status < 300) { toast.success("Property Updated"); return true }
         toast.warning("Erro ao atualizar a propriedade.")
         return false
@@ -243,10 +245,13 @@ function FormFields({ context }: { context: PropertyEditContext }) {
     const { property, propertySaved, updateProperty, revertField } = context
 
     function fieldProps<K extends keyof EditableFieldsI>(key: K) {
+        const value = property[key]
+        const savedValue = propertySaved[key]
+
         return {
-            value: property[key],
-            savedValue: propertySaved[key],
-            onChange: (val: EditableFieldsI[K]) => updateProperty(key, val),
+            value: (value as string | number) ?? "",
+            savedValue: (savedValue as string | number) ?? "",
+            onChange: (val: string | number) => updateProperty(key, val as EditableFieldsI[K]),
             onRevert: () => revertField(key),
         }
     }
@@ -274,10 +279,10 @@ function FormFields({ context }: { context: PropertyEditContext }) {
             <FieldSeparator />
 
             <AmenitiesField
-                tags={property.tags ?? []}
-                savedTags={propertySaved.tags ?? []}
-                onUpdateTags={(newTags) => updateProperty("tags", newTags)}
-                onRevert={() => revertField("tags")}
+                selectedIds={property.amenityIds ?? []}
+                savedIds={propertySaved.amenityIds ?? []}
+                onUpdateIds={(newIds) => updateProperty("amenityIds", newIds)}
+                onRevert={() => revertField("amenityIds")}
             />
         </>
     )

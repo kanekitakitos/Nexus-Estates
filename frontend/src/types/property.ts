@@ -95,6 +95,7 @@ export type CreatePropertyRequest = {
   address: string;
   maxGuests: number;
   amenityIds: number[];
+  imageUrl?: string;
 };
 
 /**
@@ -109,6 +110,7 @@ export type UpdatePropertyRequest = Partial<{
   basePrice: number;
   maxGuests: number;
   isActive: boolean;
+  imageUrl?: string;
 }>;
 
 /**
