@@ -85,7 +85,7 @@ export class PropertyService {
         }
     }
 
-    static async updateProperty(id: string | number, request: UpdatePropertyRequest): Promise<number> {
+    static async updateProperty(id: string | number, request: UpdatePropertyRequest & { amenityIds?: number[] }): Promise<number> {
         try {
             const actorUserIdRaw = typeof window === "undefined" ? null : localStorage.getItem("userId")
             const actorUserId = actorUserIdRaw ? Number(actorUserIdRaw) : undefined
@@ -102,10 +102,14 @@ export class PropertyService {
             }
 
             await this.patchProperty(Number(id), patch, actorUserId)
+
+            if (request.amenityIds) {
+                await this.updateAmenities(Number(id), request.amenityIds)
+            }
+
             return 200
         } catch (error) {
             this.handleError(error, "atualizar propriedade");
-
             throw error;
         }
     }

@@ -14,6 +14,7 @@ import Link from "next/link"
 import { useView } from "@/features/view-context"
 
 import { NavUser } from "@/components/layout/dashboard/nav-user"
+import { motion } from "framer-motion"
 import {
   Sidebar,
   SidebarContent,
@@ -31,7 +32,7 @@ import { BookingService, type BookingResponse } from "@/services/booking.service
 import { toast } from "sonner"
 
 import { PropertyList, PropertyListBars } from "../../../features/property/property-list"
-import type { OwnProperty } from "../../../features/property/property-view"
+import { OwnProperty } from "@/types"
 import {BrutalButton} from "@/components/ui/forms/button";
 import { PropertyService } from "@/services/property.service"
 
@@ -192,6 +193,7 @@ export function AppSidebar({
             rating: 0,
             featured: false,
             tags: [],
+            amenityIds: [],
           }
         })
         setProperties(mapped)
@@ -216,16 +218,17 @@ export function AppSidebar({
   return (
       <Sidebar
           collapsible="icon"
-          className="overflow-hidden"
+          className="overflow-hidden border-r-2 border-foreground shadow-[10px_0_0_0_#0D0D0D] dark:shadow-[10px_0_0_0_rgba(0,0,0,0.5)] bg-transparent"
           {...props}
       >
+        <SidebarBackground />
 
         <div className="flex h-full w-full flex-row">
 
           {/* Painel 1: Menu Primário (Ícones) */}
           <Sidebar
               collapsible="none"
-              className="w-[calc(var(--sidebar-width-icon)+1px)]! border-r bg-sidebar"
+              className="w-[calc(var(--sidebar-width-icon)+1px)]! border-r-2 border-foreground bg-white/20 dark:bg-black/20 backdrop-blur-md"
           >
             <SidebarHeader>
               <SidebarMenu>
@@ -283,14 +286,14 @@ export function AppSidebar({
           </Sidebar>
 
           {/* Painel 2: Detalhes (inclui lista de chats e janela do chat) */}
-          {/* Nota: a própria janela do chat inclui o seu header com seta de voltar */}
           <Sidebar
               collapsible="none"
-              className={`flex-1 transition-opacity duration-100 ${state === "collapsed" ? "hidden opacity-0" : "flex opacity-100"}`}
+              className={`flex-1 transition-opacity duration-100 bg-white/10 dark:bg-black/10 backdrop-blur-md ${state === "collapsed" ? "hidden opacity-0" : "flex opacity-100"}`}
           >
-            <SidebarHeader className="border-b p-3 h-[56px] flex items-center gap-2">
-              <div className="text-foreground text-base font-medium">
-                {activeItem}
+            <SidebarHeader className="border-b-2 border-foreground/10 p-4 h-[64px] flex items-center gap-3">
+              <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+              <div className="text-foreground text-sm font-black font-mono uppercase tracking-[0.2em] italic">
+                {activeItem} //
               </div>
             </SidebarHeader>
 
@@ -312,21 +315,23 @@ export function AppSidebar({
                 </>
               ) 
               : activeItem === "Properties" ? (
-                  <div key={selectedChatId} className="flex-1 h-[calc(100vh-56px)]">
-                    <BrutalButton className={"mt-2 w-full"} onClick={()=>setView("properties")}>
-                      More Details
+                  <div key={selectedChatId} className="flex flex-col p-3">
+                    <BrutalButton className={"w-full mb-3"} onClick={()=>setView("properties")}>
+                      Gestão de Ativos //
                     </BrutalButton>
                     {isLoadingProperties ? (
-                      <div className="p-3">
-                        <span className="font-mono text-xs uppercase opacity-70">A carregar propriedades...</span>
+                      <div className="py-10 text-center">
+                        <span className="font-mono text-[10px] uppercase font-black opacity-50 animate-pulse">
+                          Syncing_Assets...
+                        </span>
                       </div>
                     ) : (
-                      <PropertyListBars propertys={properties} isExiting={true} animate={false} onSelect={(id)=>{selectPropertyId(id)}}/>
+                      <PropertyListBars propertys={properties} onSelect={(id)=>{selectPropertyId(id)}}/>
                     )}
                   </div>
               )
               : activeItem === "Bookings" ? (
-                <div className="h-[calc(100vh-56px)] overflow-y-auto p-4">
+                <div className="p-4">
                   {!currentUser.isAuthenticated ? (
                     <div className="text-muted-foreground text-sm">
                       <div className="mb-2">Precisa de iniciar sessão para ver as suas reservas.</div>
@@ -364,5 +369,22 @@ export function AppSidebar({
 
         </div>
       </Sidebar>
+  )
+}
+
+function SidebarBackground() {
+  return (
+    <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+      <motion.div
+        animate={{ x: [0, 20, 0], y: [0, -40, 0], scale: [1, 1.1, 1] }}
+        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -top-10 -left-10 w-40 h-40 rounded-full bg-primary/10 blur-3xl"
+      />
+      <motion.div
+        animate={{ x: [0, -30, 0], y: [0, 50, 0], scale: [1, 1.2, 1] }}
+        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        className="absolute bottom-20 right-0 w-32 h-32 rounded-full bg-foreground/5 blur-3xl dark:bg-white/5"
+      />
+    </div>
   )
 }

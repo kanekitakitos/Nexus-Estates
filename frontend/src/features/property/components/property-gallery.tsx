@@ -1,18 +1,13 @@
 import { useState, useEffect } from "react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/forms/button"
+import { motion, AnimatePresence } from "framer-motion"
+import { Star, X, Eye, ChevronLeft, ChevronRight, Home } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ImageInput } from "@/components/ui/file-handler/imageInput"
 import { OwnProperty } from "../property-view"
 
-const MAIN_IMAGE_WRAPPER_STYLES = "relative w-full overflow-hidden rounded-xl md:rounded-3xl h-[60vh] md:h-auto md:aspect-[16/5]"
-const THUMBNAIL_STYLES = "relative aspect-[4/3] overflow-hidden rounded-lg md:rounded-xl border-[2px] border-foreground/70 bg-muted/50 hover:bg-primary/10 transition-colors cursor-pointer group snap-center"
-const THUMBNAIL_LABEL_STYLES = "absolute inset-0 flex items-center justify-center bg-background/40 opacity-0 group-hover:opacity-100 font-mono text-[8px] md:text-[10px] font-bold uppercase tracking-[0.18em] text-foreground"
-
-// 1. Adicionamos a prop onUpdateImage
 interface PropertyGalleryProps {
-    property: OwnProperty;
-    onUpdateImage?: (newImageUrl: string) => void;
+    property: OwnProperty
+    onUpdateImage?: (newImageUrl: string) => void
 }
 
 export function PropertyGallery({ property, onUpdateImage }: PropertyGalleryProps) {
@@ -24,50 +19,193 @@ export function PropertyGallery({ property, onUpdateImage }: PropertyGalleryProp
         ]
 
     const [activeImageIndex, setActiveImageIndex] = useState(0)
+    const [isFullscreen, setIsFullscreen] = useState(false)
 
     useEffect(() => {
         if (galleryImages.length <= 1) return
         const intervalId = window.setInterval(() => {
             setActiveImageIndex((prev) => (prev + 1) % galleryImages.length)
-        }, 6000)
+        }, 5000)
         return () => window.clearInterval(intervalId)
     }, [galleryImages.length])
 
+    const nextImage = () => {
+        setActiveImageIndex((prev) => (prev + 1) % galleryImages.length)
+    }
+
+    const prevImage = () => {
+        setActiveImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length)
+    }
+
     return (
-        <div>
-            <div className={MAIN_IMAGE_WRAPPER_STYLES}>
-                <img
-                    src={galleryImages[activeImageIndex] || ""}
-                    alt={property.title}
-                    className="h-full w-full object-cover"
-                />
-                <Badge variant="featured" className="absolute top-4 left-4">FEATURED</Badge>
+        <div className="space-y-6">
+            {/* Main Image Display */}
+            <div className="relative overflow-hidden rounded-xl border-2 border-foreground aspect-[16/9] md:aspect-[21/9] bg-muted/10 group shadow-[4px_4px_0_0_#0D0D0D]">
+                {/* Image */}
+                <AnimatePresence mode="wait">
+                    <motion.img
+                        key={activeImageIndex}
+                        src={galleryImages[activeImageIndex] || ""}
+                        alt={property.title}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="h-full w-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-700"
+                    />
+                </AnimatePresence>
+
+                {/* Featured Badge */}
+                {property.featured && (
+                    <div className="absolute top-4 left-4 z-10">
+                        <div className="flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-primary-foreground font-mono font-black border-2 border-foreground shadow-[2px_2px_0_0_#0D0D0D] text-[10px] uppercase tracking-widest">
+                            <Star className="h-3.5 w-3.5 fill-current" strokeWidth={3} />
+                            <span>Premium Asset</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Navigation Arrows */}
+                {galleryImages.length > 1 && (
+                    <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 flex justify-between z-10 pointer-events-none">
+                        <button
+                            onClick={prevImage}
+                            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-md border-2 border-foreground bg-background shadow-[2px_2px_0_0_#0D0D0D] hover:shadow-[4px_4px_0_0_#0D0D0D] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all opacity-0 group-hover:opacity-100"
+                            title="Imagem Anterior"
+                        >
+                            <ChevronLeft className="h-6 w-6" strokeWidth={3} />
+                        </button>
+
+                        <button
+                            onClick={nextImage}
+                            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-md border-2 border-foreground bg-background shadow-[2px_2px_0_0_#0D0D0D] hover:shadow-[4px_4px_0_0_#0D0D0D] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all opacity-0 group-hover:opacity-100"
+                            title="Próxima Imagem"
+                        >
+                            <ChevronRight className="h-6 w-6" strokeWidth={3} />
+                        </button>
+                    </div>
+                )}
+
+                {/* Fullscreen Button */}
+                <button
+                    onClick={() => setIsFullscreen(true)}
+                    className="absolute bottom-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-md border-2 border-foreground bg-background shadow-[2px_2px_0_0_#0D0D0D] hover:shadow-[4px_4px_0_0_#0D0D0D] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all opacity-0 group-hover:opacity-100"
+                    title="Ver em ecrã inteiro"
+                >
+                    <Eye className="h-5 w-5" strokeWidth={2.5} />
+                </button>
+
+                {/* Image Counter Shard */}
+                {galleryImages.length > 1 && (
+                    <div className="absolute bottom-4 left-4 z-10">
+                        <div className="flex items-center gap-2 rounded-md border-2 border-foreground bg-foreground px-3 py-1.5 text-background font-mono font-black text-[10px] uppercase tracking-widest shadow-[2px_2px_0_0_#0D0D0D]">
+                            {String(activeImageIndex + 1).padStart(2, '0')} // {String(galleryImages.length).padStart(2, '0')}
+                        </div>
+                    </div>
+                )}
             </div>
 
-            <div className="grid grid-flow-col grid-cols-4 my-3 gap-4 ">
-                <div id="images" className="grid gap-4 pb-2 grid-flow-col auto-cols-[33%] overflow-x-scroll col-span-4 snap-x">
+            {/* Thumbnail Grid */}
+            {galleryImages.length > 1 && (
+                <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
                     {galleryImages.map((imageSrc, index) => (
-                        <div
+                        <button
                             key={`${imageSrc}-${index}`}
                             onClick={() => setActiveImageIndex(index)}
-                            className={cn(THUMBNAIL_STYLES, activeImageIndex === index && "border-primary")}
+                            className={cn(
+                                "relative aspect-square overflow-hidden rounded-md transition-all duration-300",
+                                "border-2",
+                                activeImageIndex === index
+                                    ? "border-primary shadow-[2px_2px_0_0_#0D0D0D] -translate-y-1"
+                                    : "border-foreground/20 hover:border-foreground/40 hover:-translate-y-0.5"
+                            )}
                         >
-                            <img src={imageSrc} alt="" className="h-full w-full object-cover" />
-                            <Button variant="brutal" className="absolute top-4 left-4 scale-75 md:scale-100">DELETE</Button>
-                            <div className={THUMBNAIL_LABEL_STYLES}>VIEW</div>
-                        </div>
+                            <img
+                                src={imageSrc}
+                                alt=""
+                                className={cn(
+                                    "h-full w-full object-cover transition-all duration-300",
+                                    activeImageIndex === index ? "grayscale-0 scale-105" : "grayscale opacity-50"
+                                )}
+                            />
+
+                            {/* Delete Button Shard */}
+                            <button
+                                className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-md border-2 border-foreground bg-rose-500 text-white shadow-[1px_1px_0_0_#0D0D0D] opacity-0 group-hover:opacity-100 hover:scale-110 transition-all"
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    // Handle delete
+                                }}
+                                title="Remover imagem"
+                            >
+                                <X className="h-3.5 w-3.5" strokeWidth={3} />
+                            </button>
+                        </button>
                     ))}
                 </div>
+            )}
+
+            {/* Upload Section Shard */}
+            <div className="rounded-xl border-2 border-dashed border-foreground/30 bg-muted/5 p-4 hover:border-primary/50 transition-colors">
+                <ImageInput
+                    onUploadComplete={(novosUrls) => {
+                        if (novosUrls.length > 0 && onUpdateImage) {
+                            onUpdateImage(novosUrls[0])
+                        }
+                    }}
+                />
             </div>
 
-            <ImageInput
-                onUploadComplete={(novosUrls) => {
-                    // 2. Usamos o primeiro URL da lista para atualizar a imagem principal da propriedade
-                    if (novosUrls.length > 0 && onUpdateImage) {
-                        onUpdateImage(novosUrls[0]);
-                    }
-                }}
-            />
+            {/* Fullscreen Modal */}
+            <AnimatePresence>
+                {isFullscreen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsFullscreen(false)}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm p-4"
+                    >
+                        <button
+                            onClick={() => setIsFullscreen(false)}
+                            className="absolute top-6 right-6 flex h-12 w-12 items-center justify-center rounded-md border-2 border-white bg-white/10 text-white hover:bg-white/20 transition-all z-10"
+                            title="Fechar"
+                        >
+                            <X className="h-8 w-8" strokeWidth={2.5} />
+                        </button>
+
+                        <motion.img
+                            initial={{ scale: 0.9 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.9 }}
+                            src={galleryImages[activeImageIndex]}
+                            alt={property.title}
+                            className="max-h-[85vh] max-w-[90vw] object-contain rounded-xl border-4 border-foreground bg-card shadow-[12px_12px_0_0_#0D0D0D]"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+
+                        {galleryImages.length > 1 && (
+                            <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); prevImage() }}
+                                    className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-md border-2 border-white bg-white/10 text-white hover:bg-white/20 transition-all"
+                                    title="Anterior"
+                                >
+                                    <ChevronLeft className="h-10 w-10" strokeWidth={3} />
+                                </button>
+
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); nextImage() }}
+                                    className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-md border-2 border-white bg-white/10 text-white hover:bg-white/20 transition-all"
+                                    title="Próxima"
+                                >
+                                    <ChevronRight className="h-10 w-10" strokeWidth={3} />
+                                </button>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }

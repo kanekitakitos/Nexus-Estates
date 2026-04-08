@@ -66,7 +66,7 @@ function BrutalShard({ className, rotate = "primary", ...props }: React.Componen
     <div
       data-slot="brutal-shard"
       className={cn(
-        "border-[2px] border-foreground bg-card shadow-[5px_5px_0_0_rgb(0,0,0)] dark:shadow-[5px_5px_0_0_rgba(255,255,255,0.9)] p-4 md:p-6 lg:p-8",
+        "border-[2px] border-foreground bg-card/40 backdrop-blur-md shadow-[5px_5px_0_0_rgb(0,0,0)] dark:shadow-[5px_5px_0_0_rgba(255,255,255,0.9)] p-4 md:p-6 lg:p-8",
         rotationClass,
         className
       )}
