@@ -316,7 +316,14 @@ export function AppSidebar({
               ) 
               : activeItem === "Properties" ? (
                   <div key={selectedChatId} className="flex flex-col p-3">
-                    <BrutalButton className={"w-full mb-3"} onClick={()=>setView("properties")}>
+                    <BrutalButton 
+                      className={"w-full mb-3 cursor-pointer relative z-20 hover:scale-[1.02] active:scale-[0.98] transition-transform"} 
+                      onClick={() => {
+                        console.log("Navigating to Properties view...");
+                        setView("properties");
+                        selectPropertyId(null);
+                      }}
+                    >
                       Gestão de Ativos //
                     </BrutalButton>
                     {isLoadingProperties ? (
