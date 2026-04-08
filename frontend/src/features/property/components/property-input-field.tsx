@@ -3,19 +3,38 @@ import { motion, AnimatePresence } from "framer-motion"
 import { RotateCcw } from "lucide-react"
 
 interface PropertyInputFieldProps {
+    /** Etiqueta descritiva do campo */
     label: string
+    /** Valor atual em memória */
     value: string | number
+    /** Valor original persistido na base de dados (para comparação) */
     savedValue: string | number
+    /** Tipo de input: texto ou numérico */
     type?: "text" | "number"
+    /** Ativa o modo textarea para descrições longas */
+    multiline?: boolean
+    /** Número de linhas iniciais se multiline for verdadeiro */
+    rows?: number
+    /** Callback disparado a cada alteração */
     onChange: (val: string | number) => void
+    /** Callback para repor o valor original (savedValue) */
     onRevert: () => void
 }
 
+/**
+ * PropertyInputField - Componente de input atómico e reativo.
+ * 
+ * Este componente destaca-se por fornecer feedback visual imediato
+ * quando o valor atual difere do valor guardado, permitindo a reversão instantânea.
+ * Baseado na estética Neo-Brutalista com sombras acentuadas.
+ */
 export function PropertyInputField({
                                        label,
                                        value,
                                        savedValue,
                                        type = "text",
+                                       multiline = false,
+                                       rows = 1,
                                        onChange,
                                        onRevert
                                    }: PropertyInputFieldProps) {
@@ -29,24 +48,42 @@ export function PropertyInputField({
 
             <div className="relative flex gap-3 items-center">
                 <div className="relative flex-1 group">
-                    <input
-                        type={type}
-                        value={value || ""}
-                        onChange={(e) => {
-                            const val = type === "number" ? Number(e.target.value) : e.target.value
-                            onChange(val)
-                        }}
-                        className={cn(
-                            "relative w-full px-4 py-3.5 rounded-xl font-mono text-sm font-bold",
-                            "bg-muted/5 border-2 transition-all duration-200",
-                            "placeholder:text-muted-foreground/30 placeholder:uppercase",
-                            "focus:outline-none focus:bg-background focus:shadow-[4px_4px_0_0_#0D0D0D] focus:-translate-x-0.5 focus:-translate-y-0.5",
-                            didChange
-                                ? "border-primary text-primary shadow-[3px_3px_0_0_#e2621c]"
-                                : "border-foreground focus:border-primary focus:shadow-[4px_4px_0_0_#e2621c]"
-                        )}
-                        placeholder={`DIGITAR ${label.toUpperCase()}...`}
-                    />
+                    {multiline ? (
+                        <textarea
+                            rows={rows}
+                            value={value || ""}
+                            onChange={(e) => onChange(e.target.value)}
+                            className={cn(
+                                "relative w-full px-4 py-3.5 rounded-xl font-mono text-sm font-bold resize-none",
+                                "bg-muted/5 border-2 transition-all duration-200",
+                                "placeholder:text-muted-foreground/30 placeholder:uppercase",
+                                "focus:outline-none focus:bg-background focus:shadow-[4px_4px_0_0_#0D0D0D] focus:-translate-x-0.5 focus:-translate-y-0.5",
+                                didChange
+                                    ? "border-primary text-primary shadow-[3px_3px_0_0_#e2621c]"
+                                    : "border-foreground focus:border-primary focus:shadow-[4px_4px_0_0_#e2621c]"
+                            )}
+                            placeholder={`DIGITAR ${label.toUpperCase()}...`}
+                        />
+                    ) : (
+                        <input
+                            type={type}
+                            value={value || ""}
+                            onChange={(e) => {
+                                const val = type === "number" ? Number(e.target.value) : e.target.value
+                                onChange(val)
+                            }}
+                            className={cn(
+                                "relative w-full px-4 py-3.5 rounded-xl font-mono text-sm font-bold",
+                                "bg-muted/5 border-2 transition-all duration-200",
+                                "placeholder:text-muted-foreground/30 placeholder:uppercase",
+                                "focus:outline-none focus:bg-background focus:shadow-[4px_4px_0_0_#0D0D0D] focus:-translate-x-0.5 focus:-translate-y-0.5",
+                                didChange
+                                    ? "border-primary text-primary shadow-[3px_3px_0_0_#e2621c]"
+                                    : "border-foreground focus:border-primary focus:shadow-[4px_4px_0_0_#e2621c]"
+                            )}
+                            placeholder={`DIGITAR ${label.toUpperCase()}...`}
+                        />
+                    )}
                 </div>
 
                 <AnimatePresence>

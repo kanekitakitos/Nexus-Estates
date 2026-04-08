@@ -2,7 +2,7 @@ import { Variants } from "framer-motion"
 
 /**
  * Page and Section Transitions
- * Smooth blur + slide up effect used for main views.
+ * Transições suaves com desfoque (blur) e deslocamento vertical para as vistas principais.
  */
 export const pageVariants: Variants = {
   initial: { opacity: 0, y: 16, filter: "blur(2px)" },
@@ -22,7 +22,7 @@ export const pageVariants: Variants = {
 
 /**
  * List Animations
- * Staggering effect for children items.
+ * Efeito de cascata (stagger) para a entrada sequencial de itens em listas.
  */
 export const staggerContainer: Variants = {
   animate: {
@@ -32,6 +32,7 @@ export const staggerContainer: Variants = {
   },
 }
 
+/** Animação de entrada vinda de baixo */
 export const itemFadeUp: Variants = {
   initial: { opacity: 0, y: 10 },
   animate: { 
@@ -41,6 +42,7 @@ export const itemFadeUp: Variants = {
   },
 }
 
+/** Animação de entrada vinda da esquerda */
 export const itemFadeRight: Variants = {
   initial: { opacity: 0, x: -10 },
   animate: { 
@@ -52,7 +54,7 @@ export const itemFadeRight: Variants = {
 
 /**
  * Interaction Variants
- * Neo-Brutal hover and tap effects.
+ * Efeitos Neo-Brutalistas para hover e tap, com sombras deslocadas.
  */
 export const brutalCardHover = (isCompact = false) => ({
   x: isCompact ? 2 : 4,
@@ -60,11 +62,13 @@ export const brutalCardHover = (isCompact = false) => ({
   transition: { type: "spring" as const, stiffness: 400, damping: 12 },
 })
 
+/** Pequeno feedback tátil ao clicar */
 export const microPop = {
   scale: 0.98,
   transition: { duration: 0.1 }
 }
 
+/** Pulsação constante para elementos de destaque */
 export const pulseScale = {
   scale: [1, 1.02, 1],
   transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
@@ -72,6 +76,7 @@ export const pulseScale = {
 
 /**
  * Modal and Overlay Variants
+ * Controlos de visibilidade para fundos e conteúdos modais.
  */
 export const modalOverlay: Variants = {
   initial: { opacity: 0 },
@@ -87,7 +92,10 @@ export const modalContent: Variants = {
 
 /**
  * Looping / Background Animations
+ * Animações infinitas para elementos decorativos do ambiente Nexus.
  */
+
+/** Flutuação orbital */
 export const floating: Variants = {
   animate: {
     y: [0, -40, 0],
@@ -101,6 +109,7 @@ export const floating: Variants = {
   }
 }
 
+/** Rotação suave pendular */
 export const gentleRotate: Variants = {
   animate: {
     rotate: [0, -5, 5, -5, 0],
@@ -113,6 +122,7 @@ export const gentleRotate: Variants = {
   }
 }
 
+/** Ressalto suave vertical */
 export const gentleBounce: Variants = {
   animate: {
     y: [0, -10, 0],
