@@ -56,3 +56,23 @@ export const LEGACY_VARIANT_MAP: Record<string, PropertyCardDisplayVariant> = {
   compact: "grid",
   mini: "inventoryRail",
 }
+
+// ─── Categorias de Comodidades ────────────────────────────────────────────────
+
+/** Chaves canónicas de categoria de comodidade */
+export type AmenityCategory = "General" | "Kitchen" | "Bathroom" | "Entertainment" | "Outdoor" | "Safety"
+
+/**
+ * CATEGORY_CONFIG
+ *
+ * Configuração visual por categoria de comodidade.
+ * Separa dados de apresentação da lógica do componente AmenitiesField.
+ */
+export const CATEGORY_CONFIG: Record<AmenityCategory, { color: string; icon: string; bg: string }> = {
+  General:       { color: "text-primary",      bg: "bg-primary/5",      icon: "🏠" },
+  Kitchen:       { color: "text-emerald-500",  bg: "bg-emerald-500/5",  icon: "🍳" },
+  Bathroom:      { color: "text-blue-500",     bg: "bg-blue-500/5",     icon: "🚿" },
+  Entertainment: { color: "text-indigo-500",   bg: "bg-indigo-500/5",   icon: "🎮" },
+  Outdoor:       { color: "text-orange-500",   bg: "bg-orange-500/5",   icon: "🌳" },
+  Safety:        { color: "text-rose-500",     bg: "bg-rose-500/5",     icon: "🔒" },
+}

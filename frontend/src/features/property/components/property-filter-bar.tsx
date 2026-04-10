@@ -24,8 +24,11 @@ interface PropertyFilterBarProps {
     variant?: "default" | "compact"
 }
 
-/** Configuração dos filtros de status com os seus respetivos gradientes e etiquetas */
-const STATUS_FILTERS = [
+/** Chaves de filtros booleanos de status no objeto Filters */
+type StatusFilterKey = "available" | "booked" | "maintenance"
+
+/** Configuração dos filtros de status com os seus respetivos rótulos */
+const STATUS_FILTERS: Array<{ key: StatusFilterKey; label: string }> = [
     { key: "available", label: "Disponível" },
     { key: "booked", label: "Ocupada" },
     { key: "maintenance", label: "Manutenção" },

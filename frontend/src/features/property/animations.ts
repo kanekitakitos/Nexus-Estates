@@ -89,7 +89,7 @@ export const brutalCardHover = (isCompact = false) => ({
 /** Pequeno feedback tátil ao clicar */
 export const microPop = {
   scale: 0.97,
-  transition: { duration: 0.1, ease: "easeOut" }
+  transition: { duration: 0.1, ease: "easeOut" as const }
 }
 
 /** Pulsação constante para elementos de destaque */

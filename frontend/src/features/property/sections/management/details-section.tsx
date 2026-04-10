@@ -14,6 +14,15 @@ import { AmenitiesField } from "../../components/amenities-field"
 import { BoingText } from "@/components/BoingText"
 import { nexusEntrance, staggerContainer, itemFadeUp, microPop } from "../../animations"
 
+// ─── Tipos de Props Internos ────────────────────────────────────────────────
+
+/** Props partilhadas pelos sub-componentes de edição de dados do ativo */
+interface SectionDraftProps {
+  draft: OwnProperty
+  initial: OwnProperty
+  updateField: <K extends keyof OwnProperty>(field: K, value: OwnProperty[K]) => void
+}
+
 // ─── Sub-Componentes Internos ──────────────────────────────────────────────
 
 /**
@@ -66,7 +75,7 @@ function StatusToggle({
  * @param initial - Estado original para comparação e reversão
  * @param updateField - Callback genérico para atualização de campo
  */
-function IdentitySection({ draft, initial, updateField }: any) {
+function IdentitySection({ draft, initial, updateField }: SectionDraftProps) {
     return (
         <BrutalCard
             title="Identidade & Preço"
@@ -114,7 +123,7 @@ function IdentitySection({ draft, initial, updateField }: any) {
  * @param draft - Estado atual do ativo
  * @param updateField - Callback genérico para atualização de campo
  */
-function MediaSection({ draft, updateField }: any) {
+function MediaSection({ draft, updateField }: Pick<SectionDraftProps, "draft" | "updateField">) {
     return (
         <BrutalCard
             title="Imagem Principal"
@@ -189,7 +198,7 @@ function OperationalStatusSection({ status, onUpdate }: { status: string; onUpda
  * @param initial - Estado original para comparação
  * @param updateField - Callback genérico para atualização de campo
  */
-function LogisticsSection({ draft, initial, updateField }: any) {
+function LogisticsSection({ draft, initial, updateField }: SectionDraftProps) {
     return (
         <BrutalCard
             title="Localização & Lotação"
@@ -351,7 +360,9 @@ function AmenitiesSection({
  * @see DecommissionZone — Exclusão definitiva
  * @see AmenitiesSection — Matriz de comodidades expansível
  */
-export function DetailsSection({ draft, initial, updateField, isDeleting, onDelete }: any) {
+export function DetailsSection({
+  draft, initial, updateField, isDeleting, onDelete
+}: SectionDraftProps & { isDeleting: boolean; onDelete: () => void }) {
     return (
         <motion.div 
             variants={staggerContainer}
@@ -366,7 +377,7 @@ export function DetailsSection({ draft, initial, updateField, isDeleting, onDele
                 </motion.div>
 
                 <motion.div variants={itemFadeUp} className="lg:col-span-5 space-y-8">
-                    <OperationalStatusSection status={draft.status} onUpdate={(s) => updateField("status", s)} />
+                    <OperationalStatusSection status={draft.status} onUpdate={(s) => updateField("status", s as import("../../property-constants").PropertyStatus)} />
                     <LogisticsSection draft={draft} initial={initial} updateField={updateField} />
                     <DecommissionZone isDeleting={isDeleting} onDelete={onDelete} />
                 </motion.div>

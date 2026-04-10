@@ -5,8 +5,9 @@ import { Check, Loader2, RotateCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAmenityCatalog, resolveTranslation } from "../hooks"
 import { nexusEyebrowClass, nexusShadowSm, nexusKineticLight } from "../property-tokens"
+import { CATEGORY_CONFIG } from "../property-constants"
 import { BoingText } from "@/components/BoingText"
-import { staggerContainer, itemFadeUp, itemFadeRight, microPop, statusFlash } from "../animations"
+import { staggerContainer, itemFadeUp, microPop } from "../animations"
 
 // ─── Tipos e Props ────────────────────────────────────────────────────────
 
@@ -20,18 +21,6 @@ export interface AmenitiesFieldProps {
   onUpdateIds: (newIds: number[]) => void
   /** Callback para reverter as alterações para o estado original */
   onRevert: () => void
-}
-
-// ─── Configurações de Design ──────────────────────────────────────────────
-
-/** Configuração visual por categoria de comodidade */
-const CATEGORY_CONFIG: Record<string, { color: string; icon: string; bg: string }> = {
-  General: { color: "text-primary", bg: "bg-primary/5", icon: "🏠" },
-  Kitchen: { color: "text-emerald-500", bg: "bg-emerald-500/5", icon: "🍳" },
-  Bathroom: { color: "text-blue-500", bg: "bg-blue-500/5", icon: "🚿" },
-  Entertainment: { color: "text-indigo-500", bg: "bg-indigo-500/5", icon: "🎮" },
-  Outdoor: { color: "text-orange-500", bg: "bg-orange-500/5", icon: "🌳" },
-  Safety: { color: "text-rose-500", bg: "bg-rose-500/5", icon: "🔒" },
 }
 
 // ─── Sub-Componentes Internos ───────────────────────────────────────────────
@@ -131,7 +120,7 @@ function CategorySection({
   selectedIds: number[]; 
   onToggle: (id: number) => void 
 }) {
-  const config = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.General
+  const config = CATEGORY_CONFIG[category as import("../property-constants").AmenityCategory] ?? CATEGORY_CONFIG.General
   
   return (
     <div className="group/cat relative">
