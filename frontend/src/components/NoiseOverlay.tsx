@@ -1,6 +1,6 @@
 "use client"
 
-import type { CSSProperties } from "react"
+import { useId, type CSSProperties } from "react"
 
 type NoiseSource = "svg" | "texture"
 type NoisePattern = "dots" | "scanlines" | "none"
@@ -30,6 +30,17 @@ type NoiseOverlayProps = {
   animationSteps?: number
 }
 
+/** Presets alinhados aos usos atuais (ex.: landing) — spread em `<NoiseOverlay {...NOISE_OVERLAY_PRESETS.landing} />` */
+export const NOISE_OVERLAY_PRESETS = {
+  landing: {
+    pattern: "scanlines" as const,
+    opacity: 0.12,
+  },
+} satisfies Record<
+  string,
+  Partial<Pick<NoiseOverlayProps, "pattern" | "opacity" | "source" | "mixBlendMode">>
+>
+
 export function NoiseOverlay({
   source = "svg",
   textureSrc = "/allNoise512.png",
@@ -54,7 +65,8 @@ export function NoiseOverlay({
   animationDurationMs = 200,
   animationSteps = 4,
 }: NoiseOverlayProps) {
-  const keyframesName = "neNoiseShift"
+  const reactId = useId().replace(/:/g, "")
+  const keyframesName = `neNoiseShift-${reactId}`
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${tileSize}" height="${tileSize}"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="${baseFrequency}" numOctaves="${numOctaves}" stitchTiles="stitch"/></filter><rect width="${tileSize}" height="${tileSize}" filter="url(#n)" opacity="${noiseOpacity}"/></svg>`
   const svgNoiseUrl = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`
   const textureUrl = `url("${textureSrc}")`

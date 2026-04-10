@@ -1,210 +1,247 @@
+"use client"
+
 import { motion, AnimatePresence } from "framer-motion"
-import { Check, Loader2, RotateCcw, Sparkles } from "lucide-react"
+import { Check, Loader2, RotateCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useAmenityCatalog } from "../hooks"
+import { useAmenityCatalog, resolveTranslation } from "../hooks"
+import { nexusEyebrowClass, nexusShadowSm, nexusKineticLight } from "../property-tokens"
+import { CATEGORY_CONFIG } from "../property-constants"
+import { BoingText } from "@/components/BoingText"
+import { staggerContainer, itemFadeUp, microPop } from "../animations"
 
-interface AmenitiesFieldProps {
-    /** Lista de IDs de comodidade atualmente selecionados em memória */
-    selectedIds: number[]
-    /** Lista de IDs de comodidade originais da persistência (para comparação) */
-    savedIds: number[]
-    /** Callback para atualizar a coleção de IDs selecionados */
-    onUpdateIds: (newIds: number[]) => void
-    /** Callback para repor o estado inicial (savedIds) */
-    onRevert: () => void
+// ─── Tipos e Props ────────────────────────────────────────────────────────
+
+/** Propriedades do seletor de comodidades */
+export interface AmenitiesFieldProps {
+  /** Lista de IDs atualmente selecionados no estado draft */
+  selectedIds: number[]
+  /** Lista de IDs originais persistidos no servidor */
+  savedIds: number[]
+  /** Callback para atualizar o estado de IDs selecionados */
+  onUpdateIds: (newIds: number[]) => void
+  /** Callback para reverter as alterações para o estado original */
+  onRevert: () => void
 }
 
-/** Configuração visual das categorias de comodidades (Ícone e Cor) */
-const CATEGORY_CONFIG: Record<string, { color: string; icon: string }> = {
-    "General": { color: "text-primary", icon: "🏠" },
-    "Kitchen": { color: "text-emerald-500", icon: "🍳" },
-    "Bathroom": { color: "text-blue-500", icon: "🚿" },
-    "Entertainment": { color: "text-pink-500", icon: "🎮" },
-    "Outdoor": { color: "text-orange-500", icon: "🌳" },
-    "Safety": { color: "text-rose-500", icon: "🔒" },
-}
+// ─── Sub-Componentes Internos ───────────────────────────────────────────────
 
-// ─── Sub-Componentes de UI ──────────────────────────────────────────────────
-
-/** Mostra o estado de carregamento técnico do catálogo */
-function AmenityLoading() {
-    return (
-        <div className="flex items-center justify-center gap-4 p-12 rounded-xl border-2 border-dashed border-foreground/20 bg-muted/5">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" strokeWidth={3} />
-            <span className="font-mono text-xs font-black uppercase tracking-widest text-muted-foreground">
-                Indexing Amenities //
-            </span>
-        </div>
-    )
-}
-
-/** Cabeçalho da secção com título e ação de reset */
+/**
+ * AmenityHeader - Cabeçalho do módulo de comodidades com acção de reversão.
+ */
 function AmenityHeader({ didChange, onRevert }: { didChange: boolean; onRevert: () => void }) {
-    return (
-        <div className="flex items-center justify-between border-b border-foreground/5 pb-2">
-            <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-foreground bg-primary shadow-[2px_2px_0_0_#0D0D0D]">
-                    <Sparkles className="h-4 w-4 text-primary-foreground" strokeWidth={3} />
-                </div>
-                <div>
-                    <span className="font-mono text-[8px] font-black uppercase tracking-widest text-primary leading-none block">02 // Serviços</span>
-                    <h4 className="text-md font-black uppercase tracking-tighter leading-tight">Amenities</h4>
-                </div>
-            </div>
+  return (
+    <div className="mb-10 flex items-center justify-between border-b-2 border-[#0D0D0D]/10 pb-6 dark:border-white/10">
+      <div>
+        <span className={nexusEyebrowClass}>Nexus_Comfort_Matrix // Protocol</span>
+        <h4 className="font-serif text-3xl font-bold italic uppercase leading-none tracking-tighter text-[#0D0D0D] dark:text-white">
+          <BoingText text="Services & Comfort" color="currentColor" activeColor="#F97316" />
+        </h4>
+      </div>
 
-            <AnimatePresence>
-                {didChange && (
-                    <motion.button
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        onClick={onRevert}
-                        type="button"
-                        className="flex items-center gap-2 px-3 py-1 rounded-lg border-2 border-foreground bg-primary text-primary-foreground font-mono text-[8px] font-black uppercase shadow-[2px_2px_0_0_#0D0D0D]"
-                        title="Descartar alterações de comodidades"
-                    >
-                        <RotateCcw className="h-3 w-3" strokeWidth={3} />
-                        Reset //
-                    </motion.button>
-                )}
-            </AnimatePresence>
-        </div>
-    )
-}
-
-/** Cabeçalho de cada categoria (General, Kitchen, etc) */
-function AmenityCategoryHeader({ category, count, total }: { category: string; count: number; total: number }) {
-    const config = CATEGORY_CONFIG[category] || CATEGORY_CONFIG["General"]
-    return (
-        <div className="flex items-center gap-2">
-            <span className="flex-shrink-0 text-md">{config.icon}</span>
-            <h5 className="font-mono text-[8px] font-black uppercase tracking-[0.1em] text-foreground/40">{category}</h5>
-            <div className="h-[1px] flex-1 bg-foreground/5" />
-            <span className="font-mono text-[8px] font-black text-muted-foreground">
-                {count}/{total}
-            </span>
-        </div>
-    )
-}
-
-/** Botão de alternância (Toggle) para uma comodidade individual */
-function AmenityToggleButton({ name, isSelected, onClick }: { name: string | any; isSelected: boolean; onClick: () => void }) {
-    const resolvedName = typeof name === 'string' ? name : (name?.pt || name?.en || "")
-    
-    return (
-        <button
-            onClick={onClick}
+      <AnimatePresence>
+        {didChange && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            onClick={onRevert}
             type="button"
             className={cn(
-                "relative flex items-center justify-between gap-2 px-3 py-2 rounded-lg border transition-all duration-200 text-left",
-                isSelected
-                    ? "border-foreground bg-foreground text-background shadow-[3px_3px_0_0_#e2621c] -translate-x-0.5 -translate-y-0.5"
-                    : "border-foreground/10 bg-muted/5 hover:border-foreground/30"
+              "flex items-center gap-2 rounded-xl bg-[#0D0D0D] px-4 py-2 font-mono text-[10px] font-black uppercase text-white transition-all hover:bg-primary dark:bg-white dark:text-[#0D0D0D] dark:hover:bg-primary",
+              nexusShadowSm
             )}
-        >
-            <span className={cn(
-                "font-mono text-[9px] font-bold uppercase truncate pr-1",
-                isSelected ? "text-primary" : "text-foreground"
-            )}>
-                {resolvedName}
-            </span>
-
-            <div className={cn(
-                "flex h-3.5 w-3.5 shrink-0 items-center justify-center border-2 transition-all",
-                isSelected ? "border-primary bg-primary rounded-sm" : "border-foreground/20 rounded-sm"
-            )}>
-                <AnimatePresence>
-                    {isSelected && (
-                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                            <Check className="h-2.5 w-2.5 text-primary-foreground" strokeWidth={4} />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-        </button>
-    )
+          >
+            <RotateCcw className="h-3 w-3" strokeWidth={3} />
+            Revert_State
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </div>
+  )
 }
 
-/** Indicador visual de alterações pendentes */
-function AmenityChangeIndicator({ diff }: { diff: number }) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-2 rounded-lg border border-primary bg-primary/5 text-primary flex items-center gap-2"
-        >
-            <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-            <span className="font-mono text-[8px] font-black uppercase tracking-widest">
-                Changes Pending // {diff > 0 ? "+" : ""}{diff} items
+/**
+ * AmenityItem - Botão individual de alternância para uma comodidade.
+ */
+function AmenityItem({
+  name,
+  isSelected,
+  onClick,
+}: {
+  name: string | { pt?: string; en?: string }
+  isSelected: boolean
+  onClick: () => void
+}) {
+  const resolvedName = resolveTranslation(name)
+
+  return (
+    <motion.button
+      whileTap={microPop}
+      whileHover={{ scale: 1.02, x: 2, y: -2 }}
+      onClick={onClick}
+      type="button"
+      className={cn(
+        "group relative flex items-center justify-between gap-3 overflow-hidden rounded-xl border-2 px-4 py-3.5 transition-all duration-300",
+        isSelected
+          ? "border-[#0D0D0D] bg-primary text-white shadow-[3px_3px_0_0_#0D0D0D] dark:border-white dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.7)]"
+          : "border-[#0D0D0D]/10 bg-white/50 hover:border-primary/50 hover:bg-white dark:border-white/10 dark:bg-zinc-900/50",
+        nexusKineticLight
+      )}
+    >
+      <span
+        className={cn(
+          "font-mono text-[10px] font-black uppercase tracking-tight",
+          isSelected ? "text-white" : "text-[#0D0D0D] dark:text-zinc-300"
+        )}
+      >
+        {resolvedName}
+      </span>
+
+      <div
+        className={cn(
+          "flex h-5 w-5 shrink-0 items-center justify-center rounded-lg border-2 transition-all",
+          isSelected ? "border-white bg-white/20" : "border-[#0D0D0D]/20 dark:border-white/20"
+        )}
+      >
+        {isSelected && <Check className="h-3 w-3 text-white" strokeWidth={4} />}
+      </div>
+    </motion.button>
+  )
+}
+
+/**
+ * CategorySection - Bloco divisor e grid para uma categoria de comodidades.
+ */
+function CategorySection({ 
+  category, items, selectedIds, onToggle 
+}: { 
+  category: string; 
+  items: any[]; 
+  selectedIds: number[]; 
+  onToggle: (id: number) => void 
+}) {
+  const config = CATEGORY_CONFIG[category as import("../property-constants").AmenityCategory] ?? CATEGORY_CONFIG.General
+  
+  return (
+    <div className="group/cat relative">
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div
+            className={cn(
+              "flex h-10 w-10 items-center justify-center rounded-xl border-2 border-[#0D0D0D] bg-white text-lg shadow-[3px_3px_0_0_#0D0D0D] dark:border-white dark:bg-zinc-800 dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.1)]",
+              config.color
+            )}
+          >
+            {config.icon}
+          </div>
+          <div>
+            <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-primary">
+              {items.length.toString().padStart(2, "0")}_INDEX //
             </span>
-        </motion.div>
-    )
+            <h5 className="font-serif text-xl font-bold italic uppercase tracking-tight text-[#0D0D0D] dark:text-zinc-100">
+              <BoingText text={category} color="currentColor" activeColor="#F97316" duration={0.3} stagger={0.02} />
+            </h5>
+          </div>
+        </div>
+        <div className="h-px flex-1 bg-[#0D0D0D]/10 dark:bg-white/10" />
+      </div>
+
+      <motion.div 
+        variants={staggerContainer}
+        initial="initial"
+        whileInView="animate"
+        viewport={{ once: true }}
+        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      >
+        {items.map((amenity) => (
+          <motion.div key={amenity.id} variants={itemFadeUp}>
+            <AmenityItem
+              name={amenity.name}
+              isSelected={selectedIds.includes(amenity.id)}
+              onClick={() => onToggle(amenity.id)}
+            />
+          </motion.div>
+        ))}
+      </motion.div>
+    </div>
+  )
 }
 
 // ─── Componente Principal ───────────────────────────────────────────────────
 
 /**
- * AmenitiesField - Gestor de Serviços e Comodidades.
+ * AmenitiesField - Gestor Matrix de Serviços e Conforto.
  * 
- * Componente refatorado para maior legibilidade, sub-dividindo a lógica visual
- * em componentes especializados.
+ * @description Providencia uma interface categorizada para seleção de comodidades
+ * do ativo. Utiliza um sistema de verificação de integridade entre o estado
+ * persistido e o draft para indicar alterações pendentes.
  */
 export function AmenitiesField({ selectedIds, savedIds, onUpdateIds, onRevert }: AmenitiesFieldProps) {
-    const { amenities, isLoading } = useAmenityCatalog()
+  const { amenities, isLoading } = useAmenityCatalog()
 
-    // Lógica de comparação para detetar alterações
-    const currentSorted = [...selectedIds].sort((a, b) => a - b)
-    const savedSorted = [...savedIds].sort((a, b) => a - b)
-    const didChange = JSON.stringify(currentSorted) !== JSON.stringify(savedSorted)
-    const diffCount = selectedIds.length - savedIds.length
+  // Verificação de Alterações
+  const currentSorted = [...selectedIds].sort((a, b) => a - b)
+  const savedSorted = [...savedIds].sort((a, b) => a - b)
+  const didChange = JSON.stringify(currentSorted) !== JSON.stringify(savedSorted)
 
-    const toggleAmenity = (id: number) => {
-        onUpdateIds(selectedIds.includes(id) 
-            ? selectedIds.filter(i => i !== id) 
-            : [...selectedIds, id]
-        )
-    }
+  // Handlers
+  const toggleAmenity = (id: number) => {
+    onUpdateIds(selectedIds.includes(id) ? selectedIds.filter((i) => i !== id) : [...selectedIds, id])
+  }
 
-    /** Agrupamento por categoria editorial */
-    const groupedAmenities = amenities.reduce((acc, amenity) => {
-        const cat = amenity.category || "General"
-        if (!acc[cat]) acc[cat] = []
-        acc[cat].push(amenity)
-        return acc
-    }, {} as Record<string, typeof amenities>)
+  // Agrupamento Matrix
+  const groupedAmenities = amenities.reduce((acc, amenity) => {
+    const cat = amenity.category || "General"
+    if (!acc[cat]) acc[cat] = []
+    acc[cat].push(amenity)
+    return acc
+  }, {} as Record<string, typeof amenities>)
 
-    if (isLoading) return <AmenityLoading />
-
+  // Loading State (Shimmer/Loader modular)
+  if (isLoading)
     return (
-        <div className="space-y-4">
-            <AmenityHeader didChange={didChange} onRevert={onRevert} />
-
-            <div className="grid gap-4">
-                {Object.entries(groupedAmenities).map(([category, items]) => (
-                    <div key={category} className="space-y-2">
-                        <AmenityCategoryHeader 
-                            category={category} 
-                            count={items.filter(a => selectedIds.includes(a.id)).length} 
-                            total={items.length} 
-                        />
-
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2">
-                            {items.map((amenity) => (
-                                <AmenityToggleButton 
-                                    key={amenity.id}
-                                    name={amenity.name}
-                                    isSelected={selectedIds.includes(amenity.id)}
-                                    onClick={() => toggleAmenity(amenity.id)}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            <AnimatePresence>
-                {didChange && <AmenityChangeIndicator diff={diffCount} />}
-            </AnimatePresence>
-        </div>
+      <div className="flex flex-col items-center justify-center rounded-[2rem] border-2 border-dashed border-[#0D0D0D]/10 bg-[#FAFAF5] p-20 dark:border-white/10 dark:bg-zinc-900/40">
+        <Loader2 className="mb-4 h-10 w-10 animate-spin text-primary" strokeWidth={3} />
+        <span className="animate-pulse font-mono text-[10px] font-black uppercase tracking-widest text-[#8C7B6B]">
+          Initializing_Comfort_DB{" //"}
+        </span>
+      </div>
     )
+
+  return (
+    <section className="space-y-10">
+      {/* Cabeçalho de Protocolo */}
+      <AmenityHeader didChange={didChange} onRevert={onRevert} />
+
+      {/* Lista de Categorias Matrix */}
+      <div className="space-y-12">
+        {Object.entries(groupedAmenities).map(([category, items]) => (
+          <CategorySection
+            key={category}
+            category={category}
+            items={items}
+            selectedIds={selectedIds}
+            onToggle={toggleAmenity}
+          />
+        ))}
+      </div>
+
+      {/* Footer de Sincronização */}
+      <AnimatePresence>
+        {didChange && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="flex items-center justify-center gap-4 rounded-xl border-2 border-dashed border-primary px-6 py-4 dark:bg-primary/5 bg-primary/5"
+          >
+            <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+            <span className="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-primary text-center">
+              Protocolo_Sincronização_Pendente{" //"} Aguardando confirmação do operador
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  )
 }

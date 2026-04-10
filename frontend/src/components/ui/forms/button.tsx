@@ -23,6 +23,18 @@ const buttonVariants = cva(
           "border-[2px] border-foreground rounded-xl bg-primary text-primary-foreground shadow-[2px_2px_0_0_rgb(0,0,0)] dark:shadow-[2px_2px_0_0_rgba(255,255,255,0.9)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all",
         "brutal-outline":
           "border-[2px] border-foreground bg-background font-mono text-[11px] font-semibold uppercase tracking-[0.18em] shadow-[3px_3px_0_0_rgb(0,0,0)] dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.9)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-xl",
+        "brutal-property-cta":
+          "rounded-xl border-2 border-foreground bg-primary px-8 py-4 font-mono text-xs font-black uppercase text-white shadow-[4px_4px_0_0_#0D0D0D] transition-all hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#0D0D0D] flex items-center gap-2",
+        "brutal-wizard-exit":
+          "h-12 rounded-xl border-2 border-foreground px-6 font-mono text-[10px] font-black uppercase text-foreground shadow-[2px_2px_0_0_#0D0D0D] transition-all dark:border-zinc-700 dark:text-zinc-400",
+        "brutal-wizard-back":
+          "h-12 rounded-xl border-2 border-foreground bg-background px-6 font-mono text-[10px] font-black uppercase shadow-[2px_2px_0_0_#0D0D0D] transition-all",
+        "brutal-wizard-next":
+          "flex h-12 items-center gap-2 rounded-xl border-2 border-foreground bg-foreground px-10 font-mono text-[10px] font-black uppercase text-background shadow-[4px_4px_0_0_#0D0D0D] transition-all",
+        "brutal-wizard-save":
+          "flex h-12 items-center gap-2 rounded-xl border-2 border-foreground bg-primary px-10 font-mono text-[10px] font-black uppercase text-white shadow-[4px_4px_0_0_#0D0D0D] transition-all",
+        "brutal-wizard-inline":
+          "h-12 rounded-lg border-2 border-foreground bg-primary px-6 font-mono text-[10px] font-black text-white shadow-[3px_3px_0_0_#000]",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
