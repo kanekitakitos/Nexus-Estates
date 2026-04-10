@@ -1,209 +1,130 @@
-import { Home, MapPin, Users2, Pencil, Trash2, ArrowRight, Star } from "lucide-react"
+"use client"
+
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { OwnProperty } from "@/types"
-import { brutalCardHover, microPop } from "../animations"
+import { resolveTranslation } from "../hooks"
+import { microPop, nexusEntrance } from "../animations"
+import {
+  nexusCardPressHover,
+  nexusHardBorder,
+  nexusShadowLg,
+  nexusShadowMd,
+  nexusShadowSm,
+  nexusKineticLight,
+} from "../property-tokens"
+import { STATUS_CONFIG } from "../property-constants"
+import { resolvePropertyCardVariant, resolvedSerialId } from "../property-utils"
+import { CardMediaThumb, ContentRail, ContentGrid, ContentPortfolio } from "./card"
+
+// Re-exporta tipos públicos para não quebrar imports externos
+export type { PropertyCardDisplayVariant, PropertyCardVariant } from "../property-constants"
+export { resolvePropertyCardVariant } from "../property-utils"
+
+// ─── Tipos Públicos ────────────────────────────────────────────────────────
+
+/** Propriedades do Cartão de Ativo */
+export interface PropertyCardItemProps {
+  /** Dados brutos do ativo */
+  prop: OwnProperty
+  /** Chamado ao selecionar o cartão */
+  onSelect: (id: string) => void
+  /** Opcional: Chamado ao premir o comando de edição */
+  onEdit?: (prop: OwnProperty) => void
+  /** Chamado ao solicitar remoção */
+  onDelete?: (id: string) => void | Promise<void>
+  /** Variante do layout */
+  variant?: import("../property-constants").PropertyCardVariant
+}
+
+// ─── Componente Root ────────────────────────────────────────────────────────
 
 /**
- * STATUS_CONFIG
- * Mapeamento de estilos e semântica para os estados técnicos da propriedade.
+ * PropertyCardItem — Orchestrador de Layout de Ativos.
+ *
+ * Responsabilidade única: Compor os sub-componentes atómicos (CardMediaThumb,
+ * ContentRail, ContentGrid, ContentPortfolio) com base na variante de display,
+ * e aplicar o shell visual (bordas, sombras, animações) correto.
+ *
+ * A lógica visual de cada variante está nos respetivos sub-componentes em `./card/`.
  */
-const STATUS_CONFIG = {
-    AVAILABLE: {
-        bg: "bg-emerald-50 dark:bg-emerald-400/10 text-emerald-800 dark:text-emerald-400",
-        label: "Disponível",
-        dot: "bg-emerald-500",
-    },
-    BOOKED: {
-        bg: "bg-rose-50 dark:bg-rose-400/10 text-rose-800 dark:text-rose-400",
-        label: "Ocupada",
-        dot: "bg-rose-500",
-    },
-    MAINTENANCE: {
-        bg: "bg-amber-50 dark:bg-amber-400/10 text-amber-800 dark:text-amber-400",
-        label: "Manutenção",
-        dot: "bg-amber-500",
-    },
-}
+export function PropertyCardItem({
+  prop,
+  onSelect,
+  onEdit,
+  variant = "portfolio",
+}: PropertyCardItemProps) {
+  const mode = resolvePropertyCardVariant(variant)
+  const statusConfig =
+    STATUS_CONFIG[prop.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.AVAILABLE
+  const serial = resolvedSerialId(prop.id)
+  const title = resolveTranslation(prop.title) || "Asset"
 
-// ─── Sub-Componentes de UI ──────────────────────────────────────────────────
+  const shell = cn(
+    nexusHardBorder,
+    "group cursor-pointer overflow-hidden bg-[#FAFAF5] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] dark:bg-[#0a0a0a]",
+    nexusCardPressHover,
+    mode === "inventoryRail" &&
+      cn(
+        "mx-auto w-[85%] rounded-md",
+        nexusShadowSm,
+        "hover:shadow-[5px_5px_0_0_#0D0D0D] dark:hover:shadow-[5px_5px_0_0_rgba(255,255,255,0.75)]",
+        nexusKineticLight
+      ),
+    mode === "grid" &&
+      cn(
+        "rounded-[1.35rem] md:rounded-[1.75rem] h-full mx-auto w-full max-w-[300px]",
+        nexusShadowMd,
+        "hover:shadow-[7px_7px_0_0_#0D0D0D] dark:hover:shadow-[7px_7px_0_0_rgba(24,24,27,1)]",
+        nexusKineticLight
+      ),
+    mode === "portfolio" &&
+      cn(
+        "rounded-[1.75rem] md:rounded-[2.25rem]",
+        nexusShadowLg,
+        "hover:shadow-[10px_10px_0_0_#0D0D0D] dark:hover:shadow-[10px_10px_0_0_rgba(24,24,27,1)]",
+        nexusKineticLight,
+        "hover:bg-white dark:hover:bg-zinc-900/50"
+      )
+  )
 
-/** Secção de Média: Imagem, Badges e Serial Number */
-function CardMedia({ prop, isCompact, isMini, serialId }: { prop: OwnProperty; isCompact: boolean; isMini: boolean; serialId: string }) {
-    const title = typeof prop.title === 'string' ? prop.title : prop.title?.pt || prop.title?.en
-    
-    return (
-        <div className={cn(
-            "relative overflow-hidden bg-muted/10 border-foreground group/img shrink-0",
-            isMini ? "h-12 w-12 rounded-lg border-2" :
-            isCompact ? "w-full aspect-[4/3] border-b-[3px]" : "w-full md:w-[220px] lg:w-[280px] border-b-[3px] md:border-b-0 md:border-r-[3px]"
-        )}>
-            {prop.imageUrl ? (
-                <motion.img
-                    src={prop.imageUrl} alt={title}
-                    className="h-full w-full object-cover grayscale-[0.3] transition-all duration-700 group-hover:grayscale-0 group-hover:scale-110"
-                />
-            ) : (
-                <div className="flex h-full w-full items-center justify-center bg-muted/10">
-                    <Home className={cn(isCompact ? "h-10 w-10" : "h-12 w-12", "text-muted-foreground/20")} strokeWidth={1} />
-                </div>
-            )}
+  const layout = cn(
+    "flex w-auto",
+    mode === "inventoryRail" && "flex-row items-center gap-3 p-3",
+    mode === "grid" && "h-auto flex-col items-center gap-0 py-2",
+    mode === "portfolio" &&
+      "min-h-[260px] flex-col md:min-h-[300px] md:flex-row md:items-stretch"
+  )
 
-            {!isMini && prop.featured && (
-                <div className="absolute top-3 left-3 z-10">
-                    <motion.div animate={{ y: [0, -2, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} className="flex items-center gap-1 rounded-md bg-yellow-400 font-black uppercase tracking-widest border-2 border-foreground shadow-[2px_2px_0_0_#0D0D0D] px-2 py-1 text-[9px] text-black">
-                        <Star className="h-3 w-3" fill="currentColor" />
-                        <span>HOT</span>
-                    </motion.div>
-                </div>
-            )}
+  return (
+    <motion.div
+      variants={nexusEntrance}
+      initial="initial"
+      animate="animate"
+      whileTap={microPop}
+      onClick={() => onSelect(prop.id)}
+      className={shell}
+    >
+      <div className={layout}>
+        <CardMediaThumb prop={prop} mode={mode} serialId={serial} />
 
-            {!isMini && (
-                <div className={cn("absolute bottom-2 left-3 z-10 mix-blend-difference pointer-events-none text-white/50", isCompact ? "opacity-40" : "")}>
-                    <span className={cn("font-mono font-black block leading-none saturate-0", isCompact ? "text-2xl" : "text-4xl")}>
-                        #{serialId}
-                    </span>
-                </div>
-            )}
-        </div>
-    )
-}
+        {mode === "inventoryRail" && (
+          <ContentRail
+            title={title}
+            price={prop.price}
+            location={prop.location}
+            statusDot={statusConfig.dot}
+          />
+        )}
 
-/** Secção de Informação: Localização, Título e Mini-Preço */
-function CardHeader({ prop, isMini, isCompact, statusDot }: { prop: OwnProperty; isMini: boolean; isCompact: boolean; statusDot: string }) {
-    const title = typeof prop.title === 'string' ? prop.title : prop.title?.pt || prop.title?.en
-    return (
-        <div className="min-w-0">
-            {!isMini && (
-                <div className={cn("flex items-center gap-2 font-mono font-black uppercase tracking-widest text-primary mb-1", isCompact ? "text-[9px]" : "text-[10px] tracking-[0.2em]")}>
-                    <MapPin className="h-3.5 w-3.5" strokeWidth={4} />
-                    <span className="truncate">{prop.location}{isCompact ? "" : ` // ${prop.city}`}</span>
-                </div>
-            )}
-            <h3 className={cn("font-black uppercase tracking-tighter transition-colors duration-400 leading-tight text-foreground", isMini ? "text-sm truncate" : isCompact ? "text-2xl line-clamp-2" : "text-3xl md:text-4xl line-clamp-1")}>
-                {title}
-            </h3>
-            {isMini && (
-                <div className="flex items-center gap-2 mt-0.5">
-                    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", statusDot)} />
-                    <span className="text-[10px] font-black font-mono text-primary truncate tracking-tighter">
-                        {prop.price}€ // {prop.location}
-                    </span>
-                </div>
-            )}
-        </div>
-    )
-}
+        {mode === "grid" && (
+          <ContentGrid title={title} prop={prop} onEdit={onEdit} />
+        )}
 
-/** Badge de Status (Vista Hero) */
-function CardStatusBadge({ config }: { config: typeof STATUS_CONFIG.AVAILABLE }) {
-    return (
-        <div className="flex flex-wrap gap-2">
-            <motion.div whileHover={{ scale: 1.02 }} className={cn("flex items-center gap-2 rounded-md border-2 border-foreground shadow-[2px_2px_0_0_#0D0D0D] px-3 py-1.5 flex-shrink-0", config.bg)}>
-                <motion.span animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 2, repeat: Infinity }} className={cn("rounded-full h-2 w-2", config.dot)} />
-                <span className="font-mono font-black uppercase tracking-widest text-[9px]">{config.label}</span>
-            </motion.div>
-        </div>
-    )
-}
-
-/** Rodapé Financeiro e Ações */
-function CardFooter({ prop, isCompact, onEdit }: { prop: OwnProperty; isCompact: boolean; onEdit?: (p: OwnProperty) => void }) {
-    return (
-        <div className={cn("flex items-end justify-between gap-4 relative z-10", "mt-6 pt-4 md:pt-5 border-t-2 border-foreground/5 dark:border-white/5")}>
-            <div className="flex flex-col group/price min-w-0">
-                <span className="text-[9px] font-mono font-black uppercase text-muted-foreground/40 tracking-[0.3em] mb-0.5">Yield //</span>
-                <span className={cn("font-black leading-none tracking-tighter transition-all group-hover/price:text-primary text-foreground", isCompact ? "text-4xl" : "text-4xl md:text-5xl")}>
-                    {prop.price}€
-                </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-                {isCompact && (
-                    <div className="flex h-9 items-center gap-1.5 rounded-md border-2 border-foreground bg-background px-2.5 shadow-[2px_2px_0_0_#0D0D0D] font-mono font-black text-sm">
-                        <Users2 className="h-3.5 w-3.5 text-primary" strokeWidth={3} />
-                        <span>{prop.maxGuests}</span>
-                    </div>
-                )}
-                <button
-                    onClick={(e) => { e.stopPropagation(); onEdit?.(prop) }}
-                    className={cn("flex items-center justify-center rounded-md border-2 border-foreground bg-primary text-primary-foreground shadow-[2px_2px_0_0_#0D0D0D] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all outline-none", isCompact ? "h-9 w-9" : "h-11 w-11")}
-                    title="Editar Ativo"
-                >
-                    <Pencil className={isCompact ? "h-4 w-4" : "h-5 w-5"} strokeWidth={3} />
-                </button>
-            </div>
-        </div>
-    )
-}
-
-// ─── Componente Principal ───────────────────────────────────────────────────
-
-interface PropertyCardItemProps {
-    prop: OwnProperty
-    onSelect: (id: string) => void
-    onEdit?: (prop: OwnProperty) => void
-    onDelete?: (id: string) => void | Promise<void>
-    variant?: "default" | "compact" | "mini"
-}
-
-/**
- * PropertyCardItem - Componente base para representação de ativos (Nexus_Protocol).
- * 
- * Refatorado para sub-componentes internos, garantindo que a lógica visual 
- * seja modular e fácil de manter em diferentes densidades de layout.
- */
-export function PropertyCardItem({ prop, onSelect, onEdit, onDelete, variant = "default" }: PropertyCardItemProps) {
-    const statusConfig = STATUS_CONFIG[prop.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.AVAILABLE
-    const isCompact = variant === "compact"
-    const isMini = variant === "mini"
-    const isHero = variant === "default"
-    
-    const resolvedId = (id: string) => {
-        if (!id || typeof id !== 'string') return "00"
-        const lastPart = id.slice(-2)
-        const parsed = parseInt(lastPart, 16)
-        return (isNaN(parsed) ? 0 : parsed % 99 + 1).toString().padStart(2, '0')
-    }
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileHover={brutalCardHover(isCompact || isMini)}
-            whileTap={microPop}
-            onClick={() => onSelect(prop.id)}
-            className={cn(
-                "group relative cursor-pointer overflow-hidden rounded-2xl bg-white/40 dark:bg-black/40 backdrop-blur-md border-[3px] border-foreground transition-all duration-300",
-                "shadow-[6px_6px_0_0_#0D0D0D] hover:shadow-[12px_12px_0_0_#0D0D0D]",
-                isCompact && "shadow-[4px_4px_0_0_#0D0D0D] hover:shadow-[8px_8px_0_0_#0D0D0D]",
-                isMini && "shadow-[3px_3px_0_0_#0D0D0D] border-2 rounded-xl"
-            )}
-        >
-            <div className={cn("flex h-full", isMini ? "flex-row items-center p-2 gap-3" : isCompact ? "flex-col" : "min-h-[260px] md:flex-row")}>
-                
-                <CardMedia prop={prop} isCompact={isCompact} isMini={isMini} serialId={resolvedId(prop.id)} />
-
-                <div className={cn("flex-1 flex flex-col justify-center min-w-0 relative bg-transparent", isMini ? "p-0" : isCompact ? "p-5" : "p-6 md:p-8")}>
-                    {/* Textura Decorativa */}
-                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none dark:invert bg-[radial-gradient(circle,_#000_1px,_transparent_1px)] [background-size:14px_14px]" />
-
-                    <div className={cn("relative z-10", isMini ? "flex flex-col" : isCompact ? "space-y-3" : "space-y-4")}>
-                        <CardHeader prop={prop} isMini={isMini} isCompact={isCompact} statusDot={statusConfig.dot} />
-
-                        {isHero && (
-                            <>
-                                <CardStatusBadge config={statusConfig} />
-                                <p className="text-sm md:text-base font-mono text-muted-foreground/60 dark:text-muted-foreground/40 line-clamp-2 leading-[1.3] border-l-2 border-primary/20 pl-4 py-1">
-                                    {typeof prop.description === 'string' ? prop.description : prop.description?.pt || "Alojamento premium."}
-                                </p>
-                            </>
-                        )}
-                    </div>
-
-                    {!isMini && <CardFooter prop={prop} isCompact={isCompact} onEdit={onEdit} />}
-                </div>
-            </div>
-        </motion.div>
-    )
+        {mode === "portfolio" && (
+          <ContentPortfolio title={title} prop={prop} onEdit={onEdit} />
+        )}
+      </div>
+    </motion.div>
+  )
 }

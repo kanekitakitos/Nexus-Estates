@@ -1,22 +1,61 @@
--- Seed global 'Dev' user for E2E testing
--- User ID: 999 
+-- Auto-generated heavy seed data
 
--- Insert User 999
-INSERT INTO users (id, email, password, phone, role, clerk_user_id)
-VALUES (
-    999, 
-    'dev@nexus.com', 
-    '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', -- '12345' bcrypt hash
-    '+351999999999', 
-    'OWNER', 
-    'user_2devTester'
-) ON CONFLICT (email) DO UPDATE 
-SET clerk_user_id = 'user_2devTester', role='OWNER';
+INSERT INTO users (id, email, password, phone, role, clerk_user_id) VALUES
+(999, 'dev@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+351999999999', 'OWNER', 'user_2devTester'),
+(1000, 'user1000@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001000', 'OWNER', 'user_clerk_1000'),
+(1001, 'user1001@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001001', 'OWNER', 'user_clerk_1001'),
+(1002, 'user1002@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001002', 'ADMIN', 'user_clerk_1002'),
+(1003, 'user1003@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001003', 'OWNER', 'user_clerk_1003'),
+(1004, 'user1004@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001004', 'GUEST', 'user_clerk_1004'),
+(1005, 'user1005@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001005', 'ADMIN', 'user_clerk_1005'),
+(1006, 'user1006@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001006', 'GUEST', 'user_clerk_1006'),
+(1007, 'user1007@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001007', 'GUEST', 'user_clerk_1007'),
+(1008, 'user1008@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001008', 'OWNER', 'user_clerk_1008'),
+(1009, 'user1009@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001009', 'GUEST', 'user_clerk_1009'),
+(1010, 'user1010@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001010', 'GUEST', 'user_clerk_1010'),
+(1011, 'user1011@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001011', 'GUEST', 'user_clerk_1011'),
+(1012, 'user1012@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001012', 'ADMIN', 'user_clerk_1012'),
+(1013, 'user1013@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001013', 'OWNER', 'user_clerk_1013'),
+(1014, 'user1014@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001014', 'GUEST', 'user_clerk_1014'),
+(1015, 'user1015@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001015', 'GUEST', 'user_clerk_1015'),
+(1016, 'user1016@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001016', 'OWNER', 'user_clerk_1016'),
+(1017, 'user1017@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001017', 'GUEST', 'user_clerk_1017'),
+(1018, 'user1018@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001018', 'OWNER', 'user_clerk_1018'),
+(1019, 'user1019@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001019', 'OWNER', 'user_clerk_1019'),
+(1020, 'user1020@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001020', 'GUEST', 'user_clerk_1020'),
+(1021, 'user1021@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001021', 'GUEST', 'user_clerk_1021'),
+(1022, 'user1022@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001022', 'OWNER', 'user_clerk_1022'),
+(1023, 'user1023@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001023', 'GUEST', 'user_clerk_1023'),
+(1024, 'user1024@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001024', 'OWNER', 'user_clerk_1024'),
+(1025, 'user1025@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001025', 'GUEST', 'user_clerk_1025'),
+(1026, 'user1026@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001026', 'OWNER', 'user_clerk_1026'),
+(1027, 'user1027@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001027', 'GUEST', 'user_clerk_1027'),
+(1028, 'user1028@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001028', 'GUEST', 'user_clerk_1028'),
+(1029, 'user1029@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001029', 'ADMIN', 'user_clerk_1029'),
+(1030, 'user1030@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001030', 'OWNER', 'user_clerk_1030'),
+(1031, 'user1031@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001031', 'GUEST', 'user_clerk_1031'),
+(1032, 'user1032@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001032', 'ADMIN', 'user_clerk_1032'),
+(1033, 'user1033@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001033', 'ADMIN', 'user_clerk_1033'),
+(1034, 'user1034@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001034', 'ADMIN', 'user_clerk_1034'),
+(1035, 'user1035@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001035', 'GUEST', 'user_clerk_1035'),
+(1036, 'user1036@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001036', 'GUEST', 'user_clerk_1036'),
+(1037, 'user1037@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001037', 'ADMIN', 'user_clerk_1037'),
+(1038, 'user1038@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001038', 'OWNER', 'user_clerk_1038'),
+(1039, 'user1039@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001039', 'OWNER', 'user_clerk_1039'),
+(1040, 'user1040@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001040', 'OWNER', 'user_clerk_1040'),
+(1041, 'user1041@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001041', 'GUEST', 'user_clerk_1041'),
+(1042, 'user1042@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001042', 'ADMIN', 'user_clerk_1042'),
+(1043, 'user1043@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001043', 'GUEST', 'user_clerk_1043'),
+(1044, 'user1044@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001044', 'OWNER', 'user_clerk_1044'),
+(1045, 'user1045@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001045', 'OWNER', 'user_clerk_1045'),
+(1046, 'user1046@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001046', 'ADMIN', 'user_clerk_1046'),
+(1047, 'user1047@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001047', 'GUEST', 'user_clerk_1047'),
+(1048, 'user1048@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001048', 'ADMIN', 'user_clerk_1048'),
+(1049, 'user1049@nexus.com', '$2b$10$CY4VsA1kHAxPO/K9vZHDBuAic2mdR0JWBD3DTl7Dnb36ypXhUr.AC', '+3519001049', 'OWNER', 'user_clerk_1049')
+ON CONFLICT (email) DO UPDATE SET clerk_user_id = EXCLUDED.clerk_user_id, role=EXCLUDED.role;
 
--- Update sequence to prevent collision
-DO $$
-BEGIN
-   IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'users') THEN
-      PERFORM setval(pg_get_serial_sequence('users', 'id'), 10000);
-   END IF;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'users') THEN
+    PERFORM setval(pg_get_serial_sequence('users', 'id'), 10000);
+  END IF;
 END $$;

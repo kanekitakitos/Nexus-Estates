@@ -46,6 +46,11 @@ interface ClickSparkProps {
   children?: React.ReactNode
 }
 
+/** Mesmos defaults usados na landing (`B.orange` + escala). */
+export const CLICK_SPARK_PRESETS = {
+  landing: { sparkColor: "#e2621cff", extraScale: 1.2 },
+} as const satisfies Record<string, Partial<Pick<ClickSparkProps, "sparkColor" | "extraScale">>>
+
 /** A single spark line particle */
 interface Spark {
   x: number
