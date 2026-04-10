@@ -18,7 +18,7 @@ const brutalCardShellVariants = cva(
 export interface BrutalCardProps extends VariantProps<typeof brutalCardShellVariants> {
     children: ReactNode;
     id?: string;
-    title?: string;
+    title?: ReactNode;
     subtitle?: string;
     icon?: ReactNode;
     iconBgColor?: string;

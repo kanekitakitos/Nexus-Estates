@@ -230,9 +230,18 @@ export function usePropertyForm(initialData: OwnProperty | null, onSaved: () => 
             setIsSaving(true)
             try {
                 const userId = localStorage.getItem("userId")
-                const payload = { ...property, ownerId: userId ? Number(userId) : undefined, isActive: property.status === "AVAILABLE" }
-                if (initialData) await PropertyService.updateProperty(Number(property.id), payload)
-                else await PropertyService.createProperty(payload)
+                // Normalizar campos polimórficos para string simples (requisito da API)
+                const titleStr = typeof property.title === "string" ? property.title : (property.title?.pt || property.title?.en || "")
+                const descStr = typeof property.description === "string" ? property.description : (property.description?.pt || property.description?.en || "")
+                const payload = {
+                    ...property,
+                    title: titleStr,
+                    description: descStr,
+                    ownerId: userId ? Number(userId) : undefined,
+                    isActive: property.status === "AVAILABLE"
+                }
+                if (initialData) await PropertyService.updateProperty(Number(property.id), payload as any)
+                else await PropertyService.createProperty(payload as any)
                 toast.success("Operação concluída com sucesso")
                 await onSaved()
             } catch (err) { 

@@ -3,6 +3,7 @@
 import { Effect, EffectComposer, EffectPass, RenderPass } from 'postprocessing';
 import React, { useEffect, useRef, useCallback } from 'react';
 import * as THREE from 'three';
+import { cn } from '@/lib/utils';
 
 // ─── Tipos e Configurações ──────────────────────────────────────────────────
 

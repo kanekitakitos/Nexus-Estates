@@ -84,7 +84,7 @@ function UploadDropzone({
     onDragOver: (e: React.DragEvent) => void
     onDragLeave: () => void
     onDrop: (e: React.DragEvent) => void
-    inputRef: React.RefObject<HTMLInputElement>
+    inputRef: React.RefObject<HTMLInputElement | null>
 }) {
     return (
         <div

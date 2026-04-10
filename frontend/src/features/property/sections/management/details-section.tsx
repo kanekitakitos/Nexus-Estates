@@ -18,9 +18,9 @@ import { nexusEntrance, staggerContainer, itemFadeUp, microPop } from "../../ani
 
 /** Props partilhadas pelos sub-componentes de edição de dados do ativo */
 interface SectionDraftProps {
-  draft: OwnProperty
-  initial: OwnProperty
-  updateField: <K extends keyof OwnProperty>(field: K, value: OwnProperty[K]) => void
+    draft: OwnProperty
+    initial: OwnProperty
+    updateField: <K extends keyof OwnProperty>(field: K, value: OwnProperty[K]) => void
 }
 
 // ─── Sub-Componentes Internos ──────────────────────────────────────────────
@@ -38,10 +38,10 @@ interface SectionDraftProps {
  * @param isActive - Indica se este estado está ativo
  * @param onClick - Callback para ativar este estado
  */
-function StatusToggle({ 
-    label, icon: Icon, color, isActive, onClick 
-}: { 
-    label: string; icon: LucideIcon; color: string; isActive: boolean; onClick: () => void 
+function StatusToggle({
+    label, icon: Icon, color, isActive, onClick
+}: {
+    label: string; icon: LucideIcon; color: string; isActive: boolean; onClick: () => void
 }) {
     return (
         <button
@@ -85,29 +85,29 @@ function IdentitySection({ draft, initial, updateField }: SectionDraftProps) {
             iconTextColor="text-primary"
         >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <BrutalField 
-                    label="Título do Ativo" 
-                    value={draft.title as string} 
-                    savedValue={initial.title as string} 
-                    onChange={(v) => updateField('title', v as string)} 
-                    onRevert={() => updateField('title', initial.title as string)} 
+                <BrutalField
+                    label="Título do Ativo"
+                    value={draft.title as string}
+                    savedValue={initial.title as string}
+                    onChange={(v) => updateField('title', v as string)}
+                    onRevert={() => updateField('title', initial.title as string)}
                 />
-                <BrutalField 
-                    label="Preço por Noite (€)" 
-                    type="number" 
-                    value={draft.price as number} 
-                    savedValue={initial.price as number} 
-                    onChange={(v) => updateField('price', Number(v))} 
-                    onRevert={() => updateField('price', initial.price as number)} 
+                <BrutalField
+                    label="Preço por Noite (€)"
+                    type="number"
+                    value={draft.price as number}
+                    savedValue={initial.price as number}
+                    onChange={(v) => updateField('price', Number(v))}
+                    onRevert={() => updateField('price', initial.price as number)}
                 />
             </div>
-            <BrutalField 
-                label="Descrição Técnica" 
-                value={draft.description as string} 
-                savedValue={initial.description as string} 
-                onChange={(v) => updateField('description', v as string)} 
-                onRevert={() => updateField('description', initial.description as string)} 
-                multiline rows={4} 
+            <BrutalField
+                label="Descrição Técnica"
+                value={draft.description as string}
+                savedValue={initial.description as string}
+                onChange={(v) => updateField('description', v as string)}
+                onRevert={() => updateField('description', initial.description as string)}
+                multiline rows={4}
             />
         </BrutalCard>
     )
@@ -134,10 +134,10 @@ function MediaSection({ draft, updateField }: Pick<SectionDraftProps, "draft" | 
         >
             <div className="flex flex-col md:flex-row gap-8 items-start">
                 <div className="w-full md:w-1/2">
-                    <ImageInput 
-                        value={draft.imageUrl} 
-                        onChange={(url) => updateField("imageUrl", url)} 
-                        onRemove={() => updateField("imageUrl", "")} 
+                    <ImageInput
+                        value={draft.imageUrl}
+                        onChange={(url) => updateField("imageUrl", url)}
+                        onRemove={() => updateField("imageUrl", "")}
                     />
                 </div>
                 <div className="w-full md:w-1/2 space-y-4">
@@ -209,18 +209,18 @@ function LogisticsSection({ draft, initial, updateField }: SectionDraftProps) {
             tone="cream"
         >
             <div className="space-y-6">
-                <BrutalField 
-                    label="Região / Zona" value={draft.location as string} savedValue={initial.location as string} 
-                    onChange={(v) => updateField('location', v as string)} onRevert={() => updateField('location', initial.location as string)} 
+                <BrutalField
+                    label="Região / Zona" value={draft.location as string} savedValue={initial.location as string}
+                    onChange={(v) => updateField('location', v as string)} onRevert={() => updateField('location', initial.location as string)}
                 />
                 <div className="grid grid-cols-2 gap-4">
-                    <BrutalField 
-                        label="Cidade" value={draft.city as string} savedValue={initial.city as string} 
-                        onChange={(v) => updateField('city', v as string)} onRevert={() => updateField('city', initial.city as string)} 
+                    <BrutalField
+                        label="Cidade" value={draft.city as string} savedValue={initial.city as string}
+                        onChange={(v) => updateField('city', v as string)} onRevert={() => updateField('city', initial.city as string)}
                     />
-                    <BrutalField 
-                        label="Capacidade Máx." type="number" value={draft.maxGuests as number} savedValue={initial.maxGuests as number} 
-                        onChange={(v) => updateField('maxGuests', Number(v))} onRevert={() => updateField('maxGuests', initial.maxGuests as number)} 
+                    <BrutalField
+                        label="Capacidade Máx." type="number" value={draft.maxGuests as number} savedValue={initial.maxGuests as number}
+                        onChange={(v) => updateField('maxGuests', Number(v))} onRevert={() => updateField('maxGuests', initial.maxGuests as number)}
                     />
                 </div>
             </div>
@@ -277,10 +277,10 @@ function DecommissionZone({ isDeleting, onDelete }: { isDeleting: boolean; onDel
  * @param onUpdateIds - Callback para atualizar a lista de IDs
  * @param onRevert - Callback para reverter ao estado original
  */
-function AmenitiesSection({ 
-    selectedIds, savedIds, onUpdateIds, onRevert 
-}: { 
-    selectedIds: number[]; savedIds: number[]; onUpdateIds: (ids: number[]) => void; onRevert: () => void 
+function AmenitiesSection({
+    selectedIds, savedIds, onUpdateIds, onRevert
+}: {
+    selectedIds: number[]; savedIds: number[]; onUpdateIds: (ids: number[]) => void; onRevert: () => void
 }) {
     const [isOpen, setIsOpen] = useState(false)
 
@@ -361,10 +361,10 @@ function AmenitiesSection({
  * @see AmenitiesSection — Matriz de comodidades expansível
  */
 export function DetailsSection({
-  draft, initial, updateField, isDeleting, onDelete
+    draft, initial, updateField, isDeleting, onDelete
 }: SectionDraftProps & { isDeleting: boolean; onDelete: () => void }) {
     return (
-        <motion.div 
+        <motion.div
             variants={staggerContainer}
             initial="initial"
             animate="animate"
