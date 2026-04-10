@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/layout/app-shell"
-import {PropertyView} from "@/components/layout/properti/property-view";
+import {PropertyView} from "@/features/property/property-view";
 
 /**
  * @route ´/properties´

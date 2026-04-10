@@ -60,7 +60,7 @@ class PropertyControllerNewEndpointsTest {
     @DisplayName("Obter propriedade expandida")
     void getExpanded() {
         when(propertyService.getExpandedById(1L)).thenReturn(new ExpandedPropertyResponse(
-                1L, "Casa", Map.of("pt","desc"), "Lisboa", "Lisboa", "Rua", BigDecimal.TEN, 4, true, List.of(), null, List.of()
+                1L, "Casa", Map.of("pt","desc"), "Lisboa", "Lisboa", "Rua", BigDecimal.TEN, 4, true, List.of(), null, List.of(), null
         ));
         ResponseEntity<ApiResponse<ExpandedPropertyResponse>> resp = controller.getExpanded(1L);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
@@ -70,9 +70,20 @@ class PropertyControllerNewEndpointsTest {
     @Test
     @DisplayName("Patch de propriedade")
     void patch() {
-        when(propertyService.updateProperty(eq(1L), any(UpdatePropertyRequest.class), isNull())).thenReturn(new Property());
-        ResponseEntity<ApiResponse<Property>> resp = controller.patch(1L, new UpdatePropertyRequest("X", null, null, null, null, null, null, null), null);
+        Property mockProperty = new Property();
+        when(propertyService.updateProperty(eq(1L), any(UpdatePropertyRequest.class), isNull())).thenReturn(mockProperty);
+        
+        ExpandedPropertyResponse mockResponse = new ExpandedPropertyResponse(
+                1L, "Casa", Map.of("pt","desc"), "Lisboa", "Lisboa", "Rua", BigDecimal.TEN, 4, true, List.of(), null, List.of(), null
+        );
+        when(propertyService.convertToExpandedDto(mockProperty)).thenReturn(mockResponse);
+
+        ResponseEntity<ApiResponse<ExpandedPropertyResponse>> resp = controller.patch(1L, new UpdatePropertyRequest("X", null, null, null, null, null, null, null, null), null);
+        
         assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertNotNull(resp.getBody());
+        assertEquals("Propriedade atualizada com sucesso.", resp.getBody().getMessage());
+        assertEquals(mockResponse, resp.getBody().getData());
     }
 
     @Test

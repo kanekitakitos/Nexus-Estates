@@ -57,6 +57,10 @@ public class User {
     @Schema(description = "Email do utilizador", example = "user@example.com")
     private String email;
 
+    @Column(name = "clerk_user_id", unique = true)
+    @Schema(description = "ID do utilizador no Clerk (quando autenticado via social login)", example = "user_2abc123")
+    private String clerkUserId;
+
     /**
      * Hash da palavra-passe do utilizador.
      * <p>

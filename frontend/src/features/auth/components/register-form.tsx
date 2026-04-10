@@ -1,16 +1,7 @@
-/**
- * @description
- *  Componente para registro de um novo utilizador.
- *  Tambem implementa a logica para a componente se comunicar com o serviço users.
- * 
- * @version 1.0
- */
-
 "use client"
 
 import { Button } from "@/components/ui/forms/button"
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
@@ -24,145 +15,170 @@ import {
   FieldLabel,
 } from "@/components/ui/forms/field"
 import { Input } from "@/components/ui/forms/input"
-import { useState } from "react";
-import { AuthService } from "@/services/auth.service";
+import { useRef, useState } from "react"
+import { AuthService } from "@/services/auth.service"
 import { toast } from "sonner"
+import { getIdentityProviderKey, isClerkConfigured } from "@/features/auth/strategies/use-identity-provider"
+
+// Os sub-componentes SocialDivider, ClerkSocialIconRow e DisabledSocialIconRow
+// são partilhados com o LoginForm — importar do ficheiro de componentes comuns.
+import {
+  SocialDivider,
+  ClerkSocialIconRow,
+  DisabledSocialIconRow,
+} from "@/features/auth/components/social-icon-row"
 
 
-/**
- * componente do formulario para registro de um novo utilizador
- * 
- * @returns {JSX.Element} O formulário com suporte de Toasts para fornecer estados dos erros.
- * 
- * @version 1.0
- */
+// ─────────────────────────────────────────────────────────────────────────────
+//  COMPONENTE PRINCIPAL
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function RegisterForm() {
+  const emailRef           = useRef<HTMLInputElement>(null)
+  const phoneRef           = useRef<HTMLInputElement>(null)
+  const passwordRef        = useRef<HTMLInputElement>(null)
+  const passwordConfirmRef = useRef<HTMLInputElement>(null)
 
-  const [isTryingRegister, setIsTryingRegister] = useState(false);
-  const [passwordError, setPasswordError] = useState(false);
+  const [isTryingRegister, setIsTryingRegister] = useState(false)
+  const [passwordError,    setPasswordError]    = useState(false)
 
-  /**
-   * Processa a tentatica de registro de um novo utilizador.
-   * * @async
-   * 
-   * @returns {Promise<void>} Uma promessa que se resolve após a tentativa de autenticação, 
-   * independentemente do sucesso (erros são tratados via toast).
-   * 
-   * @version 1.1
-   */
+  const idpKey          = getIdentityProviderKey()
+  const showClerkSocial = idpKey === "clerk" && isClerkConfigured()
+
   async function handleRegister() {
-    if (isTryingRegister) return;
+    if (isTryingRegister) return
 
-    const email = (document.getElementById("email") as HTMLInputElement).value
-    const phone = (document.getElementById("phone") as HTMLInputElement).value
-    const password = (document.getElementById("password") as HTMLInputElement).value
-    const passwordConfirm = (document.getElementById("confirm-password") as HTMLInputElement).value
+    const email           = emailRef.current?.value.trim()           ?? ""
+    const phone           = phoneRef.current?.value.trim()           ?? ""
+    const password        = passwordRef.current?.value               ?? ""
+    const passwordConfirm = passwordConfirmRef.current?.value        ?? ""
 
-    if (!password || !passwordConfirm || !email || !phone){
+    if (!email || !phone || !password || !passwordConfirm) {
       setPasswordError(true)
-      toast.warning("Preenche todos os campos");
+      toast.warning("Preenche todos os campos")
       return
     }
 
     if (password !== passwordConfirm) {
       setPasswordError(true)
-      toast.error("As senhas não coincidem. Por favor, tente novamente.");
-      return;
+      toast.error("As passwords não coincidem. Tenta novamente.")
+      return
     }
 
-    setIsTryingRegister(true);
+    setPasswordError(false)
+    setIsTryingRegister(true)
 
     try {
-      const success = await AuthService.register({ email, password, phone });
-      
+      const success = await AuthService.register({ email, password, phone })
+
       if (success) {
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 1500);
+        setTimeout(() => { window.location.href = "/" }, 1500)
       }
     } catch (error) {
-      // Erro tratado no AuthService
-      console.error("Register component error:", error);
+      // Erros de negócio são tratados via toast dentro do AuthService.
+      // Aqui apenas registamos erros inesperados.
+      console.error("[RegisterForm] Erro inesperado:", error)
     } finally {
-      setIsTryingRegister(false);
+      setIsTryingRegister(false)
     }
   }
 
-
-  // Codigo html da JSX.Element
   return (
-    <div className={"flex flex-col gap-6"}>
+    <div className="flex flex-col gap-6">
       <BrutalCard>
 
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">
-            Create New Account
-          </CardTitle>
+          <CardTitle className="text-xl">Criar conta</CardTitle>
           <CardDescription>
-            Enter your details to create your account
+            Cria a tua conta com email e password, ou usa um provedor social.
           </CardDescription>
         </CardHeader>
 
         <CardContent>
-
-          <form>
+          <form onSubmit={(e) => { e.preventDefault(); void handleRegister() }}>
             <FieldGroup>
+
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
+                  ref={emailRef}
+                  variant="brutal"
                   id="email"
                   type="email"
                   placeholder="m@example.com"
-                  variant="brutal"
+                  autoComplete="email"
                   required
                 />
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="phone">Phone Number</FieldLabel>
+                <FieldLabel htmlFor="phone">Telemóvel</FieldLabel>
                 <Input
+                  ref={phoneRef}
+                  variant="brutal"
                   id="phone"
                   type="tel"
                   placeholder="+351 912 345 678"
-                  variant="brutal"
+                  autoComplete="tel"
                   required
                 />
               </Field>
 
               <Field>
-                <div className="flex items-center">
-                  <FieldLabel htmlFor="password">New Password</FieldLabel>
-                </div>
-                <Input 
-                  variant={passwordError ? "error" : "brutal"} 
-                  id="password" 
-                  type="password" 
-                  required 
+                <FieldLabel htmlFor="password">Nova Password</FieldLabel>
+                <Input
+                  ref={passwordRef}
+                  variant={passwordError ? "error" : "brutal"}
+                  id="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  onChange={() => passwordError && setPasswordError(false)}
                 />
               </Field>
 
               <Field>
-                <div className="flex items-center">
-                  <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
-                </div>
-                <Input 
+                <FieldLabel htmlFor="confirm-password">Confirmar Password</FieldLabel>
+                <Input
+                  ref={passwordConfirmRef}
                   variant={passwordError ? "error" : "brutal"}
                   id="confirm-password"
                   type="password"
-                  required 
+                  autoComplete="new-password"
+                  required
+                  onChange={() => passwordError && setPasswordError(false)}
                 />
               </Field>
+
+              <Field>
+                <Button
+                  variant="brutal"
+                  type="submit"
+                  disabled={isTryingRegister}
+                  className="w-full mt-2"
+                >
+                  {isTryingRegister ? "A criar conta..." : "Criar Conta"}
+                </Button>
+                <FieldDescription className="text-center">
+                  Já tens conta?{" "}
+                  <a href="/login" className="underline-offset-4 hover:underline">
+                    Entrar
+                  </a>
+                </FieldDescription>
+              </Field>
+
+              <Field>
+                <SocialDivider />
+                <div className="mt-3">
+                  {showClerkSocial ? <ClerkSocialIconRow /> : <DisabledSocialIconRow />}
+                </div>
+              </Field>
+
             </FieldGroup>
           </form>
-
-          <Button variant={"brutal"} type="submit" disabled={isTryingRegister} className="w-full mt-6" onClick={handleRegister}>
-            {isTryingRegister ? "Carregando..." : "Create Account"}
-          </Button>
-
         </CardContent>
 
       </BrutalCard>
     </div>
   )
 }
-

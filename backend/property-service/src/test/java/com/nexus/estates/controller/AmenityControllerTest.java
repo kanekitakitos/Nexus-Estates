@@ -27,9 +27,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Testes unitários para o {@link AmenityController}.
  *
- * <p>Esta classe utiliza o MockMvc para simular pedidos HTTP aos endpoints
+ * <p>
+ * Esta classe utiliza o MockMvc para simular pedidos HTTP aos endpoints
  * de gestão de comodidades, garantindo que o controller responde corretamente
- * aos diferentes cenários de entrada.</p>
+ * aos diferentes cenários de entrada.
+ * </p>
  *
  * @author Nexus Estates Team
  * @version 1.0
@@ -66,6 +68,7 @@ class AmenityControllerTest {
 
     /**
      * Testa a criação de uma comodidade com sucesso.
+     * 
      * @throws Exception caso ocorra erro na simulação do pedido
      */
     @Test
@@ -73,9 +76,9 @@ class AmenityControllerTest {
         when(service.create(any(Amenity.class))).thenReturn(validAmenity);
 
         mockMvc.perform(post("/api/amenities")
-                        .with(csrf()) // Resolve o erro 403: Adiciona o token CSRF obrigatório em POST
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validAmenity)))
+                .with(csrf()) // Resolve o erro 403: Adiciona o token CSRF obrigatório em POST
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(validAmenity)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(amenityId))
                 .andExpect(jsonPath("$.name.pt").value("Piscina"));
@@ -91,9 +94,9 @@ class AmenityControllerTest {
         invalidAmenity.setCategory(AmenityCategory.SAFETY);
 
         mockMvc.perform(post("/api/amenities")
-                        .with(csrf()) // Resolve o erro 403
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidAmenity)))
+                .with(csrf()) // Resolve o erro 403
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidAmenity)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -133,9 +136,9 @@ class AmenityControllerTest {
         when(service.update(eq(amenityId), any(Amenity.class))).thenReturn(updated);
 
         mockMvc.perform(put("/api/amenities/{id}", amenityId)
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updated)))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updated)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(amenityId))
                 .andExpect(jsonPath("$.name.pt").value("Piscina Aquecida"));

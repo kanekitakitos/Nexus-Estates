@@ -21,5 +21,7 @@ public record UpdatePropertyRequest(
         @Schema(description = "Nova capacidade máxima de hóspedes", example = "6")
         Integer maxGuests,
         @Schema(description = "Ativar/Desativar anúncio", example = "true")
-        Boolean isActive
+        Boolean isActive,
+        @Schema(description = "Nova URL da imagem principal", example = "https://res.cloudinary.com/...")
+        String imageUrl
 ) {}

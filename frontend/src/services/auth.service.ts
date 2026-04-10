@@ -105,6 +105,27 @@ export class AuthService {
         }
     }
 
+    static async clerkExchange(clerkToken: string): Promise<AuthResponse | null> {
+        try {
+            const response = await usersAxios.post<ApiResponse<AuthResponse>>(
+                "/auth/clerk/exchange",
+                {},
+                { headers: { Authorization: `Bearer ${clerkToken}` } }
+            );
+
+            if (response.status === 200 && response.data.success) {
+                const data = response.data.data;
+                this.setSession(data);
+                toast.success("Login social concluído.");
+                return data;
+            }
+            return null;
+        } catch (error: unknown) {
+            toast.error("Falhou login social.");
+            throw error;
+        }
+    }
+
     /**
      * Termina a sessão do utilizador limpando o armazenamento local.
      */

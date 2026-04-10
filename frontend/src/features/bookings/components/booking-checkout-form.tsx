@@ -267,13 +267,7 @@ function useBookingSubmit(
       setPaymentError(null)
       const [info, intent] = await Promise.all([
         FinanceService.getPaymentProviderInfo(),
-        FinanceService.createPaymentIntent({
-          bookingId,
-          amount: paymentAmount,
-          currency: paymentCurrency,
-          paymentMethod: "CREDIT_CARD",
-          metadata: { bookingId },
-        }),
+        FinanceService.createPaymentIntent({ bookingId, paymentMethod: "CREDIT_CARD" }),
       ])
       setProviderInfo(info)
       setPayment(intent)
