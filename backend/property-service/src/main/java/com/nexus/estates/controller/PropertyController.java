@@ -24,7 +24,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -405,13 +404,16 @@ public class PropertyController {
     @Operation(summary = "Atualizar propriedade (parcial)", description = "Atualiza qualquer campo permitido da propriedade (PATCH).")
     @PatchMapping("/{id}")
     @PreAuthorize("hasRole('OWNER')")
-    public ResponseEntity<ApiResponse<Property>> patch(
+    public ResponseEntity<ApiResponse<ExpandedPropertyResponse>> patch(
             @PathVariable Long id,
             @RequestBody UpdatePropertyRequest request,
             @RequestHeader(value = "X-Actor-UserId", required = false) Long actorUserId
-    ) {
+    )
+    {
         Property updated = service.updateProperty(id, request, actorUserId);
-        return ResponseEntity.ok(ApiResponse.success(updated, "Propriedade atualizada com sucesso."));
+
+        ExpandedPropertyResponse response = service.convertToExpandedDto(updated);
+        return ResponseEntity.ok(ApiResponse.success(response, "Propriedade atualizada com sucesso."));
     }
 
     @Operation(summary = "Eliminar propriedade", description = "Remove definitivamente uma propriedade.")

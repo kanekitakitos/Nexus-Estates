@@ -55,7 +55,8 @@ class PropertyControllerTest {
                 "Lisboa",
                 "Av. da Liberdade, 1",
                 2,
-                Set.of(1L, 2L)
+                Set.of(1L, 2L),
+                null
         );
 
         when(propertyService.create(any(CreatePropertyRequest.class))).thenReturn(new Property());

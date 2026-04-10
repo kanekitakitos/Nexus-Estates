@@ -7,6 +7,10 @@ import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFac
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.core.env.Environment;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Filtro global de autenticação para o API Gateway.
@@ -35,6 +39,9 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private Environment env; // Adicionado para detetar o profile
+
     /**
      * Classe de configuração para o filtro (Padrão Spring Cloud Gateway).
      * Pode ser expandida para aceitar parâmetros no application.yml.
@@ -60,28 +67,41 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     @Override
     public GatewayFilter apply(Config config) {
         return ((exchange, chain) -> {
+            
+            // Segurança extra para os testes Unitários quando env for null
+            boolean isGodMode = false;
+            if (env != null) {
+                isGodMode = Arrays.asList(env.getActiveProfiles()).contains("god-mode");
+            }
 
-            // 1. Verifica se a rota precisa de segurança (Whitelist check)
-            if (validator.isSecured.test(exchange.getRequest())) {
+            if (isGodMode) {
+                // MODO GOD-MODE: Ignora JWT e injeta headers de OWNER/ADMIN
+                var request = exchange.getRequest()
+                        .mutate()
+                        .header("X-User-Id", "1")
+                        .header("X-User-Role", "OWNER") // Necessário para o @PreAuthorize dos controllers
+                        .header("X-User-Email", "god-mode@nexus.com")
+                        .header("X-Actor-UserId", "1") // Para a auditoria/logs que vimos no Hibernate
+                        .build();
+                return chain.filter(exchange.mutate().request(request).build());
+            }
 
-                // 2. Verifica se o Header Authorization existe
-                if (!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
+            // LÓGICA PADRÃO (Produção/Auth Real)
+            if (validator != null && validator.isSecured.test(exchange.getRequest())) {
+                
+                // 1. Verifica se tem cabeçalho AUTHORIZATION
+                List<String> authHeaders = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION);
+                if (authHeaders == null || authHeaders.isEmpty()) {
                     exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                     return exchange.getResponse().setComplete();
                 }
 
-                String authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
-
-                // Normalização: Remove o prefixo "Bearer " se existir
+                String authHeader = authHeaders.get(0);
                 if (authHeader != null && authHeader.startsWith("Bearer ")) {
                     authHeader = authHeader.substring(7);
                 }
 
                 try {
-                    if (authHeader == null || authHeader.isBlank()) {
-                        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                        return exchange.getResponse().setComplete();
-                    }
                     jwtUtil.validateToken(authHeader);
                     var claims = jwtUtil.getAllClaimsFromToken(authHeader);
                     var request = exchange.getRequest()

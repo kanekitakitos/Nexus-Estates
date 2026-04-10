@@ -106,6 +106,7 @@ public class PropertyService {
         property.setCity(request.city());
         property.setAddress(request.address());
         property.setMaxGuests(request.maxGuests());
+        property.setImageUrl(request.imageUrl());
 
         // Atribui o mapa de descrições (que será guardado como JSONB no Postgres)
         property.setDescription(request.description());
@@ -287,24 +288,7 @@ public class PropertyService {
     public ExpandedPropertyResponse getExpandedById(Long id) {
         Property p = repository.findExpandedById(id)
                 .orElseThrow(() -> new PropertyNotFoundException(id));
-        List<String> amenityNames = p.getAmenities().stream()
-                .map(Amenity::getName)
-                .map(this::resolveAmenityName)
-                .toList();
-        var rule = p.getPropertyRule();
-        var ruleDto = rule == null ? null :
-                new PropertyRuleDTO(
-                        rule.getCheckInTime(), rule.getCheckOutTime(),
-                        rule.getMinNights(), rule.getMaxNights(), rule.getBookingLeadTimeDays()
-                );
-        List<SeasonalityRuleDTO> seasonality = p.getSeasonalityRules().stream()
-                .map(r -> new SeasonalityRuleDTO(
-                        r.getId(), r.getStartDate(), r.getEndDate(), r.getPriceModifier(), r.getDayOfWeek(), r.getChannel()
-                )).toList();
-        return new ExpandedPropertyResponse(
-                p.getId(), p.getName(), p.getDescription(), p.getLocation(), p.getCity(), p.getAddress(),
-                p.getBasePrice(), p.getMaxGuests(), p.getIsActive(), amenityNames, ruleDto, seasonality
-        );
+        return convertToExpandedDto(p);
     }
 
     private String resolveAmenityName(Map<String, String> name) {
@@ -359,6 +343,10 @@ public class PropertyService {
         if (req.isActive() != null) {
             recordChange(id, actorUserId, "UPDATE", "isActive", String.valueOf(p.getIsActive()), String.valueOf(req.isActive()));
             p.setIsActive(req.isActive());
+        }
+        if (req.imageUrl() != null) {
+            recordChange(id, actorUserId, "UPDATE", "imageUrl", p.getImageUrl(), req.imageUrl());
+            p.setImageUrl(req.imageUrl());
         }
         return repository.save(p);
     }
@@ -516,5 +504,32 @@ public class PropertyService {
             priority += 50;
         }
         return priority;
+    }
+
+
+
+    public ExpandedPropertyResponse convertToExpandedDto(Property p) {
+        List<String> amenityNames = p.getAmenities().stream()
+                .map(Amenity::getName)
+                .map(this::resolveAmenityName)
+                .toList();
+
+        var rule = p.getPropertyRule();
+        var ruleDto = rule == null ? null :
+                new PropertyRuleDTO(
+                        rule.getCheckInTime(), rule.getCheckOutTime(),
+                        rule.getMinNights(), rule.getMaxNights(), rule.getBookingLeadTimeDays()
+                );
+
+        List<SeasonalityRuleDTO> seasonality = p.getSeasonalityRules().stream()
+                .map(r -> new SeasonalityRuleDTO(
+                        r.getId(), r.getStartDate(), r.getEndDate(), r.getPriceModifier(), r.getDayOfWeek(), r.getChannel()
+                )).toList();
+
+        return new ExpandedPropertyResponse(
+                p.getId(), p.getName(), p.getDescription(), p.getLocation(), p.getCity(), p.getAddress(),
+                p.getBasePrice(), p.getMaxGuests(), p.getIsActive(), amenityNames, ruleDto, seasonality,
+                p.getImageUrl()
+        );
     }
 }

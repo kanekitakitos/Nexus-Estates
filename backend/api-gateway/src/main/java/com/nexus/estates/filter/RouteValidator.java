@@ -33,6 +33,8 @@ public class RouteValidator {
     public static final List<String> openApiEndpoints = List.of(
             "/api/users/auth/register",
             "/api/users/auth/login",
+            "/api/users/auth/password",
+            "/api/users/auth/clerk",
             "/api/properties/search",
             "/api/finance/webhooks/stripe",
             "/swagger-ui",

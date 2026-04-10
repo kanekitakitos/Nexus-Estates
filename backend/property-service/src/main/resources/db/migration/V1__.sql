@@ -20,6 +20,7 @@ CREATE TABLE properties
     base_price  DECIMAL(10, 2)                          NOT NULL,
     max_guests  INTEGER                                 NOT NULL,
     is_active   BOOLEAN                                 NOT NULL,
+    image_url   VARCHAR(255),
     CONSTRAINT pk_properties PRIMARY KEY (id)
 );
 

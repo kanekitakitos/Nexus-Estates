@@ -100,6 +100,13 @@ public class Property {
     private Boolean isActive = true;
 
     /**
+     * URL da imagem principal da propriedade.
+     */
+    @Column
+    @Schema(description = "URL da imagem principal", example = "https://res.cloudinary.com/...")
+    private String imageUrl;
+
+    /**
      * Conjunto de comodidades associadas à propriedade.
      *
      * <p>Relação Many-to-Many que utiliza uma tabela de junção para mapear
@@ -156,6 +163,8 @@ public class Property {
     public void setMaxGuests(Integer maxGuests) { this.maxGuests = maxGuests; }
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public Set<Amenity> getAmenities() { return amenities; }
     public void setAmenities(Set<Amenity> amenities) { this.amenities = amenities; }
     public Set<SeasonalityRule> getSeasonalityRules() { return seasonalityRules; }

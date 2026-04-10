@@ -4,7 +4,6 @@ import com.nexus.estates.common.dto.PropertyQuoteRequest;
 import com.nexus.estates.common.dto.PropertyQuoteResponse;
 import com.nexus.estates.common.dto.RuleOverrideDTO;
 import com.nexus.estates.dto.CreatePropertyRequest;
-import com.nexus.estates.entity.Amenity;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.PropertyRule;
 import com.nexus.estates.entity.RuleOverride;
@@ -27,7 +26,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -72,7 +70,8 @@ class PropertyServiceTest {
                 "Lisboa",
                 "Avenida Principal, 123",
                 4,
-                Set.of(5L, 10L)
+                Set.of(5L, 10L),
+                null
         );
 
         savedProperty = new Property();

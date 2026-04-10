@@ -78,12 +78,48 @@ export type PropertyListItem = {
   isActive: boolean;
 };
 
+export type PropertyStatus = "AVAILABLE" | "BOOKED" | "MAINTENANCE"
+
+export interface PropertyPermission {
+  email: string
+  level: string
+}
+
+export interface OwnProperty {
+  id: string
+  title: string | { en: string; pt: string }
+  description: string | { en: string; pt: string }
+  location: string
+  city: string
+  address: string
+  maxGuests: number
+  price: number
+  imageUrl: string
+  status: PropertyStatus
+  rating: number
+  featured?: boolean
+  tags: string[]
+  amenityIds: number[]
+  permissions?: PropertyPermission[]
+}
+
+export type WizardStep = 'essence' | 'location' | 'amenities' | 'permissions' | 'preview'
+
+export type PropertyListVariant = "CARDS" | "BARS"
+
+export interface Filters {
+  queryNome: string
+  queryLocal: string
+  available: boolean
+  booked: boolean
+  maintenance: boolean
+  minPrice: number | ""
+  maxPrice: number | ""
+  sortPrice: "sem filtro" | "crescente" | "decrescente"
+}
+
 /**
  * Payload de criação de propriedade.
- *
- * Nota:
- * - Map/Set não são JSON nativo; o frontend pode precisar converter para Record/Array
- *   dependendo de como o axios/serializer estiver a enviar o payload.
  */
 export type CreatePropertyRequest = {
   title: string;
@@ -95,20 +131,23 @@ export type CreatePropertyRequest = {
   address: string;
   maxGuests: number;
   amenityIds: number[];
+  imageUrl?: string;
 };
 
 /**
  * Payload de atualização parcial de uma propriedade (PATCH).
  */
 export type UpdatePropertyRequest = Partial<{
-  title: string;
-  description: Record<string, string>;
+  title: string | { en: string; pt: string };
+  description: Record<string, string> | { en: string; pt: string };
   location: string;
   city: string;
   address: string;
   basePrice: number;
   maxGuests: number;
   isActive: boolean;
+  imageUrl?: string;
+  amenityIds?: number[];
 }>;
 
 /**

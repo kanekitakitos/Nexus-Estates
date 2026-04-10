@@ -1,4 +1,4 @@
-WITH seed(name, description, location, city, address, base_price, max_guests, is_active) AS (
+WITH seed(name, description, location, city, address, base_price, max_guests, is_active, image_url) AS (
     VALUES
         (
             'Brandon Test - Alfama Studio',
@@ -8,7 +8,8 @@ WITH seed(name, description, location, city, address, base_price, max_guests, is
             'Travessa do Fado, 20',
             95.00,
             2,
-            true
+            true,
+            'https://images.unsplash.com/photo-1555854816-802f188090e7'
         ),
         (
             'Brandon Test - Parque das Nações T1',
@@ -18,7 +19,8 @@ WITH seed(name, description, location, city, address, base_price, max_guests, is
             'Avenida D. João II, 20',
             160.00,
             4,
-            true
+            true,
+            'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688'
         ),
         (
             'Brandon Test - Porto Ribeira Loft',
@@ -28,7 +30,8 @@ WITH seed(name, description, location, city, address, base_price, max_guests, is
             'Rua dos Mercadores, 20',
             140.00,
             3,
-            true
+            true,
+            'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'
         ),
         (
             'Brandon Test - Lagos Beach House',
@@ -38,7 +41,8 @@ WITH seed(name, description, location, city, address, base_price, max_guests, is
             'Rua da Praia, 20',
             220.00,
             6,
-            true
+            true,
+            'https://images.unsplash.com/photo-1493809842364-78817add7ffb'
         ),
         (
             'Brandon Test - Madeira View Apartment',
@@ -48,11 +52,12 @@ WITH seed(name, description, location, city, address, base_price, max_guests, is
             'Estrada Monumental, 20',
             175.00,
             4,
-            true
+            true,
+            'https://images.unsplash.com/photo-1551882547-ff43c69e5c43'
         )
 )
-INSERT INTO properties (name, description, location, city, address, base_price, max_guests, is_active)
-SELECT s.name, s.description, s.location, s.city, s.address, s.base_price, s.max_guests, s.is_active
+INSERT INTO properties (name, description, location, city, address, base_price, max_guests, is_active, image_url)
+SELECT s.name, s.description, s.location, s.city, s.address, s.base_price, s.max_guests, s.is_active, s.image_url
 FROM seed s
 WHERE NOT EXISTS (
     SELECT 1
