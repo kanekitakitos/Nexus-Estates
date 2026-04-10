@@ -37,7 +37,7 @@ export const DEFAULT_FILTERS: Filters = {
  * @param value - Valor a ser traduzido (string ou object)
  * @returns String traduzida (prioridade PT)
  */
-function resolveTranslation(value: unknown): string {
+export function resolveTranslation(value: unknown): string {
     if (!value) return ""
     if (typeof value === "string") return value
     if (typeof value === "object") {
@@ -168,7 +168,7 @@ export function usePropertyFilters(propertys: OwnProperty[]) {
 
     return { 
         filters, 
-        updateFilter: (k: string, v: any) => setFilters(prev => ({ ...prev, [k]: v })), 
+        updateFilter: <K extends keyof Filters>(k: K, v: Filters[K]) => setFilters(prev => ({ ...prev, [k]: v })), 
         filteredProperties 
     }
 }
@@ -187,12 +187,17 @@ export function usePropertyFilters(propertys: OwnProperty[]) {
  */
 export function useAmenityCatalog() {
   const [amenities, setAmenities] = useState<Amenity[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   useEffect(() => {
-    setIsLoading(true)
     AmenityService.listAll().then(setAmenities).catch(() => toast.error("Erro ao carregar catálogo")).finally(() => setIsLoading(false))
   }, [])
-  return { amenities, isLoading }
+
+  const getAmenityLabel = useCallback(
+    (id: number) => resolveTranslation(amenities.find((a) => a.id === id)?.name) || `SVC_${id}`,
+    [amenities]
+  )
+
+  return { amenities, isLoading, getAmenityLabel }
 }
 
 // ─── Hook: usePropertyForm ───────────────────────────────────────────────────
@@ -218,19 +223,22 @@ export function usePropertyForm(initialData: OwnProperty | null, onSaved: () => 
         step, 
         isSaving, 
         isEdit: !!initialData,
-        updateField: (f: keyof OwnProperty, v: any) => setProperty(prev => ({ ...prev, [f]: v })),
+        updateField: <K extends keyof OwnProperty>(f: K, v: OwnProperty[K]) => setProperty(prev => ({ ...prev, [f]: v })),
         nextStep: () => { const idx = STEPS.indexOf(step); if (idx < STEPS.length - 1) setStep(STEPS[idx + 1]) },
         prevStep: () => { const idx = STEPS.indexOf(step); if (idx > 0) setStep(STEPS[idx - 1]) },
         handleFinalSave: async () => {
             setIsSaving(true)
             try {
                 const userId = localStorage.getItem("userId")
-                const payload: any = { ...property, ownerId: userId ? Number(userId) : undefined, isActive: property.status === "AVAILABLE" }
+                const payload = { ...property, ownerId: userId ? Number(userId) : undefined, isActive: property.status === "AVAILABLE" }
                 if (initialData) await PropertyService.updateProperty(Number(property.id), payload)
                 else await PropertyService.createProperty(payload)
                 toast.success("Operação concluída com sucesso")
                 await onSaved()
-            } catch (err) { toast.error("Falha na sincronização") } finally { setIsSaving(false) }
+            } catch (err) { 
+                console.error("Save error:", err)
+                toast.error("Falha na sincronização") 
+            } finally { setIsSaving(false) }
         }
     }
 }

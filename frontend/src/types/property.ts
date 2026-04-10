@@ -13,6 +13,7 @@ export type PropertyRuleDTO = {
   minNights?: number;
   maxNights?: number;
   bookingLeadTimeDays?: number;
+  timezone?: string;
 };
 
 /**
@@ -101,6 +102,8 @@ export interface OwnProperty {
   tags: string[]
   amenityIds: number[]
   permissions?: PropertyPermission[]
+  propertyRule?: PropertyRuleDTO
+  seasonalityRules?: SeasonalityRuleDTO[]
 }
 
 export type WizardStep = 'essence' | 'location' | 'amenities' | 'permissions' | 'preview'

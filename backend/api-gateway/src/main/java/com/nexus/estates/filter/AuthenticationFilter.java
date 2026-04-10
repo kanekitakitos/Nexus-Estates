@@ -15,16 +15,19 @@ import java.util.List;
 /**
  * Filtro global de autenticação para o API Gateway.
  * <p>
- * Este componente interceta todos os pedidos HTTP de entrada e impõe a política de segurança:
+ * Este componente interceta todos os pedidos HTTP de entrada e impõe a política
+ * de segurança:
  * <ol>
- *   <li>Verifica se a rota solicitada é segura (via {@link RouteValidator}).</li>
- *   <li>Valida a presença e formato do cabeçalho "Authorization".</li>
- *   <li>Valida a assinatura e validade do Token JWT (via {@link JwtUtil}).</li>
+ * <li>Verifica se a rota solicitada é segura (via {@link RouteValidator}).</li>
+ * <li>Valida a presença e formato do cabeçalho "Authorization".</li>
+ * <li>Valida a assinatura e validade do Token JWT (via {@link JwtUtil}).</li>
  * </ol>
  * </p>
  * <p>
- * <b>Nota:</b> Futuramente, este filtro será responsável por extrair o contexto do utilizador (ID, Roles)
- * e propagá-lo para os microserviços downstream através de cabeçalhos HTTP personalizados.
+ * <b>Nota:</b> Futuramente, este filtro será responsável por extrair o contexto
+ * do utilizador (ID, Roles)
+ * e propagá-lo para os microserviços downstream através de cabeçalhos HTTP
+ * personalizados.
  * </p>
  *
  * @author Nexus Estates Team
@@ -62,33 +65,16 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
      *
      * @param config Configuração do filtro (atualmente vazia).
      * @return O {@link GatewayFilter} que executa a validação de segurança.
-     * @throws RuntimeException Se o token for inválido, ausente ou expirado (Resulta em 401/403).
+     * @throws RuntimeException Se o token for inválido, ausente ou expirado
+     *                          (Resulta em 401/403).
      */
     @Override
     public GatewayFilter apply(Config config) {
         return ((exchange, chain) -> {
-            
-            // Segurança extra para os testes Unitários quando env for null
-            boolean isGodMode = false;
-            if (env != null) {
-                isGodMode = Arrays.asList(env.getActiveProfiles()).contains("god-mode");
-            }
-
-            if (isGodMode) {
-                // MODO GOD-MODE: Ignora JWT e injeta headers de OWNER/ADMIN
-                var request = exchange.getRequest()
-                        .mutate()
-                        .header("X-User-Id", "1")
-                        .header("X-User-Role", "OWNER") // Necessário para o @PreAuthorize dos controllers
-                        .header("X-User-Email", "god-mode@nexus.com")
-                        .header("X-Actor-UserId", "1") // Para a auditoria/logs que vimos no Hibernate
-                        .build();
-                return chain.filter(exchange.mutate().request(request).build());
-            }
 
             // LÓGICA PADRÃO (Produção/Auth Real)
             if (validator != null && validator.isSecured.test(exchange.getRequest())) {
-                
+
                 // 1. Verifica se tem cabeçalho AUTHORIZATION
                 List<String> authHeaders = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION);
                 if (authHeaders == null || authHeaders.isEmpty()) {

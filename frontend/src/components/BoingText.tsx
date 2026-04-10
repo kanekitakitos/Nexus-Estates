@@ -12,6 +12,14 @@ import { useEffect, useRef, useState } from "react"
  * - Permite repetir sem sair do elemento (pointer move volta a disparar após o ciclo acabar).
  * - Respeita prefers-reduced-motion.
  */
+/** Timings partilhados (Nav, perfil, etc.) — combinar com `color` / `activeColor` explícitos. */
+export const BOING_TEXT_DEFAULT_TIMING = {
+  stagger: 0.04,
+  duration: 0.4,
+  squashScaleY: 0.35,
+  boingScaleY: 1.5,
+} as const
+
 type BoingTextProps = {
   /**
    * Texto completo a renderizar. É dividido em caracteres (inclui espaços).
