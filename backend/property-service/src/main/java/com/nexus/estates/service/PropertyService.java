@@ -3,6 +3,7 @@ package com.nexus.estates.service;
 import com.nexus.estates.common.dto.PropertyQuoteRequest;
 import com.nexus.estates.common.dto.PropertyQuoteResponse;
 import com.nexus.estates.common.dto.PropertyRuleDTO;
+import com.nexus.estates.common.dto.RuleOverrideDTO;
 import com.nexus.estates.common.dto.SeasonalityRuleDTO;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.dto.ExpandedPropertyResponse;
@@ -11,6 +12,7 @@ import com.nexus.estates.entity.Amenity;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.PropertyChangeLog;
 import com.nexus.estates.entity.PropertyRule;
+import com.nexus.estates.entity.RuleOverride;
 import com.nexus.estates.entity.SeasonalityRule;
 import com.nexus.estates.exception.AmenityNotFoundException;
 import com.nexus.estates.exception.PropertyNotFoundException;
@@ -19,6 +21,7 @@ import com.nexus.estates.repository.PermissionRepository;
 import com.nexus.estates.repository.PropertyChangeLogRepository;
 import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.repository.PropertyRuleRepository;
+import com.nexus.estates.repository.RuleOverrideRepository;
 import com.nexus.estates.repository.SeasonalityRuleRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -29,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -58,27 +62,25 @@ public class PropertyService {
     private final PropertyRuleRepository propertyRuleRepository;
     private final PermissionRepository permissionRepository;
     private final PropertyChangeLogRepository changeLogRepository;
+    private final RuleOverrideRepository ruleOverrideRepository;
 
     /**
      * Construtor do serviço.
-     *
-     * @param repository repositório responsável pelo acesso aos dados
-     * @param amenityRepository repositório responsável pelas comodidades
-     * @param seasonalityRuleRepository repositório responsável pelas regras de sazonalidade
-     * @param propertyRuleRepository repositório responsável pelas regras da propriedade
      */
     public PropertyService(PropertyRepository repository,
                            AmenityRepository amenityRepository,
                            SeasonalityRuleRepository seasonalityRuleRepository,
                            PropertyRuleRepository propertyRuleRepository,
                            PermissionRepository permissionRepository,
-                           PropertyChangeLogRepository changeLogRepository) {
+                           PropertyChangeLogRepository changeLogRepository,
+                           RuleOverrideRepository ruleOverrideRepository) {
         this.repository = repository;
         this.amenityRepository = amenityRepository;
         this.seasonalityRuleRepository = seasonalityRuleRepository;
         this.propertyRuleRepository = propertyRuleRepository;
         this.permissionRepository = permissionRepository;
         this.changeLogRepository = changeLogRepository;
+        this.ruleOverrideRepository = ruleOverrideRepository;
     }
 
     /**
@@ -146,6 +148,52 @@ public class PropertyService {
     }
 
     /**
+     * Adiciona uma sobreposição de regra sazonal.
+     *
+     * @param propertyId ID da propriedade.
+     * @param dto Dados da sobreposição.
+     * @return A sobreposição criada.
+     */
+    @Transactional
+    public RuleOverride addRuleOverride(Long propertyId, RuleOverrideDTO dto) {
+        Property property = findById(propertyId);
+        
+        RuleOverride override = RuleOverride.builder()
+                .property(property)
+                .startDate(dto.startDate())
+                .endDate(dto.endDate())
+                .minNightsOverride(dto.minNightsOverride())
+                .allowedCheckInDays(dto.allowedCheckInDays())
+                .allowedCheckOutDays(dto.allowedCheckOutDays())
+                .build();
+        
+        return ruleOverrideRepository.save(override);
+    }
+
+    /**
+     * Lista todos os overrides de uma propriedade.
+     *
+     * @param propertyId ID da propriedade.
+     * @return Lista de overrides.
+     */
+    @Transactional(readOnly = true)
+    public List<RuleOverride> listOverrides(Long propertyId) {
+        return ruleOverrideRepository.findAll().stream()
+                .filter(r -> r.getProperty().getId().equals(propertyId))
+                .toList();
+    }
+
+    /**
+     * Remove um override.
+     *
+     * @param overrideId ID do override a remover.
+     */
+    @Transactional
+    public void deleteOverride(Long overrideId) {
+        ruleOverrideRepository.deleteById(overrideId);
+    }
+
+    /**
      * Substitui a lista de comodidades de uma propriedade.
      *
      * @param propertyId identificador da propriedade a atualizar
@@ -181,7 +229,7 @@ public class PropertyService {
         Property property = findById(propertyId);
         Amenity amenity = amenityRepository.findById(amenityId)
                 .orElseThrow(() -> new AmenityNotFoundException(amenityId));
-        
+
         property.getAmenities().add(amenity);
         return repository.save(property);
     }
@@ -199,7 +247,7 @@ public class PropertyService {
         Property property = findById(propertyId);
         Amenity amenity = amenityRepository.findById(amenityId)
                 .orElseThrow(() -> new AmenityNotFoundException(amenityId));
-        
+
         property.getAmenities().remove(amenity);
         return repository.save(property);
     }
@@ -217,7 +265,7 @@ public class PropertyService {
     public Page<Property> listByUserWithFilters(Long userId, String city, Boolean isActive,
                                                 BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
         List<Long> ids = permissionRepository.findByUserId(userId)
-                .stream().map(pp -> pp.getPropertyId()).toList();
+                .stream().map(com.nexus.estates.entity.PropertyPermission::getPropertyId).toList();
         if (ids.isEmpty()) {
             return Page.empty(pageable);
         }
@@ -311,14 +359,15 @@ public class PropertyService {
     }
 
     private void recordChange(Long propertyId, Long userId, String action, String field, String oldV, String newV) {
-        PropertyChangeLog log = new PropertyChangeLog();
-        log.setPropertyId(propertyId);
-        log.setUserId(userId);
-        log.setAction(action);
-        log.setFieldName(field);
-        log.setOldValue(oldV);
-        log.setNewValue(newV);
-        changeLogRepository.save(log);
+        PropertyChangeLog logChange = new PropertyChangeLog();
+        logChange.setPropertyId(propertyId);
+        logChange.setUserId(userId);
+        logChange.setAction(action);
+        logChange.setFieldName(field);
+        logChange.setOldValue(oldV);
+        logChange.setNewValue(newV);
+        logChange.setChangedAt(OffsetDateTime.now());
+        changeLogRepository.save(logChange);
     }
 
     private String asString(Map<String, String> map) {
@@ -332,15 +381,7 @@ public class PropertyService {
     }
 
     /**
-     * Valida as regras da propriedade e calcula o preço total para uma estadia proposta.
-     * <p>
-     * Este método centraliza a lógica de negócio, garantindo que o Booking Service
-     * não precisa de conhecer os detalhes de implementação das regras ou sazonalidade.
-     * </p>
-     *
-     * @param propertyId ID da propriedade.
-     * @param request Pedido de cotação contendo datas e hóspedes.
-     * @return Resposta com validação (sucesso/falha) e preço.
+     * Valida as regras da propriedade (incluindo sobreposições sazonais) e calcula o preço total.
      */
     @Transactional(readOnly = true)
     public PropertyQuoteResponse validateAndQuote(Long propertyId, PropertyQuoteRequest request) {
@@ -352,86 +393,100 @@ public class PropertyService {
             errors.add("O número de hóspedes (" + request.guestCount() + ") excede a capacidade máxima de " + property.getMaxGuests());
         }
 
-        // 2. Validação de Regras Operacionais (Min/Max Nights, Lead Time)
-        PropertyRule rule = property.getPropertyRule();
-        if (rule != null) {
-            long nights = ChronoUnit.DAYS.between(request.checkInDate(), request.checkOutDate());
-            
-            if (rule.getMinNights() != null && nights < rule.getMinNights()) {
-                errors.add("O número mínimo de noites é " + rule.getMinNights());
+        // 2. Procurar Overrides que intersetam o período da estadia
+        List<RuleOverride> overrides = ruleOverrideRepository.findOverlappingOverrides(
+                propertyId, request.checkInDate(), request.checkOutDate());
+
+        // 3. Validação de Regras (Base + Overrides)
+        long nights = ChronoUnit.DAYS.between(request.checkInDate(), request.checkOutDate());
+        PropertyRule baseRule = property.getPropertyRule();
+
+        // --- Regra: Min Nights ---
+        int effectiveMinNights = (baseRule != null) ? baseRule.getMinNights() : 1;
+        // Se houver overrides que toquem na estadia, a regra mais estrita (maior) prevalece
+        for (RuleOverride ro : overrides) {
+            if (ro.getMinNightsOverride() != null && ro.getMinNightsOverride() > effectiveMinNights) {
+                effectiveMinNights = ro.getMinNightsOverride();
             }
-            if (rule.getMaxNights() != null && nights > rule.getMaxNights()) {
-                errors.add("O número máximo de noites é " + rule.getMaxNights());
-            }
-            
-            if (rule.getBookingLeadTimeDays() != null) {
-                LocalDate minCheckInDate = LocalDate.now().plusDays(rule.getBookingLeadTimeDays());
-                if (request.checkInDate().isBefore(minCheckInDate)) {
-                    errors.add("A reserva deve ser feita com pelo menos " + rule.getBookingLeadTimeDays() + " dias de antecedência.");
+        }
+        if (nights < effectiveMinNights) {
+            errors.add("Para este período, o número mínimo de noites é " + effectiveMinNights);
+        }
+
+        // --- Regra: Allowed Check-in Days ---
+        for (RuleOverride ro : overrides) {
+            // Se o dia de Check-in cair dentro do período deste override
+            if (!request.checkInDate().isBefore(ro.getStartDate()) && !request.checkInDate().isAfter(ro.getEndDate())) {
+                if (ro.getAllowedCheckInDays() != null && !ro.getAllowedCheckInDays().isEmpty()) {
+                    if (!ro.getAllowedCheckInDays().contains(request.checkInDate().getDayOfWeek())) {
+                        errors.add("Neste período, o Check-in só é permitido em: " + ro.getAllowedCheckInDays());
+                    }
                 }
             }
         }
 
-        // Se houver erros, retorna falha imediatamente
+        // --- Regra: Allowed Check-out Days ---
+        for (RuleOverride ro : overrides) {
+            // Se o dia de Check-out cair dentro do período deste override
+            if (!request.checkOutDate().isBefore(ro.getStartDate()) && !request.checkOutDate().isAfter(ro.getEndDate())) {
+                if (ro.getAllowedCheckOutDays() != null && !ro.getAllowedCheckOutDays().isEmpty()) {
+                    if (!ro.getAllowedCheckOutDays().contains(request.checkOutDate().getDayOfWeek())) {
+                        errors.add("Neste período, o Check-out só é permitido em: " + ro.getAllowedCheckOutDays());
+                    }
+                }
+            }
+        }
+
+        // --- Regra: Lead Time (Base) ---
+        if (baseRule != null && baseRule.getBookingLeadTimeDays() != null) {
+            LocalDate minCheckInDate = LocalDate.now().plusDays(baseRule.getBookingLeadTimeDays());
+            if (request.checkInDate().isBefore(minCheckInDate)) {
+                errors.add("A reserva deve ser feita com pelo menos " + baseRule.getBookingLeadTimeDays() + " dias de antecedência.");
+            }
+        }
+
+        // Retorno de erros se existirem
         if (!errors.isEmpty()) {
             return PropertyQuoteResponse.failure(errors);
         }
 
-        // 3. Cálculo de Preço (Sazonalidade)
+        // 4. Cálculo de Preço (Sazonalidade)
         BigDecimal totalPrice = calculateTotalPrice(propertyId, request.checkInDate(), request.checkOutDate(), null);
         
-        return PropertyQuoteResponse.success(totalPrice, "EUR"); // Assumindo EUR por defeito
+        return PropertyQuoteResponse.success(totalPrice, "EUR");
     }
 
     /**
      * Calcula o preço total de uma estadia para uma propriedade, aplicando regras de sazonalidade.
-     *
-     * <p>Este método itera por cada dia da reserva, aplicando o multiplicador de preço
-     * da regra de sazonalidade mais específica que se aplica a esse dia.
-     * A hierarquia de prioridade é: Regra de Canal > Regra de Dia da Semana > Regra de Período.</p>
-     *
-     * @param propertyId ID da propriedade.
-     * @param checkInDate Data de check-in.
-     * @param checkOutDate Data de check-out.
-     * @param channel Canal de venda (opcional, pode ser null).
-     * @return O preço total da estadia.
-     * @throws PropertyNotFoundException se a propriedade não for encontrada.
      */
     public BigDecimal calculateTotalPrice(Long propertyId, LocalDate checkInDate, LocalDate checkOutDate, String channel) {
         Property property = findById(propertyId);
-        
+
         // Busca todas as regras de sazonalidade que se sobrepõem ao período da reserva
-        // O repositório deve ter este método definido para aceitar propertyId, start e end
         List<SeasonalityRule> allRules = seasonalityRuleRepository.findByPropertyIdAndDateRange(propertyId, checkInDate, checkOutDate);
 
         BigDecimal total = BigDecimal.ZERO;
-        
-        // Iterar dia a dia desde o check-in até ao dia ANTES do check-out (pois a última noite conta, mas sai-se no dia seguinte)
+
         for (LocalDate date = checkInDate; date.isBefore(checkOutDate); date = date.plusDays(1)) {
             final LocalDate currentDate = date;
-            
-            // Filtra regras aplicáveis a este dia específico
+
             List<SeasonalityRule> applicableRules = allRules.stream()
                 .filter(rule -> !currentDate.isBefore(rule.getStartDate()) && !currentDate.isAfter(rule.getEndDate()))
                 .filter(rule -> rule.getDayOfWeek() == null || rule.getDayOfWeek() == currentDate.getDayOfWeek())
-                .filter(rule -> rule.getChannel() == null || (channel != null && rule.getChannel().equalsIgnoreCase(channel)))
-                .collect(Collectors.toList());
+                .filter(rule -> rule.getChannel() == null || rule.getChannel().equalsIgnoreCase(channel))
+                .toList();
 
-            // Determina o multiplicador: Preço base (1.0) ou o da regra mais prioritária
             BigDecimal modifier = BigDecimal.ONE;
-            
+
             if (!applicableRules.isEmpty()) {
-                // Encontra a regra com maior prioridade
                 SeasonalityRule bestRule = applicableRules.stream()
                         .max(Comparator.comparingInt(this::getRulePriority))
-                        .orElseThrow(); // Seguro pois a lista não está vazia
-                
+                        .orElseThrow();
+
                 modifier = bestRule.getPriceModifier();
             }
 
-            // Preço do dia = Preço Base * Multiplicador
-            BigDecimal dailyPrice = property.getBasePrice().multiply(modifier);
-            total = total.add(dailyPrice);
+            total = total.add(property.getBasePrice().multiply(modifier));
         }
 
         return total;
@@ -439,22 +494,15 @@ public class PropertyService {
 
     /**
      * Define a prioridade de uma regra de sazonalidade.
-     * Regras com canal e dia da semana são mais prioritárias.
-     *
-     * @param rule A regra de sazonalidade.
-     * @return Um valor inteiro representando a prioridade. Maior valor = maior prioridade.
      */
     private int getRulePriority(SeasonalityRule rule) {
         int priority = 0;
-        // Regra de canal é muito específica
         if (rule.getChannel() != null && !rule.getChannel().isEmpty()) {
             priority += 100;
         }
-        // Regra de dia da semana é específica
         if (rule.getDayOfWeek() != null) {
             priority += 50;
         }
-        // Regras apenas por data têm prioridade base
         return priority;
     }
 

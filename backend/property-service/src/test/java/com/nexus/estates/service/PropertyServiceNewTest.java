@@ -7,6 +7,7 @@ import com.nexus.estates.repository.PermissionRepository;
 import com.nexus.estates.repository.PropertyChangeLogRepository;
 import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.repository.PropertyRuleRepository;
+import com.nexus.estates.repository.RuleOverrideRepository;
 import com.nexus.estates.repository.SeasonalityRuleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +27,7 @@ class PropertyServiceNewTest {
     private PropertyRuleRepository ruleRepository;
     private PermissionRepository permissionRepository;
     private PropertyChangeLogRepository changeLogRepository;
+    private RuleOverrideRepository ruleOverrideRepository;
     private PropertyService service;
 
     @BeforeEach
@@ -36,7 +38,16 @@ class PropertyServiceNewTest {
         ruleRepository = mock(PropertyRuleRepository.class);
         permissionRepository = mock(PermissionRepository.class);
         changeLogRepository = mock(PropertyChangeLogRepository.class);
-        service = new PropertyService(propertyRepository, amenityRepository, seasonalityRepo, ruleRepository, permissionRepository, changeLogRepository);
+        ruleOverrideRepository = mock(RuleOverrideRepository.class);
+        service = new PropertyService(
+                propertyRepository,
+                amenityRepository,
+                seasonalityRepo,
+                ruleRepository,
+                permissionRepository,
+                changeLogRepository,
+                ruleOverrideRepository
+        );
     }
 
     @Test

@@ -137,6 +137,13 @@ public class Property {
     @Schema(description = "Regras operacionais da propriedade")
     private PropertyRule propertyRule;
 
+    /**
+     * Sobreposições de regras sazonais (ex: Agosto apenas entradas ao Sábado).
+     */
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Schema(description = "Sobreposições de regras sazonais para esta propriedade")
+    private Set<RuleOverride> ruleOverrides = new HashSet<>();
+
     // Getters e Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -156,12 +163,14 @@ public class Property {
     public void setMaxGuests(Integer maxGuests) { this.maxGuests = maxGuests; }
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public Set<Amenity> getAmenities() { return amenities; }
     public void setAmenities(Set<Amenity> amenities) { this.amenities = amenities; }
     public Set<SeasonalityRule> getSeasonalityRules() { return seasonalityRules; }
     public void setSeasonalityRules(Set<SeasonalityRule> seasonalityRules) { this.seasonalityRules = seasonalityRules; }
     public PropertyRule getPropertyRule() { return propertyRule; }
     public void setPropertyRule(PropertyRule propertyRule) { this.propertyRule = propertyRule; }
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public Set<RuleOverride> getRuleOverrides() { return ruleOverrides; }
+    public void setRuleOverrides(Set<RuleOverride> ruleOverrides) { this.ruleOverrides = ruleOverrides; }
 }
