@@ -2,9 +2,9 @@ package com.nexus.estates.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexus.estates.entity.Message;
+import com.nexus.estates.service.chat.AblyWebhookService;
 import com.nexus.estates.service.chat.ChatPlatform;
 import com.nexus.estates.service.chat.MessageService;
-import com.nexus.estates.service.chat.WebhookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,7 +35,7 @@ public class SyncMessageController {
 
     private final MessageService messageService;
     private final ChatPlatform chatPlatform;
-    private final WebhookService webhookService;
+    private final AblyWebhookService webhookService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -115,9 +115,9 @@ public class SyncMessageController {
             return ResponseEntity.status(401).body("Invalid signature");
         }
 
-        WebhookService.AblyWebhookPayload payload;
+        AblyWebhookService.AblyWebhookPayload payload;
         try {
-            payload = objectMapper.readValue(rawBody, WebhookService.AblyWebhookPayload.class);
+            payload = objectMapper.readValue(rawBody, AblyWebhookService.AblyWebhookPayload.class);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Invalid payload");
         }
