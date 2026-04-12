@@ -25,8 +25,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AblyWebhookService
-{
+public class AblyWebhookService {
 
     /** Prefixo padrão dos canais de chat no Ably para identificação de reservas. */
     private static final String CHANNEL_PREFIX = "booking-chat:";
@@ -38,23 +37,32 @@ public class AblyWebhookService
 
     /**
      * Valida a assinatura HMAC-SHA256 do webhook usando o segredo configurado e o utilitário partilhado.
+     * <p>
+     * Utiliza a função utilitária {@link WebhookCryptoUtil#isValidSignature(String, String, String)}
+     * para verificar se a assinatura enviada no cabeçalho condiz com a hash que o sistema
+     * Nexus gerou, utilizando o segredo configurado (tipicamente através de variáveis de ambiente).
+     * </p>
      *
-     * @param requestBody Corpo bruto da requisição HTTP.
-     * @param signatureHeader Valor do cabeçalho 'X-Ably-Signature'.
-     * @return true se a mensagem for autêntica.
+     * @param requestBody Corpo bruto (raw text/JSON) da requisição HTTP efetuada pelo Ably.
+     * @param signatureHeader Valor explícito do cabeçalho de assinatura 'X-Ably-Signature'.
+     * @return {@code true} se as assinaturas coincidirem, indicando a proveniência e integridade,
+     *         ou {@code false} em caso de payload ou cabeçalho incorretos/manipulados.
      */
     public boolean isSignatureValid(String requestBody, String signatureHeader) {
         return WebhookCryptoUtil.isValidSignature(requestBody, signatureHeader, webhookSecret);
     }
 
     /**
-     * Processa o payload do webhook de forma assíncrona.
+     * Ponto de entrada processual (assíncrono) para o conteúdo validado proveniente do Ably.
      * <p>
-     * Itera sobre a lista de mensagens recebidas, extrai o ID da reserva associada ao canal
-     * e encaminha o conteúdo para persistência e notificação.
+     * Itera sobre a lista de mensagens recém-recebidas, tenta extrair o ID numérico associado
+     * à reserva partindo do nome do canal e encaminha o evento para os fluxos persistentes
+     * e notificacionais (usando o {@link MessageService}).
      * </p>
      *
-     * @param payload Objeto desserializado contendo o canal e as mensagens do Ably.
+     * @param payload Objeto DTO (Data Transfer Object) em formato {@link AblyWebhookPayload}
+     *                contendo tanto o canal global desta requisição, quanto os itens das
+     *                mensagens em si a processar.
      */
     @Async
     public void processPayload(AblyWebhookPayload payload) {
@@ -73,10 +81,17 @@ public class AblyWebhookService
     }
 
     /**
-     * Extrai o ID da reserva a partir do nome do canal (ex.: booking-chat:123).
+     * Analisa o nome completo de um canal fornecido pelo Ably e extrai o ID da reserva associada.
+     * <p>
+     * O formato esperado para extração bem sucedida baseia-se num prefixo fixo
+     * (definido em {@code CHANNEL_PREFIX}) seguido pelo identificador numérico,
+     * exemplo prático: {@code booking-chat:123}.
+     * </p>
      *
-     * @param channel Nome completo do canal.
-     * @return O ID da reserva ou null se o formato for inválido.
+     * @param channel A String que designa o canal específico na plataforma Ably.
+     * @return O Identificador numérico extraído da string sob a forma de {@link Long},
+     *         ou {@code null} se o nome do canal for incompatível, em falta ou mal-formado
+     *         (com registo de Warning no log).
      */
     private Long extractBookingId(String channel) {
         if (channel != null && channel.startsWith(CHANNEL_PREFIX)) {
@@ -90,13 +105,26 @@ public class AblyWebhookService
         return null;
     }
 
-    /** DTO para o payload raiz do webhook do Ably. */
+    /**
+     * DTO utilizado exclusivamente na conversão (deserialização) de dados originados do Ably.
+     * Atua como um recetáculo raiz imutável para a abstração do webhook JSON enviado pelo Ably.
+     *
+     * @param channel O nome global do canal no qual estas mensagens foram trocadas.
+     * @param messages Uma lista de objetos {@link AblyWebhookMessage} representando uma ou mais
+     *                 mensagens do canal.
+     */
     public record AblyWebhookPayload(
             @JsonProperty("channel") String channel,
             @JsonProperty("messages") List<AblyWebhookMessage> messages
     ) {}
 
-    /** DTO para representação individual de uma mensagem dentro do webhook. */
+    /**
+     * DTO auxiliar focado no escopo e composição singular de uma mensagem pertencente ao Ably.
+     * Usado diretamente no mapeamento de items pertencentes à lista interna de um {@link AblyWebhookPayload}.
+     *
+     * @param clientId Identificador ou token de ligação que mapeia o remetente explícito do Ably.
+     * @param data O conteúdo concreto (payload) desta mensagem efetuada num canal de chat.
+     */
     public record AblyWebhookMessage(
             @JsonProperty("clientId") String clientId,
             @JsonProperty("data") String data
