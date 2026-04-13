@@ -21,5 +21,6 @@ public record ExpandedPropertyResponse(
         Boolean isActive,
         List<String> amenities,
         PropertyRuleDTO rules,
-        List<SeasonalityRuleDTO> seasonality
+        List<SeasonalityRuleDTO> seasonality,
+        String imageUrl
 ) {}

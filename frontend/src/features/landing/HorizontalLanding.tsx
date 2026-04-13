@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
 import { B, SECTIONS } from "./tokens"
 import { BrutalGridBackground } from "@/components/ui/layout/brutal-grid-background"
-import ClickSpark from "@/components/ClickSpark"
+import ClickSpark, { CLICK_SPARK_PRESETS } from "@/components/ClickSpark"
 import { Ticker } from "./ui/Ticker"
 import { VBand } from "./ui/VBand"
 import { SideProgress } from "./ui/SideProgress"
@@ -18,7 +18,7 @@ import { CtaSection } from "./sections/CtaSection"
 import { FloatingObjects } from "./ui/FloatingObjects"
 import { IntroPreloader } from "./ui/IntroPreloader"
 import { contentFadeTransition, ghostActiveTransition, ghostIdleTransition, sectionTransition } from "./motion"
-import { NoiseOverlay } from "@/components/NoiseOverlay"
+import { NoiseOverlay, NOISE_OVERLAY_PRESETS } from "@/components/NoiseOverlay"
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 
@@ -144,7 +144,7 @@ export function HorizontalLanding() {
 
       {/* ── Landing ───────────────────────────────────────────────────────── */}
       {introDone && (
-        <ClickSpark sparkColor={B.orange} extraScale={1.2}>
+        <ClickSpark {...CLICK_SPARK_PRESETS.landing}>
           <motion.div
             ref={rootRef}
             className="relative isolate h-screen w-screen overflow-hidden transition-colors duration-700"
@@ -164,7 +164,7 @@ export function HorizontalLanding() {
           >
             <BrutalGridBackground defaultVariant="none" />
             <FloatingObjects />
-            <NoiseOverlay pattern="scanlines" opacity={0.12} />
+            <NoiseOverlay {...NOISE_OVERLAY_PRESETS.landing} />
 
             <Nav
               active={active}

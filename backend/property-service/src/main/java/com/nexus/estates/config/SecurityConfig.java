@@ -11,7 +11,8 @@ import org.springframework.security.web.SecurityFilterChain;
 
 /**
  * Configuração de segurança para o Property Service.
- * Permite acesso aos endpoints de documentação e delega a autenticação para o API Gateway.
+ * Permite acesso aos endpoints de documentação e delega a autenticação para o
+ * API Gateway.
  */
 @Configuration
 @EnableWebSecurity
@@ -30,8 +31,7 @@ public class SecurityConfig {
                         // Todos os restantes requerem autenticação (que será validada pelo Gateway)
                         // Por agora, permitimos tudo para não quebrar a comunicação entre serviços
                         // mas no futuro deve-se validar os headers X-User-*
-                        .anyRequest().permitAll()
-                )
+                        .anyRequest().permitAll())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         return http.build();

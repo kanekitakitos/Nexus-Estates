@@ -17,23 +17,23 @@ VALUES
     ('{"pt": "Cuna/Berço", "en": "Crib"}', 'COMFORT', 'baby-crib');
 
 -- More Properties in Portugal
-INSERT INTO properties (name, description, location, city, address, base_price, max_guests, is_active)
+INSERT INTO properties (name, description, location, city, address, base_price, max_guests, is_active, image_url)
 VALUES 
-    ('Porto Riverside Apartment', '{"pt": "Apartamento moderno com vista para o Rio Douro.", "en": "Modern apartment with Douro River view."}', 'Ribeira', 'Porto', 'Rua Nova da Alfândega, 10', 180.00, 4, true),
-    ('Algarve Luxury Villa', '{"pt": "Vila de luxo com piscina infinita e jardim.", "en": "Luxury villa com infinity pool and garden."}', 'Quinta do Lago', 'Almancil', 'Estrada da Quinta, Lote 45', 1500.00, 8, true),
-    ('Madeira Island Retreat', '{"pt": "Refúgio tranquilo na ilha com vista panorâmica.", "en": "Quiet island retreat with panoramic views."}', 'Funchal', 'Funchal', 'Caminho do Monte, 123', 220.00, 4, true),
-    ('Azores Green House', '{"pt": "Casa sustentável rodeada pela natureza dos Açores.", "en": "Sustainable house surrounded by Azores nature."}', 'Sete Cidades', 'Ponta Delgada', 'Rua da Lagoa, 5', 150.00, 5, true),
-    ('Coimbra Historic Studio', '{"pt": "Estúdio charmoso no centro histórico de Coimbra.", "en": "Charming studio in Coimbra historic center."}', 'Alta de Coimbra', 'Coimbra', 'Rua da Sofia, 88', 95.00, 2, true),
-    ('Évora Alentejo Farmhouse', '{"pt": "Herdade típica alentejana com oliveiras e piscina.", "en": "Typical Alentejo farmhouse with olive trees and pool."}', 'Arredores', 'Évora', 'Herdade do Esporão, S/N', 350.00, 12, true),
-    ('Braga Modern Condo', '{"pt": "Condomínio moderno perto do Bom Jesus.", "en": "Modern condo near Bom Jesus."}', 'Tenões', 'Braga', 'Rua do Sameiro, 22', 120.00, 4, true),
-    ('Cascais Beach House', '{"pt": "Casa de praia a poucos metros da areia.", "en": "Beach house just a few meters from the sand."}', 'Guincho', 'Cascais', 'Estrada do Guincho, KM 5', 600.00, 6, true),
-    ('Lisbon Alfama Charm', '{"pt": "Apartamento típico no bairro mais antigo de Lisboa.", "en": "Typical apartment in Lisbons oldest neighborhood."}', 'Alfama', 'Lisboa', 'Beco do Carneiro, 12', 110.00, 3, true),
-    ('Gerês Mountain Chalet', '{"pt": "Chalet de madeira no Parque Nacional da Peneda-Gerês.", "en": "Wooden chalet in Peneda-Gerês National Park."}', 'Vila do Gerês', 'Gerês', 'Caminho das Águas, 7', 280.00, 6, true),
-    ('Aveiro Canal View', '{"pt": "Apartamento com vista para os canais de Aveiro.", "en": "Apartment with view of the Aveiro canals."}', 'Beira Mar', 'Aveiro', 'Cais dos Botirões, 3', 130.00, 4, true),
-    ('Viana do Castelo Manor', '{"pt": "Solar histórico restaurado com jardins luxuosos.", "en": "Restored historic manor with lush gardens."}', 'Santa Luzia', 'Viana do Castelo', 'Estrada de Santa Luzia, 15', 450.00, 10, true),
-    ('Sagres Surfer Lodge', '{"pt": "Lodge descontraído perto das melhores praias de surf.", "en": "Relaxed lodge near the best surfing beaches."}', 'Sagres', 'Vila do Bispo', 'Rua dos Pescadores, 2', 485.00, 15, true),
-    ('Sintra Fairy Tale Cottage', '{"pt": "Cabana romântica na floresta mística de Sintra.", "en": "Romantic cottage in the mystical forest of Sintra."}', 'Serra de Sintra', 'Sintra', 'Caminho dos Frades, 9', 320.00, 2, true),
-    ('Monsaraz Castle View', '{"pt": "Casa tradicional com vista para o castelo de Monsaraz.", "en": "Traditional house with view of Monsaraz castle."}', 'Monsaraz', 'Reguengos de Monsaraz', 'Rua Direita, 44', 190.00, 4, true);
+    ('Porto Riverside Apartment', '{"pt": "Apartamento moderno com vista para o Rio Douro.", "en": "Modern apartment with Douro River view."}', 'Ribeira', 'Porto', 'Rua Nova da Alfândega, 10', 180.00, 4, true, 'https://images.unsplash.com/photo-1555854816-802f188090e7'),
+    ('Algarve Luxury Villa', '{"pt": "Vila de luxo com piscina infinita e jardim.", "en": "Luxury villa com infinity pool and garden."}', 'Quinta do Lago', 'Almancil', 'Estrada da Quinta, Lote 45', 1500.00, 8, true, 'https://images.unsplash.com/photo-1613490493576-7fde63acd811'),
+    ('Madeira Island Retreat', '{"pt": "Refúgio tranquilo na ilha com vista panorâmica.", "en": "Quiet island retreat with panoramic views."}', 'Funchal', 'Funchal', 'Caminho do Monte, 123', 220.00, 4, true, 'https://images.unsplash.com/photo-1551882547-ff43c69e5c43'),
+    ('Azores Green House', '{"pt": "Casa sustentável rodeada pela natureza dos Açores.", "en": "Sustainable house surrounded by Azores nature."}', 'Sete Cidades', 'Ponta Delgada', 'Rua da Lagoa, 5', 150.00, 5, true, 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf'),
+    ('Coimbra Historic Studio', '{"pt": "Estúdio charmoso no centro histórico de Coimbra.", "en": "Charming studio in Coimbra historic center."}', 'Alta de Coimbra', 'Coimbra', 'Rua da Sofia, 88', 95.00, 2, true, 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'),
+    ('Évora Alentejo Farmhouse', '{"pt": "Herdade típica alentejana com oliveiras e piscina.", "en": "Typical Alentejo farmhouse with olive trees and pool."}', 'Arredores', 'Évora', 'Herdade do Esporão, S/N', 350.00, 12, true, 'https://images.unsplash.com/photo-1500382017468-9049fed747ef'),
+    ('Braga Modern Condo', '{"pt": "Condomínio moderno perto do Bom Jesus.", "en": "Modern condo near Bom Jesus."}', 'Tenões', 'Braga', 'Rua do Sameiro, 22', 120.00, 4, true, 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688'),
+    ('Cascais Beach House', '{"pt": "Casa de praia a poucos metros da areia.", "en": "Beach house just a few meters from the sand."}', 'Guincho', 'Cascais', 'Estrada do Guincho, KM 5', 600.00, 6, true, 'https://images.unsplash.com/photo-1493809842364-78817add7ffb'),
+    ('Lisbon Alfama Charm', '{"pt": "Apartamento típico no bairro mais antigo de Lisboa.", "en": "Typical apartment in Lisbons oldest neighborhood."}', 'Alfama', 'Lisboa', 'Beco do Carneiro, 12', 110.00, 3, true, 'https://images.unsplash.com/photo-1533154683836-84ea7a0bc310'),
+    ('Gerês Mountain Chalet', '{"pt": "Chalet de madeira no Parque Nacional da Peneda-Gerês.", "en": "Wooden chalet in Peneda-Gerês National Park."}', 'Vila do Gerês', 'Gerês', 'Caminho das Águas, 7', 280.00, 6, true, 'https://images.unsplash.com/photo-1449156001437-3a14427b27bb'),
+    ('Aveiro Canal View', '{"pt": "Apartamento com vista para os canais de Aveiro.", "en": "Apartment with view of the Aveiro canals."}', 'Beira Mar', 'Aveiro', 'Cais dos Botirões, 3', 130.00, 4, true, 'https://images.unsplash.com/photo-1549400850-f4aba1392295'),
+    ('Viana do Castelo Manor', '{"pt": "Solar histórico restaurado com jardins luxuosos.", "en": "Restored historic manor with lush gardens."}', 'Santa Luzia', 'Viana do Castelo', 'Estrada de Santa Luzia, 15', 450.00, 10, true, 'https://images.unsplash.com/photo-1518780664697-55e3ad937233'),
+    ('Sagres Surfer Lodge', '{"pt": "Lodge descontraído perto das melhores praias de surf.", "en": "Relaxed lodge near the best surfing beaches."}', 'Sagres', 'Vila do Bispo', 'Rua dos Pescadores, 2', 485.00, 15, true, 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4'),
+    ('Sintra Fairy Tale Cottage', '{"pt": "Cabana romântica na floresta mística de Sintra.", "en": "Romantic cottage in the mystical forest of Sintra."}', 'Serra de Sintra', 'Sintra', 'Caminho dos Frades, 9', 320.00, 2, true, 'https://images.unsplash.com/photo-1531971589569-0d9370cbe1e5'),
+    ('Monsaraz Castle View', '{"pt": "Casa tradicional com vista para o castelo de Monsaraz.", "en": "Traditional house with view of Monsaraz castle."}', 'Monsaraz', 'Reguengos de Monsaraz', 'Rua Direita, 44', 190.00, 4, true, 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b');
 
 -- Associations (Simple logic for many associations)
 INSERT INTO property_amenities (property_id, amenity_id)

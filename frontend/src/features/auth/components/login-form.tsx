@@ -1,17 +1,8 @@
-/**
- * @description
- *  Componente de autenticação que fornece a interface de login.
- *  Tambem implementa a logica para a componente se comunicar com o serviço users.
- * 
- * @version 1.0
- */
-
 "use client"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/forms/button"
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
@@ -23,85 +14,86 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
 } from "@/components/ui/forms/field"
 import { Input } from "@/components/ui/forms/input"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { AuthService } from "@/services/auth.service"
 import { toast } from "sonner"
+import { getIdentityProviderKey, isClerkConfigured } from "@/features/auth/strategies/use-identity-provider"
+import {
+  SocialDivider,
+  ClerkSocialIconRow,
+  DisabledSocialIconRow,
+} from "@/features/auth/components/social-icon-row"
 
 
-/**
- * componente do formulario de login
- * 
- * @returns {JSX.Element} O formulário de login estruturado com suporte de Toasts para fornecer estados dos erros.
- * 
- * @version 1.0
- */
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  
-  const [isTryingLogin, setIsTryingLogin] = useState(false);
 
-  /**
-   * Processa a autenticação do utilizador.
-   * * @async
-   * 
-   * @returns {Promise<void>} Uma promessa que se resolve após a tentativa de autenticação, 
-   * independentemente do sucesso (erros são tratados via toast).
-   * 
-   * @version 1.1
-   */
+  const emailRef    = useRef<HTMLInputElement>(null)
+  const passwordRef = useRef<HTMLInputElement>(null)
+
+  const [isTryingLogin, setIsTryingLogin] = useState(false)
+
+  const idpKey          = getIdentityProviderKey()
+  const showClerkSocial = idpKey === "clerk" && isClerkConfigured()
+
   async function handleLogin() {
-    if (isTryingLogin) return;
+    if (isTryingLogin) return
 
-    const email = (document.getElementById("email") as HTMLInputElement).value
-    const password = (document.getElementById("password") as HTMLInputElement).value
+    const email    = emailRef.current?.value.trim()    ?? ""
+    const password = passwordRef.current?.value.trim() ?? ""
 
-    if (!password || !email){
-      toast.warning("Preenche todos os campos");
+    if (!email || !password) {
+      toast.warning("Preenche todos os campos")
       return
     }
 
-    setIsTryingLogin(true);
+    setIsTryingLogin(true)
 
     try {
-      const success = await AuthService.login({ email, password });
-      
+      const success = await AuthService.login({ email, password })
+
       if (success) {
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 1500);
+        setTimeout(() => { window.location.href = "/" }, 1500)
       }
     } catch (error) {
-      // O erro já é tratado dentro do AuthService via toast
-      console.error("Login component error:", error);
+      // Erros de negócio são tratados via toast dentro do AuthService.
+      // Aqui apenas registamos erros inesperados.
+      console.error("[LoginForm] Erro inesperado:", error)
     } finally {
-      setIsTryingLogin(false);
+      setIsTryingLogin(false)
     }
   }
 
-
-  // Codigo html da JSX.Element
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <BrutalCard>
 
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome back</CardTitle>
+          <CardTitle className="text-xl">Bem-vindo de volta</CardTitle>
           <CardDescription>
-            Enter your email and password to sign in to your account
+            Entra com as tuas credenciais ou continua com uma conta social.
           </CardDescription>
         </CardHeader>
 
         <CardContent>
-          <form>
+          <form onSubmit={(e) => { e.preventDefault(); void handleLogin() }}>
             <FieldGroup>
+
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input variant="brutal" id="email" type="email" placeholder="m@example.com" required/>
+                <Input
+                  ref={emailRef}
+                  variant="brutal"
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  autoComplete="email"
+                  required
+                />
               </Field>
 
               <Field>
@@ -111,19 +103,40 @@ export function LoginForm({
                     href="/recover"
                     className="ml-auto text-sm underline-offset-4 hover:underline"
                   >
-                    Forgot your password?
+                    Esqueceste a password?
                   </a>
                 </div>
-                <Input variant="brutal" id="password" type="password" required />
+                <Input
+                  ref={passwordRef}
+                  variant="brutal"
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                />
               </Field>
 
               <Field>
-                <Button variant="brutal" type="button" disabled={isTryingLogin} onClick={handleLogin}>
-                  {isTryingLogin ? "Trying to Login..." : "Login"}
+                <Button
+                  variant="brutal"
+                  type="submit"
+                  disabled={isTryingLogin}
+                >
+                  {isTryingLogin ? "A entrar..." : "Entrar"}
                 </Button>
                 <FieldDescription className="text-center">
-                  Don&apos;t have an account? <a href="/register">Sign up</a>
+                  Ainda não tens conta?{" "}
+                  <a href="/register" className="underline-offset-4 hover:underline">
+                    Regista-te
+                  </a>
                 </FieldDescription>
+              </Field>
+
+              <Field>
+                <SocialDivider />
+                <div className="mt-3">
+                  {showClerkSocial ? <ClerkSocialIconRow /> : <DisabledSocialIconRow />}
+                </div>
               </Field>
 
             </FieldGroup>
@@ -131,6 +144,6 @@ export function LoginForm({
         </CardContent>
 
       </BrutalCard>
-    </div> 
+    </div>
   )
 }

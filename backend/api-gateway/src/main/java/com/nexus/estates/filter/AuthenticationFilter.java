@@ -7,20 +7,27 @@ import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFac
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.core.env.Environment;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Filtro global de autenticação para o API Gateway.
  * <p>
- * Este componente interceta todos os pedidos HTTP de entrada e impõe a política de segurança:
+ * Este componente interceta todos os pedidos HTTP de entrada e impõe a política
+ * de segurança:
  * <ol>
- *   <li>Verifica se a rota solicitada é segura (via {@link RouteValidator}).</li>
- *   <li>Valida a presença e formato do cabeçalho "Authorization".</li>
- *   <li>Valida a assinatura e validade do Token JWT (via {@link JwtUtil}).</li>
+ * <li>Verifica se a rota solicitada é segura (via {@link RouteValidator}).</li>
+ * <li>Valida a presença e formato do cabeçalho "Authorization".</li>
+ * <li>Valida a assinatura e validade do Token JWT (via {@link JwtUtil}).</li>
  * </ol>
  * </p>
  * <p>
- * <b>Nota:</b> Futuramente, este filtro será responsável por extrair o contexto do utilizador (ID, Roles)
- * e propagá-lo para os microserviços downstream através de cabeçalhos HTTP personalizados.
+ * <b>Nota:</b> Futuramente, este filtro será responsável por extrair o contexto
+ * do utilizador (ID, Roles)
+ * e propagá-lo para os microserviços downstream através de cabeçalhos HTTP
+ * personalizados.
  * </p>
  *
  * @author Nexus Estates Team
@@ -34,6 +41,9 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private Environment env; // Adicionado para detetar o profile
 
     /**
      * Classe de configuração para o filtro (Padrão Spring Cloud Gateway).
@@ -55,33 +65,29 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
      *
      * @param config Configuração do filtro (atualmente vazia).
      * @return O {@link GatewayFilter} que executa a validação de segurança.
-     * @throws RuntimeException Se o token for inválido, ausente ou expirado (Resulta em 401/403).
+     * @throws RuntimeException Se o token for inválido, ausente ou expirado
+     *                          (Resulta em 401/403).
      */
     @Override
     public GatewayFilter apply(Config config) {
         return ((exchange, chain) -> {
 
-            // 1. Verifica se a rota precisa de segurança (Whitelist check)
-            if (validator.isSecured.test(exchange.getRequest())) {
+            // LÓGICA PADRÃO (Produção/Auth Real)
+            if (validator != null && validator.isSecured.test(exchange.getRequest())) {
 
-                // 2. Verifica se o Header Authorization existe
-                if (!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
+                // 1. Verifica se tem cabeçalho AUTHORIZATION
+                List<String> authHeaders = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION);
+                if (authHeaders == null || authHeaders.isEmpty()) {
                     exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                     return exchange.getResponse().setComplete();
                 }
 
-                String authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
-
-                // Normalização: Remove o prefixo "Bearer " se existir
+                String authHeader = authHeaders.get(0);
                 if (authHeader != null && authHeader.startsWith("Bearer ")) {
                     authHeader = authHeader.substring(7);
                 }
 
                 try {
-                    if (authHeader == null || authHeader.isBlank()) {
-                        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                        return exchange.getResponse().setComplete();
-                    }
                     jwtUtil.validateToken(authHeader);
                     var claims = jwtUtil.getAllClaimsFromToken(authHeader);
                     var request = exchange.getRequest()
