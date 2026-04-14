@@ -100,15 +100,14 @@ export function CalendarTimeline({ items, year, month, title }: CalendarTimeline
                         <div id={item.id} key={item.id} className={`flex border-t-4 ${border.color}`}>
 
                             {/* Item lables*/}
-                            <Link
+                            <div
                                 id={"item label"}
                                 className={`sticky left-0 z-10 w-48 bg-secondary ${border.r} ${border.color} p-4 flex items-center`}
-                                href={item.properti ? `/properties/${item.properti.id}` : "#"}
                             >
                                 <span className="truncate font-bold uppercase text-sm">{
                                     item.label
                                 }</span>
-                            </Link>
+                            </div>
 
                             <div className="flex relative" style={{ height: '64px' }}>
                                 
