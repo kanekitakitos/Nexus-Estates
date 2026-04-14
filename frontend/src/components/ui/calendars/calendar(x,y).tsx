@@ -1,10 +1,11 @@
 
 import React from "react";
-import {ReactElement} from "react";
-import {formatDate} from "date-fns";
+import Link from "next/link"
 import { BrutalCard } from "../data-display/brutal-card";
+import {OwnProperty} from "@/types";
 
 interface TimelineItemWithNames {
+    properti : OwnProperty
     id: string;
     label: string;
     periods: period[];
@@ -99,9 +100,15 @@ export function CalendarTimeline({ items, year, month, title }: CalendarTimeline
                         <div id={item.id} key={item.id} className={`flex border-t-4 ${border.color}`}>
 
                             {/* Item lables*/}
-                            <div id={"item label"} className={`sticky left-0 z-10 w-48 bg-secondary ${border.r} ${border.color} p-4 flex items-center`}>
-                                <span className="truncate font-bold uppercase text-sm">{item.label}</span>
-                            </div>
+                            <Link
+                                id={"item label"}
+                                className={`sticky left-0 z-10 w-48 bg-secondary ${border.r} ${border.color} p-4 flex items-center`}
+                                href={item.properti ? `/properties/${item.properti.id}` : "#"}
+                            >
+                                <span className="truncate font-bold uppercase text-sm">{
+                                    item.label
+                                }</span>
+                            </Link>
 
                             <div className="flex relative" style={{ height: '64px' }}>
                                 
@@ -119,9 +126,22 @@ export function CalendarTimeline({ items, year, month, title }: CalendarTimeline
                                     />
                                 )})}
 
-                                {item.periods.map((period, idx) => (
-                                    <ActiveArea key={idx} period={period}/>
-                                ))}
+                                {item.periods.map((period, idx) => {
+                                    // Verifica se existe alguém que acaba exatamente quando este começa
+                                    const hasLeftNeighbor = item.periods.some(p => p !== period && p.endDay === period.startDay);
+                                    // Verifica se existe alguém que começa exatamente quando este acaba
+                                    const hasRightNeighbor = item.periods.some(p => p !== period && p.startDay === period.endDay);
+
+                                    return (
+                                        <ActiveArea
+                                            key={idx}
+                                            period={period}
+                                            isStart={!hasLeftNeighbor}
+                                            isEnd={!hasRightNeighbor}
+                                        />
+                                    )
+
+                                })}
                             </div>
                         </div>
                     ))}
@@ -131,30 +151,58 @@ export function CalendarTimeline({ items, year, month, title }: CalendarTimeline
     );
 }
 
+function ActiveArea({ period, isStart, isEnd }: { period: period, isStart: boolean, isEnd: boolean }) {
+    const dayWidth = 56; // w-14
 
-function ActiveArea({id, period}:{id?:number, period: period}){
-    // Largura de cada célula de dia
-    const dayWidth = 56; // w-16 = 3.5rem = 56px
-    const lineH = 2
-
+    // Se houver transição, esticamos um pouco a largura para elas se sobreporem e o corte ser visível
     const startPos = (period.startDay - 1) * dayWidth;
     const duration = period.endDay - period.startDay + 1;
-    const width = duration * dayWidth - 4; // -4 para compensar bordas
+
+    // Ajuste de largura: se não houver vizinho, damos um pequeno gap (como tinhas antes)
+    // Se houver vizinho, a largura vai até ao limite exato para o clip-path funcionar
+    const width = duration * dayWidth;
+
+    // Definição do Clip Path (O segredo do corte oblíquo)
+    // Se for meio: corta esquerda e direita. Se for ponta: só corta um lado.
+    const slant = 15; // Inclinação em pixels
+    const clipPath = `polygon(
+        ${isStart ? '0% 0%' : `${slant}px 0%`}, 
+        ${isEnd ? '100% 0%' : `100% 0%`}, 
+        ${isEnd ? '100% 100%' : `calc(100% - ${slant}px) 100%`}, 
+        ${isStart ? '0% 100%' : '0% 100%'}
+    )`;
 
     return (
         <div
-            key={id}
-            className={`absolute ${period.color} flex items-center justify-start px-3 overflow-hidden`}
+            className={`absolute ${period.color} flex items-center px-4 group transition-all`}
             style={{
                 left: `${startPos}px`,
                 width: `${width}px`,
                 height: '48px',
                 top: '8px',
-                borderRadius: '24px',
+                zIndex: 5,
+                clipPath: clipPath,
+                // Raio apenas nas extremidades reais da sequência
+                borderTopLeftRadius: isStart ? '24px' : '0',
+                borderBottomLeftRadius: isStart ? '24px' : '0',
+                borderTopRightRadius: isEnd ? '24px' : '0',
+                borderBottomRightRadius: isEnd ? '24px' : '0',
             }}
         >
-            <span className="font-mono font-bold uppercase text-sm text-black truncate drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">
-              {period.name}
+            {/* O "Traço Oblíquo" (apenas se tiver vizinho à direita) */}
+            {!isEnd && (
+                <div
+                    className="absolute right-0 top-0 h-full w-[4px] bg-black"
+                    style={{
+                        transform: `skewX(-${slant}deg)`,
+                        transformOrigin: 'top',
+                        marginRight: '-2px'
+                    }}
+                />
+            )}
+
+            <span className="font-mono font-bold uppercase text-xs text-black truncate relative z-10">
+                {period.name}
             </span>
         </div>
     );
