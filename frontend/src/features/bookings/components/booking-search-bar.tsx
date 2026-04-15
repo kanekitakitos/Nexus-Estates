@@ -22,7 +22,7 @@ import { motion, AnimatePresence } from "framer-motion"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/forms/button"
-import { Calendar } from "@/components/ui/calendar"
+import { Calendar } from "@/components/ui/calendars/calendar"
 import {
   Popover,
   PopoverContent,

@@ -17,7 +17,7 @@
  */
 
 import * as React from "react"
-import { BrutalCalendar } from "@/components/ui/calendar"
+import { BrutalCalendar } from "@/components/ui/calendars/calendar"
 import { DateRange } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/forms/button"
