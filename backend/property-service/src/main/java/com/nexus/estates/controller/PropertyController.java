@@ -7,9 +7,11 @@ import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.dto.ExpandedPropertyResponse;
 import com.nexus.estates.dto.UpdatePropertyRequest;
 import com.nexus.estates.common.dto.PropertyRuleDTO;
+import com.nexus.estates.common.dto.RuleOverrideDTO;
 import com.nexus.estates.common.dto.SeasonalityRuleDTO;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.PropertyChangeLog;
+import com.nexus.estates.entity.RuleOverride;
 import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.service.PropertyService;
 import com.nexus.estates.service.repository.ImageStorageService;
@@ -315,6 +317,44 @@ public class PropertyController {
             @Valid @RequestBody PropertyRuleDTO dto) {
         PropertyRuleDTO updatedRules = ruleService.updateRules(id, dto);
         return ResponseEntity.ok(ApiResponse.success(updatedRules, "Regras da propriedade atualizadas com sucesso."));
+    }
+
+    /**
+     * Adiciona uma sobreposição de regra sazonal (Rule Override).
+     */
+    @Operation(summary = "Adicionar sobreposição de regra", description = "Define regras estritas para um período específico (ex: Agosto). Requer role OWNER.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Sobreposição criada com sucesso."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado.")
+    })
+    @PostMapping("/{id}/overrides")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<ApiResponse<RuleOverride>> addOverride(
+            @PathVariable Long id,
+            @Valid @RequestBody RuleOverrideDTO dto) {
+        RuleOverride override = service.addRuleOverride(id, dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(override, "Sobreposição de regra criada com sucesso."));
+    }
+
+    /**
+     * Lista todas as sobreposições de regras de uma propriedade.
+     */
+    @Operation(summary = "Listar sobreposições", description = "Retorna todas as exceções sazonais configuradas para a propriedade.")
+    @GetMapping("/{id}/overrides")
+    public ResponseEntity<ApiResponse<List<RuleOverride>>> listOverrides(@PathVariable Long id) {
+        List<RuleOverride> overrides = service.listOverrides(id);
+        return ResponseEntity.ok(ApiResponse.success(overrides, "Sobreposições listadas com sucesso."));
+    }
+
+    /**
+     * Remove uma sobreposição de regra.
+     */
+    @Operation(summary = "Remover sobreposição", description = "Elimina uma exceção sazonal específica. Requer role OWNER.")
+    @DeleteMapping("/overrides/{overrideId}")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<Void> deleteOverride(@PathVariable Long overrideId) {
+        service.deleteOverride(overrideId);
+        return ResponseEntity.noContent().build();
     }
 
     public BigDecimal getPriceById(Long id) {
