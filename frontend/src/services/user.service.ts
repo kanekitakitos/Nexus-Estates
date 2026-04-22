@@ -1,54 +1,21 @@
 import { usersAxios } from "@/lib/axiosAPI"
+import type { ApiResponse } from "@/lib/axiosAPI"
 import type { AxiosError } from "axios"
 import { toast } from "sonner"
-import type { UserProfile, ChangePasswordRequest } from "@/types/user"
+import type { UserProfile } from "@/types/user"
 
-export type { UserProfile, ChangePasswordRequest } from "@/types/user"
+export type { UserProfile } from "@/types/user"
 
 export class UserService {
   static async getMe(): Promise<UserProfile> {
     try {
-      const res = await usersAxios.get<UserProfile>("/me")
-      return res.data
+      if (typeof window === "undefined") {
+        throw new Error("getMe requer contexto client-side")
+      }
+      const res = await usersAxios.get<ApiResponse<UserProfile>>(`/me`)
+      return res.data.data
     } catch (e) {
       this.handleError(e, "carregar perfil")
-      throw e
-    }
-  }
-
-  static async updateName(name: string): Promise<UserProfile> {
-    try {
-      const res = await usersAxios.patch<UserProfile>("/me", { name })
-      toast.success("Nome atualizado.")
-      return res.data
-    } catch (e) {
-      this.handleError(e, "atualizar nome")
-      throw e
-    }
-  }
-
-  static async uploadAvatar(file: File): Promise<UserProfile> {
-    try {
-      const form = new FormData()
-      form.append("file", file)
-      const res = await usersAxios.post<UserProfile>("/me/avatar", form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
-      toast.success("Foto de perfil atualizada.")
-      return res.data
-    } catch (e) {
-      this.handleError(e, "atualizar foto")
-      throw e
-    }
-  }
-
-  static async changePassword(payload: ChangePasswordRequest): Promise<{ ok: true }> {
-    try {
-      await usersAxios.post("/me/password", payload)
-      toast.success("Password alterada.")
-      return { ok: true }
-    } catch (e) {
-      this.handleError(e, "alterar password")
       throw e
     }
   }
@@ -68,4 +35,3 @@ export class UserService {
     }
   }
 }
-

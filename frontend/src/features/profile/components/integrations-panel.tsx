@@ -35,7 +35,7 @@ interface IntegrationsPanelProps {
  */
 export function IntegrationsPanel({
   isMock,
-  items,
+  items = [],
   setItems,
 }: IntegrationsPanelProps) {
   return (
@@ -59,7 +59,7 @@ export function IntegrationsPanel({
  */
 function IntegrationForm({
   isMock,
-  items,
+  items = [],
   setItems,
 }: IntegrationsPanelProps) {
   const [providerName, setProviderName] = React.useState<ExternalProviderName>("AIRBNB")
@@ -171,7 +171,7 @@ function IntegrationForm({
  */
 function IntegrationList({
   isMock,
-  items,
+  items = [],
   setItems,
 }: IntegrationsPanelProps) {
 

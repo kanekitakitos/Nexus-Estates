@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useSyncExternalStore } from "react"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, ChevronLeft, ChevronRight } from "lucide-react"
@@ -90,7 +90,7 @@ function ModalMetadata({ title, current, total }: { title: string; current: numb
           <div className="mt-2 flex items-center justify-center gap-4">
              <div className="h-px w-8 bg-white/20" />
              <span className="font-mono text-[10px] font-black uppercase tracking-[0.3em] text-primary">
-                Frame_{String(current).padStart(2, '0')} // Total_{String(total).padStart(2, '0')}
+                Frame_{String(current).padStart(2, '0')} · Total_{String(total).padStart(2, '0')}
              </span>
              <div className="h-px w-8 bg-white/20" />
           </div>
@@ -116,13 +116,58 @@ export function PropertyMediaModal({
   title,
   initialIndex = 0,
 }: PropertyMediaModalProps) {
-  const [activeIndex, setActiveIndex] = useState(initialIndex)
-  const [mounted, setMounted] = useState(false)
+  const mounted = useSyncExternalStore(
+    (onStoreChange) => {
+      onStoreChange()
+      return () => {}
+    },
+    () => true,
+    () => false
+  )
 
   const mediaList = images.length > 0 ? images : ["/placeholder-property.jpg"]
-  const totalItems = mediaList.length
 
-  // Handlers de Ciclo
+  // Guardião de fecho e controle de scroll do body
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+    return () => { document.body.style.overflow = "" }
+  }, [isOpen, initialIndex])
+
+  if (!mounted) return null
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <ModalSession
+          mediaList={mediaList}
+          title={title}
+          initialIndex={initialIndex}
+          onClose={onClose}
+        />
+      )}
+    </AnimatePresence>,
+    document.body
+  )
+}
+
+function ModalSession({
+  mediaList,
+  title,
+  initialIndex,
+  onClose,
+}: {
+  mediaList: string[]
+  title: string
+  initialIndex: number
+  onClose: () => void
+}) {
+  const totalItems = mediaList.length
+  const [activeIndex, setActiveIndex] = useState(() => Math.min(Math.max(initialIndex, 0), Math.max(totalItems - 1, 0)))
+
   const goNext = useCallback(() => {
     setActiveIndex((p) => (p + 1) % totalItems)
   }, [totalItems])
@@ -131,25 +176,7 @@ export function PropertyMediaModal({
     setActiveIndex((p) => (p - 1 + totalItems) % totalItems)
   }, [totalItems])
 
-  // Hydration fix & Lifecycle
   useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  // Guardião de fecho e controle de scroll do body
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden"
-      setActiveIndex(initialIndex) // Sincroniza índice ao abrir
-    } else {
-      document.body.style.overflow = ""
-    }
-    return () => { document.body.style.overflow = "" }
-  }, [isOpen, initialIndex])
-
-  // Atalhos de Teclado
-  useEffect(() => {
-    if (!isOpen) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") goNext()
       if (e.key === "ArrowLeft") goPrev()
@@ -157,57 +184,46 @@ export function PropertyMediaModal({
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [isOpen, goNext, goPrev, onClose])
+  }, [goNext, goPrev, onClose])
 
-  if (!mounted) return null
+  return (
+    <motion.div
+      className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-black/95 backdrop-blur-xl"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="absolute inset-0 z-0" onClick={onClose} />
 
-  return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-black/95 backdrop-blur-xl"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {/* Overlay de fecho por clique fora */}
-          <div className="absolute inset-0 z-0" onClick={onClose} />
+      <ModalControls
+        onClose={onClose}
+        onNext={goNext}
+        onPrev={goPrev}
+        hasMultiple={totalItems > 1}
+      />
 
-          {/* Interface de Controlo */}
-          <ModalControls 
-            onClose={onClose} 
-            onNext={goNext} 
-            onPrev={goPrev} 
-            hasMultiple={totalItems > 1} 
+      <div className="relative z-10 w-full max-w-[1400px] px-4 md:px-20 h-full flex items-center justify-center">
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={activeIndex}
+            src={mediaList[activeIndex]}
+            alt={title}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="max-h-[85vh] w-auto max-w-full object-contain shadow-[20px_20px_60px_rgba(0,0,0,0.8)] border-[4px] border-white/5 rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
           />
+        </AnimatePresence>
+      </div>
 
-          {/* Contentor de Média Principal */}
-          <div className="relative z-10 w-full max-w-[1400px] px-4 md:px-20 h-full flex items-center justify-center">
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={activeIndex}
-                src={mediaList[activeIndex]}
-                alt={title}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.05 }}
-                transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="max-h-[85vh] w-auto max-w-full object-contain shadow-[20px_20px_60px_rgba(0,0,0,0.8)] border-[4px] border-white/5 rounded-3xl"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </AnimatePresence>
-          </div>
-
-          {/* Metadados e Paginação */}
-          <ModalMetadata 
-            title={title} 
-            current={activeIndex + 1} 
-            total={totalItems} 
-          />
-        </motion.div>
-      )}
-    </AnimatePresence>,
-    document.body
+      <ModalMetadata
+        title={title}
+        current={activeIndex + 1}
+        total={totalItems}
+      />
+    </motion.div>
   )
 }

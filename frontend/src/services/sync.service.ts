@@ -1,9 +1,10 @@
 import { syncAxios } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import { toast } from "sonner";
-import type { SyncMessage } from "@/types/sync";
+import type { ApiResponse } from "@/lib/axiosAPI"
+import type { SyncMessage, WebhookSubscription, CreateWebhookSubscriptionRequest, CreatedWebhookSubscription } from "@/types/sync";
 
-export type { SyncMessage } from "@/types/sync";
+export type { SyncMessage, WebhookSubscription, CreateWebhookSubscriptionRequest, CreatedWebhookSubscription } from "@/types/sync";
 
 /**
  * Serviço responsável pela comunicação em tempo real e sincronização de dados externos.
@@ -70,6 +71,46 @@ export class SyncService {
         } catch (error) {
             this.handleError(error, "enviar mensagem");
             throw error;
+        }
+    }
+
+    static async listWebhooks(): Promise<WebhookSubscription[]> {
+        try {
+            const response = await syncAxios.get<ApiResponse<WebhookSubscription[]>>(`/webhooks`)
+            return response.data.data
+        } catch (error) {
+            this.handleError(error, "listar webhooks")
+            throw error
+        }
+    }
+
+    static async createWebhook(payload: CreateWebhookSubscriptionRequest): Promise<CreatedWebhookSubscription> {
+        try {
+            const response = await syncAxios.post<ApiResponse<CreatedWebhookSubscription>>(`/webhooks`, payload)
+            toast.success("Webhook criado. Guarde o secret.")
+            return response.data.data
+        } catch (error) {
+            this.handleError(error, "criar webhook")
+            throw error
+        }
+    }
+
+    static async toggleWebhook(id: number): Promise<void> {
+        try {
+            await syncAxios.patch<ApiResponse<void>>(`/webhooks/${id}/toggle`)
+        } catch (error) {
+            this.handleError(error, "atualizar webhook")
+            throw error
+        }
+    }
+
+    static async deleteWebhook(id: number): Promise<void> {
+        try {
+            await syncAxios.delete<ApiResponse<void>>(`/webhooks/${id}`)
+            toast.success("Webhook removido.")
+        } catch (error) {
+            this.handleError(error, "remover webhook")
+            throw error
         }
     }
 

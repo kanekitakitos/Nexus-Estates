@@ -2,7 +2,7 @@
 
 import React from "react"
 import { BoingText } from "@/components/BoingText"
-import { User, Shield, Key, ArrowLeft, Link2 } from "lucide-react"
+import { User, Shield, Key, ArrowLeft } from "lucide-react"
 
 import {
   Sidebar,
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/layout/sidebar"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 
-export type TabType = 'profile' | 'security' | 'socials' | 'apis'
+export type TabType = 'general' | 'security' | 'apis'
 
 interface ProfileSidebarProps {
   activeTab: TabType
@@ -47,12 +47,12 @@ export function ProfileSidebar({ activeTab, onTabChange }: ProfileSidebarProps) 
           <SidebarMenu className="space-y-2">
             <SidebarMenuItem>
               <SidebarMenuButton 
-                isActive={activeTab === 'profile'} 
-                onClick={() => onTabChange('profile')}
-                className={`h-12 rounded-xl text-foreground font-semibold px-4 ${activeTab === 'profile' ? 'bg-foreground/5 shadow-sm' : 'hover:bg-foreground/5'}`}
+                isActive={activeTab === 'general'} 
+                onClick={() => onTabChange('general')}
+                className={`h-12 rounded-xl text-foreground font-semibold px-4 ${activeTab === 'general' ? 'bg-foreground/5 shadow-sm' : 'hover:bg-foreground/5'}`}
               >
                 <User className="mr-2 h-5 w-5 opacity-70" />
-                Perfil
+                Geral
               </SidebarMenuButton>
             </SidebarMenuItem>
             
@@ -66,17 +66,6 @@ export function ProfileSidebar({ activeTab, onTabChange }: ProfileSidebarProps) 
                 Segurança
               </SidebarMenuButton>
             </SidebarMenuItem>
-
-            <SidebarMenuItem>
-              <SidebarMenuButton 
-                isActive={activeTab === 'socials'} 
-                onClick={() => onTabChange('socials')}
-                className={`h-12 rounded-xl text-foreground font-semibold px-4 ${activeTab === 'socials' ? 'bg-foreground/5 shadow-sm' : 'hover:bg-foreground/5'}`}
-              >
-                <Link2 className="mr-2 h-5 w-5 opacity-70" />
-                Contas Vinculadas
-              </SidebarMenuButton>
-            </SidebarMenuItem>
             
             <SidebarMenuItem>
               <SidebarMenuButton 
@@ -85,7 +74,7 @@ export function ProfileSidebar({ activeTab, onTabChange }: ProfileSidebarProps) 
                 className={`h-12 rounded-xl text-foreground font-semibold px-4 ${activeTab === 'apis' ? 'bg-foreground/5 shadow-sm' : 'hover:bg-foreground/5'}`}
               >
                 <Key className="mr-2 h-5 w-5 opacity-70" />
-                Integrações (APIs)
+                API & Webhooks
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

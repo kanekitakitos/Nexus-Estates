@@ -53,9 +53,10 @@ function ClerkCallbackInner() {
         
         toast.success("Login social efetuado com sucesso!")
         router.replace("/")
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Falhou autenticação social."
         console.error("[ClerkCallback] Auth exchange failed:", err)
-        setError(err.message || "Falhou autenticação social.")
+        setError(message)
       }
     }
     void run()

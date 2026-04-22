@@ -10,9 +10,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Controlador REST responsável pela gestão de Utilizadores.
@@ -108,5 +112,46 @@ public class UserController {
             @PathVariable Long id){
         return userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Utilizador não encontrado"));
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<com.nexus.estates.common.dto.ApiResponse<MeResponse>> me(
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestHeader(value = "X-User-Email", required = false) String userEmailHeader
+    ) {
+        User current = getCurrentUser(userIdHeader, userEmailHeader);
+        MeResponse dto = new MeResponse(
+                current.getId(),
+                current.getEmail(),
+                current.getPhone(),
+                current.getRole() != null ? current.getRole().name() : null,
+                current.getClerkUserId()
+        );
+        return ResponseEntity.ok(com.nexus.estates.common.dto.ApiResponse.success(dto, "Perfil carregado."));
+    }
+
+    public record MeResponse(Long id, String email, String phone, String role, String clerkUserId) {}
+
+    private User getCurrentUser(String userIdHeader, String userEmailHeader) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Object principal = auth != null ? auth.getPrincipal() : null;
+        if (principal instanceof User user) {
+            return userRepository.findById(user.getId()).orElseThrow(() -> new IllegalStateException("Utilizador não autenticado."));
+        }
+
+        Optional<User> fromHeader = Optional.empty();
+        if (userIdHeader != null && !userIdHeader.isBlank()) {
+            try {
+                Long id = Long.parseLong(userIdHeader);
+                fromHeader = userRepository.findById(id);
+            } catch (Exception ignored) {
+            }
+        }
+        if (fromHeader.isEmpty() && userEmailHeader != null && !userEmailHeader.isBlank()) {
+            fromHeader = userRepository.findByEmail(userEmailHeader);
+        }
+
+        return fromHeader.orElseThrow(() -> new IllegalStateException("Utilizador não autenticado."));
     }
 }

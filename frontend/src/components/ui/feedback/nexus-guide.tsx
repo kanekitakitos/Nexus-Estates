@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { Sparkles, X, ArrowRight } from "lucide-react"
 import { createPortal } from "react-dom"
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
  
 export interface NexusGuideStep {
     id: string;
@@ -36,12 +36,14 @@ export interface NexusGuideProps {
  * A premium, rubber neobrutalist floating guide that onboards users.
  */
 export function NexusGuide({ step, totalSteps, content: stepContent, contextName = "Nexus System", onNext, onSkip, onEnd }: NexusGuideProps) {
-    const [mounted, setMounted] = useState(false)
- 
-    useEffect(() => {
-        setMounted(true)
-        return () => setMounted(false)
-    }, [])
+    const mounted = useSyncExternalStore(
+        (onStoreChange) => {
+            onStoreChange()
+            return () => {}
+        },
+        () => true,
+        () => false
+    )
  
     const content = (
         <AnimatePresence>
@@ -69,7 +71,7 @@ export function NexusGuide({ step, totalSteps, content: stepContent, contextName
                                 </div>
                                 <div className="flex flex-col">
                                     <h4 className="font-black uppercase text-xl tracking-tighter leading-none text-foreground dark:text-white">Nexus Assistant</h4>
-                                    <span className="font-mono text-[11px] font-black text-primary uppercase mt-1 animate-pulse">{contextName} // 0{step}</span>
+                                    <span className="font-mono text-[11px] font-black text-primary uppercase mt-1 animate-pulse">{contextName} 0{step}</span>
                                 </div>
                             </div>
                             <button 

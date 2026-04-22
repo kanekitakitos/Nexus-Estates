@@ -188,7 +188,7 @@ function PreviewLocationTags({ property }: { property: OwnProperty }) {
             <span className={proMeta}>Geolocalização & Morada</span>
           </div>
           <p className="text-2xl font-bold tracking-tighter text-[#0D0D0D] dark:text-white uppercase">{property.city || "CITY_UNDEFINED"}</p>
-          <p className="mt-2 text-sm leading-relaxed text-[#8C7B6B] dark:text-zinc-400 italic">"{property.address || "NO_STREET_PROTOCOL"}"</p>
+          <p className="mt-2 text-sm leading-relaxed text-[#8C7B6B] dark:text-zinc-400 italic">{property.address || "NO_STREET_PROTOCOL"}</p>
           <p className="mt-3 font-mono text-[10px] font-black uppercase tracking-widest text-[#0D0D0D]/40 dark:text-zinc-500">{property.location || "LOCATION_SYSTEM_ERROR"}</p>
         </div>
 
@@ -206,7 +206,7 @@ function PreviewLocationTags({ property }: { property: OwnProperty }) {
               ))
             ) : (
               <span className="font-mono text-[10px] font-black uppercase tracking-[0.3em] text-[#8C7B6B]/30 italic leading-loose">
-                PROTOCOL_UNTAGGED // Recomenda-se etiquetagem para SEO e indexação Nexus
+                PROTOCOL_UNTAGGED · Recomenda-se etiquetagem para SEO e indexação Nexus
               </span>
             )}
           </div>

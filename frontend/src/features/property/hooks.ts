@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { OwnProperty, Filters, WizardStep } from "@/types"
 import { PropertyService } from "@/services/property.service"
 import { AmenityService, Amenity } from "@/services/amenity.service"
+import type { CreatePropertyRequest, UpdatePropertyRequest } from "@/types/property"
 
 // ─── Constantes & Utilitários de Normalização ───────────────────────────────
 
@@ -240,8 +241,11 @@ export function usePropertyForm(initialData: OwnProperty | null, onSaved: () => 
                     ownerId: userId ? Number(userId) : undefined,
                     isActive: property.status === "AVAILABLE"
                 }
-                if (initialData) await PropertyService.updateProperty(Number(property.id), payload as any)
-                else await PropertyService.createProperty(payload as any)
+                if (initialData) {
+                    await PropertyService.updateProperty(Number(property.id), payload as unknown as UpdatePropertyRequest & { amenityIds?: number[] })
+                } else {
+                    await PropertyService.createProperty(payload as unknown as CreatePropertyRequest)
+                }
                 toast.success("Operação concluída com sucesso")
                 await onSaved()
             } catch (err) { 

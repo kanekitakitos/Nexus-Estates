@@ -1,11 +1,9 @@
 "use client"
 
 import React, { useState, useCallback, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { ProfileHeader } from "@/features/profile/components/profile-header"
-import { EditProfileForm } from "@/features/profile/components/edit-profile-form"
-import { ChangePasswordForm } from "@/features/profile/components/change-password-form"
 import { IntegrationsPanel } from "@/features/profile/components/integrations-panel"
-import { SocialConnectionsPanel, type SocialConnection } from "@/features/profile/components/social-connections-panel"
 import { ProfileSidebar, type TabType } from "@/features/profile/components/profile-sidebar"
 import { UserService } from "@/services/user.service"
 import type { UserProfile } from "@/types/user"
@@ -16,24 +14,10 @@ import { motion, AnimatePresence } from "framer-motion"
 
 import { SidebarProvider } from "@/components/ui/layout/sidebar"
 import { toast } from "sonner"
-
-const MOCK_PROFILE: UserProfile = {
-  id: 20,
-  name: "Brandon Correia",
-  email: "brandon-correia4@hotmail.com",
-  avatarUrl: null,
-  createdAt: "2026-02-15T10:30:00Z",
-}
-
-const MOCK_INTEGRATIONS: ExternalIntegrationDTO[] = [
-  { id: 1, providerName: "AIRBNB", apiKeyMasked: "sk_test_****LeZ8", active: true },
-  { id: 2, providerName: "BOOKING", apiKeyMasked: "bk_live_****1234", active: false },
-]
-
-const MOCK_SOCIALS: SocialConnection[] = [
-  { provider: "google", connected: false },
-  { provider: "github", connected: true, email: "brandon-dev@github.com" },
-]
+import { ProfilePanel } from "@/features/profile/components/profile-panel"
+import { AuthService } from "@/services/auth.service"
+import { SyncService } from "@/services/sync.service"
+import type { WebhookSubscription } from "@/types/sync"
 
 /**
  * @component ProfileView
@@ -45,13 +29,15 @@ const MOCK_SOCIALS: SocialConnection[] = [
  * Os seus "Dumb Components" são os painéis de visualização (`ProfileHeader`, `EditProfileForm`, etc).
  */
 export function ProfileView() {
+  const router = useRouter()
   const [me, setMe] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isMock, setIsMock] = useState(false)
+  const [loadError, setLoadError] = useState<"none" | "unauthorized" | "network" | "server">("none")
+  const [loadErrorInfo, setLoadErrorInfo] = useState<{ status?: number; message?: string }>({})
   const [integrations, setIntegrations] = useState<ExternalIntegrationDTO[]>([])
-  const [socialConnections, setSocialConnections] = useState<SocialConnection[]>([])
+  const [webhooks, setWebhooks] = useState<WebhookSubscription[]>([])
   
-  const [activeTab, setActiveTab] = useState<TabType>('profile')
+  const [activeTab, setActiveTab] = useState<TabType>('general')
   const [isDark, setIsDark] = useState(false)
 
   // Observa o Root do documento para verificar se a classe "dark" foi aplicada
@@ -67,13 +53,11 @@ export function ProfileView() {
 
   const load = useCallback(async () => {
     setLoading(true)
+    setLoadError("none")
+    setLoadErrorInfo({})
     try {
       const data = await UserService.getMe()
       setMe(data)
-      setIsMock(false)
-      
-      // Quando existir endpoint de conexões sociais reais, faz fetch aqui
-      setSocialConnections([{ provider: "google", connected: false }, { provider: "github", connected: false }])
 
       try {
         const list = await IntegrationsService.list()
@@ -81,11 +65,35 @@ export function ProfileView() {
       } catch {
         setIntegrations([])
       }
-    } catch {
-      setMe(MOCK_PROFILE)
-      setIsMock(true)
-      setIntegrations(MOCK_INTEGRATIONS)
-      setSocialConnections(MOCK_SOCIALS)
+      try {
+        const list = await SyncService.listWebhooks()
+        setWebhooks(list)
+      } catch {
+        setWebhooks([])
+      }
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number; data?: unknown } }).response?.status
+      const data = (err as { response?: { data?: unknown } }).response?.data as
+        | { message?: unknown; error?: { message?: unknown } }
+        | undefined
+      const message =
+        typeof data?.message === "string"
+          ? data.message
+          : typeof data?.error?.message === "string"
+            ? data.error.message
+            : undefined
+      setLoadErrorInfo({ status, message })
+
+      if (status === 401 || status === 403) {
+        setLoadError("unauthorized")
+      } else if (typeof status === "number") {
+        setLoadError("server")
+      } else {
+        setLoadError("network")
+      }
+      setMe(null)
+      setIntegrations([])
+      setWebhooks([])
     } finally {
       setLoading(false)
     }
@@ -95,43 +103,19 @@ export function ProfileView() {
     void load()
   }, [load])
 
-  const handleConnectSocial = async (provider: 'google' | 'github') => {
-    if (isMock) {
-      toast.info(`Redirecionando para login do ${provider}...`)
-      await new Promise(r => setTimeout(r, 1000))
-      setSocialConnections(prev => prev.map(p => p.provider === provider ? { ...p, connected: true, email: `mock-${provider}@test.com` } : p))
-      toast.success(`Conta ${provider} vinculada com sucesso!`)
-      return
-    }
-    
-    // Lógica real: redirecionar para endpoint OAuth do backend (Ex: /api/auth/google)
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/auth/${provider}/connect`
-  }
-
-  const handleDisconnectSocial = async (provider: 'google' | 'github') => {
-    if (isMock) {
-      await new Promise(r => setTimeout(r, 600))
-      setSocialConnections(prev => prev.map(p => p.provider === provider ? { ...p, connected: false, email: undefined } : p))
-      toast.success(`Conta ${provider} desvinculada.`)
-      return
-    }
-    
-    // Lógica real de desvincular
-    try {
-      // await UserService.disconnectSocial(provider)
-      toast.success(`Conta ${provider} desvinculada com sucesso!`)
-      await load()
-    } catch {
-      toast.error(`Erro ao desvincular conta do ${provider}.`)
-    }
-  }
-
   if (loading) {
     return <ProfileLoadingState />
   }
 
   if (!me) {
-    return <ProfileErrorState />
+    return (
+      <ProfileErrorState
+        error={loadError}
+        info={loadErrorInfo}
+        onRetry={load}
+        onLogin={() => router.replace("/login?expired=true")}
+      />
+    )
   }
   
   // Custom CSS variables to cascade down to components based on theme
@@ -155,15 +139,12 @@ export function ProfileView() {
               <ProfileContent 
                 activeTab={activeTab} 
                 me={me} 
-                isMock={isMock} 
                 integrations={integrations} 
-                socialConnections={socialConnections}
-                setMe={setMe}
                 setIntegrations={setIntegrations}
+                webhooks={webhooks}
+                setWebhooks={setWebhooks}
                 onLoad={load}
                 onTabChange={setActiveTab}
-                onConnectSocial={handleConnectSocial}
-                onDisconnectSocial={handleDisconnectSocial}
               />
             </div>
           </main>
@@ -218,10 +199,63 @@ function ProfileLoadingState() {
 /**
  * Subcomponente de Estado de Erro / Sessão Expirada
  */
-function ProfileErrorState() {
+function ProfileErrorState({
+  error,
+  info,
+  onRetry,
+  onLogin,
+}: {
+  error: "none" | "unauthorized" | "network" | "server"
+  info: { status?: number; message?: string }
+  onRetry: () => Promise<void>
+  onLogin: () => void
+}) {
+  useEffect(() => {
+    if (error === "unauthorized") {
+      onLogin()
+    }
+  }, [error, onLogin])
+
+  const title =
+    error === "unauthorized"
+      ? "Sessão expirada."
+      : error === "network"
+        ? "Backend indisponível."
+        : "Não foi possível carregar o perfil."
+
+  const subtitle =
+    error === "unauthorized"
+      ? "A redirecionar para login."
+      : error === "network"
+        ? "Verifica se o API Gateway e o user-service estão ligados."
+        : info.status
+          ? `HTTP ${info.status}${info.message ? ` · ${info.message}` : ""}`
+          : "Tenta novamente."
+
   return (
-    <div className="h-screen flex items-center justify-center bg-background text-foreground">
-      <div className="text-xs font-mono uppercase tracking-[0.2em] opacity-40 italic">Sessão expirada. Redirecionando...</div>
+    <div className="h-screen flex items-center justify-center bg-background text-foreground p-6">
+      <div className="w-full max-w-md space-y-5 rounded-3xl border border-foreground/10 bg-background/60 p-6">
+        <div className="space-y-1">
+          <div className="text-sm font-black uppercase tracking-[0.2em]">{title}</div>
+          <div className="text-xs font-mono opacity-60">{subtitle}</div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            type="button"
+            onClick={() => void onRetry()}
+            className="h-12 flex-1 rounded-2xl border border-foreground/20 bg-foreground/5 font-bold uppercase tracking-widest text-xs"
+          >
+            Tentar Novamente
+          </button>
+          <button
+            type="button"
+            onClick={onLogin}
+            className="h-12 flex-1 rounded-2xl bg-(--primary-accent) text-white font-bold uppercase tracking-widest text-xs border border-white/10"
+          >
+            Ir para Login
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -232,33 +266,29 @@ function ProfileErrorState() {
 function ProfileContent({
   activeTab,
   me,
-  isMock,
   integrations,
-  socialConnections,
-  setMe,
   setIntegrations,
+  webhooks,
+  setWebhooks,
   onLoad,
   onTabChange,
-  onConnectSocial,
-  onDisconnectSocial
 }: {
   activeTab: TabType,
   me: UserProfile,
-  isMock: boolean,
   integrations: ExternalIntegrationDTO[],
-  socialConnections: SocialConnection[],
-  setMe: React.Dispatch<React.SetStateAction<UserProfile | null>>,
   setIntegrations: React.Dispatch<React.SetStateAction<ExternalIntegrationDTO[]>>,
+  webhooks: WebhookSubscription[],
+  setWebhooks: React.Dispatch<React.SetStateAction<WebhookSubscription[]>>,
   onLoad: () => Promise<void>,
   onTabChange: (tab: TabType) => void,
-  onConnectSocial: (provider: 'google' | 'github') => Promise<void>,
-  onDisconnectSocial: (provider: 'google' | 'github') => Promise<void>
 }) {
+  const email = typeof me.email === "string" ? me.email : ""
+  const displayName = email.includes("@") ? email.split("@")[0] : email
   return (
     <AnimatePresence mode="wait">
-      {activeTab === 'profile' && (
+      {activeTab === 'general' && (
         <motion.div 
-          key="profile"
+          key="general"
           initial={{ opacity: 0, y: 10 }} 
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
@@ -266,27 +296,35 @@ function ProfileContent({
           className="space-y-10"
         >
           <ProfileHeader
-            name={me.name}
-            email={me.email}
-            avatarUrl={me.avatarUrl}
-            createdAt={me.createdAt}
-            onQuickApis={() => onTabChange('apis')}
+            name={displayName}
+            email={email}
+            avatarUrl={null}
+            createdAt={null}
+            onQuickApis={() => onTabChange("apis")}
           />
-          <EditProfileForm
-            defaultName={me.name}
-            onSubmit={async ({ name, file }) => {
-              if (isMock) {
-                setMe((prev) => {
-                  if (!prev) return prev
-                  return { ...prev, name } 
-                })
-                return
-              }
-              if (name && name !== me.name) await UserService.updateName(name)
-              if (file) await UserService.uploadAvatar(file)
-              await onLoad()
-            }}
-          />
+          <ProfilePanel
+            title="Dados"
+            subtitle="Informação carregada do backend"
+          >
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-(--fg-color)/10 bg-background/30 p-4">
+                <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">Email</div>
+                <div className="mt-1 text-sm font-mono text-(--fg-color) break-all">{email || "-"}</div>
+              </div>
+              <div className="rounded-2xl border border-(--fg-color)/10 bg-background/30 p-4">
+                <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">Role</div>
+                <div className="mt-1 text-sm font-mono text-(--fg-color)">{me.role ?? "-"}</div>
+              </div>
+              <div className="rounded-2xl border border-(--fg-color)/10 bg-background/30 p-4">
+                <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">Telefone</div>
+                <div className="mt-1 text-sm font-mono text-(--fg-color)">{me.phone ?? "-"}</div>
+              </div>
+              <div className="rounded-2xl border border-(--fg-color)/10 bg-background/30 p-4">
+                <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">ID</div>
+                <div className="mt-1 text-sm font-mono text-(--fg-color)">{String(me.id)}</div>
+              </div>
+            </div>
+          </ProfilePanel>
         </motion.div>
       )}
 
@@ -297,24 +335,26 @@ function ProfileContent({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.3 }}
+          className="space-y-10"
         >
-          <ChangePasswordForm onSubmit={async (payload) => { if (!isMock) await UserService.changePassword(payload) }} />
-        </motion.div>
-      )}
-
-      {activeTab === 'socials' && (
-        <motion.div 
-          key="socials"
-          initial={{ opacity: 0, y: 10 }} 
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.3 }}
-        >
-          <SocialConnectionsPanel
-            connections={socialConnections}
-            onConnect={onConnectSocial}
-            onDisconnect={onDisconnectSocial}
-          />
+          <ProfilePanel
+            title="Recuperação de Password"
+            subtitle="Envia um link por email (fluxo real do backend)"
+          >
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+              <div className="text-xs font-mono text-(--fg-color)/70 break-all">
+                {email || "-"}
+              </div>
+              <button
+                type="button"
+                onClick={() => void AuthService.forgotPassword(email)}
+                disabled={!email}
+                className="h-12 px-6 rounded-2xl bg-(--primary-accent) text-white font-bold uppercase tracking-widest border border-white/10 disabled:opacity-30"
+              >
+                Enviar Email
+              </button>
+            </div>
+          </ProfilePanel>
         </motion.div>
       )}
 
@@ -325,10 +365,150 @@ function ProfileContent({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.3 }}
+          className="space-y-10"
         >
-          <IntegrationsPanel isMock={isMock} items={integrations} setItems={setIntegrations} />
+          <IntegrationsPanel isMock={false} items={integrations} setItems={setIntegrations} />
+          <WebhookSubscriptionsPanel
+            items={webhooks}
+            setItems={setWebhooks}
+            onReload={onLoad}
+          />
         </motion.div>
       )}
     </AnimatePresence>
+  )
+}
+
+function WebhookSubscriptionsPanel({
+  items,
+  setItems,
+  onReload,
+}: {
+  items: WebhookSubscription[]
+  setItems: React.Dispatch<React.SetStateAction<WebhookSubscription[]>>
+  onReload: () => Promise<void>
+}) {
+  const [targetUrl, setTargetUrl] = useState("")
+  const [subscribedEvents, setSubscribedEvents] = useState("booking.created, booking.status.updated")
+  const [isBusy, setIsBusy] = useState(false)
+
+  const create = async () => {
+    const events = subscribedEvents
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+
+    if (!targetUrl.trim() || events.length === 0) return
+
+    setIsBusy(true)
+    try {
+      const created = await SyncService.createWebhook({ targetUrl: targetUrl.trim(), subscribedEvents: events })
+      await navigator.clipboard.writeText(created.secret)
+      toast.success("Secret copiado para o clipboard.")
+      setTargetUrl("")
+      await onReload()
+    } catch {
+      toast.error("Falha ao criar webhook.")
+    } finally {
+      setIsBusy(false)
+    }
+  }
+
+  const toggle = async (id: number) => {
+    setIsBusy(true)
+    try {
+      await SyncService.toggleWebhook(id)
+      setItems((prev) => prev.map((w) => (w.id === id ? { ...w, isActive: !w.isActive } : w)))
+    } finally {
+      setIsBusy(false)
+    }
+  }
+
+  const remove = async (id: number) => {
+    setIsBusy(true)
+    try {
+      await SyncService.deleteWebhook(id)
+      setItems((prev) => prev.filter((w) => w.id !== id))
+    } finally {
+      setIsBusy(false)
+    }
+  }
+
+  return (
+    <ProfilePanel
+      title="Webhooks"
+      subtitle="Recebe eventos do sistema no teu endpoint"
+    >
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">Target URL</div>
+            <input
+              value={targetUrl}
+              onChange={(e) => setTargetUrl(e.target.value)}
+              placeholder="https://example.com/webhooks/nexus"
+              className="h-12 w-full rounded-2xl border border-(--fg-color)/20 bg-background/50 px-4 text-sm font-mono text-(--fg-color) outline-none focus:ring-2 focus:ring-(--primary-accent)"
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">Eventos (CSV)</div>
+            <input
+              value={subscribedEvents}
+              onChange={(e) => setSubscribedEvents(e.target.value)}
+              className="h-12 w-full rounded-2xl border border-(--fg-color)/20 bg-background/50 px-4 text-sm font-mono text-(--fg-color) outline-none focus:ring-2 focus:ring-(--primary-accent)"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => void create()}
+            disabled={isBusy || !targetUrl.trim()}
+            className="h-12 px-6 rounded-2xl bg-(--primary-accent) text-white font-bold uppercase tracking-widest border border-white/10 disabled:opacity-30"
+          >
+            Criar
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {items.length === 0 ? (
+            <div className="text-xs font-mono text-(--fg-color)/50">Sem webhooks configurados.</div>
+          ) : (
+            items.map((w) => (
+              <div
+                key={w.id}
+                className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-2xl border border-(--fg-color)/10 bg-background/30 p-4"
+              >
+                <div className="min-w-0">
+                  <div className="text-xs font-mono text-(--fg-color) break-all">{w.targetUrl}</div>
+                  <div className="mt-1 text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50 break-all">
+                    {w.subscribedEvents}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void toggle(w.id)}
+                    disabled={isBusy}
+                    className="h-10 px-4 rounded-xl border border-(--fg-color)/20 bg-(--fg-color)/5 text-(--fg-color) text-xs font-bold uppercase tracking-widest disabled:opacity-30"
+                  >
+                    {w.isActive ? "Desativar" : "Ativar"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void remove(w.id)}
+                    disabled={isBusy}
+                    className="h-10 px-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-200 text-xs font-bold uppercase tracking-widest disabled:opacity-30"
+                  >
+                    Remover
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </ProfilePanel>
   )
 }

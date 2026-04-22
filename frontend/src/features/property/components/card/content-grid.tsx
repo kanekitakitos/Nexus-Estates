@@ -40,7 +40,7 @@ export function ContentGrid({ title, prop, onEdit }: ContentGridProps) {
         <p className={cn(nexusEyebrowClass, "flex items-center justify-center gap-1 opacity-60 text-[8px]")}>
           <MapPin className="h-2.5 w-2.5 text-primary" strokeWidth={3} />
           <span className="truncate max-w-[180px] tracking-widest">
-            {prop.location} // {prop.city}
+            {prop.location} · {prop.city}
           </span>
         </p>
       </div>

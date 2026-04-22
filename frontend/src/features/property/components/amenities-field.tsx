@@ -116,7 +116,7 @@ function CategorySection({
   category, items, selectedIds, onToggle 
 }: { 
   category: string; 
-  items: any[]; 
+  items: Array<{ id: number; name: string | { pt?: string; en?: string } }>; 
   selectedIds: number[]; 
   onToggle: (id: number) => void 
 }) {
@@ -136,7 +136,7 @@ function CategorySection({
           </div>
           <div>
             <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-primary">
-              {items.length.toString().padStart(2, "0")}_INDEX //
+              {items.length.toString().padStart(2, "0")}_INDEX
             </span>
             <h5 className="font-serif text-xl font-bold italic uppercase tracking-tight text-[#0D0D0D] dark:text-zinc-100">
               <BoingText text={category} color="currentColor" activeColor="#F97316" duration={0.3} stagger={0.02} />

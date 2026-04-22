@@ -142,7 +142,7 @@ function MediaSection({ draft, updateField }: Pick<SectionDraftProps, "draft" | 
                 </div>
                 <div className="w-full md:w-1/2 space-y-4">
                     <p className="text-xs leading-relaxed text-[#8C7B6B] dark:text-zinc-500 font-medium font-serif italic">
-                        Esta imagem será o "face" do ativo em todos os protocolos de listagem e sincronização externa. Recomenda-se formato 16:9.
+                        Esta imagem será o &quot;face&quot; do ativo em todos os protocolos de listagem e sincronização externa. Recomenda-se formato 16:9.
                     </p>
                     <div className="pt-2">
                         <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-[#0D0D0D]/5 bg-[#FAFAF5]/50 px-4 py-3 transition-colors hover:border-primary/20 dark:border-white/5 dark:bg-zinc-900/40">

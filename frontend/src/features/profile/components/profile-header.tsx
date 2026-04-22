@@ -19,7 +19,7 @@ interface ProfileHeaderProps {
   /** URL da imagem de perfil (opcional) */
   avatarUrl?: string | null
   /** Data de criação da conta em formato ISO string */
-  createdAt: string
+  createdAt?: string | null
   /** Função a executar ao clicar no botão de acesso rápido às APIs (opcional) */
   onQuickApis?: () => void
 }
@@ -117,11 +117,11 @@ function ProfileAvatar({ avatarUrl, name }: { avatarUrl?: string | null; name: s
  * @component ProfileUserInfo
  * @description Subcomponente que exibe as informações textuais do utilizador (nome, email, data de adesão).
  */
-function ProfileUserInfo({ name, email, createdAt }: { name: string; email: string; createdAt: string }) {
-  const formattedDate = new Date(createdAt).toLocaleDateString('pt-PT', { 
-    month: 'long', 
-    year: 'numeric' 
-  })
+function ProfileUserInfo({ name, email, createdAt }: { name: string; email: string; createdAt?: string | null }) {
+  const date = createdAt ? new Date(createdAt) : null
+  const formattedDate = date && !Number.isNaN(date.getTime())
+    ? date.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })
+    : null
 
   return (
     <div className="flex-1 text-center md:text-left space-y-2">
@@ -136,14 +136,16 @@ function ProfileUserInfo({ name, email, createdAt }: { name: string; email: stri
       <p className="text-lg font-mono text-(--fg-color)/60 lowercase">
         {email}
       </p>
-      <div className="flex items-center justify-center md:justify-start gap-2 pt-2">
-        <div className="px-3 py-1 rounded-full border border-(--fg-color)/10 bg-(--fg-color)/5 flex items-center gap-2">
-          <Calendar className="w-3 h-3 text-(--primary-accent)" />
-          <span className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/70">
-            Membro desde {formattedDate}
-          </span>
+      {formattedDate && (
+        <div className="flex items-center justify-center md:justify-start gap-2 pt-2">
+          <div className="px-3 py-1 rounded-full border border-(--fg-color)/10 bg-(--fg-color)/5 flex items-center gap-2">
+            <Calendar className="w-3 h-3 text-(--primary-accent)" />
+            <span className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/70">
+              Membro desde {formattedDate}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

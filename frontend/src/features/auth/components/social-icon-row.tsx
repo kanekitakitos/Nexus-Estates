@@ -61,9 +61,10 @@ export function ClerkSocialIconRow() {
     try {
       // Usamos a estratégia direta do IDP
       await idp.startOAuth(provider, "/clerk/callback")
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Falhou ao iniciar sessão"
       console.error(`[SocialIconRow] Erro ao iniciar OAuth para ${provider}:`, err)
-      toast.error(`Erro: ${err.message || "Falhou ao iniciar sessão"}`)
+      toast.error(`Erro: ${message}`)
       setLoadingProvider(null)
     }
   }

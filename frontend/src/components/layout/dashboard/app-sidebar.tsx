@@ -293,7 +293,7 @@ export function AppSidebar({
             <SidebarHeader className="border-b-2 border-foreground/10 p-4 h-[64px] flex items-center gap-3">
               <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
               <div className="text-foreground text-sm font-black font-mono uppercase tracking-[0.2em] italic">
-                {activeItem} //
+                {activeItem}
               </div>
             </SidebarHeader>
 
