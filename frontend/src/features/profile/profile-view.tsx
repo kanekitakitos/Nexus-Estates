@@ -19,37 +19,29 @@ import { AuthService } from "@/services/auth.service"
 import { SyncService } from "@/services/sync.service"
 import type { WebhookSubscription } from "@/types/sync"
 
-/**
- * @component ProfileView
- * @description Contentor principal da secção de Perfil. 
- * Encapsula a lógica de gestão de estado (tabs, utilizador, integrações) e o layout base da página.
- * 
- * @reference Clean Code - "Smart Component / Dumb Component":
- * Este é um "Smart Component" (Contentor) que detém a responsabilidade de comunicação com serviços e estado.
- * Os seus "Dumb Components" são os painéis de visualização (`ProfileHeader`, `EditProfileForm`, etc).
- */
-export function ProfileView() {
-  const router = useRouter()
+function useIsDarkMode() {
+  const [isDark, setIsDark] = useState(false)
+
+  useEffect(() => {
+    const checkDark = () => setIsDark(document.documentElement.classList.contains("dark"))
+    checkDark()
+
+    const observer = new MutationObserver(checkDark)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
+
+    return () => observer.disconnect()
+  }, [])
+
+  return isDark
+}
+
+function useProfileData() {
   const [me, setMe] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<"none" | "unauthorized" | "network" | "server">("none")
   const [loadErrorInfo, setLoadErrorInfo] = useState<{ status?: number; message?: string }>({})
   const [integrations, setIntegrations] = useState<ExternalIntegrationDTO[]>([])
   const [webhooks, setWebhooks] = useState<WebhookSubscription[]>([])
-  
-  const [activeTab, setActiveTab] = useState<TabType>('general')
-  const [isDark, setIsDark] = useState(false)
-
-  // Observa o Root do documento para verificar se a classe "dark" foi aplicada
-  useEffect(() => {
-    const checkDark = () => setIsDark(document.documentElement.classList.contains("dark"))
-    checkDark()
-    
-    const observer = new MutationObserver(checkDark)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
-    
-    return () => observer.disconnect()
-  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -103,6 +95,100 @@ export function ProfileView() {
     void load()
   }, [load])
 
+  return {
+    me,
+    loading,
+    loadError,
+    loadErrorInfo,
+    integrations,
+    setIntegrations,
+    webhooks,
+    setWebhooks,
+    load,
+  }
+}
+
+function ProfileMainScreen({
+  isDark,
+  activeTab,
+  onTabChange,
+  me,
+  integrations,
+  setIntegrations,
+  webhooks,
+  setWebhooks,
+  onLoad,
+}: {
+  isDark: boolean
+  activeTab: TabType
+  onTabChange: (tab: TabType) => void
+  me: UserProfile
+  integrations: ExternalIntegrationDTO[]
+  setIntegrations: React.Dispatch<React.SetStateAction<ExternalIntegrationDTO[]>>
+  webhooks: WebhookSubscription[]
+  setWebhooks: React.Dispatch<React.SetStateAction<WebhookSubscription[]>>
+  onLoad: () => Promise<void>
+}) {
+  const CustomStyle = {
+    "--bg-color": isDark ? "#0A0D14" : "#F0ECD9",
+    "--fg-color": isDark ? "#E6E2D1" : "#0D0D0D",
+    "--panel-bg": isDark ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.5)",
+    "--primary-accent": "#e2621cff",
+  } as React.CSSProperties
+
+  return (
+    <div style={CustomStyle} className="min-h-screen relative overflow-x-hidden transition-colors duration-500 ease-in-out bg-(--bg-color)">
+      <ProfileBackground isDark={isDark} />
+
+      <SidebarProvider className="relative z-10 w-full min-h-screen bg-transparent">
+        <div className="flex w-full">
+          <ProfileSidebar activeTab={activeTab} onTabChange={onTabChange} />
+
+          <main className="flex-1 w-full p-8 lg:p-14 overflow-y-auto">
+            <div className="max-w-5xl mx-auto">
+              <ProfileContent
+                activeTab={activeTab}
+                me={me}
+                integrations={integrations}
+                setIntegrations={setIntegrations}
+                webhooks={webhooks}
+                setWebhooks={setWebhooks}
+                onLoad={onLoad}
+                onTabChange={onTabChange}
+              />
+            </div>
+          </main>
+        </div>
+      </SidebarProvider>
+    </div>
+  )
+}
+
+/**
+ * @component ProfileView
+ * @description Contentor principal da secção de Perfil. 
+ * Encapsula a lógica de gestão de estado (tabs, utilizador, integrações) e o layout base da página.
+ * 
+ * @reference Clean Code - "Smart Component / Dumb Component":
+ * Este é um "Smart Component" (Contentor) que detém a responsabilidade de comunicação com serviços e estado.
+ * Os seus "Dumb Components" são os painéis de visualização (`ProfileHeader`, `EditProfileForm`, etc).
+ */
+export function ProfileView() {
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState<TabType>('general')
+  const isDark = useIsDarkMode()
+  const {
+    me,
+    loading,
+    loadError,
+    loadErrorInfo,
+    integrations,
+    setIntegrations,
+    webhooks,
+    setWebhooks,
+    load,
+  } = useProfileData()
+
   if (loading) {
     return <ProfileLoadingState />
   }
@@ -117,40 +203,19 @@ export function ProfileView() {
       />
     )
   }
-  
-  // Custom CSS variables to cascade down to components based on theme
-  const CustomStyle = {
-    "--bg-color": isDark ? "#0A0D14" : "#F0ECD9",
-    "--fg-color": isDark ? "#E6E2D1" : "#0D0D0D",
-    "--panel-bg": isDark ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.5)",
-    "--primary-accent": "#e2621cff"
-  } as React.CSSProperties
 
   return (
-    <div style={CustomStyle} className="min-h-screen relative overflow-x-hidden transition-colors duration-500 ease-in-out bg-(--bg-color)">
-      <ProfileBackground isDark={isDark} />
-
-      <SidebarProvider className="relative z-10 w-full min-h-screen bg-transparent">
-        <div className="flex w-full">
-          <ProfileSidebar activeTab={activeTab} onTabChange={setActiveTab} />
-
-          <main className="flex-1 w-full p-8 lg:p-14 overflow-y-auto">
-            <div className="max-w-5xl mx-auto">
-              <ProfileContent 
-                activeTab={activeTab} 
-                me={me} 
-                integrations={integrations} 
-                setIntegrations={setIntegrations}
-                webhooks={webhooks}
-                setWebhooks={setWebhooks}
-                onLoad={load}
-                onTabChange={setActiveTab}
-              />
-            </div>
-          </main>
-        </div>
-      </SidebarProvider>
-    </div>
+    <ProfileMainScreen
+      isDark={isDark}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      me={me}
+      integrations={integrations}
+      setIntegrations={setIntegrations}
+      webhooks={webhooks}
+      setWebhooks={setWebhooks}
+      onLoad={load}
+    />
   )
 }
 
