@@ -82,6 +82,29 @@ const DEFAULT_FILTERS: SearchFilters = {
   checkOutDate: null,
 }
 
+function useBookingCatalog() {
+  const [properties, setProperties] = useState<BookingProperty[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      const data = await PropertyService.getAllProperties()
+      setProperties(data)
+    } catch {
+      toast.error("Não foi possível carregar as propriedades.")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  return { properties, isLoading, reload: load }
+}
+
 // ─────────────────────────────────────────────
 // BookingView — root
 // ─────────────────────────────────────────────
@@ -99,8 +122,7 @@ const DEFAULT_FILTERS: SearchFilters = {
  * - Controla scrollTo(0,0) em cada transição para evitar estados confusos.
  */
 export function BookingView() {
-  const [properties, setProperties] = useState<BookingProperty[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { properties, isLoading } = useBookingCatalog()
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS)
   const [selectedProperty, setSelectedProperty] = useState<BookingProperty | null>(null)
   const [checkout, setCheckout] = useState<{ checkIn: string; checkOut: string } | null>(null)
@@ -123,21 +145,6 @@ export function BookingView() {
     },
     []
   )
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setIsLoading(true)
-        const data = await PropertyService.getAllProperties()
-        setProperties(data)
-      } catch {
-        toast.error("Não foi possível carregar as propriedades.")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    load()
-  }, [])
 
   const filteredProperties = useMemo(() => {
     let list = properties.filter((p) => p.status === "AVAILABLE")
