@@ -3,6 +3,7 @@
 import { SECTIONS, B } from "../tokens"
 import { BoingText } from "@/components/BoingText"
 import { useSyncExternalStore } from "react"
+import { AuthService } from "@/services/auth.service"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -124,9 +125,7 @@ export function Nav({ active = 0, goTo, fg = "#000000", accentColor, activeLinkC
       }
     },
     () => {
-      if (typeof window === "undefined") return false
-      const token = localStorage.getItem("token") ?? ""
-      return Boolean(token)
+      return AuthService.getSession().isAuthenticated
     },
     () => false,
   )

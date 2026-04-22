@@ -35,6 +35,7 @@ import { PropertyListBars } from "../../../features/property/property-list"
 import { OwnProperty } from "@/types"
 import {BrutalButton} from "@/components/ui/forms/button";
 import { PropertyService } from "@/services/property.service"
+import { AuthService } from "@/services/auth.service"
 
 type UserRole = "ADMIN" | "GUEST" | "OWNER" | "STAFF"
 
@@ -99,10 +100,10 @@ export function AppSidebar({
   })
 
   const syncUserSession = React.useCallback(() => {
-    if (typeof window !== 'undefined') {
-      const email = localStorage.getItem('userEmail')
-      const token = localStorage.getItem('token')
-      const roleRaw = localStorage.getItem('userRole')
+    const session = AuthService.getSession()
+    const email = session.email || null
+    const token = session.token || null
+    const roleRaw = session.role || null
 
       const normalizeRole = (value: string | null): UserRole => {
         const normalized = (value || "").replace(/^ROLE_/, "").toUpperCase()
@@ -130,7 +131,6 @@ export function AppSidebar({
           isAuthenticated: false,
         })
       }
-    }
   }, [])
 
   React.useEffect(() => {

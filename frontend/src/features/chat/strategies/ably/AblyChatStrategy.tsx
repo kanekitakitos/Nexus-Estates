@@ -7,6 +7,7 @@ import { ChatHeader, ChatFooter, ChatMessageList, initials } from "@/features/ch
 import { Input } from "@/components/ui/forms/input";
 import { BookingService, type BookingResponse } from "@/services/booking.service";
 import { SyncService } from "@/services/sync.service";
+import { AuthService } from "@/services/auth.service";
 import { toast } from "sonner";
 
 // --- 1. Global Provider ---
@@ -24,8 +25,7 @@ const AblyChatList: React.FC<{ onSelectChat: (chatId: string) => void, selectedC
 
   React.useEffect(() => {
     const load = async () => {
-      if (typeof window === "undefined") return;
-      if (!localStorage.getItem("token")) return;
+      if (!AuthService.getSession().isAuthenticated) return;
 
       try {
         setIsLoading(true);
@@ -104,8 +104,8 @@ const AblyBookingChatWindow: React.FC<{ bookingId: string; onBack?: () => void }
   const channelRef = React.useRef<Ably.RealtimeChannel | null>(null);
 
   const mySenderId = React.useMemo(() => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("userId") || localStorage.getItem("userEmail");
+    const session = AuthService.getSession();
+    return session.userId || session.email || null;
   }, []);
 
   const channelId = React.useMemo(() => `booking-chat:${bookingId}`, [bookingId]);

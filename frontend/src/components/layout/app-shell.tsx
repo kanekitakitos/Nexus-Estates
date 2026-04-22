@@ -108,10 +108,8 @@ export function AppShell({ children, header, showHeader = true }: AppShellProps)
   const isHome = pathname === "/"
 
   const syncAuth = React.useCallback(() => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token')
-      setIsAuthenticated(!!token)
-    }
+    const session = AuthService.getSession()
+    setIsAuthenticated(session.isAuthenticated)
   }, [])
 
   React.useEffect(() => {
@@ -147,12 +145,7 @@ export function AppShell({ children, header, showHeader = true }: AppShellProps)
 
   React.useEffect(() => {
     syncAuth()
-    window.addEventListener('storage', syncAuth)
-    window.addEventListener('auth-change', syncAuth)
-    return () => {
-      window.removeEventListener('storage', syncAuth)
-      window.removeEventListener('auth-change', syncAuth)
-    }
+    return AuthService.subscribeSession(syncAuth)
   }, [syncAuth])
 
   return (

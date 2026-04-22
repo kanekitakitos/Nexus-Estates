@@ -15,6 +15,27 @@ export type { AuthCredentials, AuthResponse } from "@/types/auth";
  * - usersAxios (baseURL: {NEXT_PUBLIC_API_URL}/users)
  */
 export class AuthService {
+    static getSession(): { token: string; userId: string; email: string; role: string; isAuthenticated: boolean } {
+        if (typeof window === "undefined") {
+            return { token: "", userId: "", email: "", role: "", isAuthenticated: false };
+        }
+        const token = localStorage.getItem("token") ?? "";
+        const userId = localStorage.getItem("userId") ?? "";
+        const email = localStorage.getItem("userEmail") ?? "";
+        const role = localStorage.getItem("userRole") ?? "";
+        return { token, userId, email, role, isAuthenticated: Boolean(token) };
+    }
+
+    static subscribeSession(onChange: () => void): () => void {
+        if (typeof window === "undefined") return () => {};
+        const handler = () => onChange();
+        window.addEventListener("storage", handler);
+        window.addEventListener("auth-change", handler);
+        return () => {
+            window.removeEventListener("storage", handler);
+            window.removeEventListener("auth-change", handler);
+        };
+    }
     
     /**
      * Realiza o login do utilizador e gere o armazenamento da sessão.
