@@ -318,6 +318,69 @@ function BookingListScreen({
   )
 }
 
+function BookingDetailsScreen({
+  property,
+  onBack,
+  onCheckout,
+  checkInDate,
+  checkOutDate,
+}: {
+  property: BookingProperty
+  onBack: () => void
+  onCheckout: (payload: { checkIn: string; checkOut: string }) => void
+  checkInDate: Date | null
+  checkOutDate: Date | null
+}) {
+  return (
+    <motion.div
+      key="booking-details"
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+    >
+      <BookingDetails
+        property={property}
+        onBack={onBack}
+        onCheckout={onCheckout}
+        checkInDate={checkInDate}
+        checkOutDate={checkOutDate}
+      />
+    </motion.div>
+  )
+}
+
+function BookingCheckoutScreen({
+  property,
+  checkout,
+  onBack,
+  onSuccess,
+}: {
+  property: BookingProperty
+  checkout: { checkIn: string; checkOut: string }
+  onBack: () => void
+  onSuccess: () => void
+}) {
+  return (
+    <motion.div
+      key="booking-checkout"
+      className="p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+    >
+      <BookingCheckoutForm
+        property={property}
+        checkIn={checkout.checkIn}
+        checkOut={checkout.checkOut}
+        onBack={onBack}
+        onSuccess={onSuccess}
+      />
+    </motion.div>
+  )
+}
+
 // ─────────────────────────────────────────────
 // BookingView — root
 // ─────────────────────────────────────────────
@@ -390,41 +453,23 @@ export function BookingView() {
 
       {/* ── Details screen */}
       {screen === "details" && selectedProperty && (
-        <motion.div
-          key="booking-details"
-          variants={pageVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-        >
-          <BookingDetails
-            property={selectedProperty}
-            onBack={navigateBackToList}
-            onCheckout={navigateToCheckout}
-            checkInDate={filters.checkInDate}
-            checkOutDate={filters.checkOutDate}
-          />
-        </motion.div>
+        <BookingDetailsScreen
+          property={selectedProperty}
+          onBack={navigateBackToList}
+          onCheckout={navigateToCheckout}
+          checkInDate={filters.checkInDate}
+          checkOutDate={filters.checkOutDate}
+        />
       )}
 
       {/* ── Checkout screen */}
       {screen === "checkout" && selectedProperty && checkout && (
-        <motion.div
-          key="booking-checkout"
-          className="p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
-          variants={pageVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-        >
-          <BookingCheckoutForm
-            property={selectedProperty}
-            checkIn={checkout.checkIn}
-            checkOut={checkout.checkOut}
-            onBack={navigateBackToDetails}
-            onSuccess={navigateBackToList}
-          />
-        </motion.div>
+        <BookingCheckoutScreen
+          property={selectedProperty}
+          checkout={checkout}
+          onBack={navigateBackToDetails}
+          onSuccess={navigateBackToList}
+        />
       )}
     </AnimatePresence>
   )
