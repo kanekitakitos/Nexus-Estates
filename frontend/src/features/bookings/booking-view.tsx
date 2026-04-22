@@ -186,47 +186,10 @@ function useBookingFlow(properties: BookingProperty[]) {
   }
 }
 
-// ─────────────────────────────────────────────
-// BookingView — root
-// ─────────────────────────────────────────────
-
-/**
- * Root da feature de bookings.
- *
- * Fluxo
- * - `screen === "list"`: pesquisa + grid de propriedades.
- * - `screen === "details"`: detalhe de uma propriedade seleccionada.
- * - `screen === "checkout"`: formulário de reserva/pagamento para a propriedade seleccionada.
- *
- * Side-effects
- * - Carrega dados ao montar.
- * - Controla scrollTo(0,0) em cada transição para evitar estados confusos.
- */
-export function BookingView() {
-  const { properties, isLoading } = useBookingCatalog()
+function useBookingListModel(properties: BookingProperty[], itemsPerPage: number) {
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS)
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 6
 
-  const {
-    screen,
-    selectedProperty,
-    checkout,
-    lastViewedPropertyId,
-    isTransitioning,
-    navigateToDetails,
-    navigateBackToList,
-    navigateToCheckout,
-    navigateBackToDetails,
-    onExitComplete,
-  } = useBookingFlow(properties)
-
-  /**
-   * Setter utilitário: aplica update parcial ao objecto de filtros.
-   *
-   * Motivo
-   * - Evita múltiplos `useState` e reduz prop drilling.
-   */
   const setFilter = useCallback(
     <K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) => {
       setFilters((prev) => ({ ...prev, [key]: value }))
@@ -254,15 +217,149 @@ export function BookingView() {
   }, [properties, filters.destination, filters.maxPrice])
 
   const totalPages = Math.ceil(filteredProperties.length / itemsPerPage)
+
   const paginatedProperties = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage
     return filteredProperties.slice(start, start + itemsPerPage)
   }, [filteredProperties, currentPage, itemsPerPage])
 
-  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1)
   }, [filters])
+
+  return {
+    filters,
+    setFilter,
+    filteredProperties,
+    paginatedProperties,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+  }
+}
+
+function BookingListScreen({
+  filters,
+  setFilter,
+  isLoading,
+  filteredCount,
+  paginatedProperties,
+  currentPage,
+  totalPages,
+  onPageChange,
+  onOpenDetails,
+}: {
+  filters: SearchFilters
+  setFilter: <K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) => void
+  isLoading: boolean
+  filteredCount: number
+  paginatedProperties: BookingProperty[]
+  currentPage: number
+  totalPages: number
+  onPageChange: (page: number) => void
+  onOpenDetails: (id: string) => void
+}) {
+  return (
+    <motion.div
+      key="booking-list"
+      className="flex flex-col space-y-6 p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+    >
+      <HeroSection />
+
+      {/* Search bar wrapper */}
+      <motion.div
+        {...fadeUpEnter(0.35, 10, 0.32)}
+        className="rounded-2xl border-2 border-foreground bg-background shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)] p-3 md:p-4"
+      >
+        <BookingSearchBar
+          destination={filters.destination}
+          checkInDate={filters.checkInDate}
+          checkOutDate={filters.checkOutDate}
+          adults={filters.adults}
+          childrenCount={filters.children}
+          maxPrice={filters.maxPrice}
+          onDestinationChange={(v) => setFilter("destination", v)}
+          onCheckInChange={(v) => setFilter("checkInDate", v)}
+          onCheckOutChange={(v) => setFilter("checkOutDate", v)}
+          onAdultsChange={(v) => setFilter("adults", v)}
+          onChildrenChange={(v) => setFilter("children", v)}
+          onMaxPriceChange={(v) => setFilter("maxPrice", v)}
+          className="bg-transparent shadow-none border-0 p-0"
+        />
+      </motion.div>
+
+      {/* Results */}
+      <div className="relative">
+        <div className="absolute -left-4 top-0 bottom-0 w-1 bg-foreground/10 hidden md:block" />
+        {isLoading ? (
+          <PropertySkeletons />
+        ) : (
+          <>
+            <ResultsHeader
+              count={filteredCount}
+              hasFilter={Boolean(filters.destination || filters.maxPrice !== "")}
+            />
+            <BookingList properties={paginatedProperties} onBook={onOpenDetails} />
+
+            {/* Pagination Control */}
+            <BookingPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={onPageChange}
+            />
+          </>
+        )}
+      </div>
+    </motion.div>
+  )
+}
+
+// ─────────────────────────────────────────────
+// BookingView — root
+// ─────────────────────────────────────────────
+
+/**
+ * Root da feature de bookings.
+ *
+ * Fluxo
+ * - `screen === "list"`: pesquisa + grid de propriedades.
+ * - `screen === "details"`: detalhe de uma propriedade seleccionada.
+ * - `screen === "checkout"`: formulário de reserva/pagamento para a propriedade seleccionada.
+ *
+ * Side-effects
+ * - Carrega dados ao montar.
+ * - Controla scrollTo(0,0) em cada transição para evitar estados confusos.
+ */
+export function BookingView() {
+  const { properties, isLoading } = useBookingCatalog()
+  const itemsPerPage = 6
+
+  const {
+    screen,
+    selectedProperty,
+    checkout,
+    lastViewedPropertyId,
+    isTransitioning,
+    navigateToDetails,
+    navigateBackToList,
+    navigateToCheckout,
+    navigateBackToDetails,
+    onExitComplete,
+  } = useBookingFlow(properties)
+
+  const {
+    filters,
+    setFilter,
+    filteredProperties,
+    paginatedProperties,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+  } = useBookingListModel(properties, itemsPerPage)
 
   useNavigationGestures({
     screen,
@@ -278,61 +375,17 @@ export function BookingView() {
     >
       {/* ── List screen */}
       {screen === "list" && (
-        <motion.div
-          key="booking-list"
-          className="flex flex-col space-y-6 p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
-          variants={pageVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-        >
-          <HeroSection />
-
-          {/* Search bar wrapper */}
-          <motion.div
-            {...fadeUpEnter(0.35, 10, 0.32)}
-            className="rounded-2xl border-2 border-foreground bg-background shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)] p-3 md:p-4"
-          >
-            <BookingSearchBar
-              destination={filters.destination}
-              checkInDate={filters.checkInDate}
-              checkOutDate={filters.checkOutDate}
-              adults={filters.adults}
-              childrenCount={filters.children}
-              maxPrice={filters.maxPrice}
-              onDestinationChange={(v) => setFilter("destination", v)}
-              onCheckInChange={(v) => setFilter("checkInDate", v)}
-              onCheckOutChange={(v) => setFilter("checkOutDate", v)}
-              onAdultsChange={(v) => setFilter("adults", v)}
-              onChildrenChange={(v) => setFilter("children", v)}
-              onMaxPriceChange={(v) => setFilter("maxPrice", v)}
-              className="bg-transparent shadow-none border-0 p-0"
-            />
-          </motion.div>
-
-          {/* Results */}
-          <div className="relative">
-            <div className="absolute -left-4 top-0 bottom-0 w-1 bg-foreground/10 hidden md:block" />
-            {isLoading ? (
-              <PropertySkeletons />
-            ) : (
-              <>
-                <ResultsHeader
-                  count={filteredProperties.length}
-                  hasFilter={Boolean(filters.destination || filters.maxPrice !== "")}
-                />
-                <BookingList properties={paginatedProperties} onBook={navigateToDetails} />
-
-                {/* Pagination Control */}
-                <BookingPagination 
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                />
-              </>
-            )}
-          </div>
-        </motion.div>
+        <BookingListScreen
+          filters={filters}
+          setFilter={setFilter}
+          isLoading={isLoading}
+          filteredCount={filteredProperties.length}
+          paginatedProperties={paginatedProperties}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          onOpenDetails={navigateToDetails}
+        />
       )}
 
       {/* ── Details screen */}
