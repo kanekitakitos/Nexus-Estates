@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 
 import { PropertyManagementRoot } from "./sections/management/property-management-root"
@@ -63,46 +63,20 @@ export function PropertyView() {
   const { selectedPropertyId, selectPropertyId } = useView()
   const { properties, selectedProperty, isLoading, refresh, deleteProperty } = usePropertyManager(selectedPropertyId)
 
-  const [internalView, setInternalView] = useState<"list" | "wizard">("list")
-  const [wizardData, setWizardData] = useState<OwnProperty | null>(null)
-
-  // Determinação proativa do modo de visualização
-  const viewMode = internalView === "wizard" ? "wizard" : selectedPropertyId ? "detail" : "list"
-
-  /**
-   * Inicia o fluxo de criação de um novo ativo.
-   * @description Reseta o wizardData e muda a vista para 'wizard'.
-   */
-  const startCreate = () => {
-    setWizardData(null)
-    setInternalView("wizard")
-  }
-
-  /**
-   * Inicia o fluxo de edição rápida (via wizard) de um ativo existente.
-   * @param {OwnProperty} p - O objeto da propriedade a editar.
-   */
-  const startEdit = (p: OwnProperty) => {
-    setWizardData(p)
-    setInternalView("wizard")
-  }
-
-  /**
-   * Callback disparado após uma operação de gravação bem-sucedida.
-   * @description Refresca a lista de ativos e retorna à vista principal.
-   */
-  const onSaved = async () => {
-    await refresh()
-    setInternalView("list")
-    selectPropertyId(null)
-  }
-
-  /**
-   * Encerra o wizard de criação/edição e retorna à listagem.
-   */
-  const closeWizard = () => {
-    setInternalView("list")
-  }
+  const {
+    viewMode,
+    wizardData,
+    startCreate,
+    startEdit,
+    onSaved,
+    closeWizard,
+    goBackToList,
+    refreshDetail,
+  } = usePropertyFlow({
+    selectedPropertyId,
+    selectPropertyId,
+    refresh,
+  })
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#F0ECD9]/35 dark:bg-zinc-950">
@@ -112,34 +86,138 @@ export function PropertyView() {
       <AnimatePresence mode="wait">
         <main className="relative z-10 w-full max-w-[95%] lg:max-w-[75%] xl:max-w-[70%] mx-auto pb-10">
           {viewMode === "wizard" ? (
-            <motion.div key="wizard" variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <PropertyCreationWizard property={wizardData} onSaved={onSaved} onClose={closeWizard} />
-            </motion.div>
+            <PropertyWizardScreen wizardData={wizardData} onSaved={onSaved} onClose={closeWizard} />
           ) : viewMode === "detail" && selectedProperty ? (
-            <motion.div key="detail" variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <PropertyManagementRoot
-                property={selectedProperty}
-                onBack={() => selectPropertyId(null)}
-                onSave={async () => {
-                  await refresh()
-                }}
-              />
-            </motion.div>
+            <PropertyDetailScreen property={selectedProperty} onBack={goBackToList} onSave={refreshDetail} />
           ) : (
-            <motion.div key="list" variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <PropertyList
-                propertys={properties}
-                onSelect={selectPropertyId}
-                onAdd={startCreate}
-                onEdit={startEdit}
-                onDelete={deleteProperty}
-                addNewProperty
-                isLoading={isLoading}
-              />
-            </motion.div>
+            <PropertyListScreen
+              properties={properties}
+              isLoading={isLoading}
+              onSelect={selectPropertyId}
+              onAdd={startCreate}
+              onEdit={startEdit}
+              onDelete={deleteProperty}
+            />
           )}
         </main>
       </AnimatePresence>
     </div>
+  )
+}
+
+function usePropertyFlow({
+  selectedPropertyId,
+  selectPropertyId,
+  refresh,
+}: {
+  selectedPropertyId: string | null
+  selectPropertyId: (id: string | null) => void
+  refresh: () => Promise<void>
+}) {
+  const [internalView, setInternalView] = useState<"list" | "wizard">("list")
+  const [wizardData, setWizardData] = useState<OwnProperty | null>(null)
+
+  const viewMode: PropertyInternalView =
+    internalView === "wizard" ? "wizard" : selectedPropertyId ? "detail" : "list"
+
+  const startCreate = useCallback(() => {
+    setWizardData(null)
+    setInternalView("wizard")
+  }, [])
+
+  const startEdit = useCallback((p: OwnProperty) => {
+    setWizardData(p)
+    setInternalView("wizard")
+  }, [])
+
+  const onSaved = useCallback(async () => {
+    await refresh()
+    setInternalView("list")
+    selectPropertyId(null)
+  }, [refresh, selectPropertyId])
+
+  const closeWizard = useCallback(() => {
+    setInternalView("list")
+  }, [])
+
+  const goBackToList = useCallback(() => {
+    selectPropertyId(null)
+  }, [selectPropertyId])
+
+  const refreshDetail = useCallback(async () => {
+    await refresh()
+  }, [refresh])
+
+  return {
+    viewMode,
+    wizardData,
+    startCreate,
+    startEdit,
+    onSaved,
+    closeWizard,
+    goBackToList,
+    refreshDetail,
+  }
+}
+
+function PropertyWizardScreen({
+  wizardData,
+  onSaved,
+  onClose,
+}: {
+  wizardData: OwnProperty | null
+  onSaved: () => Promise<void>
+  onClose: () => void
+}) {
+  return (
+    <motion.div key="wizard" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+      <PropertyCreationWizard property={wizardData} onSaved={onSaved} onClose={onClose} />
+    </motion.div>
+  )
+}
+
+function PropertyDetailScreen({
+  property,
+  onBack,
+  onSave,
+}: {
+  property: OwnProperty
+  onBack: () => void
+  onSave: () => Promise<void>
+}) {
+  return (
+    <motion.div key="detail" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+      <PropertyManagementRoot property={property} onBack={onBack} onSave={onSave} />
+    </motion.div>
+  )
+}
+
+function PropertyListScreen({
+  properties,
+  isLoading,
+  onSelect,
+  onAdd,
+  onEdit,
+  onDelete,
+}: {
+  properties: OwnProperty[]
+  isLoading: boolean
+  onSelect: (id: string | null) => void
+  onAdd: () => void
+  onEdit: (p: OwnProperty) => void
+  onDelete: (id: string) => Promise<void>
+}) {
+  return (
+    <motion.div key="list" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+      <PropertyList
+        propertys={properties}
+        onSelect={onSelect}
+        onAdd={onAdd}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        addNewProperty
+        isLoading={isLoading}
+      />
+    </motion.div>
   )
 }
