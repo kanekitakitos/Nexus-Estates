@@ -170,10 +170,8 @@ function readAuthSession() {
     return { isAuthenticated: false, userId: null as number | null, email: "" }
   const token = localStorage.getItem("token") ?? ""
   const email = localStorage.getItem("userEmail") ?? ""
-  const rawId = localStorage.getItem("userId")
-  const userId = rawId && /^\d+$/.test(rawId) ? Number(rawId) : null
   const ok = Boolean(token && email && isJwtValid(token))
-  return { isAuthenticated: ok, userId: ok ? userId : null, email: ok ? email : "" }
+  return { isAuthenticated: ok, userId: null, email: ok ? email : "" }
 }
 
 function isJwtValid(token: string) {

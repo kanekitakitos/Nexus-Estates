@@ -87,8 +87,6 @@ export class PropertyService {
 
     static async updateProperty(id: string | number, request: UpdatePropertyRequest & { amenityIds?: number[] }): Promise<number> {
         try {
-            const actorUserIdRaw = typeof window === "undefined" ? null : localStorage.getItem("userId")
-            const actorUserId = actorUserIdRaw ? Number(actorUserIdRaw) : undefined
             const patch: UpdatePropertyRequest = {
                 title: request.title,
                 description: request.description,
@@ -101,7 +99,7 @@ export class PropertyService {
                 imageUrl: request.imageUrl
             }
 
-            await this.patchProperty(Number(id), patch, actorUserId)
+            await this.patchProperty(Number(id), patch)
 
             if (request.amenityIds) {
                 await this.updateAmenities(Number(id), request.amenityIds)
@@ -320,6 +318,34 @@ export class PropertyService {
         }
     }
 
+    static async listMine(params?: {
+        page?: number;
+        size?: number;
+        sort?: string;
+        city?: string;
+        isActive?: boolean;
+        minPrice?: number;
+        maxPrice?: number;
+    }): Promise<Page<PropertyListItem>> {
+        try {
+            const response = await propertiesAxios.get<ApiResponse<Page<PropertyListItem>>>(`/me`, {
+                params: {
+                    page: params?.page ?? 0,
+                    size: params?.size ?? 20,
+                    sort: params?.sort ?? "name,asc",
+                    city: params?.city?.trim() ? params?.city.trim() : undefined,
+                    isActive: params?.isActive,
+                    minPrice: params?.minPrice,
+                    maxPrice: params?.maxPrice,
+                },
+            });
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "listar propriedades do utilizador autenticado");
+            throw error;
+        }
+    }
+
     /**
      * Obtém uma propriedade com dados expandidos (amenities + regras + sazonalidade).
      *
@@ -440,9 +466,7 @@ export class PropertyService {
 
         try {
             if (typeof window === "undefined") return [];
-            const userId = localStorage.getItem("userId");
-            if (!userId) return [];
-            const page = await this.listByUser({ userId: Number(userId), page: 0, size: 100, sort: "name,asc" });
+            const page = await this.listMine({ page: 0, size: 100, sort: "name,asc" });
             return page.content.map((p) => ({
                 id: String(p.id),
                 title: p.name,

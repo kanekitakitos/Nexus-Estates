@@ -177,4 +177,30 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getBookingsByUser(userId));
     }
 
+    @Operation(
+            summary = "Lista reservas do utilizador autenticado",
+            description = "Retorna o histórico de reservas do utilizador autenticado, resolvido via header X-User-Id injetado pelo API Gateway."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Reservas encontradas",
+                    content = @Content(schema = @Schema(implementation = BookingResponse.class))
+            ),
+            @ApiResponse(responseCode = "401", description = "Sessão expirada ou ausente"),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    @GetMapping("/me")
+    public ResponseEntity<List<BookingResponse>> getMine(@RequestHeader(value = "X-User-Id", required = false) String userIdHeader) {
+        if (userIdHeader == null || userIdHeader.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        try {
+            Long userId = Long.parseLong(userIdHeader);
+            return ResponseEntity.ok(bookingService.getBookingsByUser(userId));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+    }
+
 }

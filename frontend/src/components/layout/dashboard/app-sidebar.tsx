@@ -31,7 +31,7 @@ import { useChatStrategy } from "@/features/chat/ChatProvider"
 import { BookingService, type BookingResponse } from "@/services/booking.service"
 import { toast } from "sonner"
 
-import { PropertyList, PropertyListBars } from "../../../features/property/property-list"
+import { PropertyListBars } from "../../../features/property/property-list"
 import { OwnProperty } from "@/types"
 import {BrutalButton} from "@/components/ui/forms/button";
 import { PropertyService } from "@/services/property.service"
@@ -168,12 +168,9 @@ export function AppSidebar({
     const load = async () => {
       if (activeItem !== "Properties") return
       if (!currentUser.isAuthenticated) { setProperties([]); return }
-      if (typeof window === "undefined") return
-      const userIdRaw = localStorage.getItem("userId")
-      if (!userIdRaw) { setProperties([]); return }
       try {
         setIsLoadingProperties(true)
-        const page = await PropertyService.listByUser({ userId: Number(userIdRaw), page: 0, size: 25, sort: "name,asc" })
+        const page = await PropertyService.listMine({ page: 0, size: 25, sort: "name,asc" })
         const mapped: OwnProperty[] = page.content.map((p) => {
           const city = String(p.city ?? "")
           const location = String(p.location ?? city)

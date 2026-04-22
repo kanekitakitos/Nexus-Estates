@@ -17,7 +17,7 @@ import java.util.Set;
  * @param title       Título da propriedade (Obrigatório, entre 5 e 100 caracteres).
  * @param description Mapa de descrições indexado por idioma (ex: "pt", "en") para suporte JSONB.
  * @param price       Preço da propriedade (Deve ser um valor decimal superior a zero).
- * @param ownerId     ID do proprietário responsável pelo anúncio (Obrigatório).
+ * @param ownerId     ID do proprietário responsável pelo anúncio (Opcional quando resolvido via header X-User-Id no Gateway).
  * @param location    Localização geográfica ou morada da propriedade (Obrigatório).
  * @param amenityIds  Conjunto de IDs das comodidades (Amenities) a associar à propriedade.
  *
@@ -41,7 +41,6 @@ public record CreatePropertyRequest(
         Double price,
 
         @Schema(description = "ID do proprietário do imóvel", example = "123")
-        @NotNull(message = "Owner ID is required")
         Long ownerId,
 
         @Schema(description = "Localização ou morada resumida", example = "Algarve, Portugal")

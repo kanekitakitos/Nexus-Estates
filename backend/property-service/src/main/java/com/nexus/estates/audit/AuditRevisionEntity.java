@@ -3,13 +3,13 @@ package com.nexus.estates.audit;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import org.hibernate.envers.DefaultRevisionEntity;
+import org.hibernate.envers.DefaultTrackingModifiedEntitiesRevisionEntity;
 import org.hibernate.envers.RevisionEntity;
 
 @Entity
 @Table(name = "revinfo")
 @RevisionEntity(AuditRevisionListener.class)
-public class AuditRevisionEntity extends DefaultRevisionEntity {
+public class AuditRevisionEntity extends DefaultTrackingModifiedEntitiesRevisionEntity {
     @Column(name = "actor_user_id")
     private Long actorUserId;
 

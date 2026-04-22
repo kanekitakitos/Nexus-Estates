@@ -23,17 +23,16 @@ export type {
 export class BookingService {
     
     /**
-     * Obtém todas as reservas do utilizador autenticado (via localStorage).
+     * Obtém todas as reservas do utilizador autenticado.
      *
      * Endpoint backend:
-     * - GET /api/bookings/user/{userId}
+     * - GET /api/bookings/me
      */
     static async getMyBookings(): Promise<BookingResponse[]> {
         try {
             if (typeof window === "undefined") return [];
-            const userId = localStorage.getItem("userId");
-            if (!userId) return [];
-            return await this.getBookingsByUser(Number(userId));
+            const response = await bookingsAxios.get<BookingResponse[]>(`/me`);
+            return response.data;
         } catch (error) {
             this.handleError(error, "obter as suas reservas");
             throw error;

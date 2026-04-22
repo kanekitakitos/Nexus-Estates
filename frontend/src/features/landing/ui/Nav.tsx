@@ -126,8 +126,7 @@ export function Nav({ active = 0, goTo, fg = "#000000", accentColor, activeLinkC
     () => {
       if (typeof window === "undefined") return false
       const token = localStorage.getItem("token") ?? ""
-      const userId = localStorage.getItem("userId") ?? ""
-      return Boolean(token && userId)
+      return Boolean(token)
     },
     () => false,
   )

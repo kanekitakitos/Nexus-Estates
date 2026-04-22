@@ -10,7 +10,7 @@ import { toast } from "sonner"
 import { OwnProperty, Filters, WizardStep } from "@/types"
 import { PropertyService } from "@/services/property.service"
 import { AmenityService, Amenity } from "@/services/amenity.service"
-import type { CreatePropertyRequest, UpdatePropertyRequest } from "@/types/property"
+import type { CreatePropertyRequest } from "@/types/property"
 
 // ─── Constantes & Utilitários de Normalização ───────────────────────────────
 
@@ -100,11 +100,9 @@ export function usePropertyManager(selectedPropertyId: string | null) {
     const [isLoading, setIsLoading] = useState(false)
 
     const refresh = useCallback(async () => {
-        const userId = localStorage.getItem("userId")
-        if (!userId) { setProperties([]); return }
         setIsLoading(true)
         try {
-            const page = await PropertyService.listByUser({ userId: Number(userId), page: 0, size: 200, sort: "name,asc" })
+            const page = await PropertyService.listMine({ page: 0, size: 200, sort: "name,asc" })
             setProperties(page.content.map(mapListItem))
         } catch (err) { console.error(err) } finally { setIsLoading(false) }
     }, [])
@@ -125,7 +123,7 @@ export function usePropertyManager(selectedPropertyId: string | null) {
         isLoading, 
         refresh, 
         deleteProperty: async (id: string) => {
-            try { await PropertyService.deleteProperty(Number(id)); await refresh() } catch (err) { toast.error("Erro ao eliminar") }
+            try { await PropertyService.deleteProperty(Number(id)); await refresh() } catch { toast.error("Erro ao eliminar") }
         }
     }
 }
@@ -230,21 +228,48 @@ export function usePropertyForm(initialData: OwnProperty | null, onSaved: () => 
         handleFinalSave: async () => {
             setIsSaving(true)
             try {
-                const userId = localStorage.getItem("userId")
                 // Normalizar campos polimórficos para string simples (requisito da API)
                 const titleStr = typeof property.title === "string" ? property.title : (property.title?.pt || property.title?.en || "")
                 const descStr = typeof property.description === "string" ? property.description : (property.description?.pt || property.description?.en || "")
+                const description: Record<string, string> = typeof property.description === "string"
+                    ? { pt: descStr }
+                    : (property.description as unknown as Record<string, string>)
+
                 const payload = {
-                    ...property,
                     title: titleStr,
-                    description: descStr,
-                    ownerId: userId ? Number(userId) : undefined,
-                    isActive: property.status === "AVAILABLE"
+                    description,
+                    location: property.location,
+                    city: property.city,
+                    address: property.address,
+                    maxGuests: property.maxGuests,
+                    imageUrl: property.imageUrl || undefined,
+                    amenityIds: property.amenityIds
                 }
                 if (initialData) {
-                    await PropertyService.updateProperty(Number(property.id), payload as unknown as UpdatePropertyRequest & { amenityIds?: number[] })
+                    await PropertyService.updateProperty(Number(property.id), {
+                        title: payload.title,
+                        description: payload.description,
+                        location: payload.location,
+                        city: payload.city,
+                        address: payload.address,
+                        basePrice: property.price,
+                        maxGuests: payload.maxGuests,
+                        isActive: property.status === "AVAILABLE",
+                        imageUrl: payload.imageUrl,
+                        amenityIds: payload.amenityIds,
+                    })
                 } else {
-                    await PropertyService.createProperty(payload as unknown as CreatePropertyRequest)
+                    await PropertyService.createProperty({
+                        title: payload.title,
+                        description: payload.description,
+                        price: property.price,
+                        location: payload.location,
+                        city: payload.city,
+                        address: payload.address,
+                        maxGuests: payload.maxGuests,
+                        amenityIds: payload.amenityIds,
+                        imageUrl: payload.imageUrl,
+                    } as CreatePropertyRequest)
                 }
                 toast.success("Operação concluída com sucesso")
                 await onSaved()
