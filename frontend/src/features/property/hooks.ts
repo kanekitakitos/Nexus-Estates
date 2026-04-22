@@ -11,6 +11,7 @@ import { OwnProperty, Filters, WizardStep } from "@/types"
 import { PropertyService } from "@/services/property.service"
 import { AmenityService, Amenity } from "@/services/amenity.service"
 import type { CreatePropertyRequest } from "@/types/property"
+import { mapPropertyRecordToOwnProperty, resolveTranslation } from "./property-utils"
 
 // ─── Constantes & Utilitários de Normalização ───────────────────────────────
 
@@ -29,54 +30,7 @@ export const DEFAULT_FILTERS: Filters = {
     sortPrice: "sem filtro",
 }
 
-/**
- * resolveTranslation
- * 
- * Normaliza valores de tradução provenientes da API que podem ser strings puras 
- * ou objetos com chaves 'pt'/'en'.
- * 
- * @param value - Valor a ser traduzido (string ou object)
- * @returns String traduzida (prioridade PT)
- */
-export function resolveTranslation(value: unknown): string {
-    if (!value) return ""
-    if (typeof value === "string") return value
-    if (typeof value === "object") {
-        const v = value as Record<string, unknown>
-        return (typeof v["pt"] === "string" ? v["pt"] : "")
-            || (typeof v["en"] === "string" ? v["en"] : "")
-            || ""
-    }
-    return ""
-}
-
-/**
- * mapListItem
- * 
- * Converte o payload bruto do Backend (DTO) para o modelo de domínio do Frontend (OwnProperty).
- * Gere discrepâncias de nomes de campos (ex: image_url vs imageUrl) e normaliza tipos.
- * 
- * @param p - Objeto bruto da API
- * @returns Objeto OwnProperty tipado e sanitizado
- */
-function mapListItem(p: Record<string, unknown>): OwnProperty {
-    const city = String(p.city ?? "")
-    return {
-        id: String(p.id ?? ""),
-        title: String(p.name ?? ""),
-        description: resolveTranslation(p.description),
-        location: String(p.location ?? city),
-        city,
-        address: String(p.address ?? ""),
-        maxGuests: Number(p.maxGuests ?? 1),
-        price: Number(p.basePrice ?? 0),
-        imageUrl: String(p.imageUrl ?? p.image_url ?? ""),
-        status: p.isActive === true || p.isActive === "true" ? "AVAILABLE" : "MAINTENANCE",
-        rating: 0,
-        tags: Array.isArray(p.amenities) ? p.amenities.map(a => typeof a === 'object' && a !== null ? resolveTranslation(a.name) : String(a)) : [],
-        amenityIds: Array.isArray(p.amenityIds) ? p.amenityIds : (Array.isArray(p.amenities) ? p.amenities.map(a => typeof a === 'object' && a !== null ? a.id : a) : []),
-    }
-}
+export { resolveTranslation }
 
 // ─── Hook: usePropertyManager ────────────────────────────────────────────────
 
@@ -103,12 +57,14 @@ export function usePropertyManager(selectedPropertyId: string | null) {
         setIsLoading(true)
         try {
             const page = await PropertyService.listMine({ page: 0, size: 200, sort: "name,asc" })
-            setProperties(page.content.map(mapListItem))
+            setProperties(page.content.map((p) => mapPropertyRecordToOwnProperty(p as unknown as Record<string, unknown>)))
         } catch (err) { console.error(err) } finally { setIsLoading(false) }
     }, [])
 
     const loadDetail = useCallback((id: string) => {
-        PropertyService.getPropertyById(id).then(p => setSelectedProperty(mapListItem(p))).catch(console.error)
+        PropertyService.getPropertyById(id)
+            .then((p) => setSelectedProperty(mapPropertyRecordToOwnProperty(p as unknown as Record<string, unknown>)))
+            .catch(console.error)
     }, [])
 
     useEffect(() => { refresh() }, [refresh])

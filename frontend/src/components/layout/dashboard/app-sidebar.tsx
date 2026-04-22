@@ -36,6 +36,7 @@ import { OwnProperty } from "@/types"
 import {BrutalButton} from "@/components/ui/forms/button";
 import { PropertyService } from "@/services/property.service"
 import { AuthService } from "@/services/auth.service"
+import { mapPropertyRecordToOwnProperty } from "@/features/property/property-utils"
 
 type UserRole = "ADMIN" | "GUEST" | "OWNER" | "STAFF"
 
@@ -172,23 +173,11 @@ export function AppSidebar({
         setIsLoadingProperties(true)
         const page = await PropertyService.listMine({ page: 0, size: 25, sort: "name,asc" })
         const mapped: OwnProperty[] = page.content.map((p) => {
-          const city = String(p.city ?? "")
-          const location = String(p.location ?? city)
-          const address = String(p.address ?? "")
-          const maxGuests = Number(p.maxGuests ?? 1)
+          const base = mapPropertyRecordToOwnProperty(p as unknown as Record<string, unknown>)
           return {
-            id: String(p.id ?? ""),
-            title: String(p.name ?? ""),
+            ...base,
             description: "",
-            location,
-            city,
-            address,
-            maxGuests,
-            price: Number(p.basePrice ?? 0),
             imageUrl: "",
-            status: p.isActive ? "AVAILABLE" : "MAINTENANCE",
-            rating: 0,
-            featured: false,
             tags: [],
             amenityIds: [],
           }

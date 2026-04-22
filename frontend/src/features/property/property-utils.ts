@@ -11,6 +11,7 @@ import {
   PropertyCardVariant,
   LEGACY_VARIANT_MAP,
 } from "./property-constants"
+import type { OwnProperty } from "@/types"
 
 // ─── Resolução de Variantes ──────────────────────────────────────────────────
 
@@ -73,4 +74,50 @@ export function resolvePropertyDescription(
       fallback
   }
   return fallback
+}
+
+export function resolveTranslation(value: unknown): string {
+  if (!value) return ""
+  if (typeof value === "string") return value
+  if (typeof value === "object") {
+    const v = value as Record<string, unknown>
+    return (
+      (typeof v["pt"] === "string" ? v["pt"] : "") ||
+      (typeof v["en"] === "string" ? v["en"] : "") ||
+      ""
+    )
+  }
+  return ""
+}
+
+export function mapPropertyRecordToOwnProperty(p: Record<string, unknown>): OwnProperty {
+  const city = String(p.city ?? "")
+  const amenities = Array.isArray(p.amenities) ? p.amenities : []
+  const amenityIdsRaw = Array.isArray(p.amenityIds)
+    ? p.amenityIds
+    : amenities.map((a) => (typeof a === "object" && a !== null ? (a as { id?: unknown }).id : a))
+
+  const amenityIds = amenityIdsRaw
+    .map((id) => (typeof id === "number" ? id : Number(id)))
+    .filter((id) => Number.isFinite(id))
+
+  return {
+    id: String(p.id ?? ""),
+    title: String(p.name ?? ""),
+    description: resolveTranslation(p.description),
+    location: String(p.location ?? city),
+    city,
+    address: String(p.address ?? ""),
+    maxGuests: Number(p.maxGuests ?? 1),
+    price: Number(p.basePrice ?? 0),
+    imageUrl: String((p as { imageUrl?: unknown; image_url?: unknown }).imageUrl ?? (p as { image_url?: unknown }).image_url ?? ""),
+    status: p.isActive === true || p.isActive === "true" ? "AVAILABLE" : "MAINTENANCE",
+    rating: 0,
+    tags: amenities.map((a) =>
+      typeof a === "object" && a !== null
+        ? resolveTranslation((a as { name?: unknown }).name)
+        : String(a)
+    ).filter(Boolean),
+    amenityIds,
+  }
 }
