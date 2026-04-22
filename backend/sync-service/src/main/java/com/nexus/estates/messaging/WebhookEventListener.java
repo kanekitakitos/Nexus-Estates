@@ -42,7 +42,7 @@ public class WebhookEventListener {
      *
      * @param message O objeto com os detalhes base da reserva criada.
      */
-    @RabbitListener(queues = "${booking.events.queue.created:booking.created.queue}")
+    @RabbitListener(queues = "${booking.webhooks.queue.created:booking.webhooks.created.queue}")
     public void onBookingCreated(BookingCreatedMessage message) {
         log.info("Evento capturado para Webhooks: booking.created (Reserva ID: {})", message.bookingId());
 
@@ -61,7 +61,7 @@ public class WebhookEventListener {
      *
      * @param message A mensagem contendo o ID da reserva afetada e o seu novo estado final.
      */
-    @RabbitListener(queues = "${booking.events.queue.status-updated:booking.status.updated.queue}")
+    @RabbitListener(queues = "${booking.webhooks.queue.status-updated:booking.webhooks.status.updated.queue}")
     public void onBookingStatusUpdated(BookingStatusUpdatedMessage message) {
         log.info("Evento capturado para Webhooks: booking.status.updated (Reserva ID: {} -> {})",
                 message.bookingId(), message.status());

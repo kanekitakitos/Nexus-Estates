@@ -10,11 +10,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestClient;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,19 +30,19 @@ import static org.mockito.Mockito.when;
 class ExternalSyncServiceTest {
 
     @Mock
-    private RestClient externalApiRestClient;
+    private WebClient externalApiWebClient;
 
     @Mock
     private ExternalAuthService authService;
 
     @Mock
-    private RestClient.RequestBodyUriSpec requestBodyUriSpec;
+    private WebClient.RequestBodyUriSpec requestBodyUriSpec;
 
     @Mock
-    private RestClient.RequestBodySpec requestBodySpec;
+    private WebClient.RequestBodySpec requestBodySpec;
 
     @Mock
-    private RestClient.ResponseSpec responseSpec;
+    private ClientResponse clientResponse;
 
     @InjectMocks
     private ExternalSyncService externalSyncService;
@@ -55,7 +58,7 @@ class ExternalSyncServiceTest {
         String payload = "data";
         String expectedResponse = "success";
 
-        when(externalApiRestClient.post()).thenReturn(requestBodyUriSpec);
+        when(externalApiWebClient.post()).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.uri("https://api.com/test")).thenReturn(requestBodySpec);
         when(requestBodySpec.contentType(any())).thenReturn(requestBodySpec);
         
@@ -66,9 +69,14 @@ class ExternalSyncServiceTest {
             return requestBodySpec;
         }).when(requestBodySpec).headers(any());
 
-        when(requestBodySpec.body(payload)).thenReturn(requestBodySpec);
-        when(requestBodySpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.body(String.class)).thenReturn(expectedResponse);
+        when(requestBodySpec.bodyValue(payload)).thenReturn(requestBodySpec);
+        when(clientResponse.statusCode()).thenReturn(HttpStatus.OK);
+        when(clientResponse.bodyToMono(String.class)).thenReturn(Mono.just(expectedResponse));
+        when(requestBodySpec.exchangeToMono(any())).thenAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            Function<ClientResponse, Mono<String>> fn = invocation.getArgument(0);
+            return fn.apply(clientResponse);
+        });
 
         Optional<String> result = externalSyncService.post(config, payload, String.class);
 
@@ -86,7 +94,7 @@ class ExternalSyncServiceTest {
         
         String payload = "payload";
 
-        when(externalApiRestClient.post()).thenReturn(requestBodyUriSpec);
+        when(externalApiWebClient.post()).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.uri("https://api.com/test")).thenReturn(requestBodySpec);
         when(requestBodySpec.contentType(any())).thenReturn(requestBodySpec);
         
@@ -97,9 +105,13 @@ class ExternalSyncServiceTest {
             return requestBodySpec;
         }).when(requestBodySpec).headers(any());
 
-        when(requestBodySpec.body(payload)).thenReturn(requestBodySpec);
-        when(requestBodySpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.toBodilessEntity()).thenReturn(ResponseEntity.noContent().build());
+        when(requestBodySpec.bodyValue(payload)).thenReturn(requestBodySpec);
+        when(clientResponse.statusCode()).thenReturn(HttpStatus.NO_CONTENT);
+        when(requestBodySpec.exchangeToMono(any())).thenAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            Function<ClientResponse, Mono<Boolean>> fn = invocation.getArgument(0);
+            return fn.apply(clientResponse);
+        });
 
         boolean result = externalSyncService.postWithoutResponse(config, payload);
 
