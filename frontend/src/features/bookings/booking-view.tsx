@@ -105,6 +105,87 @@ function useBookingCatalog() {
   return { properties, isLoading, reload: load }
 }
 
+function useBookingFlow(properties: BookingProperty[]) {
+  const [selectedProperty, setSelectedProperty] = useState<BookingProperty | null>(null)
+  const [checkout, setCheckout] = useState<{ checkIn: string; checkOut: string } | null>(null)
+  const [lastViewedPropertyId, setLastViewedPropertyId] = useState<string | null>(null)
+  const [screen, setScreen] = useState<BookingViewScreen>("list")
+  const [exitCleanup, setExitCleanup] = useState<ExitCleanup>(null)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+
+  const navigateToDetails = useCallback(
+    (id: string) => {
+      if (isTransitioning) return
+      const property = properties.find((p) => p.id === id)
+      if (!property) return
+      setLastViewedPropertyId(id)
+      setSelectedProperty(property)
+      setCheckout(null)
+      setExitCleanup(null)
+      setIsTransitioning(true)
+      setScreen("details")
+      window.scrollTo(0, 0)
+    },
+    [isTransitioning, properties]
+  )
+
+  const navigateBackToList = useCallback(() => {
+    if (isTransitioning) return
+    setExitCleanup("clearAll")
+    setIsTransitioning(true)
+    setScreen("list")
+    window.scrollTo(0, 0)
+  }, [isTransitioning])
+
+  const navigateToCheckout = useCallback(
+    (payload: { checkIn: string; checkOut: string }) => {
+      if (isTransitioning) return
+      setCheckout(payload)
+      setExitCleanup(null)
+      setIsTransitioning(true)
+      setScreen("checkout")
+      window.scrollTo(0, 0)
+    },
+    [isTransitioning]
+  )
+
+  const navigateBackToDetails = useCallback(() => {
+    if (isTransitioning) return
+    setExitCleanup("clearCheckout")
+    setIsTransitioning(true)
+    setScreen("details")
+    window.scrollTo(0, 0)
+  }, [isTransitioning])
+
+  const onExitComplete = useCallback(() => {
+    /**
+     * Cleanup pós-animação.
+     * Mantém o estado consistente com o screen final e evita “stale UI”.
+     */
+    if (exitCleanup === "clearCheckout") setCheckout(null)
+    if (exitCleanup === "clearSelected") setSelectedProperty(null)
+    if (exitCleanup === "clearAll") {
+      setCheckout(null)
+      setSelectedProperty(null)
+    }
+    setExitCleanup(null)
+    setIsTransitioning(false)
+  }, [exitCleanup])
+
+  return {
+    screen,
+    selectedProperty,
+    checkout,
+    lastViewedPropertyId,
+    isTransitioning,
+    navigateToDetails,
+    navigateBackToList,
+    navigateToCheckout,
+    navigateBackToDetails,
+    onExitComplete,
+  }
+}
+
 // ─────────────────────────────────────────────
 // BookingView — root
 // ─────────────────────────────────────────────
@@ -124,14 +205,21 @@ function useBookingCatalog() {
 export function BookingView() {
   const { properties, isLoading } = useBookingCatalog()
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS)
-  const [selectedProperty, setSelectedProperty] = useState<BookingProperty | null>(null)
-  const [checkout, setCheckout] = useState<{ checkIn: string; checkOut: string } | null>(null)
-  const [lastViewedPropertyId, setLastViewedPropertyId] = useState<string | null>(null)
-  const [screen, setScreen] = useState<BookingViewScreen>("list")
-  const [exitCleanup, setExitCleanup] = useState<ExitCleanup>(null)
-  const [isTransitioning, setIsTransitioning] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 6
+
+  const {
+    screen,
+    selectedProperty,
+    checkout,
+    lastViewedPropertyId,
+    isTransitioning,
+    navigateToDetails,
+    navigateBackToList,
+    navigateToCheckout,
+    navigateBackToDetails,
+    onExitComplete,
+  } = useBookingFlow(properties)
 
   /**
    * Setter utilitário: aplica update parcial ao objecto de filtros.
@@ -176,76 +264,6 @@ export function BookingView() {
     setCurrentPage(1)
   }, [filters])
 
-  // ── Navegação entre ecrãs (máquina de estados simples)
-
-  /**
-   * Abre o detalhe de uma propriedade (a partir do id).
-   *
-   * Guardas
-   * - Respeita `isTransitioning` para evitar double-clicks durante animação.
-   */
-  const navigateToDetails = useCallback(
-    (id: string) => {
-      if (isTransitioning) return
-      const property = properties.find((p) => p.id === id)
-      if (!property) return
-      setLastViewedPropertyId(id)
-      setSelectedProperty(property)
-      setCheckout(null)
-      setExitCleanup(null)
-      setIsTransitioning(true)
-      setScreen("details")
-      window.scrollTo(0, 0)
-    },
-    [isTransitioning, properties]
-  )
-
-  /**
-   * Volta à lista e limpa selecção/checkout após terminar animação de saída.
-   *
-   * Nota
-   * - A limpeza real acontece em `onExitComplete` para não haver “flash” durante a animação.
-   */
-  const navigateBackToList = useCallback(() => {
-    if (isTransitioning) return
-    setExitCleanup("clearAll")
-    setIsTransitioning(true)
-    setScreen("list")
-    window.scrollTo(0, 0)
-  }, [isTransitioning])
-
-  /**
-   * Avança para checkout mantendo a propriedade seleccionada.
-   *
-   * Entrada
-   * - `payload` vem do BookingDetails (datas confirmadas).
-   */
-  const navigateToCheckout = useCallback(
-    (payload: { checkIn: string; checkOut: string }) => {
-      if (isTransitioning) return
-      setCheckout(payload)
-      setExitCleanup(null)
-      setIsTransitioning(true)
-      setScreen("checkout")
-      window.scrollTo(0, 0)
-    },
-    [isTransitioning]
-  )
-
-  /**
-   * Volta do checkout para os detalhes, preservando propriedade.
-   *
-   * Motivo
-   * - Permite editar datas/ver detalhes sem recomeçar o fluxo.
-   */
-  const navigateBackToDetails = useCallback(() => {
-    if (isTransitioning) return
-    setExitCleanup("clearCheckout")
-    setIsTransitioning(true)
-    setScreen("details")
-    window.scrollTo(0, 0)
-  }, [isTransitioning])
-
   useNavigationGestures({
     screen,
     lastViewedPropertyId,
@@ -256,17 +274,7 @@ export function BookingView() {
   return (
     <AnimatePresence
       mode="wait"
-      onExitComplete={() => {
-        /**
-         * Cleanup pós-animação.
-         * Mantém o estado consistente com o screen final e evita “stale UI”.
-         */
-        if (exitCleanup === "clearCheckout") setCheckout(null)
-        if (exitCleanup === "clearSelected") setSelectedProperty(null)
-        if (exitCleanup === "clearAll") { setCheckout(null); setSelectedProperty(null) }
-        setExitCleanup(null)
-        setIsTransitioning(false)
-      }}
+      onExitComplete={onExitComplete}
     >
       {/* ── List screen */}
       {screen === "list" && (
