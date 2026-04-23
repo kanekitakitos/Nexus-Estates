@@ -89,7 +89,9 @@ export function AppSidebar({
   const ChatList = chatStrategy.ChatList
   const ChatWindow = chatStrategy.ChatWindow
   const [selectedChatId, setSelectedChatId] = React.useState<string | undefined>(undefined)
-  const [bookings, setBookings] = React.useState<BookingResponse[]>([])
+  const [bookingScope, setBookingScope] = React.useState<"mine" | "properties">("mine")
+  const [myBookings, setMyBookings] = React.useState<BookingResponse[]>([])
+  const [propertyBookings, setPropertyBookings] = React.useState<BookingResponse[]>([])
   const [isLoadingBookings, setIsLoadingBookings] = React.useState(false)
   const [properties, setProperties] = React.useState<OwnProperty[]>([])
   const [isLoadingProperties, setIsLoadingProperties] = React.useState(false)
@@ -158,15 +160,80 @@ export function AppSidebar({
       if (!currentUser.isAuthenticated) return
       try {
         setIsLoadingBookings(true)
-        const data = await BookingService.getMyBookings()
-        setBookings(data)
+        const minePromise = BookingService.getMyBookings().catch(() => [])
+
+        const role = currentUser.role
+        const canSeePropertyBookings = role === "OWNER" || role === "ADMIN" || role === "STAFF"
+        let nextProperties = properties
+
+        if (canSeePropertyBookings && nextProperties.length === 0) {
+          try {
+            const page = await PropertyService.listMine({ page: 0, size: 25, sort: "name,asc" })
+            const mapped: OwnProperty[] = page.content.map((p) => {
+              const base = mapPropertyRecordToOwnProperty(p as unknown as Record<string, unknown>)
+              return {
+                ...base,
+                description: "",
+                imageUrl: "",
+                tags: [],
+                amenityIds: [],
+              }
+            })
+            setProperties(mapped)
+            nextProperties = mapped
+          } catch {
+            nextProperties = []
+          }
+        }
+
+        const propertyIds = canSeePropertyBookings
+          ? nextProperties
+              .map((p) => {
+                const n = Number(p.id)
+                return Number.isNaN(n) ? null : n
+              })
+              .filter((n): n is number => typeof n === "number")
+          : []
+
+        const propertyBookingsPromise = canSeePropertyBookings
+          ? Promise.all(
+              propertyIds.map((id) => BookingService.getBookingsByProperty(id, { silent: true }).catch(() => [])),
+            ).then((chunks) =>
+              chunks.flat(),
+            )
+          : Promise.resolve([])
+
+        const [mine, owned] = await Promise.all([minePromise, propertyBookingsPromise])
+
+        const sortDesc = (items: BookingResponse[]) =>
+          [...items].sort((a, b) => (b.checkInDate || "").localeCompare(a.checkInDate || ""))
+
+        setMyBookings(sortDesc(mine))
+
+        const byId = new Map<number, BookingResponse>()
+        for (const b of owned) {
+          if (typeof b?.id === "number") byId.set(b.id, b)
+        }
+        setPropertyBookings(sortDesc(Array.from(byId.values())))
       } finally {
         setIsLoadingBookings(false)
       }
     }
 
     load()
-  }, [activeItem, currentUser.isAuthenticated])
+  }, [activeItem, currentUser.isAuthenticated, currentUser.role, properties])
+
+  React.useEffect(() => {
+    if (!currentUser.isAuthenticated) {
+      setBookingScope("mine")
+      return
+    }
+    if (currentUser.role === "OWNER" || currentUser.role === "ADMIN" || currentUser.role === "STAFF") {
+      setBookingScope("properties")
+    } else {
+      setBookingScope("mine")
+    }
+  }, [currentUser.isAuthenticated, currentUser.role])
 
   React.useEffect(() => {
     const load = async () => {
@@ -342,23 +409,62 @@ export function AppSidebar({
                     </div>
                   ) : isLoadingBookings ? (
                     <div className="text-muted-foreground text-sm">A carregar reservas…</div>
-                  ) : bookings.length === 0 ? (
-                    <div className="text-muted-foreground text-sm">Ainda não tem reservas.</div>
                   ) : (
                     <div className="space-y-3">
-                      {bookings.map((b) => (
-                        <div key={b.id} className="rounded-lg border p-3 text-sm">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="font-medium">Reserva #{b.id}</div>
-                            <div className="text-xs text-muted-foreground">{b.status}</div>
-                          </div>
-                          <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
-                            <div>Property: {b.propertyId}</div>
-                            <div>{b.checkInDate} → {b.checkOutDate}</div>
-                            <div>Total: {b.totalPrice} {b.currency}</div>
-                          </div>
+                      {(currentUser.role === "OWNER" || currentUser.role === "ADMIN" || currentUser.role === "STAFF") && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setBookingScope("properties")}
+                            className={`h-9 px-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-colors ${
+                              bookingScope === "properties"
+                                ? "bg-foreground text-background border-foreground"
+                                : "bg-background/50 text-foreground/70 border-foreground/10 hover:bg-foreground/5"
+                            }`}
+                          >
+                            Das Propriedades
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setBookingScope("mine")}
+                            className={`h-9 px-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-colors ${
+                              bookingScope === "mine"
+                                ? "bg-foreground text-background border-foreground"
+                                : "bg-background/50 text-foreground/70 border-foreground/10 hover:bg-foreground/5"
+                            }`}
+                          >
+                            Minhas
+                          </button>
                         </div>
-                      ))}
+                      )}
+
+                      {(() => {
+                        const list = bookingScope === "properties" ? propertyBookings : myBookings
+                        if (list.length === 0) {
+                          return (
+                            <div className="text-muted-foreground text-sm">
+                              Ainda não tem reservas.
+                            </div>
+                          )
+                        }
+                        return (
+                          <div className="space-y-3">
+                            {list.map((b) => (
+                              <div key={b.id} className="rounded-lg border p-3 text-sm">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="font-medium">Reserva #{b.id}</div>
+                                  <div className="text-xs text-muted-foreground">{b.status}</div>
+                                </div>
+                                <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
+                                  <div>Property: {b.propertyId}</div>
+                                  <div>{b.checkInDate} → {b.checkOutDate}</div>
+                                  <div>Total: {b.totalPrice} {b.currency}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )
+                      })()}
                     </div>
                   )}
                 </div>

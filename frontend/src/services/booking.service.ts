@@ -1,6 +1,7 @@
 import { bookingsAxios } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import { toast } from "sonner";
+import { AuthService } from "@/services/auth.service";
 import type {
     BookingResponse,
     CreateBookingRequest,
@@ -34,6 +35,23 @@ export class BookingService {
             const response = await bookingsAxios.get<BookingResponse[]>(`/me`);
             return response.data;
         } catch (error) {
+            if (this.isAxiosError(error) && error.response?.status === 401) {
+                const session = AuthService.getSession();
+                const rawUserId = session.userId || "";
+                const userId =
+                    rawUserId.trim() && !Number.isNaN(Number(rawUserId)) ? Number(rawUserId) : null;
+
+                if (typeof userId === "number" && !Number.isNaN(userId)) {
+                    try {
+                        const fallback = await bookingsAxios.get<BookingResponse[]>(`/user/${userId}`);
+                        return fallback.data;
+                    } catch (fallbackError) {
+                        this.handleError(fallbackError, "obter as suas reservas");
+                        throw fallbackError;
+                    }
+                }
+            }
+
             this.handleError(error, "obter as suas reservas");
             throw error;
         }
@@ -119,12 +137,17 @@ export class BookingService {
      * Endpoint backend:
      * - GET /api/bookings/property/{propertyId}
      */
-    static async getBookingsByProperty(propertyId: number): Promise<BookingResponse[]> {
+    static async getBookingsByProperty(
+        propertyId: number,
+        options?: { silent?: boolean },
+    ): Promise<BookingResponse[]> {
         try {
             const response = await bookingsAxios.get<BookingResponse[]>(`/property/${propertyId}`);
             return response.data;
         } catch (error) {
-            this.handleError(error, "obter reservas por propriedade");
+            if (!options?.silent) {
+                this.handleError(error, "obter reservas por propriedade");
+            }
             throw error;
         }
     }
