@@ -43,7 +43,7 @@ import {
   springSnap,
   pillHover,
   pillTap,
-} from "@/features/bookings/motion"
+} from "@/features/bookings/lib/motion"
 
 // ─────────────────────────────────────────────
 // Types

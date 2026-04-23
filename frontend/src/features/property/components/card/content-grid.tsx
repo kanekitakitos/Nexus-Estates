@@ -3,7 +3,7 @@
 import { MapPin, Users2, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { OwnProperty } from "@/types"
-import { nexusEyebrowClass } from "../../property-tokens"
+import { nexusEyebrowClass } from "../../lib/property-tokens"
 import { StatusBadge } from "./status-badge"
 
 interface ContentGridProps {

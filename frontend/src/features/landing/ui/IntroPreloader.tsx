@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion"
 import { useEffect, useState } from "react"
-import { B } from "../tokens"
+import { B } from "../lib/tokens"
 
 type IntroWord = { text: string; italic?: boolean }
 
@@ -109,4 +109,3 @@ export function IntroPreloader({ onDone }: { onDone: () => void }) {
     </motion.div>
   )
 }
-

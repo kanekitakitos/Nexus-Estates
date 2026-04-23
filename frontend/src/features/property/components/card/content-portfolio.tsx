@@ -4,8 +4,8 @@ import { MapPin, Users2, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { OwnProperty } from "@/types"
 import { BoingText } from "@/components/effects/BoingText"
-import { nexusEyebrowClass, nexusEyebrowAccentClass } from "../../property-tokens"
-import { resolvePropertyDescription } from "../../property-utils"
+import { nexusEyebrowClass, nexusEyebrowAccentClass } from "../../lib/property-tokens"
+import { resolvePropertyDescription } from "../../lib/property-utils"
 import { StatusBadge } from "./status-badge"
 
 interface ContentPortfolioProps {

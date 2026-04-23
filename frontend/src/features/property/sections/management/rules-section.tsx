@@ -7,10 +7,10 @@ import { BrutalField } from "@/components/ui/forms/brutal-field"
 import { BrutalCard } from "@/components/ui/data-display/brutal-card"
 import { BrutalButton } from "@/components/ui/forms/button"
 import { CollaboratorManager } from "../../components/collaborator-manager"
-import { proMeta, proPanel } from "../../property-tokens"
+import { proMeta, proPanel } from "../../lib/property-tokens"
 import { BoingText } from "@/components/effects/BoingText"
 import { motion } from "framer-motion"
-import { staggerContainer, itemFadeUp } from "../../animations"
+import { staggerContainer, itemFadeUp } from "../../lib/animations"
 
 // ─── Tipos e Props ────────────────────────────────────────────────────────
 

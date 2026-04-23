@@ -9,11 +9,11 @@ import {
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { OwnProperty } from "@/types"
-import { useAmenityCatalog, resolveTranslation } from "../../hooks"
+import { useAmenityCatalog, resolveTranslation } from "../../model/hooks"
 import { PropertyMediaModal } from "../../components/property-media-modal"
-import { proMeta, proPanel, proSectionTitle } from "../../property-tokens"
+import { proMeta, proPanel, proSectionTitle } from "../../lib/property-tokens"
 import { BoingText } from "@/components/effects/BoingText"
-import { staggerContainer, itemFadeUp } from "../../animations"
+import { staggerContainer, itemFadeUp } from "../../lib/animations"
 
 // ─── Tipos e Interfaces ───────────────────────────────────────────────────
 

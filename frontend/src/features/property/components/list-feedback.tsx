@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import { AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { nexusEyebrowClass, nexusShadowMd, nexusHardBorder } from "../property-tokens"
+import { nexusEyebrowClass, nexusShadowMd, nexusHardBorder } from "../lib/property-tokens"
 
 // ─── EmptyState ─────────────────────────────────────────────────────────────
 

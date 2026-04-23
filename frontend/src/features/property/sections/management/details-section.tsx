@@ -12,7 +12,7 @@ import { BrutalCard } from "@/components/ui/data-display/brutal-card"
 import { ImageInput } from "@/components/ui/file-handler/imageInput"
 import { AmenitiesField } from "../../components/amenities-field"
 import { BoingText } from "@/components/effects/BoingText"
-import { staggerContainer, itemFadeUp } from "../../animations"
+import { staggerContainer, itemFadeUp } from "../../lib/animations"
 
 // ─── Tipos de Props Internos ────────────────────────────────────────────────
 
@@ -377,7 +377,7 @@ export function DetailsSection({
                 </motion.div>
 
                 <motion.div variants={itemFadeUp} className="lg:col-span-5 space-y-8">
-                    <OperationalStatusSection status={draft.status} onUpdate={(s) => updateField("status", s as import("../../property-constants").PropertyStatus)} />
+                    <OperationalStatusSection status={draft.status} onUpdate={(s) => updateField("status", s as import("../../model/property-constants").PropertyStatus)} />
                     <LogisticsSection draft={draft} initial={initial} updateField={updateField} />
                     <DecommissionZone isDeleting={isDeleting} onDelete={onDelete} />
                 </motion.div>

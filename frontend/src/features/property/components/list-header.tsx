@@ -5,7 +5,7 @@ import { Sparkles, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BrutalButton } from "@/components/ui/forms/button"
 import { BoingText } from "@/components/effects/BoingText"
-import { nexusEyebrowAccentClass, nexusEyebrowClass } from "../property-tokens"
+import { nexusEyebrowAccentClass, nexusEyebrowClass } from "../lib/property-tokens"
 
 interface ListHeaderProps {
   onAdd?: () => void

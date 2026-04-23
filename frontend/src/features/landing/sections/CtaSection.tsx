@@ -1,13 +1,13 @@
 "use client"
 
 import { motion, useReducedMotion } from "framer-motion"
-import { B, SECTIONS } from "../tokens"
-import { ease } from "../motion"
+import { B, SECTIONS } from "../lib/tokens"
+import { ease } from "../lib/motion"
 import { CassetteCard } from "../ui/CassetteCard"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Section = typeof SECTIONS[0]
+type Section = (typeof SECTIONS)[number]
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 

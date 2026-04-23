@@ -14,9 +14,9 @@ import {
 } from "@/components/ui/overlay/dropdown-menu"
 import { BrutalCard } from "@/components/ui/data-display/brutal-card"
 import { toast } from "sonner"
-import { proPanel } from "../property-tokens"
+import { proPanel } from "../lib/property-tokens"
 import { motion, AnimatePresence } from "framer-motion"
-import { staggerContainer, itemFadeUp } from "../animations"
+import { staggerContainer, itemFadeUp } from "../lib/animations"
 
 // ─── Tipos e Interfaces ───────────────────────────────────────────────────
 

@@ -31,7 +31,7 @@ import {
   gummyHover, gummyTap, comicSpring,
   pillHover, pillTap,
   fadeUpEnter,
-} from "@/features/bookings/motion"
+} from "@/features/bookings/lib/motion"
 
 // ─────────────────────────────────────────────
 // Types

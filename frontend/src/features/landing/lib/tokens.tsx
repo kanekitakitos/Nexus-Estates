@@ -21,7 +21,7 @@ export const SECTIONS = [
   { id: "workflow", label: "03", title: ["Como","Funciona"],                       italic:[false,true],        desc: "", bg: B.black,  fg: B.cream },
   { id: "plans",    label: "04", title: ["Escolhe","o Teu Plano"],                 italic:[false,true],        desc: "", bg: B.cream,  fg: B.black },
   { id: "cta",      label: "05", title: ["Pronto","Para","Começar"],               italic:[false,false,true],  desc: "", bg: B.orange, fg: B.cream },
-]
+] as const
 
 export const TICKER_ITEMS = [
   "Inventário Inteligente","Canal Sync","Burocracia Zero",
@@ -29,7 +29,7 @@ export const TICKER_ITEMS = [
   "Airbnb & Booking","Faturas Instantâneas",
 ]
 
-export const MORPHING = ["Automatize.","Sincronize.","Liberte-se.","Simplifique.","Centralize.","Lucre mais."]
+export const MORPHING = ["Automatize.","Sincronize.","Liberte-se.","Simplifique.","Centralize.","Lucre mais."] as const
 
 export const PLANS = [
   { name:"Starter", price:"€29", period:"/mês", desc:"Perfeito para começar",
@@ -38,7 +38,7 @@ export const PLANS = [
     features:["Até 10 propriedades","Tudo do Starter","Preços dinâmicos","SEF automático","Suporte prioritário"], featured:true },
   { name:"Enterprise", price:"Custom", period:"", desc:"Para grandes portfólios",
     features:["Propriedades ilimitadas","Tudo do Pro","API dedicada","Onboarding custom","Account manager"], featured:false },
-]
+] as const
 
 export const BENTO_FEATURES = [
   {
@@ -61,11 +61,11 @@ export const BENTO_FEATURES = [
     span:"md:col-span-1",
     icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
   },
-]
+] as const
 
 export const STEPS = [
   { n:"01", title:"Login & Setup",    desc:"Cria conta, adiciona propriedades e conecta as tuas OTAs em minutos." },
   { n:"02", title:"Sincroniza Tudo",  desc:"Calendários, preços e disponibilidade propagam para todos os canais automaticamente." },
   { n:"03", title:"Recebe Reservas",  desc:"O motor confirma, bloqueia e notifica. Zero intervenção manual necessária." },
   { n:"04", title:"Faturação Auto",   desc:"Faturas e registos SEF gerados e enviados assim que a reserva é confirmada." },
-]
+] as const

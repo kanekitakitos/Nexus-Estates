@@ -2,46 +2,26 @@
 
 import { motion } from "framer-motion"
 import { OwnProperty, PropertyListVariant } from "@/types"
-import { staggerContainer, itemFadeUp } from "./animations"
-import { usePropertyFilters } from "./hooks"
+import { staggerContainer, itemFadeUp } from "../lib/animations"
+import { usePropertyFilters } from "../model/hooks"
 
-import { PropertyCardItem } from "./components/property-card-item"
-import { PropertyFilterBar } from "./components/property-filter-bar"
-import { PropertyStats } from "./components/property-stats"
-import { ListHeader } from "./components/list-header"
-import { EmptyState, SkeletonLoader } from "./components/list-feedback"
+import { PropertyCardItem } from "../components/property-card-item"
+import { PropertyFilterBar } from "../components/property-filter-bar"
+import { PropertyStats } from "../components/property-stats"
+import { ListHeader } from "../components/list-header"
+import { EmptyState, SkeletonLoader } from "../components/list-feedback"
 
-// ─── Tipos e Interfaces ───────────────────────────────────────────────────
-
-/** Propriedades do componente de listagem principal */
 export interface PropertyListProps {
-  /** Variante visual: Grelha (CARDS) ou Barra Lateral (BARS) */
   variant?: PropertyListVariant
-  /** Se verdadeiro, exibe botão de criação de novas propriedades */
   addNewProperty?: boolean
-  /** Lista de ativos brutos vindos da API ou Mock */
   properties?: OwnProperty[]
-  /** Callback para seleção de um ativo */
   onSelect?: (id: string) => void
-  /** Callback para iniciar criação de novo ativo */
   onAdd?: () => void
-  /** Callback para editar um ativo específico */
   onEdit?: (prop: OwnProperty) => void
-  /** Callback para apagar um ativo (decommission) */
   onDelete?: (id: string) => void | Promise<void>
-  /** Estado de carregamento da listagem */
   isLoading?: boolean
 }
 
-// ─── Sub-Layouts Internos ─────────────────────────────────────────────────
-
-/**
- * AssetGrid
- *
- * Grelha de ativos com animação de cascata (stagger).
- * Responsabilidade única: Dispor os PropertyCardItem em formato de grelha
- * e delegar para EmptyState quando não há resultados.
- */
 function AssetGrid({
   items,
   onSelect,
@@ -77,13 +57,6 @@ function AssetGrid({
   )
 }
 
-/**
- * InventoryRailView
- *
- * Sub-layout para a variante lateral 'BARS'.
- * Responsabilidade única: Compor a vista compacta de barra lateral com
- * o botão de adição e a lista de PropertyCardItem em modo rail.
- */
 function InventoryRailView({
   items,
   onAdd,
@@ -125,20 +98,9 @@ function InventoryRailView({
   )
 }
 
-// ─── Componente Root ────────────────────────────────────────────────────────
-
-/**
- * PropertyList — Orchestrador de Inventário de Ativos.
- *
- * Responsabilidade única: Gerir a troca de variante de vista (CARDS vs BARS),
- * coordenar os filtros e compor os sub-layouts com os dados corretos.
- *
- * @hook usePropertyFilters - Lógica de filtragem client-side isolada no hook.
- */
 export function PropertyList({ variant = "CARDS", properties = [], ...props }: PropertyListProps) {
   const items = properties
   const { filters, updateFilter, filteredProperties } = usePropertyFilters(items)
-  // Cast necessário: PropertyFilterBar espera (key: string, value: ...) mas o hook usa genéricos
   const setFilter = updateFilter as (key: string, value: string | boolean | number) => void
 
   if (variant === "BARS") {
@@ -179,9 +141,6 @@ export function PropertyList({ variant = "CARDS", properties = [], ...props }: P
   )
 }
 
-/**
- * PropertyListBars — Atalho de conveniência para a variante lateral (BARS).
- */
 export function PropertyListBars(props: PropertyListProps) {
   return <PropertyList {...props} variant="BARS" />
 }

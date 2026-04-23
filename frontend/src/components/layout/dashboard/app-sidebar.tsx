@@ -31,12 +31,12 @@ import { useChatStrategy } from "@/features/chat"
 import { BookingService, type BookingResponse } from "@/services/booking.service"
 import { toast } from "sonner"
 
-import { PropertyListBars } from "../../../features/property/property-list"
+import { PropertyListBars } from "@/features/property"
 import { OwnProperty } from "@/types"
 import {BrutalButton} from "@/components/ui/forms/button";
 import { PropertyService } from "@/services/property.service"
 import { AuthService } from "@/services/auth.service"
-import { mapPropertyRecordToOwnProperty } from "@/features/property/property-utils"
+import { mapPropertyRecordToOwnProperty } from "@/features/property/lib/property-utils"
 
 type UserRole = "ADMIN" | "GUEST" | "OWNER" | "STAFF"
 

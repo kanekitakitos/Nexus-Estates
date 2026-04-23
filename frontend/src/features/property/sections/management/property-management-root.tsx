@@ -12,7 +12,7 @@ import { DetailsSection } from "./details-section"
 import { PropertyService } from "@/services/property.service"
 import { toast } from "sonner"
 import { BoingText } from "@/components/effects/BoingText"
-import { pageVariants } from "../../animations"
+import { pageVariants } from "../../lib/animations"
 
 // ─── Tipos e Props ────────────────────────────────────────────────────────
 

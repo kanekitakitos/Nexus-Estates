@@ -4,9 +4,9 @@ import { Home, Star } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { OwnProperty } from "@/types"
-import { resolveTranslation } from "../../hooks"
-import { nexusShadowSm } from "../../property-tokens"
-import { PropertyCardDisplayVariant } from "../../property-constants"
+import { resolveTranslation } from "../../model/hooks"
+import { nexusShadowSm } from "../../lib/property-tokens"
+import { PropertyCardDisplayVariant } from "../../model/property-constants"
 
 interface CardMediaThumbProps {
   /** Dados brutos do ativo para exibir */

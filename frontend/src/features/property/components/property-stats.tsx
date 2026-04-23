@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { LayoutGrid, CheckCircle2, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { OwnProperty } from "@/types"
-import { staggerContainer, statCardVariants } from "../animations"
+import { staggerContainer, statCardVariants } from "../lib/animations"
 import { AnimatedCounter } from "./animated-counter"
 
 // ─── Tipos e Props ─────────────────────────────────────────────────────────

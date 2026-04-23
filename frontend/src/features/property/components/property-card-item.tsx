@@ -3,8 +3,8 @@
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { OwnProperty } from "@/types"
-import { resolveTranslation } from "../hooks"
-import { microPop, nexusEntrance } from "../animations"
+import { resolveTranslation } from "../model/hooks"
+import { microPop, nexusEntrance } from "../lib/animations"
 import {
   nexusCardPressHover,
   nexusHardBorder,
@@ -12,14 +12,14 @@ import {
   nexusShadowMd,
   nexusShadowSm,
   nexusKineticLight,
-} from "../property-tokens"
-import { STATUS_CONFIG } from "../property-constants"
-import { resolvePropertyCardVariant, resolvedSerialId } from "../property-utils"
+} from "../lib/property-tokens"
+import { STATUS_CONFIG } from "../model/property-constants"
+import { resolvePropertyCardVariant, resolvedSerialId } from "../lib/property-utils"
 import { CardMediaThumb, ContentRail, ContentGrid, ContentPortfolio } from "./card"
 
 // Re-exporta tipos públicos para não quebrar imports externos
-export type { PropertyCardDisplayVariant, PropertyCardVariant } from "../property-constants"
-export { resolvePropertyCardVariant } from "../property-utils"
+export type { PropertyCardDisplayVariant, PropertyCardVariant } from "../model/property-constants"
+export { resolvePropertyCardVariant } from "../lib/property-utils"
 
 // ─── Tipos Públicos ────────────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ export interface PropertyCardItemProps {
   /** Chamado ao solicitar remoção */
   onDelete?: (id: string) => void | Promise<void>
   /** Variante do layout */
-  variant?: import("../property-constants").PropertyCardVariant
+  variant?: import("../model/property-constants").PropertyCardVariant
 }
 
 // ─── Componente Root ────────────────────────────────────────────────────────

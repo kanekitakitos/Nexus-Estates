@@ -1,9 +1,9 @@
 import { motion } from "framer-motion"
 import { Search, SlidersHorizontal, ArrowUpDown, MapPin } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { nexusShadowMd, nexusGlass } from "../property-tokens"
+import { nexusShadowMd, nexusGlass } from "../lib/property-tokens"
 import { BoingText } from "@/components/effects/BoingText"
-import { statusFlash } from "../animations"
+import { statusFlash } from "../lib/animations"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/overlay/dropdown-menu"
 
 interface PropertyFilterBarProps {

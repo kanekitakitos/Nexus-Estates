@@ -2,14 +2,14 @@
 
 import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
-import { B, SECTIONS, STEPS } from "../tokens"
+import { B, SECTIONS, STEPS } from "../lib/tokens"
 import { Title } from "../ui/Title"
-import { ease, revealTransition } from "../motion"
+import { ease, revealTransition } from "../lib/motion"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Section = typeof SECTIONS[0]
-type Step    = typeof STEPS[0]
+type Section = (typeof SECTIONS)[number]
+type Step    = (typeof STEPS)[number]
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

@@ -29,7 +29,7 @@ import {
   listContainerVariants,
   listItemVariants,
   panelVariants,
-} from "@/features/bookings/motion"
+} from "@/features/bookings/lib/motion"
 
 // ─────────────────────────────────────────────
 // Constants

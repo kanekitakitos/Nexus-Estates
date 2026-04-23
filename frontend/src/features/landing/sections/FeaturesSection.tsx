@@ -3,14 +3,14 @@
 import { AnimatePresence, motion } from "framer-motion"
 import type { CSSProperties, ReactNode } from "react"
 import { useState } from "react"
-import { B, BENTO_FEATURES, SECTIONS } from "../tokens"
+import { B, BENTO_FEATURES, SECTIONS } from "../lib/tokens"
 import { Title } from "../ui/Title"
-import { ease } from "../motion"
+import { ease } from "../lib/motion"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Section = typeof SECTIONS[0]
-type BentoFeature = typeof BENTO_FEATURES[0]
+type Section = (typeof SECTIONS)[number]
+type BentoFeature = (typeof BENTO_FEATURES)[number]
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

@@ -1,1 +1,1 @@
-export { BookingView } from "./booking-view"
+export { BookingView } from "./views/BookingView"

@@ -27,11 +27,11 @@
  */
 
 import { useMemo, useState, useEffect, useCallback, useRef } from "react"
-import { BookingList } from "./components/booking-list"
+import { BookingList } from "../components/booking-list"
 import type { BookingProperty } from "@/types/booking"
-import { BookingSearchBar } from "./components/booking-search-bar"
-import { BookingDetails } from "./components/booking-details"
-import { BookingCheckoutForm } from "./components/booking-checkout-form"
+import { BookingSearchBar } from "../components/booking-search-bar"
+import { BookingDetails } from "../components/booking-details"
+import { BookingCheckoutForm } from "../components/booking-checkout-form"
 import { cn } from "@/lib/utils"
 import { PropertyService } from "@/services/property.service"
 import { toast } from "sonner"
@@ -42,7 +42,7 @@ import {
   pageVariants, staggerContainer, staggerItem,
   shimmerX,
   springSnap, springBounce,
-} from "@/features/bookings/motion"
+} from "@/features/bookings/lib/motion"
 import {
   Pagination,
   PaginationContent,
@@ -267,7 +267,6 @@ function BookingListScreen({
     >
       <HeroSection />
 
-      {/* Search bar wrapper */}
       <motion.div
         {...fadeUpEnter(0.35, 10, 0.32)}
         className="rounded-2xl border-2 border-foreground bg-background shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.9)] p-3 md:p-4"
@@ -289,7 +288,6 @@ function BookingListScreen({
         />
       </motion.div>
 
-      {/* Results */}
       <div className="relative">
         <div className="absolute -left-4 top-0 bottom-0 w-1 bg-foreground/10 hidden md:block" />
         {isLoading ? (
@@ -302,7 +300,6 @@ function BookingListScreen({
             />
             <BookingList properties={paginatedProperties} onBook={onOpenDetails} />
 
-            {/* Pagination Control */}
             <BookingPagination
               currentPage={currentPage}
               totalPages={totalPages}
@@ -378,22 +375,6 @@ function BookingCheckoutScreen({
   )
 }
 
-// ─────────────────────────────────────────────
-// BookingView — root
-// ─────────────────────────────────────────────
-
-/**
- * Root da feature de bookings.
- *
- * Fluxo
- * - `screen === "list"`: pesquisa + grid de propriedades.
- * - `screen === "details"`: detalhe de uma propriedade seleccionada.
- * - `screen === "checkout"`: formulário de reserva/pagamento para a propriedade seleccionada.
- *
- * Side-effects
- * - Carrega dados ao montar.
- * - Controla scrollTo(0,0) em cada transição para evitar estados confusos.
- */
 export function BookingView() {
   const { properties, isLoading } = useBookingCatalog()
   const itemsPerPage = 6
@@ -433,7 +414,6 @@ export function BookingView() {
       mode="wait"
       onExitComplete={onExitComplete}
     >
-      {/* ── List screen */}
       {screen === "list" && (
         <BookingListScreen
           filters={filters}
@@ -448,7 +428,6 @@ export function BookingView() {
         />
       )}
 
-      {/* ── Details screen */}
       {screen === "details" && selectedProperty && (
         <BookingDetailsScreen
           property={selectedProperty}
@@ -459,7 +438,6 @@ export function BookingView() {
         />
       )}
 
-      {/* ── Checkout screen */}
       {screen === "checkout" && selectedProperty && checkout && (
         <BookingCheckoutScreen
           property={selectedProperty}
@@ -472,27 +450,12 @@ export function BookingView() {
   )
 }
 
-// ─────────────────────────────────────────────
-// HeroSection — word-stagger title + animated underline
-// ─────────────────────────────────────────────
-
 const HERO_WORDS = [
   { text: "Find",      pill: true,  rotate: "-rotate-1", underline: false },
   { text: "Your",      pill: false, rotate: "rotate-1",  underline: false },
   { text: "Next Stay", pill: false, rotate: "",         underline: true },
 ] as const
 
-/**
- * Hero da listagem (título “word-stagger” + sublinhado animado).
- * Mantém-se isolado para não poluir o componente root.
- */
-/**
- * Hero da listagem.
- *
- * Detalhes
- * - Usa stagger por palavra para um título “editorial”.
- * - Mantém reduced-motion através de `useReducedMotion`.
- */
 function HeroSection() {
   const shouldReduceMotion = useReducedMotion()
 
@@ -524,7 +487,6 @@ function HeroSection() {
               )}
             >
               {text}
-              {/* Animated underline on "Next Stay" */}
               {underline && (
                 <motion.span
                   className="absolute bottom-1 left-0 h-[4px] bg-primary rounded-full"
@@ -550,17 +512,6 @@ function HeroSection() {
   )
 }
 
-// ─────────────────────────────────────────────
-// ResultsHeader — animated count
-// ─────────────────────────────────────────────
-
-/** Cabeçalho de resultados com contador animado (valor troca com `AnimatePresence`). */
-/**
- * Cabeçalho de resultados.
- *
- * - Mostra count animado.
- * - Ajusta label consoante existirem filtros activos.
- */
 function ResultsHeader({ count, hasFilter }: { count: number; hasFilter: boolean }) {
   return (
     <div className="flex items-center gap-3 mb-4">
@@ -583,23 +534,12 @@ function ResultsHeader({ count, hasFilter }: { count: number; hasFilter: boolean
   )
 }
 
-// ─────────────────────────────────────────────
-// BookingPagination — isolated pagination logic
-// ─────────────────────────────────────────────
-
 interface BookingPaginationProps {
   currentPage: number
   totalPages: number
   onPageChange: (page: number) => void
 }
 
-/**
- * Sub-componente de paginação.
- *
- * Responsabilidade:
- * - Renderizar UI de paginação compatível com Neo-Brutalism.
- * - Gerir lógica de visibilidade de páginas (elipses).
- */
 function BookingPagination({ currentPage, totalPages, onPageChange }: BookingPaginationProps) {
   if (totalPages <= 1) return null
 
@@ -610,7 +550,6 @@ function BookingPagination({ currentPage, totalPages, onPageChange }: BookingPag
     >
       <Pagination>
         <PaginationContent>
-          {/* Previous Button */}
           <PaginationItem>
             <PaginationPrevious
               href="#"
@@ -653,7 +592,6 @@ function BookingPagination({ currentPage, totalPages, onPageChange }: BookingPag
             )
           })}
 
-          {/* Next Button */}
           <PaginationItem>
             <PaginationNext
               href="#"
@@ -669,18 +607,6 @@ function BookingPagination({ currentPage, totalPages, onPageChange }: BookingPag
   )
 }
 
-// ─────────────────────────────────────────────
-// PropertySkeletons — animated loading state
-// ─────────────────────────────────────────────
-
-/** Estado de loading: skeleton grid com shimmer animado. */
-/**
- * Estado de loading para a listagem.
- *
- * Motivo
- * - Mostra estrutura aproximada do grid e reduz layout shift.
- * - Usa shimmer para sugerir carregamento sem bloquear a UI.
- */
 function PropertySkeletons() {
   return (
     <motion.div
@@ -695,14 +621,12 @@ function PropertySkeletons() {
           variants={staggerItem}
           className="rounded-2xl border-2 border-foreground/20 bg-muted/30 overflow-hidden shadow-[3px_3px_0_0_rgb(0,0,0,0.06)]"
         >
-          {/* Image placeholder */}
           <div className="h-44 bg-muted/50 relative overflow-hidden">
             <motion.div
               className="absolute inset-0 bg-gradient-to-r from-transparent via-background/40 to-transparent"
               {...shimmerX(i * 0.08)}
             />
           </div>
-          {/* Text lines */}
           <div className="p-4 space-y-2.5">
             <div className="h-4 rounded-full bg-muted/70 w-3/4 overflow-hidden relative">
               <motion.div
@@ -727,22 +651,6 @@ function PropertySkeletons() {
   )
 }
 
-// ─────────────────────────────────────────────
-// useNavigationGestures
-// ─────────────────────────────────────────────
-
-/**
- * Hook de navegação por gestos no ecrã de listagem.
- *
- * Suporte
- * - Trackpad horizontal (WheelEvent deltaX)
- * - Swipe (touchstart/touchend)
- *
- * Guardas
- * - Só corre quando `screen === "list"`
- * - Só navega quando existe `lastViewedPropertyId`
- * - Respeita `isTransitioning`
- */
 function useNavigationGestures({
   screen,
   lastViewedPropertyId,
@@ -754,7 +662,6 @@ function useNavigationGestures({
   isTransitioning: boolean
   onNavigateForward: (id: string) => void
 }) {
-  /** Ref estável para evitar re-attach de listeners quando o callback muda de identidade. */
   const onForwardRef = useRef(onNavigateForward)
   useEffect(() => { onForwardRef.current = onNavigateForward }, [onNavigateForward])
 

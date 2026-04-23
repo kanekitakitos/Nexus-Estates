@@ -1,19 +1,3 @@
-/**
- * Property Constants
- *
- * Constantes de domínio imutáveis para a feature de Propriedades.
- * Seguindo o SRP, este ficheiro contém APENAS dados de configuração estáticos,
- * sem qualquer lógica de estado ou UI.
- */
-
-// ─── Status Operacional ──────────────────────────────────────────────────────
-
-/**
- * STATUS_CONFIG
- *
- * Mapeamento canónico de estados operacionais de uma propriedade para
- * os seus respetivos tokens visuais (cores, etiquetas, efeitos).
- */
 export const STATUS_CONFIG = {
   AVAILABLE: {
     bg: "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-500/5",
@@ -35,39 +19,24 @@ export const STATUS_CONFIG = {
   },
 } as const
 
-/** Tipo derivado das chaves de status possíveis */
 export type PropertyStatus = keyof typeof STATUS_CONFIG
 
-// ─── Variantes de Cartão ────────────────────────────────────────────────────
-
-/** Variantes visuais suportadas pelo cartão no novo sistema */
 export type PropertyCardDisplayVariant = "portfolio" | "grid" | "inventoryRail"
 
-/** Aliases para compatibilidade com vistas simplificadas e código legado */
 export type PropertyCardVariant =
   | PropertyCardDisplayVariant
   | "default"
   | "compact"
   | "mini"
 
-/** Mapeamento de variantes legadas para o sistema de display canónico */
 export const LEGACY_VARIANT_MAP: Record<string, PropertyCardDisplayVariant> = {
   default: "portfolio",
   compact: "grid",
   mini: "inventoryRail",
 }
 
-// ─── Categorias de Comodidades ────────────────────────────────────────────────
-
-/** Chaves canónicas de categoria de comodidade */
 export type AmenityCategory = "General" | "Kitchen" | "Bathroom" | "Entertainment" | "Outdoor" | "Safety"
 
-/**
- * CATEGORY_CONFIG
- *
- * Configuração visual por categoria de comodidade.
- * Separa dados de apresentação da lógica do componente AmenitiesField.
- */
 export const CATEGORY_CONFIG: Record<AmenityCategory, { color: string; icon: string; bg: string }> = {
   General:       { color: "text-primary",      bg: "bg-primary/5",      icon: "🏠" },
   Kitchen:       { color: "text-emerald-500",  bg: "bg-emerald-500/5",  icon: "🍳" },

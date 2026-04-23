@@ -7,9 +7,9 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-import { usePropertyForm } from "../../hooks"
+import { usePropertyForm } from "../../model/hooks"
 import { OwnProperty, WizardStep } from "@/types"
-import { pageVariants, nexusEntrance } from "../../animations"
+import { pageVariants, nexusEntrance } from "../../lib/animations"
 import { BoingText } from "@/components/effects/BoingText"
 import { BrutalField } from "@/components/ui/forms/brutal-field"
 import { BrutalButton } from "@/components/ui/forms/button"

@@ -2,29 +2,27 @@
 
 import { motion, AnimatePresence } from "framer-motion"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
-import { B, SECTIONS } from "./tokens"
+import { B, SECTIONS } from "../lib/tokens"
 import { BrutalGridBackground } from "@/components/ui/layout/brutal-grid-background"
 import ClickSpark, { CLICK_SPARK_PRESETS } from "@/components/effects/ClickSpark"
-import { Ticker } from "./ui/Ticker"
-import { VBand } from "./ui/VBand"
-import { SideProgress } from "./ui/SideProgress"
-import { Nav } from "./ui/Nav"
-import { HeroSection } from "./sections/HeroSection"
-import { AboutSection } from "./sections/AboutSection"
-import { FeaturesSection } from "./sections/FeaturesSection"
-import { WorkflowSection } from "./sections/WorkflowSection"
-import { PlansSection } from "./sections/PlansSection"
-import { CtaSection } from "./sections/CtaSection"
-import { FloatingObjects } from "./ui/FloatingObjects"
-import { IntroPreloader } from "./ui/IntroPreloader"
-import { contentFadeTransition, ghostActiveTransition, ghostIdleTransition, sectionTransition } from "./motion"
+import { Ticker } from "../ui/Ticker"
+import { VBand } from "../ui/VBand"
+import { SideProgress } from "../ui/SideProgress"
+import { Nav } from "../ui/Nav"
+import { HeroSection } from "../sections/HeroSection"
+import { AboutSection } from "../sections/AboutSection"
+import { FeaturesSection } from "../sections/FeaturesSection"
+import { WorkflowSection } from "../sections/WorkflowSection"
+import { PlansSection } from "../sections/PlansSection"
+import { CtaSection } from "../sections/CtaSection"
+import { FloatingObjects } from "../ui/FloatingObjects"
+import { IntroPreloader } from "../ui/IntroPreloader"
+import { contentFadeTransition, ghostActiveTransition, ghostIdleTransition, sectionTransition } from "../lib/motion"
 import { NoiseOverlay, NOISE_OVERLAY_PRESETS } from "@/components/effects/NoiseOverlay"
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 
-// ─── Section Renderer ─────────────────────────────────────────────────────────
-
-function SectionContent({ s }: { s: typeof SECTIONS[0] }) {
+function SectionContent({ s }: { s: (typeof SECTIONS)[number] }) {
   switch (s.id) {
     case "hero":     return <HeroSection s={s} />
     case "about":    return <AboutSection s={s} />
@@ -36,14 +34,6 @@ function SectionContent({ s }: { s: typeof SECTIONS[0] }) {
   }
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-
-/**
- * Landing horizontal (snap por secção) com:
- * - IntroPreloader (monta a landing só após o preloader terminar, para as animações iniciarem no timing certo)
- * - Scroller horizontal (scrollLeft) com snap por secção
- * - Mapeamento de wheel/touch vertical → scroll horizontal (para baixo = direita; para cima = esquerda)
- */
 export function HorizontalLanding() {
   const rootRef     = useRef<HTMLDivElement>(null)
   const scrollerRef = useRef<HTMLDivElement>(null)
@@ -51,7 +41,6 @@ export function HorizontalLanding() {
   const [active,    setActive]    = useState(0)
   const [introDone, setIntroDone] = useState(false)
 
-  // ── Sync active index from scroll ────────────────────────────────────────
   useEffect(() => {
     if (!introDone) return
     const el = scrollerRef.current
@@ -64,7 +53,6 @@ export function HorizontalLanding() {
     return () => el.removeEventListener("scroll", onScroll)
   }, [introDone])
 
-  // ── Wheel + touch → horizontal ────────────────────────────────────────────
   useEffect(() => {
     if (!introDone) return
     const root    = rootRef.current
@@ -107,16 +95,12 @@ export function HorizontalLanding() {
     }
   }, [introDone])
 
-  /**
-   * Navegação programática entre secções (usado pelo Nav/SideProgress e teclado).
-   */
   const goTo = (i: number) => {
     const el = scrollerRef.current
     if (!el) return
     el.scrollTo({ left: clamp(i, 0, SECTIONS.length - 1) * el.clientWidth, behavior: "smooth" })
   }
 
-  // ── Keyboard ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!introDone) return
     const onKeyDown = (e: KeyboardEvent) => {
@@ -137,12 +121,10 @@ export function HorizontalLanding() {
 
   return (
     <>
-      {/* ── Intro preloader ───────────────────────────────────────────────── */}
       <AnimatePresence>
         {!introDone && <IntroPreloader onDone={() => setIntroDone(true)} />}
       </AnimatePresence>
 
-      {/* ── Landing ───────────────────────────────────────────────────────── */}
       {introDone && (
         <ClickSpark {...CLICK_SPARK_PRESETS.landing}>
           <motion.div

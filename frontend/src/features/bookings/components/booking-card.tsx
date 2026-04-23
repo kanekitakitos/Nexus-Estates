@@ -34,7 +34,7 @@ import {
   springSnap,
   springBounce,
   staggerItem,
-} from "@/features/bookings/motion"
+} from "@/features/bookings/lib/motion"
 
 // ─────────────────────────────────────────────
 // Types — exportados para uso em booking-details, booking-view, etc.

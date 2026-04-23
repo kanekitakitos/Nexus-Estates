@@ -3,11 +3,11 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { Check, Loader2, RotateCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useAmenityCatalog, resolveTranslation } from "../hooks"
-import { nexusEyebrowClass, nexusShadowSm, nexusKineticLight } from "../property-tokens"
-import { CATEGORY_CONFIG } from "../property-constants"
+import { useAmenityCatalog, resolveTranslation } from "../model/hooks"
+import { nexusEyebrowClass, nexusShadowSm, nexusKineticLight } from "../lib/property-tokens"
+import { CATEGORY_CONFIG } from "../model/property-constants"
 import { BoingText } from "@/components/effects/BoingText"
-import { staggerContainer, itemFadeUp, microPop } from "../animations"
+import { staggerContainer, itemFadeUp, microPop } from "../lib/animations"
 
 // ─── Tipos e Props ────────────────────────────────────────────────────────
 
@@ -120,7 +120,7 @@ function CategorySection({
   selectedIds: number[]; 
   onToggle: (id: number) => void 
 }) {
-  const config = CATEGORY_CONFIG[category as import("../property-constants").AmenityCategory] ?? CATEGORY_CONFIG.General
+  const config = CATEGORY_CONFIG[category as import("../model/property-constants").AmenityCategory] ?? CATEGORY_CONFIG.General
   
   return (
     <div className="group/cat relative">
