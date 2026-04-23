@@ -32,7 +32,7 @@ import {
 import { Button } from "@/components/ui/forms/button"
 import { Badge } from "@/components/ui/badge"
 import { BrutalShard } from "@/components/ui/data-display/card"
-import { BookingProperty } from "./booking-card"
+import type { BookingProperty } from "@/types/booking"
 import { cn } from "@/lib/utils"
 import { DateRangeCalendar } from "./date-range-calendar"
 import { toast } from "sonner"

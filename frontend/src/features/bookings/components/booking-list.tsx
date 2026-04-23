@@ -20,7 +20,8 @@ import { motion } from "framer-motion"
 import { SearchX } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-import { BookingCard, BookingProperty } from "./booking-card"
+import { BookingCard } from "./booking-card"
+import type { BookingProperty } from "@/types/booking"
 import { BookingHowItWorks } from "./booking-how-it-works"
 import { BrutalEmptyState } from "@/components/ui/data-display/card"
 import {

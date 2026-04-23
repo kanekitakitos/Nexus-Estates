@@ -28,7 +28,7 @@
 
 import { useMemo, useState, useEffect, useCallback, useRef } from "react"
 import { BookingList } from "./components/booking-list"
-import { BookingProperty } from "./components/booking-card"
+import type { BookingProperty } from "@/types/booking"
 import { BookingSearchBar } from "./components/booking-search-bar"
 import { BookingDetails } from "./components/booking-details"
 import { BookingCheckoutForm } from "./components/booking-checkout-form"
