@@ -28,13 +28,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/layout/sidebar"
-import { useChatStrategy } from "@/features/chat"
 import { BookingService, type BookingResponse } from "@/services/booking.service"
 import { toast } from "sonner"
 
-import { PropertyListBars } from "@/features/property"
+import { BookingCompactSidebar } from "@/features/bookings"
+import { PropertyCompactSidebar } from "@/features/property"
+import { ChatCompactSidebar } from "@/features/chat"
 import { OwnProperty } from "@/types"
-import {BrutalButton} from "@/components/ui/forms/button";
 import { PropertyService } from "@/services/property.service"
 import { AuthService } from "@/services/auth.service"
 import { mapPropertyRecordToOwnProperty } from "@/features/property/lib/property-utils"
@@ -85,11 +85,6 @@ export function AppSidebar({
   const pathname = usePathname()
   const { setOpen, state } = useSidebar()
   const [activeItem, setActiveItem] = React.useState("Bookings")
-  const chatStrategy = useChatStrategy()
-  const ChatList = chatStrategy.ChatList
-  const ChatWindow = chatStrategy.ChatWindow
-  const [selectedChatId, setSelectedChatId] = React.useState<string | undefined>(undefined)
-  const [bookingScope, setBookingScope] = React.useState<"mine" | "properties">("mine")
   const [myBookings, setMyBookings] = React.useState<BookingResponse[]>([])
   const [propertyBookings, setPropertyBookings] = React.useState<BookingResponse[]>([])
   const [isLoadingBookings, setIsLoadingBookings] = React.useState(false)
@@ -224,18 +219,6 @@ export function AppSidebar({
   }, [activeItem, currentUser.isAuthenticated, currentUser.role, properties])
 
   React.useEffect(() => {
-    if (!currentUser.isAuthenticated) {
-      setBookingScope("mine")
-      return
-    }
-    if (currentUser.role === "OWNER" || currentUser.role === "ADMIN" || currentUser.role === "STAFF") {
-      setBookingScope("properties")
-    } else {
-      setBookingScope("mine")
-    }
-  }, [currentUser.isAuthenticated, currentUser.role])
-
-  React.useEffect(() => {
     const load = async () => {
       if (activeItem !== "Properties") return
       if (!currentUser.isAuthenticated) { setProperties([]); return }
@@ -356,122 +339,44 @@ export function AppSidebar({
             <SidebarContent className="p-0">
               {activeItem === "Chat" ? (
                 <>
-                  {!selectedChatId ? (
-                    <div className="h-[calc(100vh-56px)] overflow-y-auto animate-slide-in-left">
-                      <ChatList
-                        onSelectChat={setSelectedChatId}
-                        selectedChatId={selectedChatId}
-                      />
-                    </div>
-                  ) : (
-                    <div key={selectedChatId} className="flex-1 h-[calc(100vh-56px)] overflow-hidden animate-slide-in-right">
-                      <ChatWindow chatId={selectedChatId} onBack={() => setSelectedChatId(undefined)} />
-                    </div>
-                  )}
+                  {/* Painel: Chat */}
+                  <ChatCompactSidebar />
                 </>
-              ) 
-              : activeItem === "Properties" ? (
-                  <div key={selectedChatId} className="flex flex-col p-3">
-                    <BrutalButton 
-                      className={"w-full mb-3 cursor-pointer relative z-20 hover:scale-[1.02] active:scale-[0.98] transition-transform"} 
-                      onClick={() => {
-                        setView("properties")
-                        selectPropertyId(null)
-                        if (pathname !== "/properties") router.push("/properties")
-                      }}
-                    >
-                      Gestão de Ativos //
-                    </BrutalButton>
-                    {isLoadingProperties ? (
-                      <div className="py-10 text-center">
-                        <span className="font-mono text-[10px] uppercase font-black opacity-50 animate-pulse">
-                          Syncing_Assets...
-                        </span>
-                      </div>
-                    ) : (
-                      <PropertyListBars
-                        properties={properties}
-                        onSelect={(id) => {
-                          setView("properties")
-                          selectPropertyId(id)
-                          if (pathname !== "/properties") router.push("/properties")
-                        }}
-                      />
-                    )}
-                  </div>
-              )
-              : activeItem === "Bookings" ? (
-                <div className="p-4">
-                  {!currentUser.isAuthenticated ? (
-                    <div className="text-muted-foreground text-sm">
-                      <div className="mb-2">Precisa de iniciar sessão para ver as suas reservas.</div>
-                      <Link href="/login" className="underline">Ir para Login</Link>
-                    </div>
-                  ) : isLoadingBookings ? (
-                    <div className="text-muted-foreground text-sm">A carregar reservas…</div>
-                  ) : (
-                    <div className="space-y-3">
-                      {(currentUser.role === "OWNER" || currentUser.role === "ADMIN" || currentUser.role === "STAFF") && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setBookingScope("properties")}
-                            className={`h-9 px-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-colors ${
-                              bookingScope === "properties"
-                                ? "bg-foreground text-background border-foreground"
-                                : "bg-background/50 text-foreground/70 border-foreground/10 hover:bg-foreground/5"
-                            }`}
-                          >
-                            Das Propriedades
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setBookingScope("mine")}
-                            className={`h-9 px-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-colors ${
-                              bookingScope === "mine"
-                                ? "bg-foreground text-background border-foreground"
-                                : "bg-background/50 text-foreground/70 border-foreground/10 hover:bg-foreground/5"
-                            }`}
-                          >
-                            Minhas
-                          </button>
-                        </div>
-                      )}
-
-                      {(() => {
-                        const list = bookingScope === "properties" ? propertyBookings : myBookings
-                        if (list.length === 0) {
-                          return (
-                            <div className="text-muted-foreground text-sm">
-                              Ainda não tem reservas.
-                            </div>
-                          )
-                        }
-                        return (
-                          <div className="space-y-3">
-                            {list.map((b) => (
-                              <div key={b.id} className="rounded-lg border p-3 text-sm">
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="font-medium">Reserva #{b.id}</div>
-                                  <div className="text-xs text-muted-foreground">{b.status}</div>
-                                </div>
-                                <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
-                                  <div>Property: {b.propertyId}</div>
-                                  <div>{b.checkInDate} → {b.checkOutDate}</div>
-                                  <div>Total: {b.totalPrice} {b.currency}</div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )
-                      })()}
-                    </div>
-                  )}
-                </div>
+              ) : activeItem === "Properties" ? (
+                <>
+                  {/* Painel: Properties */}
+                  <PropertyCompactSidebar
+                    isAuthenticated={currentUser.isAuthenticated}
+                    isLoading={isLoadingProperties}
+                    properties={properties}
+                    onManage={() => {
+                      setView("properties")
+                      selectPropertyId(null)
+                      if (pathname !== "/properties") router.push("/properties")
+                    }}
+                    onSelect={(id) => {
+                      setView("properties")
+                      selectPropertyId(id)
+                      if (pathname !== "/properties") router.push("/properties")
+                    }}
+                  />
+                </>
+              ) : activeItem === "Bookings" ? (
+                <>
+                  {/* Painel: Bookings */}
+                  <BookingCompactSidebar
+                    isAuthenticated={currentUser.isAuthenticated}
+                    role={currentUser.role}
+                    isLoading={isLoadingBookings}
+                    myBookings={myBookings}
+                    propertyBookings={propertyBookings}
+                  />
+                </>
               ) : (
-                  <div className="text-muted-foreground flex h-full items-center justify-center p-4 text-sm">
-                    Conteúdo de {activeItem}
-                  </div>
+                <div className="text-muted-foreground flex h-full items-center justify-center p-4 text-sm">
+                  {/* Estado default */}
+                  Conteúdo de {activeItem}
+                </div>
               )}
             </SidebarContent>
           </Sidebar>
