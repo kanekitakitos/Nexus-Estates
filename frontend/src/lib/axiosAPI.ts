@@ -6,6 +6,7 @@
 
 import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { toast } from 'sonner';
+import { AuthService } from '@/services/auth.service';
 
 // URL base do API Gateway (Porta 8080)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
@@ -38,13 +39,8 @@ export interface ApiResponse<T> {
 }
 
 const requestInterceptor = (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
-    // Verifica se estamos no lado do cliente antes de aceder ao localStorage
-    if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('token');
-        if (token && config.headers) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-    }
+    const headers = AuthService.getAuthHeaders();
+    if (headers.Authorization && config.headers) config.headers.Authorization = headers.Authorization;
     return config;
 };
 
@@ -69,17 +65,7 @@ const responseErrorHandler = (error: AxiosError): Promise<AxiosError> => {
 
     // Erro de Autenticação (401)
     if (status === 401) {
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('token');
-            localStorage.removeItem('userId');
-            localStorage.removeItem('userEmail');
-            localStorage.removeItem('userRole');
-            window.dispatchEvent(new Event('auth-change'));
-            // Opcional: Redirecionar para login se não estiver numa rota pública
-            if (!window.location.pathname.includes('/login')) {
-                window.location.href = '/login?expired=true';
-            }
-        }
+        AuthService.logout();
     }
 
     // Erro de Permissão (403)

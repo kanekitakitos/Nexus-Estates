@@ -36,6 +36,12 @@ export class AuthService {
             window.removeEventListener("auth-change", handler);
         };
     }
+
+    static getAuthHeaders(): Record<string, string> {
+        const session = this.getSession();
+        if (!session.token) return {};
+        return { Authorization: `Bearer ${session.token}` };
+    }
     
     /**
      * Realiza o login do utilizador e gere o armazenamento da sessão.
@@ -151,6 +157,7 @@ export class AuthService {
      * Termina a sessão do utilizador limpando o armazenamento local.
      */
     static logout(): void {
+        if (typeof window === "undefined") return;
         localStorage.removeItem('token');
         localStorage.removeItem('userId');
         localStorage.removeItem('userEmail');

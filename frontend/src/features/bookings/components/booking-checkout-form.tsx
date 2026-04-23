@@ -44,8 +44,9 @@ import { Check, ChevronRight, Lock, Loader2, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/forms/button"
 import { Input } from "@/components/ui/forms/input"
 import { Switch } from "@/components/ui/forms/switch"
-import type { BookingProperty } from "@/features/bookings/components/booking-card"
+import type { BookingProperty } from "@/types/booking"
 import { BookingService } from "@/services/booking.service"
+import { AuthService } from "@/services/auth.service"
 import { FinanceService } from "@/services/finance.service"
 import type { PaymentResponse, ProviderInfo } from "@/types/finance"
 import { cn } from "@/lib/utils"
@@ -166,12 +167,9 @@ function nationalityLabel(code: string) {
 }
 
 function readAuthSession() {
-  if (typeof window === "undefined")
-    return { isAuthenticated: false, userId: null as number | null, email: "" }
-  const token = localStorage.getItem("token") ?? ""
-  const email = localStorage.getItem("userEmail") ?? ""
-  const ok = Boolean(token && email && isJwtValid(token))
-  return { isAuthenticated: ok, userId: null, email: ok ? email : "" }
+  const session = AuthService.getSession()
+  const ok = Boolean(session.token && session.email && isJwtValid(session.token))
+  return { isAuthenticated: ok, userId: null as number | null, email: ok ? session.email : "" }
 }
 
 function isJwtValid(token: string) {
