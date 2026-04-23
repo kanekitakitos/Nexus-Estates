@@ -6,9 +6,14 @@ package com.nexus.estates.common.enums;
  * O fluxo de estados esperado é:
  * {@code PENDING_PAYMENT} -> {@code CONFIRMED} -> {@code COMPLETED}.
  * </p>
+ * <p>
+ * O estado {@code BLOCKED} representa bloqueios técnicos (sem transação financeira),
+ * criados manualmente pelo proprietário ou automaticamente por integrações de calendário externo.
+ * Reservas BLOCKED impedem novos agendamentos tal como as CONFIRMED.
+ * </p>
  *
  * @author Nexus Estates Team
- * @version 1.0
+ * @version 1.1
  */
 public enum BookingStatus
 {
@@ -40,5 +45,15 @@ public enum BookingStatus
      * <b>Reembolsada:</b> O valor pago foi devolvido ao cliente após um
      * cancelamento ou disputa. Estado terminal.
      */
-    REFUNDED
+    REFUNDED,
+
+    /**
+     * <b>Bloqueada:</b> Reserva técnica sem transação financeira, criada manualmente
+     * pelo proprietário ou automaticamente por sincronização de calendário externo (iCal).
+     * <p>
+     * Impede novos agendamentos tal como {@code CONFIRMED}, mas não envolve
+     * qualquer processamento de pagamento.
+     * </p>
+     */
+    BLOCKED
 }
