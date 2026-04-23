@@ -29,7 +29,7 @@ export interface PropertyStatsProps {
  * Nota: Implementação própria para suportar `AnimatedCounter` no valor,
  * uma vez que `BrutalStatCard` aceita apenas `string | number`.
  */
-function StatCard({
+export function StatCard({
   label,
   value,
   color,
