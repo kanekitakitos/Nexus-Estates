@@ -1,7 +1,6 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { cn } from "@/lib/utils"
 import { OwnProperty, PropertyListVariant } from "@/types"
 import { staggerContainer, itemFadeUp } from "./animations"
 import { usePropertyFilters } from "./hooks"
@@ -21,7 +20,8 @@ export interface PropertyListProps {
   /** Se verdadeiro, exibe botão de criação de novas propriedades */
   addNewProperty?: boolean
   /** Lista de ativos brutos vindos da API ou Mock */
-  propertys: OwnProperty[]
+  properties?: OwnProperty[]
+  propertys?: OwnProperty[]
   /** Callback para seleção de um ativo */
   onSelect?: (id: string) => void
   /** Callback para iniciar criação de novo ativo */
@@ -136,8 +136,9 @@ function InventoryRailView({
  *
  * @hook usePropertyFilters - Lógica de filtragem client-side isolada no hook.
  */
-export function PropertyList({ variant = "CARDS", propertys, ...props }: PropertyListProps) {
-  const { filters, updateFilter, filteredProperties } = usePropertyFilters(propertys)
+export function PropertyList({ variant = "CARDS", properties, propertys, ...props }: PropertyListProps) {
+  const items = properties ?? propertys ?? []
+  const { filters, updateFilter, filteredProperties } = usePropertyFilters(items)
   // Cast necessário: PropertyFilterBar espera (key: string, value: ...) mas o hook usa genéricos
   const setFilter = updateFilter as (key: string, value: string | boolean | number) => void
 
@@ -160,7 +161,7 @@ export function PropertyList({ variant = "CARDS", propertys, ...props }: Propert
   return (
     <div className="space-y-10 py-6 md:py-15">
       <ListHeader onAdd={props.onAdd} showAdd={!!props.addNewProperty} />
-      <PropertyStats propertys={propertys} />
+      <PropertyStats properties={items} />
       <PropertyFilterBar filters={filters} setFilter={setFilter} variant="default" />
 
       <div className="space-y-6">

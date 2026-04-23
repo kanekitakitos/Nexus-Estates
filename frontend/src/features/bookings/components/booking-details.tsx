@@ -43,7 +43,6 @@ import {
   useScroll, useTransform,
 } from "framer-motion"
 import {
-  staggerContainer, staggerItem,
   imageFade, springSnap, springBounce,
   gummyHover, gummyTap, comicSpring,
   pillHover, pillTap,

@@ -10,7 +10,7 @@ import { CollaboratorManager } from "../../components/collaborator-manager"
 import { proMeta, proPanel } from "../../property-tokens"
 import { BoingText } from "@/components/BoingText"
 import { motion } from "framer-motion"
-import { staggerContainer, itemFadeUp, nexusEntrance } from "../../animations"
+import { staggerContainer, itemFadeUp } from "../../animations"
 
 // ─── Tipos e Props ────────────────────────────────────────────────────────
 

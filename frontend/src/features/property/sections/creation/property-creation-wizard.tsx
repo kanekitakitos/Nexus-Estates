@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { 
   Layout, ArrowRight, Save, 
@@ -10,7 +9,7 @@ import { cn } from "@/lib/utils"
 
 import { usePropertyForm } from "../../hooks"
 import { OwnProperty, WizardStep } from "@/types"
-import { pageVariants, nexusEntrance, microPop } from "../../animations"
+import { pageVariants, nexusEntrance } from "../../animations"
 import { BoingText } from "@/components/BoingText"
 import { BrutalField } from "@/components/ui/forms/brutal-field"
 import { BrutalButton } from "@/components/ui/forms/button"

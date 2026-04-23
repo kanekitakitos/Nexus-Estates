@@ -319,7 +319,7 @@ export function AppSidebar({
                         </span>
                       </div>
                     ) : (
-                      <PropertyListBars propertys={properties} onSelect={(id)=>{selectPropertyId(id)}}/>
+                      <PropertyListBars properties={properties} onSelect={(id)=>{selectPropertyId(id)}}/>
                     )}
                   </div>
               )

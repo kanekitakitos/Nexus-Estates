@@ -210,7 +210,7 @@ function PropertyListScreen({
   return (
     <motion.div key="list" variants={pageVariants} initial="initial" animate="animate" exit="exit">
       <PropertyList
-        propertys={properties}
+        properties={properties}
         onSelect={onSelect}
         onAdd={onAdd}
         onEdit={onEdit}

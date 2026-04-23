@@ -91,19 +91,19 @@ export function usePropertyManager(selectedPropertyId: string | null) {
  * 
  * Implementa lógica de filtragem síncrona (client-side) para uma lista de ativos.
  * 
- * @param propertys - Array de propriedades a filtrar
+ * @param properties - Array de propriedades a filtrar
  * @returns {
  *   filters: Filters, // Estado atual dos filtros
  *   updateFilter: (key: string, value: any) => void, // Atualiza um critério de filtragem
  *   filteredProperties: OwnProperty[] // Lista resultante após filtros e ordenação
  * }
  */
-export function usePropertyFilters(propertys: OwnProperty[]) {
+export function usePropertyFilters(properties: OwnProperty[]) {
     const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
     
     const filteredProperties = useMemo(() => {
         const hasStatusFilter = filters.available || filters.booked || filters.maintenance
-        return propertys.filter((p) => {
+        return properties.filter((p) => {
             if (hasStatusFilter) {
                 const matchesStatus = (filters.available && p.status === "AVAILABLE") || (filters.booked && p.status === "BOOKED") || (filters.maintenance && p.status === "MAINTENANCE")
                 if (!matchesStatus) return false
@@ -119,7 +119,7 @@ export function usePropertyFilters(propertys: OwnProperty[]) {
             if (filters.sortPrice === "decrescente") return b.price - a.price
             return 0
         })
-    }, [propertys, filters])
+    }, [properties, filters])
 
     return { 
         filters, 

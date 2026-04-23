@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/forms/button"
 import { BrutalCard } from "@/components/ui/data-display/card"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { AnimatePresence, motion } from "framer-motion"
-import { Calendar, MessageCircle, ChevronRight, ArrowRight } from "lucide-react"
+import { Calendar, MessageCircle, ChevronRight } from "lucide-react"
 import { format } from "date-fns"
 import {
   springSnap, springBounce,

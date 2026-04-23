@@ -14,9 +14,9 @@ import {
 } from "@/components/ui/overlay/dropdown-menu"
 import { BrutalCard } from "@/components/ui/data-display/brutal-card"
 import { toast } from "sonner"
-import { proPanel, nexusKineticLight, nexusShadowSm } from "../property-tokens"
+import { proPanel } from "../property-tokens"
 import { motion, AnimatePresence } from "framer-motion"
-import { staggerContainer, itemFadeUp, microPop } from "../animations"
+import { staggerContainer, itemFadeUp } from "../animations"
 
 // ─── Tipos e Interfaces ───────────────────────────────────────────────────
 
@@ -186,7 +186,7 @@ export function CollaboratorManager({ permissions, onAdd, onRemove, isCard = tru
             await new Promise(r => setTimeout(r, 800))
             onAdd(email, role)
             toast.success(`Protocolo: ${email} indexado com sucesso`)
-        } catch (e) {
+        } catch {
             toast.error("Falha na rede Nexus")
         } finally {
             setIsVerifying(false)

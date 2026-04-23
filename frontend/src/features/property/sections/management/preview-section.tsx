@@ -4,16 +4,16 @@ import { useState } from "react"
 import {
   Info, Sparkles, Eye, Star, Tag,
   Globe, Users, Clock, Calendar,
-  ArrowUpRight, Plus
+  ArrowUpRight
 } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { OwnProperty } from "@/types"
 import { useAmenityCatalog, resolveTranslation } from "../../hooks"
 import { PropertyMediaModal } from "../../components/property-media-modal"
-import { proMeta, proPanel, proSectionTitle, nexusGlass, nexusShadowMd, nexusKineticLight } from "../../property-tokens"
+import { proMeta, proPanel, proSectionTitle } from "../../property-tokens"
 import { BoingText } from "@/components/BoingText"
-import { staggerContainer, itemFadeUp, nexusEntrance, microPop } from "../../animations"
+import { staggerContainer, itemFadeUp } from "../../animations"
 
 // ─── Tipos e Interfaces ───────────────────────────────────────────────────
 

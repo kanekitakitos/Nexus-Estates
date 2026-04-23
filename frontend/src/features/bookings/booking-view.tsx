@@ -193,6 +193,7 @@ function useBookingListModel(properties: BookingProperty[], itemsPerPage: number
   const setFilter = useCallback(
     <K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) => {
       setFilters((prev) => ({ ...prev, [key]: value }))
+      setCurrentPage((prev) => (prev === 1 ? prev : 1))
     },
     []
   )
@@ -222,10 +223,6 @@ function useBookingListModel(properties: BookingProperty[], itemsPerPage: number
     const start = (currentPage - 1) * itemsPerPage
     return filteredProperties.slice(start, start + itemsPerPage)
   }, [filteredProperties, currentPage, itemsPerPage])
-
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [filters])
 
   return {
     filters,

@@ -1,6 +1,5 @@
 "use client"
 import { createContext, useContext, useState, ReactNode } from "react"
-import {BookingProperty} from "@/features/bookings/components/booking-card";
 
 type PossibleViews = "booking" | "properties"
 
@@ -20,9 +19,9 @@ export function ViewProvider({ children }: { children: ReactNode }) {
     const [selectedPropertyId, setPropertyId] = useState<string | null>(null)
 
     const selectPropertyId = (id: string | null) => {
-        setView("properties");
-        setPropertyId(id);
-    };
+        if (id) setView("properties")
+        setPropertyId(id)
+    }
 
     return (
         <ViewContext.Provider value={{

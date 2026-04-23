@@ -12,7 +12,7 @@ import { BrutalCard } from "@/components/ui/data-display/brutal-card"
 import { ImageInput } from "@/components/ui/file-handler/imageInput"
 import { AmenitiesField } from "../../components/amenities-field"
 import { BoingText } from "@/components/BoingText"
-import { nexusEntrance, staggerContainer, itemFadeUp, microPop } from "../../animations"
+import { staggerContainer, itemFadeUp } from "../../animations"
 
 // ─── Tipos de Props Internos ────────────────────────────────────────────────
 

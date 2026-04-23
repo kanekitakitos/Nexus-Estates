@@ -13,7 +13,8 @@ import { AnimatedCounter } from "./animated-counter"
 /** Propriedades do dashboard de estatísticas de ativos */
 export interface PropertyStatsProps {
   /** Lista de ativos para agregação de dados */
-  propertys: OwnProperty[]
+  properties?: OwnProperty[]
+  propertys?: OwnProperty[]
   /** Classes CSS adicionais para o contentor grid */
   className?: string
 }
@@ -107,14 +108,15 @@ function StatCard({
  * Responsabilidade única: Agregar métricas da coleção de ativos e
  * delegar a renderização de cada KPI ao componente interno `StatCard`.
  *
- * @hook useMemo — Agrega statsData apenas quando `propertys` muda.
+ * @hook useMemo — Agrega statsData apenas quando as props de lista mudam.
  */
-export function PropertyStats({ propertys, className }: PropertyStatsProps) {
-  const statsData = useMemo(
-    () => [
+export function PropertyStats({ propertys, properties, className }: PropertyStatsProps) {
+  const statsData = useMemo(() => {
+    const items = properties ?? propertys ?? []
+    return [
       {
         label: "Total_Ativos",
-        value: propertys.length,
+        value: items.length,
         color: "text-primary",
         glowColor: "bg-primary",
         icon: LayoutGrid,
@@ -122,7 +124,7 @@ export function PropertyStats({ propertys, className }: PropertyStatsProps) {
       },
       {
         label: "Operacional",
-        value: propertys.filter((p) => p.status === "AVAILABLE").length,
+        value: items.filter((p) => p.status === "AVAILABLE").length,
         color: "text-emerald-500",
         glowColor: "bg-emerald-500",
         icon: CheckCircle2,
@@ -130,17 +132,15 @@ export function PropertyStats({ propertys, className }: PropertyStatsProps) {
       },
       {
         label: "Indisponível",
-        value: propertys.filter(
-          (p) => p.status === "BOOKED" || p.status === "MAINTENANCE"
-        ).length,
+        value: items.filter((p) => p.status === "BOOKED" || p.status === "MAINTENANCE")
+          .length,
         color: "text-rose-500",
         glowColor: "bg-rose-500",
         icon: Clock,
         suffix: "LIVE",
       },
-    ],
-    [propertys]
-  )
+    ]
+  }, [properties, propertys])
 
   return (
     <motion.div
