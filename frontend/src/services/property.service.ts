@@ -457,36 +457,6 @@ export class PropertyService {
     }
 
     /**
-     * Lista as propriedades do utilizador autenticado, usando localStorage.userId.
-     *
-     * Endpoint backend:
-     * - GET /api/properties/by-user/{userId}
-     */
-    static async getAllOwnProperties(): Promise<BookingProperty[]>{
-
-        try {
-            if (typeof window === "undefined") return [];
-            const page = await this.listMine({ page: 0, size: 100, sort: "name,asc" });
-            return page.content.map((p) => ({
-                id: String(p.id),
-                title: p.name,
-                description: "",
-                location: p.city,
-                price: Number(p.basePrice ?? 0),
-                imageUrl: "",
-                status: p.isActive ? "AVAILABLE" : "MAINTENANCE",
-                rating: 0,
-                featured: false,
-                tags: [],
-            }));
-        } catch (error) {
-            this.handleError(error, "carregar propriedades do utilizador");
-            throw error;
-        }
-    }
-
-
-    /**
      * Obtém os detalhes de uma propriedade específica pelo seu ID.
      * 
      * @param id O identificador único da propriedade
