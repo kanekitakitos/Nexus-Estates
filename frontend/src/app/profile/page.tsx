@@ -1,4 +1,4 @@
-import { ProfileView } from "@/features/profile/profile-view"
+import { ProfileView } from "@/features/profile"
 
 /**
  * @page ProfilePage

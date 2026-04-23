@@ -11,7 +11,6 @@
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/forms/button"
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
@@ -20,7 +19,6 @@ import {
 import { BrutalCard } from "@/components/ui/data-display/card"
 import {
   Field,
-  FieldDescription,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/forms/field"
@@ -110,7 +108,7 @@ export function RecoverForm({
 
     // Codigo html da JSX.Element
     return (
-        <div className={cn("flex flex-col gap-6", className)}>
+        <div className={cn("flex flex-col gap-6", className)} {...props}>
             <BrutalCard>
 
                 <CardHeader className="text-center">

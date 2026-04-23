@@ -32,6 +32,7 @@ import {
 import { Button } from "@/components/ui/forms/button"
 import { Badge } from "@/components/ui/badge"
 import { BrutalShard } from "@/components/ui/data-display/card"
+import Image from "next/image"
 import type { BookingProperty } from "@/types/booking"
 import { cn } from "@/lib/utils"
 import { DateRangeCalendar } from "./date-range-calendar"
@@ -326,7 +327,14 @@ function PropertyGallery({ property }: { property: RichProperty }) {
                   : "border-foreground/25 hover:border-foreground/60"
               )}
             >
-              <img src={src} alt="" className="h-full w-full object-cover" />
+              <Image
+                src={src}
+                alt=""
+                fill
+                sizes="112px"
+                className="object-cover"
+                unoptimized
+              />
               <div className="absolute inset-0 bg-background/50 opacity-0 group-hover:opacity-100 transition-opacity grid place-items-center">
                 <span className="font-mono text-[8px] uppercase tracking-widest font-bold">Ver</span>
               </div>

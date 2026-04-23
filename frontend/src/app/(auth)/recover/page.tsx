@@ -1,4 +1,4 @@
-import { RecoverForm } from "@/features/auth/components/recover-form"
+import { RecoverForm } from "@/features/auth"
 
 /**
  * @route ´/recover´

@@ -21,7 +21,6 @@ export interface PropertyListProps {
   addNewProperty?: boolean
   /** Lista de ativos brutos vindos da API ou Mock */
   properties?: OwnProperty[]
-  propertys?: OwnProperty[]
   /** Callback para seleção de um ativo */
   onSelect?: (id: string) => void
   /** Callback para iniciar criação de novo ativo */
@@ -136,8 +135,8 @@ function InventoryRailView({
  *
  * @hook usePropertyFilters - Lógica de filtragem client-side isolada no hook.
  */
-export function PropertyList({ variant = "CARDS", properties, propertys, ...props }: PropertyListProps) {
-  const items = properties ?? propertys ?? []
+export function PropertyList({ variant = "CARDS", properties = [], ...props }: PropertyListProps) {
+  const items = properties
   const { filters, updateFilter, filteredProperties } = usePropertyFilters(items)
   // Cast necessário: PropertyFilterBar espera (key: string, value: ...) mas o hook usa genéricos
   const setFilter = updateFilter as (key: string, value: string | boolean | number) => void

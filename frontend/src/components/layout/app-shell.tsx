@@ -15,7 +15,7 @@ import {
 import { BrutalGridBackground } from "@/components/ui/layout/brutal-grid-background"
 import { cn } from "@/lib/utils"
 import ClickSpark from "@/components/ClickSpark"
-import { LogOut, User, LayoutDashboard } from "lucide-react"
+import { LogOut, LayoutDashboard } from "lucide-react"
 import { AuthService } from "@/services/auth.service"
 
 interface AppShellProps {

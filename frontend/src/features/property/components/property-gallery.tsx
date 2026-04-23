@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Star, Eye, ChevronLeft, ChevronRight, UploadCloud } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ImageInput } from "@/components/ui/file-handler/imageInput"
+import Image from "next/image"
 import { OwnProperty } from "@/types"
 import { PropertyMediaModal } from "./property-media-modal"
 
@@ -115,7 +116,17 @@ function GalleryThumbs({
                             : "border-foreground/20 dark:border-white/10 hover:border-foreground/40 hover:-translate-y-1"
                     )}
                 >
-                    <img src={src} alt="" className={cn("h-full w-full object-cover transition-all duration-300", activeIndex === i ? "grayscale-0 scale-110" : "grayscale opacity-40")} />
+                    <Image
+                        src={src}
+                        alt=""
+                        fill
+                        sizes="96px"
+                        className={cn(
+                            "object-cover transition-all duration-300",
+                            activeIndex === i ? "grayscale-0 scale-110" : "grayscale opacity-40"
+                        )}
+                        unoptimized
+                    />
                 </button>
             ))}
         </div>

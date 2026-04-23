@@ -14,7 +14,6 @@ import { AnimatedCounter } from "./animated-counter"
 export interface PropertyStatsProps {
   /** Lista de ativos para agregação de dados */
   properties?: OwnProperty[]
-  propertys?: OwnProperty[]
   /** Classes CSS adicionais para o contentor grid */
   className?: string
 }
@@ -110,9 +109,9 @@ function StatCard({
  *
  * @hook useMemo — Agrega statsData apenas quando as props de lista mudam.
  */
-export function PropertyStats({ propertys, properties, className }: PropertyStatsProps) {
+export function PropertyStats({ properties = [], className }: PropertyStatsProps) {
   const statsData = useMemo(() => {
-    const items = properties ?? propertys ?? []
+    const items = properties
     return [
       {
         label: "Total_Ativos",
@@ -140,7 +139,7 @@ export function PropertyStats({ propertys, properties, className }: PropertyStat
         suffix: "LIVE",
       },
     ]
-  }, [properties, propertys])
+  }, [properties])
 
   return (
     <motion.div

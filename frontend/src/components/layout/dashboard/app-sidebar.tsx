@@ -27,7 +27,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/layout/sidebar"
-import { useChatStrategy } from "@/features/chat/ChatProvider"
+import { useChatStrategy } from "@/features/chat"
 import { BookingService, type BookingResponse } from "@/services/booking.service"
 import { toast } from "sonner"
 

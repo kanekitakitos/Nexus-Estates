@@ -72,7 +72,7 @@ export function ChangePasswordForm({ onSubmit }: ChangePasswordFormProps) {
       })
       form.reset()
       toast.success("Password atualizada com sucesso.")
-    } catch (error) {
+    } catch {
       toast.error("Ocorreu um erro ao atualizar a password.")
     } finally {
       setIsSubmitting(false)
