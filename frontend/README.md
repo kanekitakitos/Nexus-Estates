@@ -17,7 +17,10 @@ Utilizamos uma arquitetura orientada a funcionalidades para facilitar a manuten�
 src/
 ├── app/                    # 🚦 Routing (Apenas Páginas e Layouts)
 │   ├── (auth)/             # Fluxos de Autenticação
-│   ├── (dashboard)/        # Painel de Gestão
+│   ├── booking/            # Página do módulo de reservas
+│   ├── dashboard/          # Página do painel
+│   ├── profile/            # Página de perfil
+│   ├── properties/         # Página do módulo de propriedades
 │   └── page.tsx            # Landing Page
 │
 ├── components/             # 🧱 UI Kit Global
@@ -25,13 +28,16 @@ src/
 │   └── layout/             # Componentes de Estrutura (Nav, Footer)
 │
 ├── features/               # 🧠 Lógica de Negócio (O Coração)
-│   ├── auth/               # Login, Registo, Perfil
-│   ├── properties/         # Listagem e Detalhes de Imóveis
-│   └── bookings/           # Gestão de Reservas
-│       ├── components/     # UI específica da reserva
-│       ├── services/       # Chamadas à API (Backend)
-│       └── types/          # Tipos de dados da feature
+│   ├── auth/               # Login, Registo, Recuperação, integrações de IdP
+│   ├── bookings/           # Fluxo: list → details → checkout
+│   ├── chat/               # Provider + strategies (ex.: Ably)
+│   ├── finance/            # UI de pagamentos (ex.: Stripe)
+│   ├── landing/            # Landing page e secções
+│   ├── profile/            # Perfil (tabs, integrações, webhooks)
+│   └── property/           # Propriedades (listagem, criação, gestão)
 │
+├── services/               # 🌐 Chamadas ao backend (Axios via API Gateway)
+├── types/                  # 📦 Tipos/DTOs partilhados (contratos UI ↔ services)
 └── lib/                    # ⚙️ Utilitários e Configurações (Axios, etc)
 ```
 
