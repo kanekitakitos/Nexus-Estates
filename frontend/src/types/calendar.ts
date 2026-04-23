@@ -1,22 +1,17 @@
 import {OwnProperty} from "@/types/property";
 
 export interface TimelineItemWithNames {
-    properti : OwnProperty
-    id: string;
+    properti?: OwnProperty
+    id: number;
     label: string;
-    periods: period[];
+    periods: Period[];
 }
 
-export interface period {
-    startDay: number;
-    endDay: number;
+export interface Period {
+    startDay: Date;
+    endDay: Date;
     name: string;
     color: string;
 }
 
-export interface CalendarTimelineProps {
-    items: TimelineItemWithNames[];
-    year: number;
-    month: number;
-    title: string;
-}
+
