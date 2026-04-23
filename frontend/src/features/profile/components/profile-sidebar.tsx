@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { BoingText } from "@/components/BoingText"
+import { BoingText } from "@/components/effects/BoingText"
 import { User, Shield, Key, ArrowLeft } from "lucide-react"
 
 import {

@@ -8,7 +8,7 @@ import { BrutalCard } from "@/components/ui/data-display/brutal-card"
 import { BrutalButton } from "@/components/ui/forms/button"
 import { CollaboratorManager } from "../../components/collaborator-manager"
 import { proMeta, proPanel } from "../../property-tokens"
-import { BoingText } from "@/components/BoingText"
+import { BoingText } from "@/components/effects/BoingText"
 import { motion } from "framer-motion"
 import { staggerContainer, itemFadeUp } from "../../animations"
 

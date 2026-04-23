@@ -1,7 +1,7 @@
 "use client"
 
 import { SECTIONS, B } from "../tokens"
-import { BoingText } from "@/components/BoingText"
+import { BoingText } from "@/components/effects/BoingText"
 import { useSyncExternalStore } from "react"
 import { AuthService } from "@/services/auth.service"
 

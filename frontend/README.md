@@ -25,7 +25,10 @@ src/
 │
 ├── components/             # 🧱 UI Kit Global
 │   ├── ui/                 # Componentes Atómicos (Botões, Inputs, Cards)
-│   └── layout/             # Componentes de Estrutura (Nav, Footer)
+│   ├── layout/             # Componentes de Estrutura (Nav, Footer)
+│   └── effects/            # Efeitos reutilizáveis (texto/ruído/particles)
+│
+├── providers/              # 🔌 Context Providers (composição em app/layout.tsx)
 │
 ├── features/               # 🧠 Lógica de Negócio (O Coração)
 │   ├── auth/               # Login, Registo, Recuperação, integrações de IdP

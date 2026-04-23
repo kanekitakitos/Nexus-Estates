@@ -12,7 +12,7 @@ import { OwnProperty } from "@/types"
 import { useAmenityCatalog, resolveTranslation } from "../../hooks"
 import { PropertyMediaModal } from "../../components/property-media-modal"
 import { proMeta, proPanel, proSectionTitle } from "../../property-tokens"
-import { BoingText } from "@/components/BoingText"
+import { BoingText } from "@/components/effects/BoingText"
 import { staggerContainer, itemFadeUp } from "../../animations"
 
 // ─── Tipos e Interfaces ───────────────────────────────────────────────────

@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/feedback/sonner-brutal";
 import { ChatProvider } from "@/features/chat";
-import {ViewProvider} from "@/features/view-context";
+import { ViewProvider } from "@/providers/view-context";
 import { ClerkProvider } from "@clerk/nextjs";
 
 /**

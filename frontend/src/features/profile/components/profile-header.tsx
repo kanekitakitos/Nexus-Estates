@@ -4,7 +4,7 @@ import React from "react"
 import { Button } from "@/components/ui/button"
 import { ExternalLink, KeyRound, Calendar } from "lucide-react"
 import { ProfilePanel } from "@/features/profile/components/profile-panel"
-import { BoingText } from "@/components/BoingText"
+import { BoingText } from "@/components/effects/BoingText"
 import { motion } from "framer-motion"
 /* Reverted to regular img tag due to Next.js domain config requirements for external API avatars */
 

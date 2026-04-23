@@ -2,7 +2,7 @@ import { motion } from "framer-motion"
 import { Search, SlidersHorizontal, ArrowUpDown, MapPin } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { nexusShadowMd, nexusGlass } from "../property-tokens"
-import { BoingText } from "@/components/BoingText"
+import { BoingText } from "@/components/effects/BoingText"
 import { statusFlash } from "../animations"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/overlay/dropdown-menu"
 

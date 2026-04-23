@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
 import { B, SECTIONS } from "./tokens"
 import { BrutalGridBackground } from "@/components/ui/layout/brutal-grid-background"
-import ClickSpark, { CLICK_SPARK_PRESETS } from "@/components/ClickSpark"
+import ClickSpark, { CLICK_SPARK_PRESETS } from "@/components/effects/ClickSpark"
 import { Ticker } from "./ui/Ticker"
 import { VBand } from "./ui/VBand"
 import { SideProgress } from "./ui/SideProgress"
@@ -18,7 +18,7 @@ import { CtaSection } from "./sections/CtaSection"
 import { FloatingObjects } from "./ui/FloatingObjects"
 import { IntroPreloader } from "./ui/IntroPreloader"
 import { contentFadeTransition, ghostActiveTransition, ghostIdleTransition, sectionTransition } from "./motion"
-import { NoiseOverlay, NOISE_OVERLAY_PRESETS } from "@/components/NoiseOverlay"
+import { NoiseOverlay, NOISE_OVERLAY_PRESETS } from "@/components/effects/NoiseOverlay"
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 

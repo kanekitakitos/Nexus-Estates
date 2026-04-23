@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 import { useAmenityCatalog, resolveTranslation } from "../hooks"
 import { nexusEyebrowClass, nexusShadowSm, nexusKineticLight } from "../property-tokens"
 import { CATEGORY_CONFIG } from "../property-constants"
-import { BoingText } from "@/components/BoingText"
+import { BoingText } from "@/components/effects/BoingText"
 import { staggerContainer, itemFadeUp, microPop } from "../animations"
 
 // ─── Tipos e Props ────────────────────────────────────────────────────────

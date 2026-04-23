@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/layout/sidebar"
 import { BrutalGridBackground } from "@/components/ui/layout/brutal-grid-background"
 import { cn } from "@/lib/utils"
-import ClickSpark from "@/components/ClickSpark"
+import ClickSpark from "@/components/effects/ClickSpark"
 import { LogOut, LayoutDashboard } from "lucide-react"
 import { AuthService } from "@/services/auth.service"
 

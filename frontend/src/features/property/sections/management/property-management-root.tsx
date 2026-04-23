@@ -11,7 +11,7 @@ import { RulesSection } from "./rules-section"
 import { DetailsSection } from "./details-section"
 import { PropertyService } from "@/services/property.service"
 import { toast } from "sonner"
-import { BoingText } from "@/components/BoingText"
+import { BoingText } from "@/components/effects/BoingText"
 import { pageVariants } from "../../animations"
 
 // ─── Tipos e Props ────────────────────────────────────────────────────────

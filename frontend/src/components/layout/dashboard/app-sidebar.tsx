@@ -11,7 +11,7 @@
 import * as React from "react"
 import { Building2, Calendar, LayoutDashboard, MessageSquare } from "lucide-react"
 import Link from "next/link"
-import { useView } from "@/features/view-context"
+import { useView } from "@/providers/view-context"
 
 import { NavUser } from "@/components/layout/dashboard/nav-user"
 import { motion } from "framer-motion"
