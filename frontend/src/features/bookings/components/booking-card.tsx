@@ -21,6 +21,7 @@ import { MapPin, ArrowRight, Star, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/forms/button"
 import Image from "next/image"
+import { useEffect, useState } from "react"
 import {
   brutalShadow,
   brutalShadowHover,
@@ -115,9 +116,18 @@ export function BookingCard({ property, onBook, className }: BookingCardProps) {
 
 /** Secção superior do card: imagem, badge featured, rating, título e localização. */
 function CardImage({ property }: { property: BookingProperty }) {
+  const [hasImageError, setHasImageError] = useState(false)
+
+  useEffect(() => {
+    setHasImageError(false)
+  }, [property.imageUrl])
+
+  const isUnsplash = property.imageUrl.includes("images.unsplash.com")
+  const showImage = Boolean(property.imageUrl) && !hasImageError
+
   return (
     <div className="relative h-52 md:h-56 w-full overflow-hidden">
-      {property.imageUrl ? (
+      {showImage ? (
         <div className="absolute inset-0">
           <Image
             src={property.imageUrl}
@@ -126,6 +136,8 @@ function CardImage({ property }: { property: BookingProperty }) {
             sizes="(max-width: 768px) 100vw, 50vw"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
             priority={false}
+            unoptimized={isUnsplash}
+            onError={() => setHasImageError(true)}
           />
         </div>
       ) : (
