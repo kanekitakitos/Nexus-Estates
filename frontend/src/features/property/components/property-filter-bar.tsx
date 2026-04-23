@@ -5,6 +5,7 @@ import { nexusShadowMd, nexusGlass } from "../lib/property-tokens"
 import { BoingText } from "@/components/effects/BoingText"
 import { statusFlash } from "../lib/animations"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/overlay/dropdown-menu"
+import { SidebarFilterBar } from "@/components/ui/data-display/sidebar-filter-bar"
 
 interface PropertyFilterBarProps {
     /** Estado completo dos filtros vindo do hook usePropertyFilters */
@@ -160,6 +161,20 @@ function SearchInput({ icon, placeholder, value, onChange, isCompact }: { icon: 
 export function PropertyFilterBar({ filters, setFilter, variant = "default" }: PropertyFilterBarProps) {
     const isCompact = variant === "compact"
 
+    if (isCompact) {
+        return (
+            <SidebarFilterBar
+                query={filters.queryNome}
+                onQueryChange={(value) => setFilter("queryNome", value)}
+                placeholder="PESQUISAR..."
+                className={cn(nexusGlass, nexusShadowMd)}
+            >
+                <StatusFilterGroup filters={filters} setFilter={setFilter} isCompact />
+                <SortDropdown currentSort={filters.sortPrice} onSort={(v) => setFilter("sortPrice", v)} isCompact />
+            </SidebarFilterBar>
+        )
+    }
+
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.98, y: -10 }} 
@@ -172,7 +187,7 @@ export function PropertyFilterBar({ filters, setFilter, variant = "default" }: P
                 isCompact ? "space-y-3 p-3" : "space-y-4 p-4 md:space-y-6 md:p-6"
             )}
         >
-            {!isCompact && <FilterHeader />}
+            <FilterHeader />
 
             <div className="grid gap-2">
                 <SearchInput

@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import type { BookingResponse } from "@/services/booking.service"
+import { SidebarFilterBar } from "@/components/ui/data-display/sidebar-filter-bar"
 
 type UserRole = "ADMIN" | "GUEST" | "OWNER" | "STAFF"
 
@@ -160,40 +161,35 @@ function BookingFilterBar({
   onClear: () => void
 }) {
   return (
-    <div className="rounded-2xl border-2 border-black bg-white p-3 shadow-[4px_4px_0_0_#000] space-y-3">
-      <input
-        value={query}
-        onChange={(e) => onQueryChange(e.target.value)}
-        placeholder="Pesquisar (ID, propriedade, estado, ...)"
-        className="h-10 w-full rounded-xl border-2 border-black bg-white px-3 text-[12px] font-mono text-black placeholder:text-black/40 outline-none"
-      />
+    <SidebarFilterBar
+      query={query}
+      onQueryChange={onQueryChange}
+      placeholder="PESQUISAR..."
+    >
+      <select
+        title="Filtrar por estado"
+        value={status}
+        onChange={(e) => onStatusChange(e.target.value as typeof status)}
+        className="h-10 rounded-xl border-2 border-black bg-white px-3 text-[10px] font-black uppercase tracking-widest text-black outline-none"
+      >
+        <option value="ALL">Todos os estados</option>
+        <option value="PENDING_PAYMENT">PENDING_PAYMENT</option>
+        <option value="CONFIRMED">CONFIRMED</option>
+        <option value="CANCELLED">CANCELLED</option>
+        <option value="COMPLETED">COMPLETED</option>
+        <option value="REFUNDED">REFUNDED</option>
+      </select>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <select
-          title="Filtrar por estado"
-          value={status}
-          onChange={(e) => onStatusChange(e.target.value as typeof status)}
-          className="h-10 rounded-xl border-2 border-black bg-white px-3 text-[10px] font-black uppercase tracking-widest text-black outline-none"
-        >
-          <option value="ALL">Todos os estados</option>
-          <option value="PENDING_PAYMENT">PENDING_PAYMENT</option>
-          <option value="CONFIRMED">CONFIRMED</option>
-          <option value="CANCELLED">CANCELLED</option>
-          <option value="COMPLETED">COMPLETED</option>
-          <option value="REFUNDED">REFUNDED</option>
-        </select>
+      <BookingWhenToggle value={when} onChange={onWhenChange} />
 
-        <BookingWhenToggle value={when} onChange={onWhenChange} />
-
-        <button
-          type="button"
-          onClick={onClear}
-          className="ml-auto h-10 px-3 rounded-xl border-2 border-black bg-white text-[10px] font-black uppercase tracking-widest text-black/70 hover:bg-black hover:text-white transition-colors"
-        >
-          Limpar
-        </button>
-      </div>
-    </div>
+      <button
+        type="button"
+        onClick={onClear}
+        className="ml-auto h-10 px-3 rounded-xl border-2 border-black bg-white text-[10px] font-black uppercase tracking-widest text-black/70 hover:bg-black hover:text-white transition-colors"
+      >
+        Limpar
+      </button>
+    </SidebarFilterBar>
   )
 }
 
@@ -273,4 +269,3 @@ function BookingCards({ bookings }: { bookings: BookingResponse[] }) {
     </div>
   )
 }
-
