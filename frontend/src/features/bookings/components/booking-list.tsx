@@ -59,13 +59,14 @@ function cardRotation(index: number): string {
 interface BookingListProps {
   properties: BookingProperty[]
   onBook?: (id: string) => void
+  showHowItWorks?: boolean
 }
 
 // ─────────────────────────────────────────────
 // BookingList
 // ─────────────────────────────────────────────
 
-export function BookingList({ properties, onBook }: BookingListProps) {
+export function BookingList({ properties, onBook, showHowItWorks = false }: BookingListProps) {
   if (properties.length === 0) {
     return <EmptyState />
   }
@@ -89,8 +90,8 @@ export function BookingList({ properties, onBook }: BookingListProps) {
           </motion.div>
         )
 
-        // Inject HowItWorks at position HOW_IT_WORKS_INDEX
-        if (index === HOW_IT_WORKS_INDEX) {
+        // Inject HowItWorks only when explicitly enabled (e.g., first page)
+        if (showHowItWorks && index === HOW_IT_WORKS_INDEX) {
           return (
             <div key={`group-${property.id}`} className="contents">
               <motion.div

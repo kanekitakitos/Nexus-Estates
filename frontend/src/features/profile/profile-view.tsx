@@ -200,6 +200,7 @@ export function ProfileView() {
         info={loadErrorInfo}
         onRetry={load}
         onLogin={() => router.replace("/login?expired=true")}
+        onBack={() => router.back()}
       />
     )
   }
@@ -269,18 +270,14 @@ function ProfileErrorState({
   info,
   onRetry,
   onLogin,
+  onBack,
 }: {
   error: "none" | "unauthorized" | "network" | "server"
   info: { status?: number; message?: string }
   onRetry: () => Promise<void>
   onLogin: () => void
+  onBack: () => void
 }) {
-  useEffect(() => {
-    if (error === "unauthorized") {
-      onLogin()
-    }
-  }, [error, onLogin])
-
   const title =
     error === "unauthorized"
       ? "Sessão expirada."
@@ -290,7 +287,7 @@ function ProfileErrorState({
 
   const subtitle =
     error === "unauthorized"
-      ? "A redirecionar para login."
+      ? "Faz login novamente para continuar."
       : error === "network"
         ? "Verifica se o API Gateway e o user-service estão ligados."
         : info.status
@@ -305,20 +302,41 @@ function ProfileErrorState({
           <div className="text-xs font-mono opacity-60">{subtitle}</div>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            type="button"
-            onClick={() => void onRetry()}
-            className="h-12 flex-1 rounded-2xl border border-foreground/20 bg-foreground/5 font-bold uppercase tracking-widest text-xs"
-          >
-            Tentar Novamente
-          </button>
-          <button
-            type="button"
-            onClick={onLogin}
-            className="h-12 flex-1 rounded-2xl bg-(--primary-accent) text-white font-bold uppercase tracking-widest text-xs border border-white/10"
-          >
-            Ir para Login
-          </button>
+          {error === "unauthorized" ? (
+            <>
+              <button
+                type="button"
+                onClick={onBack}
+                className="h-12 flex-1 rounded-2xl border border-foreground/20 bg-foreground/5 font-bold uppercase tracking-widest text-xs"
+              >
+                Voltar
+              </button>
+              <button
+                type="button"
+                onClick={onLogin}
+                className="h-12 flex-1 rounded-2xl bg-(--primary-accent) text-white font-bold uppercase tracking-widest text-xs border border-white/10"
+              >
+                Ir para Login
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => void onRetry()}
+                className="h-12 flex-1 rounded-2xl border border-foreground/20 bg-foreground/5 font-bold uppercase tracking-widest text-xs"
+              >
+                Tentar Novamente
+              </button>
+              <button
+                type="button"
+                onClick={onBack}
+                className="h-12 flex-1 rounded-2xl bg-(--primary-accent) text-white font-bold uppercase tracking-widest text-xs border border-white/10"
+              >
+                Voltar
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

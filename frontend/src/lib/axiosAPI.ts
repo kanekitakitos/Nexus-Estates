@@ -20,6 +20,7 @@ const api = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
+    transformResponse: [safeJsonTransform],
 });
 
 /**
@@ -36,6 +37,70 @@ export interface ApiResponse<T> {
         timestamp: string;
         validationErrors?: Record<string, string>;
     };
+}
+
+function extractFirstJsonValue(text: string): string | null {
+    const trimmed = text.trim();
+    if (!trimmed) return null;
+
+    const start = trimmed[0];
+    const end = start === '{' ? '}' : start === '[' ? ']' : null;
+    if (!end) return null;
+
+    let depth = 0;
+    let inString = false;
+    let escaping = false;
+
+    for (let i = 0; i < trimmed.length; i += 1) {
+        const ch = trimmed[i];
+
+        if (inString) {
+            if (escaping) {
+                escaping = false;
+                continue;
+            }
+            if (ch === '\\') {
+                escaping = true;
+                continue;
+            }
+            if (ch === '"') {
+                inString = false;
+            }
+            continue;
+        }
+
+        if (ch === '"') {
+            inString = true;
+            continue;
+        }
+
+        if (ch === '{' || ch === '[') depth += 1;
+        else if (ch === '}' || ch === ']') depth -= 1;
+
+        if (depth === 0 && ch === end) {
+            return trimmed.slice(0, i + 1);
+        }
+    }
+
+    return null;
+}
+
+function safeJsonTransform(data: unknown): unknown {
+    if (typeof data !== 'string') return data;
+    const text = data.trim();
+    if (!text) return data;
+
+    try {
+        return JSON.parse(text);
+    } catch {
+        const first = extractFirstJsonValue(text);
+        if (!first) return data;
+        try {
+            return JSON.parse(first);
+        } catch {
+            return data;
+        }
+    }
 }
 
 const requestInterceptor = (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
@@ -97,6 +162,7 @@ export const gateWayAxios = api;
 export const usersAxios = axios.create({
     baseURL: `${API_BASE_URL}/users`,
     withCredentials: true,
+    transformResponse: [safeJsonTransform],
 });
 usersAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
 usersAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
@@ -109,6 +175,7 @@ usersAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
  */
 export const propertiesAxios = axios.create({
     baseURL: `${API_BASE_URL}/properties`,
+    transformResponse: [safeJsonTransform],
 });
 propertiesAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
 propertiesAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
@@ -121,6 +188,7 @@ propertiesAxios.interceptors.response.use(responseInterceptor, responseErrorHand
  */
 export const amenitiesAxios = axios.create({
     baseURL: `${API_BASE_URL}/amenities`,
+    transformResponse: [safeJsonTransform],
 });
 amenitiesAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
 amenitiesAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
@@ -133,6 +201,7 @@ amenitiesAxios.interceptors.response.use(responseInterceptor, responseErrorHandl
  */
 export const syncAxios = axios.create({
     baseURL: `${API_BASE_URL}/sync`,
+    transformResponse: [safeJsonTransform],
 });
 syncAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
 syncAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
@@ -145,6 +214,7 @@ syncAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
  */
 export const bookingsAxios = axios.create({
     baseURL: `${API_BASE_URL}/bookings`,
+    transformResponse: [safeJsonTransform],
 });
 bookingsAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
 bookingsAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);
@@ -157,6 +227,7 @@ bookingsAxios.interceptors.response.use(responseInterceptor, responseErrorHandle
  */
 export const financeAxios = axios.create({
     baseURL: `${API_BASE_URL}/finance`,
+    transformResponse: [safeJsonTransform],
 });
 financeAxios.interceptors.request.use(requestInterceptor, requestErrorHandler);
 financeAxios.interceptors.response.use(responseInterceptor, responseErrorHandler);

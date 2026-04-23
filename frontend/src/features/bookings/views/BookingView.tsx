@@ -186,7 +186,7 @@ function useBookingFlow(properties: BookingProperty[]) {
   }
 }
 
-function useBookingListModel(properties: BookingProperty[], itemsPerPage: number) {
+function useBookingListModel(properties: BookingProperty[], firstPageSize: number, pageSize: number) {
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS)
   const [currentPage, setCurrentPage] = useState(1)
 
@@ -217,19 +217,29 @@ function useBookingListModel(properties: BookingProperty[], itemsPerPage: number
     return list
   }, [properties, filters.destination, filters.maxPrice])
 
-  const totalPages = Math.ceil(filteredProperties.length / itemsPerPage)
+  const totalPages = useMemo(() => {
+    const total = filteredProperties.length
+    if (total <= firstPageSize) return Math.max(1, total === 0 ? 1 : 1)
+    return 1 + Math.ceil((total - firstPageSize) / pageSize)
+  }, [filteredProperties.length, firstPageSize, pageSize])
+
+  const safePage = useMemo(() => {
+    if (totalPages <= 1) return 1
+    return Math.min(Math.max(currentPage, 1), totalPages)
+  }, [currentPage, totalPages])
 
   const paginatedProperties = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage
-    return filteredProperties.slice(start, start + itemsPerPage)
-  }, [filteredProperties, currentPage, itemsPerPage])
+    if (safePage <= 1) return filteredProperties.slice(0, firstPageSize)
+    const start = firstPageSize + (safePage - 2) * pageSize
+    return filteredProperties.slice(start, start + pageSize)
+  }, [filteredProperties, safePage, firstPageSize, pageSize])
 
   return {
     filters,
     setFilter,
     filteredProperties,
     paginatedProperties,
-    currentPage,
+    currentPage: safePage,
     setCurrentPage,
     totalPages,
   }
@@ -298,7 +308,11 @@ function BookingListScreen({
               count={filteredCount}
               hasFilter={Boolean(filters.destination || filters.maxPrice !== "")}
             />
-            <BookingList properties={paginatedProperties} onBook={onOpenDetails} />
+            <BookingList
+              properties={paginatedProperties}
+              onBook={onOpenDetails}
+              showHowItWorks={currentPage === 1}
+            />
 
             <BookingPagination
               currentPage={currentPage}
@@ -377,7 +391,8 @@ function BookingCheckoutScreen({
 
 export function BookingView() {
   const { properties, isLoading } = useBookingCatalog()
-  const itemsPerPage = 6
+  const firstPageSize = 31
+  const pageSize = 32
 
   const {
     screen,
@@ -400,7 +415,7 @@ export function BookingView() {
     currentPage,
     setCurrentPage,
     totalPages,
-  } = useBookingListModel(properties, itemsPerPage)
+  } = useBookingListModel(properties, firstPageSize, pageSize)
 
   useNavigationGestures({
     screen,
