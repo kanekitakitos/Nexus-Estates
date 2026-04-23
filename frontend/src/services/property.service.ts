@@ -1,6 +1,6 @@
 import { propertiesAxios, ApiResponse } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
-import { BookingProperty } from "@/features/bookings/components/booking-card";
+import type { BookingProperty } from "@/types/booking";
 import { toast } from "sonner";
 import type {
     CreatePropertyRequest,

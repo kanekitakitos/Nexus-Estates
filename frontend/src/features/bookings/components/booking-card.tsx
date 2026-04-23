@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/forms/button"
 import Image from "next/image"
 import { useEffect, useState } from "react"
+import type { BookingProperty } from "@/types/booking"
 import {
   brutalShadow,
   brutalShadowHover,
@@ -39,22 +40,7 @@ import {
 // Types — exportados para uso em booking-details, booking-view, etc.
 // ─────────────────────────────────────────────
 
-/**
- * Modelo de propriedade consumido pelo módulo de bookings.
- * Mantém compatibilidade com o backend e com outros componentes.
- */
-export interface BookingProperty {
-  id: string
-  title: string
-  description: string
-  location: string
-  price: number
-  imageUrl: string
-  status: "AVAILABLE" | "BOOKED" | "MAINTENANCE"
-  rating?: number
-  featured?: boolean
-  tags?: string[]
-}
+export type { BookingProperty }
 
 interface BookingCardProps {
   property: BookingProperty
