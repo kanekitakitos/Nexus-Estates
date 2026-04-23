@@ -11,6 +11,7 @@
 import * as React from "react"
 import { Building2, Calendar, LayoutDashboard, MessageSquare } from "lucide-react"
 import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
 import { useView } from "@/providers/view-context"
 
 import { NavUser } from "@/components/layout/dashboard/nav-user"
@@ -80,6 +81,8 @@ export function AppSidebar({
                              ...props
                            }: React.ComponentProps<typeof Sidebar>) {
 
+  const router = useRouter()
+  const pathname = usePathname()
   const { setOpen, state } = useSidebar()
   const [activeItem, setActiveItem] = React.useState("Bookings")
   const chatStrategy = useChatStrategy()
@@ -305,9 +308,9 @@ export function AppSidebar({
                     <BrutalButton 
                       className={"w-full mb-3 cursor-pointer relative z-20 hover:scale-[1.02] active:scale-[0.98] transition-transform"} 
                       onClick={() => {
-                        console.log("Navigating to Properties view...");
-                        setView("properties");
-                        selectPropertyId(null);
+                        setView("properties")
+                        selectPropertyId(null)
+                        if (pathname !== "/properties") router.push("/properties")
                       }}
                     >
                       Gestão de Ativos //
@@ -319,7 +322,14 @@ export function AppSidebar({
                         </span>
                       </div>
                     ) : (
-                      <PropertyListBars properties={properties} onSelect={(id)=>{selectPropertyId(id)}}/>
+                      <PropertyListBars
+                        properties={properties}
+                        onSelect={(id) => {
+                          setView("properties")
+                          selectPropertyId(id)
+                          if (pathname !== "/properties") router.push("/properties")
+                        }}
+                      />
                     )}
                   </div>
               )
