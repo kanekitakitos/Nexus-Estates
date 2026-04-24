@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from "framer-motion"
 
 import { SidebarProvider } from "@/components/ui/layout/sidebar"
 import { notify } from "@/lib/notify"
+import { profileTokens } from "@/features/profile/tokens"
 import { ProfilePanel } from "@/features/profile/components/profile-panel"
 import { AuthService } from "@/services/auth.service"
 import { SyncService } from "@/services/sync.service"
@@ -130,10 +131,10 @@ function ProfileMainScreen({
   onLoad: () => Promise<void>
 }) {
   const CustomStyle = {
-    "--bg-color": isDark ? "#0A0D14" : "#F0ECD9",
-    "--fg-color": isDark ? "#E6E2D1" : "#0D0D0D",
-    "--panel-bg": isDark ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.5)",
-    "--primary-accent": "#e2621cff",
+    "--bg-color": isDark ? profileTokens.ui.theme.bgDark : profileTokens.ui.theme.bgLight,
+    "--fg-color": isDark ? profileTokens.ui.theme.fgDark : profileTokens.ui.theme.fgLight,
+    "--panel-bg": isDark ? profileTokens.ui.theme.panelBgDark : profileTokens.ui.theme.panelBgLight,
+    "--primary-accent": profileTokens.ui.theme.primaryAccent,
   } as React.CSSProperties
 
   return (
@@ -227,7 +228,7 @@ function ProfileBackground({ isDark }: { isDark: boolean }) {
   return (
     <div className="fixed inset-0 z-0 pointer-events-none opacity-40">
       <PixelBlast 
-        color={isDark ? "#4895ef" : "var(--primary-accent)"}
+        color={isDark ? profileTokens.ui.theme.pixelBlastDarkColor : "var(--primary-accent)"}
         pixelSize={3}
         patternDensity={0.5}
         liquid={true}
@@ -256,7 +257,7 @@ function ProfileLoadingState() {
             transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
           />
         </div>
-        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/40">Nexus ID</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/40">{profileTokens.copy.view.loadingBrand}</span>
       </div>
     </div>
   )
@@ -280,19 +281,19 @@ function ProfileErrorState({
 }) {
   const title =
     error === "unauthorized"
-      ? "Sessão expirada."
+      ? profileTokens.copy.view.errorSessionExpiredTitle
       : error === "network"
-        ? "Backend indisponível."
-        : "Não foi possível carregar o perfil."
+        ? profileTokens.copy.view.errorNetworkTitle
+        : profileTokens.copy.view.errorGenericTitle
 
   const subtitle =
     error === "unauthorized"
-      ? "Faz login novamente para continuar."
+      ? profileTokens.copy.view.errorSessionExpiredSubtitle
       : error === "network"
-        ? "Verifica se o API Gateway e o user-service estão ligados."
+        ? profileTokens.copy.view.errorNetworkSubtitle
         : info.status
-          ? `HTTP ${info.status}${info.message ? ` · ${info.message}` : ""}`
-          : "Tenta novamente."
+          ? `${profileTokens.copy.view.errorHttpPrefix}${info.status}${info.message ? `${profileTokens.copy.view.errorJoiner}${info.message}` : ""}`
+          : profileTokens.copy.view.errorGenericSubtitle
 
   return (
     <div className="h-screen flex items-center justify-center bg-background text-foreground p-6">
@@ -309,14 +310,14 @@ function ProfileErrorState({
                 onClick={onBack}
                 className="h-12 flex-1 rounded-2xl border border-foreground/20 bg-foreground/5 font-bold uppercase tracking-widest text-xs"
               >
-                Voltar
+                {profileTokens.copy.view.btnBack}
               </button>
               <button
                 type="button"
                 onClick={onLogin}
                 className="h-12 flex-1 rounded-2xl bg-(--primary-accent) text-white font-bold uppercase tracking-widest text-xs border border-white/10"
               >
-                Ir para Login
+                {profileTokens.copy.view.btnGoToLogin}
               </button>
             </>
           ) : (
@@ -326,14 +327,14 @@ function ProfileErrorState({
                 onClick={() => void onRetry()}
                 className="h-12 flex-1 rounded-2xl border border-foreground/20 bg-foreground/5 font-bold uppercase tracking-widest text-xs"
               >
-                Tentar Novamente
+                {profileTokens.copy.view.btnRetry}
               </button>
               <button
                 type="button"
                 onClick={onBack}
                 className="h-12 flex-1 rounded-2xl bg-(--primary-accent) text-white font-bold uppercase tracking-widest text-xs border border-white/10"
               >
-                Voltar
+                {profileTokens.copy.view.btnBack}
               </button>
             </>
           )}
@@ -386,24 +387,24 @@ function ProfileContent({
             onQuickApis={() => onTabChange("apis")}
           />
           <ProfilePanel
-            title="Dados"
-            subtitle="Informação carregada do backend"
+            title={profileTokens.copy.view.panelDataTitle}
+            subtitle={profileTokens.copy.view.panelDataSubtitle}
           >
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-2xl border border-(--fg-color)/10 bg-background/30 p-4">
-                <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">Email</div>
-                <div className="mt-1 text-sm font-mono text-(--fg-color) break-all">{email || "-"}</div>
+                <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">{profileTokens.copy.view.fieldEmail}</div>
+                <div className="mt-1 text-sm font-mono text-(--fg-color) break-all">{email || profileTokens.copy.view.dash}</div>
               </div>
               <div className="rounded-2xl border border-(--fg-color)/10 bg-background/30 p-4">
-                <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">Role</div>
-                <div className="mt-1 text-sm font-mono text-(--fg-color)">{me.role ?? "-"}</div>
+                <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">{profileTokens.copy.view.fieldRole}</div>
+                <div className="mt-1 text-sm font-mono text-(--fg-color)">{me.role ?? profileTokens.copy.view.dash}</div>
               </div>
               <div className="rounded-2xl border border-(--fg-color)/10 bg-background/30 p-4">
-                <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">Telefone</div>
-                <div className="mt-1 text-sm font-mono text-(--fg-color)">{me.phone ?? "-"}</div>
+                <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">{profileTokens.copy.view.fieldPhone}</div>
+                <div className="mt-1 text-sm font-mono text-(--fg-color)">{me.phone ?? profileTokens.copy.view.dash}</div>
               </div>
               <div className="rounded-2xl border border-(--fg-color)/10 bg-background/30 p-4">
-                <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">ID</div>
+                <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">{profileTokens.copy.view.fieldId}</div>
                 <div className="mt-1 text-sm font-mono text-(--fg-color)">{String(me.id)}</div>
               </div>
             </div>
@@ -421,12 +422,12 @@ function ProfileContent({
           className="space-y-10"
         >
           <ProfilePanel
-            title="Recuperação de Password"
-            subtitle="Envia um link por email (fluxo real do backend)"
+            title={profileTokens.copy.view.panelRecoveryTitle}
+            subtitle={profileTokens.copy.view.panelRecoverySubtitle}
           >
             <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
               <div className="text-xs font-mono text-(--fg-color)/70 break-all">
-                {email || "-"}
+                {email || profileTokens.copy.view.dash}
               </div>
               <button
                 type="button"
@@ -434,7 +435,7 @@ function ProfileContent({
                 disabled={!email}
                 className="h-12 px-6 rounded-2xl bg-(--primary-accent) text-white font-bold uppercase tracking-widest border border-white/10 disabled:opacity-30"
               >
-                Enviar Email
+                {profileTokens.copy.view.btnSendEmail}
               </button>
             </div>
           </ProfilePanel>
@@ -472,7 +473,7 @@ function WebhookSubscriptionsPanel({
   onReload: () => Promise<void>
 }) {
   const [targetUrl, setTargetUrl] = useState("")
-  const [subscribedEvents, setSubscribedEvents] = useState("booking.created, booking.status.updated")
+  const [subscribedEvents, setSubscribedEvents] = useState<string>(profileTokens.copy.webhooksPanel.defaultEvents)
   const [isBusy, setIsBusy] = useState(false)
 
   const create = async () => {
@@ -487,11 +488,11 @@ function WebhookSubscriptionsPanel({
     try {
       const created = await SyncService.createWebhook({ targetUrl: targetUrl.trim(), subscribedEvents: events })
       await navigator.clipboard.writeText(created.secret)
-      notify.success("Secret copiado para o clipboard.")
+      notify.success(profileTokens.copy.webhooks.secretCopied)
       setTargetUrl("")
       await onReload()
     } catch {
-      notify.error("Falha ao criar webhook.")
+      notify.error(profileTokens.copy.webhooks.createFailed)
     } finally {
       setIsBusy(false)
     }
@@ -519,22 +520,22 @@ function WebhookSubscriptionsPanel({
 
   return (
     <ProfilePanel
-      title="Webhooks"
-      subtitle="Recebe eventos do sistema no teu endpoint"
+      title={profileTokens.copy.webhooksPanel.title}
+      subtitle={profileTokens.copy.webhooksPanel.subtitle}
     >
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">Target URL</div>
+            <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">{profileTokens.copy.webhooksPanel.targetUrlLabel}</div>
             <input
               value={targetUrl}
               onChange={(e) => setTargetUrl(e.target.value)}
-              placeholder="https://example.com/webhooks/nexus"
+              placeholder={profileTokens.copy.webhooksPanel.targetUrlPlaceholder}
               className="h-12 w-full rounded-2xl border border-(--fg-color)/20 bg-background/50 px-4 text-sm font-mono text-(--fg-color) outline-none focus:ring-2 focus:ring-(--primary-accent)"
             />
           </div>
           <div className="space-y-2">
-            <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">Eventos (CSV)</div>
+            <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">{profileTokens.copy.webhooksPanel.eventsLabel}</div>
             <input
               value={subscribedEvents}
               onChange={(e) => setSubscribedEvents(e.target.value)}
@@ -550,13 +551,13 @@ function WebhookSubscriptionsPanel({
             disabled={isBusy || !targetUrl.trim()}
             className="h-12 px-6 rounded-2xl bg-(--primary-accent) text-white font-bold uppercase tracking-widest border border-white/10 disabled:opacity-30"
           >
-            Criar
+            {profileTokens.copy.webhooksPanel.btnCreate}
           </button>
         </div>
 
         <div className="space-y-3">
           {items.length === 0 ? (
-            <div className="text-xs font-mono text-(--fg-color)/50">Sem webhooks configurados.</div>
+            <div className="text-xs font-mono text-(--fg-color)/50">{profileTokens.copy.webhooksPanel.emptyState}</div>
           ) : (
             items.map((w) => (
               <div
@@ -576,7 +577,7 @@ function WebhookSubscriptionsPanel({
                     disabled={isBusy}
                     className="h-10 px-4 rounded-xl border border-(--fg-color)/20 bg-(--fg-color)/5 text-(--fg-color) text-xs font-bold uppercase tracking-widest disabled:opacity-30"
                   >
-                    {w.isActive ? "Desativar" : "Ativar"}
+                    {w.isActive ? profileTokens.copy.webhooksPanel.btnDisable : profileTokens.copy.webhooksPanel.btnEnable}
                   </button>
                   <button
                     type="button"
@@ -584,7 +585,7 @@ function WebhookSubscriptionsPanel({
                     disabled={isBusy}
                     className="h-10 px-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-200 text-xs font-bold uppercase tracking-widest disabled:opacity-30"
                   >
-                    Remover
+                    {profileTokens.copy.webhooksPanel.btnRemove}
                   </button>
                 </div>
               </div>

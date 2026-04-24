@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
-import { B, SECTIONS } from "../lib/tokens"
+import { B, SECTIONS, landingTokens } from "../lib/tokens"
 import { BrutalGridBackground } from "@/components/ui/layout/brutal-grid-background"
 import ClickSpark, { CLICK_SPARK_PRESETS } from "@/components/effects/ClickSpark"
 import { Ticker } from "../ui/Ticker"
@@ -135,8 +135,8 @@ export function HorizontalLanding() {
               color: fg,
               ["--color-brutal-grid" as never]:
                 bg === B.black || bg === B.orange
-                  ? "rgba(240,236,217,0.16)"
-                  : "rgba(13,13,13,0.12)",
+                  ? landingTokens.ui.landing.colors.brutalGridLight
+                  : landingTokens.ui.landing.colors.brutalGridDark,
               ["--primary" as never]: B.orange,
               touchAction: "none",
             }}
@@ -165,7 +165,7 @@ export function HorizontalLanding() {
               transition={{ delay: 2 }}
             >
               <span className="font-mono text-[8px] uppercase tracking-widest" style={{ color: fg }}>
-                usa as teclas ← →
+                {landingTokens.copy.landing.landingView.keyboardHint}
               </span>
             </motion.div>
 
@@ -226,7 +226,7 @@ export function HorizontalLanding() {
                       }
                       transition={active === index ? ghostActiveTransition : ghostIdleTransition}
                     >
-                      {String(index + 1).padStart(2, "0")}
+                      {String(index + 1).padStart(2, landingTokens.copy.landing.padChar)}
                     </motion.span>
                   </motion.div>
                 </motion.section>

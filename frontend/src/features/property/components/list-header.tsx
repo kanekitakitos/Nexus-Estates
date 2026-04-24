@@ -5,7 +5,7 @@ import { Sparkles, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BrutalButton } from "@/components/ui/forms/button"
 import { BoingText } from "@/components/effects/BoingText"
-import { nexusEyebrowAccentClass, nexusEyebrowClass } from "../lib/property-tokens"
+import { nexusEyebrowAccentClass, nexusEyebrowClass, propertyCopy, propertyTokens } from "../lib/property-tokens"
 
 interface ListHeaderProps {
   onAdd?: () => void
@@ -21,7 +21,7 @@ interface ListHeaderProps {
  */
 export function ListHeader({ onAdd, showAdd }: ListHeaderProps) {
   return (
-    <div className="relative flex flex-col items-start justify-between gap-8 overflow-hidden border-b-2 border-[#0D0D0D] pb-10 pr-2 dark:border-zinc-700 md:flex-row md:items-end">
+    <div className={propertyTokens.ui.list.headerWrapClass}>
       <motion.div
         initial={{ opacity: 0, x: -16 }}
         animate={{ opacity: 1, x: 0 }}
@@ -30,22 +30,22 @@ export function ListHeader({ onAdd, showAdd }: ListHeaderProps) {
         <div className="mb-3 flex items-center gap-3">
           <span className="h-px w-8 bg-foreground/25 dark:bg-white/20" aria-hidden />
           <Sparkles className="h-3.5 w-3.5 text-primary" strokeWidth={3} aria-hidden />
-          <span className={nexusEyebrowAccentClass}>Nexus_Inventory // Protocol</span>
+          <span className={nexusEyebrowAccentClass}>{propertyCopy.list.headerKicker}</span>
         </div>
-        <h1 className="max-w-3xl font-serif text-5xl font-bold italic uppercase leading-[0.85] tracking-tighter text-[#0D0D0D] md:text-7xl dark:text-white">
-          <BoingText text="Inventário de" color="currentColor" activeColor="#F97316" />{" "}
+        <h1 className={propertyTokens.ui.list.headerTitleClass}>
+          <BoingText text={propertyCopy.list.headerTitlePrefix} color="currentColor" activeColor={propertyTokens.ui.preview.boingActiveColor} />{" "}
           <span className="text-primary underline decoration-[4px] underline-offset-[8px]">
-            Ativos
+            {propertyCopy.list.headerTitleAccent}
           </span>
         </h1>
         <p className={cn(nexusEyebrowClass, "mt-4 max-w-xl normal-case")}>
-          Gestão editorial do teu alojamento local — mesmo ADN visual da landing Nexus Estates.
+          {propertyCopy.list.headerSubtitle}
         </p>
       </motion.div>
 
       {showAdd && (
         <BrutalButton type="button" variant="brutal-property-cta" onClick={onAdd}>
-          <Plus className="h-4 w-4" strokeWidth={3} /> Novo ativo
+          <Plus className="h-4 w-4" strokeWidth={3} /> {propertyCopy.list.addCta}
         </BrutalButton>
       )}
     </div>

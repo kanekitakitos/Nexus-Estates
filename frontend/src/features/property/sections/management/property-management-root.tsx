@@ -14,6 +14,7 @@ import { notify } from "@/lib/notify"
 import { BoingText } from "@/components/effects/BoingText"
 import { pageVariants } from "../../lib/animations"
 import { NexusAlertDialog } from "@/components/ui/feedback/nexus-alert-dialog"
+import { propertyCopy, propertyTokens } from "../../lib/property-tokens"
 
 // ─── Tipos e Props ────────────────────────────────────────────────────────
 
@@ -78,9 +79,7 @@ function EditHeader({
 }) {
     return (
         <header className={cn(
-            "sticky top-0 z-[60] mb-8 flex flex-col gap-4 p-4 md:p-2",
-            "border-2 border-[#000000] dark:border-white/20 rounded-2xl bg-[#FAFAF5]/90 dark:bg-zinc-950/90 backdrop-blur-md shadow-[4px_4px_0_0_#0D0D0D] dark:shadow-none",
-            "md:flex-row md:items-center md:justify-between transition-all duration-300"
+            propertyTokens.ui.managementRoot.headerClass
         )}>
             <div className="flex min-w-0 items-center gap-4 px-2">
                 <motion.button
@@ -88,27 +87,32 @@ function EditHeader({
                     whileTap={{ scale: 0.95 }}
                     type="button"
                     onClick={onBack}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-[#000000] bg-white transition-all hover:bg-primary hover:text-white shadow-[2px_2px_0_0_#0D0D0D] dark:bg-zinc-900 dark:border-white/20"
+                    className={propertyTokens.ui.managementRoot.backButtonClass}
                 >
                     <ArrowLeft size={18} />
                 </motion.button>
                 <div className="min-w-0">
-                    <span className="mb-0.5 block font-mono text-[9px] font-black uppercase tracking-[0.2em] text-[#8C7B6B] opacity-70">
-                        Asset_Management // Central
+                    <span className={propertyTokens.ui.managementRoot.eyebrowClass}>
+                        {propertyCopy.managementRoot.eyebrow}
                     </span>
-                    <h2 className="truncate font-serif text-lg font-bold italic uppercase tracking-tighter text-[#0D0D0D] dark:text-white md:text-xl">
-                        <BoingText text={title || "Asset_Manager"} color="currentColor" activeColor="#F97316" duration={0.3} />
+                    <h2 className={propertyTokens.ui.managementRoot.titleClass}>
+                        <BoingText
+                            text={title || propertyCopy.managementRoot.titleFallback}
+                            color="currentColor"
+                            activeColor={propertyTokens.ui.preview.boingActiveColor}
+                            duration={0.3}
+                        />
                     </h2>
                 </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
                 {/* Switcher de Modos */}
-                <div className="flex rounded-xl border-2 border-[#0D0D0D] bg-white dark:bg-zinc-900 dark:border-white/10 p-1 shadow-[2px_2px_0_0_#0D0D0D] dark:shadow-none">
+                <div className={propertyTokens.ui.managementRoot.modeSwitcherClass}>
                     {[
-                        { id: 'VIEW' as const, label: 'Prévia', icon: Eye },
-                        { id: 'EDIT' as const, label: 'Dados', icon: LayoutDashboard },
-                        { id: 'RULES' as const, label: 'Regras', icon: Settings },
+                        { id: 'VIEW' as const, label: propertyCopy.managementRoot.modeView, icon: Eye },
+                        { id: 'EDIT' as const, label: propertyCopy.managementRoot.modeEdit, icon: LayoutDashboard },
+                        { id: 'RULES' as const, label: propertyCopy.managementRoot.modeRules, icon: Settings },
                     ].map((btn) => (
                         <button
                             key={btn.id}
@@ -118,7 +122,7 @@ function EditHeader({
                                 "flex items-center gap-2 rounded-lg px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider transition-all",
                                 mode === btn.id
                                     ? "bg-primary text-white"
-                                    : "text-[#8C7B6B] hover:bg-[#F0ECD9]/50 dark:hover:bg-zinc-800"
+                                    : propertyTokens.ui.managementRoot.modeInactiveClass
                             )}
                         >
                             <btn.icon size={13} strokeWidth={2.5} /> {btn.label}
@@ -140,15 +144,16 @@ function EditHeader({
                                 onClick={onDiscard}
                                 className="flex items-center gap-1.5 rounded-lg px-3 py-2 font-mono font-bold text-[9px] uppercase text-rose-600 transition-colors hover:bg-rose-50 dark:hover:bg-rose-950/30"
                             >
-                                <Undo2 size={14} /> Descartar
+                                <Undo2 size={14} /> {propertyCopy.managementRoot.discard}
                             </button>
                             <BrutalButton
                                 type="button"
                                 onClick={onSave}
                                 disabled={isSaving}
-                                className="!h-10 !px-5 !bg-emerald-600 !border-emerald-700 !text-white !text-[10px] !font-bold !uppercase !tracking-widest shadow-[3px_3px_0_0_#064e3b] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                                className={propertyTokens.ui.managementRoot.saveButtonClass}
                             >
-                                {isSaving ? "A guardar…" : "Guardar"} <Save size={14} className="ml-2" />
+                                {isSaving ? propertyCopy.managementRoot.saving : propertyCopy.managementRoot.save}{" "}
+                                <Save size={14} className="ml-2" />
                             </BrutalButton>
                         </motion.div>
                     )}
@@ -209,10 +214,10 @@ export function PropertyManagementRoot({ property: initialProperty, onBack, onSa
             await onSave(draft)
             setPendingChanges(false)
             setMode('VIEW')
-            notify.success("Nexus Asset // Actualização executada com sucesso")
+            notify.success(propertyCopy.managementRoot.saveOk)
         } catch (error) {
             console.error("[PropertyManagementRoot] Save Error:", error)
-            notify.error("Erro Crítico // Falha na sincronização do ativo")
+            notify.error(propertyCopy.managementRoot.saveFail)
         } finally {
             setIsSaving(false)
         }
@@ -231,16 +236,16 @@ export function PropertyManagementRoot({ property: initialProperty, onBack, onSa
         setIsDeleting(true)
         try {
             const propertyId = typeof draft.id === 'string' ? parseInt(draft.id) : (draft.id as number)
-            if (!propertyId) throw new Error("Asset ID Inválido")
+            if (!propertyId) throw new Error(propertyCopy.managementRoot.invalidAssetId)
 
             await PropertyService.deleteProperty(propertyId)
             if (onDelete) await onDelete(propertyId)
             onBack()
-            notify.success("Ativo Desativado // Removido dos registos activos")
+            notify.success(propertyCopy.managementRoot.deleteOk)
             setIsDeleteDialogOpen(false)
         } catch (error) {
             console.error("[PropertyManagementRoot] Decommission Error:", error)
-            notify.error("Falha no Decommission // Contacte o suporte técnico")
+            notify.error(propertyCopy.managementRoot.deleteFail)
         } finally {
             setIsDeleting(false)
         }
@@ -249,7 +254,7 @@ export function PropertyManagementRoot({ property: initialProperty, onBack, onSa
     // ─── Título com fallback ────────────────────────────────────────────
     const displayTitle = typeof draft.title === 'string'
         ? draft.title
-        : draft.title?.pt || draft.title?.en || "Asset_Manager"
+        : draft.title?.pt || draft.title?.en || propertyCopy.managementRoot.titleFallback
 
     // ─── Render ─────────────────────────────────────────────────────────
     return (
@@ -305,10 +310,10 @@ export function PropertyManagementRoot({ property: initialProperty, onBack, onSa
                 open={isDeleteDialogOpen}
                 onOpenChange={(open) => { if (!isDeleting) setIsDeleteDialogOpen(open) }}
                 variant="warning"
-                title="Desativar ativo?"
-                description="Esta ação é irreversível nos protocolos Nexus. O ativo será removido dos registos activos."
-                confirmLabel="Desativar"
-                cancelLabel="Cancelar"
+                title={propertyCopy.managementRoot.deactivateTitle}
+                description={propertyCopy.managementRoot.deactivateDescription}
+                confirmLabel={propertyCopy.managementRoot.deactivateConfirm}
+                cancelLabel={propertyCopy.managementRoot.deactivateCancel}
                 isConfirming={isDeleting}
                 onConfirm={confirmDelete}
             />

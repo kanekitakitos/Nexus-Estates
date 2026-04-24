@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { OwnProperty } from "@/types"
 import { useAmenityCatalog, resolveTranslation } from "../../model/hooks"
 import { PropertyMediaModal } from "../../components/property-media-modal"
-import { proMeta, proPanel, proSectionTitle } from "../../lib/property-tokens"
+import { proMeta, proPanel, proSectionTitle, propertyCopy, propertyTokens } from "../../lib/property-tokens"
 import { BoingText } from "@/components/effects/BoingText"
 import { staggerContainer, itemFadeUp } from "../../lib/animations"
 
@@ -45,18 +45,18 @@ function PreviewHero({ property }: { property: OwnProperty }) {
   const images = property.imageUrl ? [property.imageUrl] : []
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [activeIndex] = useState(0)
-  const titleStr = resolveTranslation(property.title) || "Sem título"
+  const titleStr = resolveTranslation(property.title) || propertyCopy.preview.noTitle
 
   return (
     <>
       <motion.div
         layoutId="gallery-container"
-        className="group relative aspect-[16/9] cursor-pointer overflow-hidden rounded-2xl border-2 border-[#0D0D0D] bg-zinc-100 shadow-[8px_8px_0_0_#FF5E1A] dark:border-zinc-300 dark:bg-zinc-900 lg:aspect-[21/9]"
+        className={propertyTokens.ui.preview.heroContainerClass}
         onClick={() => setIsFullscreen(true)}
       >
         <motion.img
           layoutId="gallery-image"
-          src={images.length > 0 ? images[activeIndex] ?? images[0] : "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop"}
+          src={images.length > 0 ? images[activeIndex] ?? images[0] : propertyTokens.ui.preview.fallbackImageUrl}
           alt=""
           className="h-full w-full object-cover transition duration-500 group-hover:opacity-95"
         />
@@ -66,7 +66,7 @@ function PreviewHero({ property }: { property: OwnProperty }) {
           {property.featured && (
             <span className="inline-flex items-center gap-1.5 rounded-md border border-white/30 bg-black/40 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
               <Star className="h-3 w-3 fill-current" strokeWidth={2} />
-              Destaque
+              {propertyCopy.preview.featured}
             </span>
           )}
           <span
@@ -83,20 +83,24 @@ function PreviewHero({ property }: { property: OwnProperty }) {
                 property.status === "AVAILABLE" ? "bg-emerald-400" : "bg-rose-400"
               )}
             />
-            {property.status === "AVAILABLE" ? "Disponível" : property.status === "MAINTENANCE" ? "Manutenção" : "Ocupada"}
+            {property.status === "AVAILABLE"
+              ? propertyCopy.preview.statusAvailable
+              : property.status === "MAINTENANCE"
+                ? propertyCopy.preview.statusMaintenance
+                : propertyCopy.preview.statusBooked}
           </span>
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 z-10 p-6 md:p-10">
           <p className="mb-2 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-white/70">
-            {property.city || "CITY_NULL"} · {property.location || "LOCATION_VOID"}
+            {property.city || propertyCopy.preview.cityNull} · {property.location || propertyCopy.preview.locationVoid}
           </p>
           <h1 className="max-w-4xl font-serif text-4xl font-bold italic uppercase leading-[0.9] tracking-tighter text-white md:text-5xl lg:text-6xl">
-            <BoingText text={titleStr} color="white" activeColor="#F97316" duration={0.5} />
+            <BoingText text={titleStr} color="white" activeColor={propertyTokens.ui.preview.boingActiveColor} duration={0.5} />
           </h1>
           <p className="mt-4 inline-flex items-center gap-2 text-sm text-white/85">
             <Eye className="h-4 w-4 opacity-70" strokeWidth={2} />
-            Clica para ampliar
+            {propertyCopy.preview.clickToExpand}
           </p>
         </div>
       </motion.div>
@@ -104,7 +108,7 @@ function PreviewHero({ property }: { property: OwnProperty }) {
       <PropertyMediaModal
         isOpen={isFullscreen}
         onClose={() => setIsFullscreen(false)}
-        images={images.length ? images : ["/placeholder-property.jpg"]}
+        images={images.length ? images : [...propertyTokens.ui.preview.placeholderImages]}
         title={titleStr}
         initialIndex={activeIndex}
       />
@@ -122,10 +126,10 @@ function PreviewHero({ property }: { property: OwnProperty }) {
  */
 function PreviewKpis({ property }: { property: OwnProperty }) {
   const items = [
-    { label: "Preço base", value: property.price ? `${property.price} €` : "VOID", hint: "por noite (configurável)", color: "border-primary shadow-primary/20 bg-orange-50 dark:bg-orange-950/20" },
-    { label: "Lotação", value: property.maxGuests ? String(property.maxGuests) : "00", hint: "hóspedes máx.", color: "border-indigo-500 shadow-indigo-500/20 bg-indigo-50 dark:bg-indigo-950/20" },
-    { label: "Avaliação", value: property.rating ? String(property.rating) : "N/A", hint: "índice interno", color: "border-emerald-500 shadow-emerald-500/20 bg-emerald-50 dark:bg-emerald-950/20" },
-    { label: "Identificador", value: property.id?.toString().slice(0, 12) ?? "NULL", hint: "referência", color: "border-[#0D0D0D] shadow-[#0D0D0D]/10 bg-white dark:bg-zinc-900" },
+    { label: propertyCopy.preview.kpiBasePriceLabel, value: property.price ? `${property.price} €` : propertyCopy.preview.kpiVoid, hint: propertyCopy.preview.kpiBasePriceHint, color: "border-primary shadow-primary/20 bg-orange-50 dark:bg-orange-950/20" },
+    { label: propertyCopy.preview.kpiCapacityLabel, value: property.maxGuests ? String(property.maxGuests) : propertyCopy.preview.kpiZero, hint: propertyCopy.preview.kpiCapacityHint, color: "border-indigo-500 shadow-indigo-500/20 bg-indigo-50 dark:bg-indigo-950/20" },
+    { label: propertyCopy.preview.kpiRatingLabel, value: property.rating ? String(property.rating) : propertyCopy.preview.kpiNa, hint: propertyCopy.preview.kpiRatingHint, color: "border-emerald-500 shadow-emerald-500/20 bg-emerald-50 dark:bg-emerald-950/20" },
+    { label: propertyCopy.preview.kpiIdentifierLabel, value: property.id?.toString().slice(0, 12) ?? propertyCopy.preview.kpiNull, hint: propertyCopy.preview.kpiIdentifierHint, color: propertyTokens.ui.preview.kpiIdentifierColorClass },
   ]
 
   return (
@@ -133,10 +137,10 @@ function PreviewKpis({ property }: { property: OwnProperty }) {
       {items.map((m) => (
         <div key={m.label} className={cn(proPanel, "p-5 border-2 transition-transform hover:-translate-y-1", m.color)}>
           <p className={proMeta}>{m.label}</p>
-          <p className="mt-3 font-serif text-3xl font-bold italic tabular-nums tracking-tighter text-[#0D0D0D] dark:text-white">
+          <p className={propertyTokens.ui.preview.kpiValueClass}>
             {m.value}
           </p>
-          <p className="mt-1 text-xs text-[#8C7B6B] dark:text-zinc-500 font-medium">{m.hint}</p>
+          <p className={propertyTokens.ui.preview.kpiHintClass}>{m.hint}</p>
         </div>
       ))}
     </div>
@@ -152,17 +156,17 @@ function PreviewKpis({ property }: { property: OwnProperty }) {
  * @param property - Dados do ativo para extrair a descrição
  */
 function PreviewAbout({ property }: { property: OwnProperty }) {
-  const desc = resolveTranslation(property.description) || "MISSING_DESCRIPTION // Operador, descreva este ativo para o catálogo comercial da Nexus Estates."
+  const desc = resolveTranslation(property.description) || propertyCopy.preview.descriptionMissing
   return (
-    <section className={cn(proPanel, "overflow-hidden border-2 border-primary/20 bg-[#FAFAF5] dark:bg-zinc-900")}>
+    <section className={cn(proPanel, propertyTokens.ui.preview.aboutSectionClass)}>
       <div className="flex items-center justify-between border-b border-primary/10 px-6 py-4 dark:border-zinc-800">
         <div className="flex items-center gap-2">
           <Info className="h-4 w-4 text-primary" strokeWidth={2.5} />
-          <h2 className={cn(proSectionTitle, "text-primary italic")}>Descrição</h2>
+          <h2 className={cn(proSectionTitle, "text-primary italic")}>{propertyCopy.preview.descriptionTitle}</h2>
         </div>
       </div>
       <div className="px-6 py-8">
-        <p className={cn("max-w-3xl text-base leading-relaxed", !resolveTranslation(property.description) ? "font-mono text-[10px] font-bold uppercase tracking-widest text-primary animate-pulse" : "text-[#0D0D0D]/90 dark:text-zinc-200")}>
+        <p className={cn("max-w-3xl text-base leading-relaxed", !resolveTranslation(property.description) ? "font-mono text-[10px] font-bold uppercase tracking-widest text-primary animate-pulse" : propertyTokens.ui.preview.aboutDescFilledClass)}>
           {desc}
         </p>
       </div>
@@ -183,31 +187,29 @@ function PreviewLocationTags({ property }: { property: OwnProperty }) {
     <section className={cn(proPanel, "p-6 md:p-8")}>
       <div className="grid gap-8 md:grid-cols-2">
         <div>
-          <div className="mb-4 flex items-center gap-2 text-[#8C7B6B]">
+          <div className={propertyTokens.ui.preview.locationLeftMetaColorClass}>
             <Globe className="h-4 w-4" strokeWidth={2} />
-            <span className={proMeta}>Geolocalização & Morada</span>
+            <span className={proMeta}>{propertyCopy.preview.geoTitle}</span>
           </div>
-          <p className="text-2xl font-bold tracking-tighter text-[#0D0D0D] dark:text-white uppercase">{property.city || "CITY_UNDEFINED"}</p>
-          <p className="mt-2 text-sm leading-relaxed text-[#8C7B6B] dark:text-zinc-400 italic">{property.address || "NO_STREET_PROTOCOL"}</p>
-          <p className="mt-3 font-mono text-[10px] font-black uppercase tracking-widest text-[#0D0D0D]/40 dark:text-zinc-500">{property.location || "LOCATION_SYSTEM_ERROR"}</p>
+          <p className={propertyTokens.ui.preview.locationCityClass}>{property.city || propertyCopy.preview.cityUndefined}</p>
+          <p className={propertyTokens.ui.preview.locationAddressClass}>{property.address || propertyCopy.preview.noStreetProtocol}</p>
+          <p className={propertyTokens.ui.preview.locationSystemClass}>{property.location || propertyCopy.preview.locationSystemError}</p>
         </div>
 
-        <div className="border-[#0D0D0D]/5 dark:border-white/5 md:border-l-2 md:pl-8">
-          <div className="mb-4 flex items-center gap-2 text-[#8C7B6B]">
+        <div className={propertyTokens.ui.preview.tagsDividerClass}>
+          <div className={propertyTokens.ui.preview.locationLeftMetaColorClass}>
             <Tag className="h-4 w-4" strokeWidth={2} />
-            <span className={proMeta}>Indexação de Tags</span>
+            <span className={proMeta}>{propertyCopy.preview.tagsTitle}</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {property.tags?.length ? (
               property.tags.map((tag, i) => (
-                <span key={i} className="rounded-md border-2 border-[#0D0D0D]/10 bg-white px-2.5 py-1 font-mono text-[10px] font-bold text-[#0D0D0D] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 shadow-[2px_2px_0_0_#0D0D0D] dark:shadow-none">
+                <span key={i} className={propertyTokens.ui.preview.tagChipClass}>
                   #{tag.toUpperCase()}
                 </span>
               ))
             ) : (
-              <span className="font-mono text-[10px] font-black uppercase tracking-[0.3em] text-[#8C7B6B]/30 italic leading-loose">
-                PROTOCOL_UNTAGGED · Recomenda-se etiquetagem para SEO e indexação Nexus
-              </span>
+              <span className={propertyTokens.ui.preview.untaggedClass}>{propertyCopy.preview.placeholderTagEmpty}</span>
             )}
           </div>
         </div>
@@ -231,40 +233,40 @@ function PreviewServicesAcl({ property }: { property: OwnProperty }) {
       <section className={cn(proPanel, "p-6 md:p-8")}>
         <div className="mb-6 flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" strokeWidth={2} />
-          <h2 className={proSectionTitle}>Serviços & Comodidades</h2>
+          <h2 className={proSectionTitle}>{propertyCopy.preview.servicesTitle}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
           {(property.amenityIds ?? []).length ? (
             (property.amenityIds ?? []).map((id) => (
-              <span key={id} className="rounded-lg border border-[#0D0D0D]/10 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-[#0D0D0D] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+              <span key={id} className={propertyTokens.ui.preview.amenityChipClass}>
                 {getAmenityLabel(id)}
               </span>
             ))
           ) : (
-            <span className="font-mono text-[10px] font-black uppercase tracking-widest text-[#8C7B6B]/30 italic">COMFORT_VOID</span>
+            <span className={propertyTokens.ui.preview.comfortVoidClass}>{propertyCopy.preview.comfortVoid}</span>
           )}
         </div>
       </section>
 
       <section className={cn(proPanel, "p-6 md:p-8")}>
-        <div className="mb-6 flex items-center gap-2 text-[#8C7B6B]">
+        <div className={propertyTokens.ui.preview.teamTitleRowClass}>
           <Users className="h-4 w-4" strokeWidth={2} />
-          <h2 className={proSectionTitle}>Equipa & Colaboradores</h2>
+          <h2 className={proSectionTitle}>{propertyCopy.preview.teamTitle}</h2>
         </div>
         <div className="space-y-4">
           {property.permissions?.map((perm) => (
-            <div key={perm.email} className="flex items-center justify-between gap-4 border-b border-[#0D0D0D]/5 pb-3 last:border-0 dark:border-zinc-800">
+            <div key={perm.email} className={propertyTokens.ui.preview.teamRowClass}>
               <div className="flex flex-col min-w-0">
-                <span className="truncate text-sm font-bold text-[#0D0D0D] dark:text-zinc-200">{perm.email}</span>
-                <span className="font-mono text-[8px] uppercase tracking-widest text-[#8C7B6B]">Atribuição Verificada</span>
+                <span className={propertyTokens.ui.preview.teamEmailClass}>{perm.email}</span>
+                <span className={propertyTokens.ui.preview.assignmentVerifiedClass}>{propertyCopy.preview.assignmentVerified}</span>
               </div>
-              <span className="shrink-0 rounded-md border-2 border-[#0D0D0D] bg-white px-2 py-0.5 font-mono text-[9px] font-black uppercase text-[#0D0D0D] shadow-[2px_2px_0_0_#0D0D0D]">
+              <span className={propertyTokens.ui.preview.permLevelBadgeClass}>
                 {perm.level}
               </span>
             </div>
           ))}
           {!property.permissions?.length && (
-            <div className="font-mono text-[10px] font-black uppercase tracking-widest text-[#8C7B6B]/30 italic py-4">EQUIP_NULL</div>
+            <div className={propertyTokens.ui.preview.teamNullClass}>{propertyCopy.preview.teamNull}</div>
           )}
         </div>
       </section>
@@ -287,59 +289,64 @@ function PreviewRulesSection({ property, onGoToRules }: { property: OwnProperty;
   const seasons = property.seasonalityRules || []
 
   return (
-    <section className={cn(proPanel, "overflow-hidden border-2 border-[#0D0D0D] dark:border-white/20")}>
-      <div className="flex items-center justify-between border-b-2 border-[#0D0D0D] px-6 py-5 dark:border-white/10 bg-[#FAFAF5] dark:bg-zinc-900/80">
+    <section className={cn(proPanel, propertyTokens.ui.preview.rulesOuterClass)}>
+      <div className={propertyTokens.ui.preview.rulesHeaderClass}>
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0D0D0D] text-white">
+          <div className={propertyTokens.ui.preview.rulesIconBadgeClass}>
             <Clock className="h-4 w-4" strokeWidth={2.5} />
           </div>
-          <h2 className={cn(proSectionTitle, "text-lg uppercase tracking-tighter")}>Gestão Operacional</h2>
+          <h2 className={cn(proSectionTitle, "text-lg uppercase tracking-tighter")}>{propertyCopy.preview.managementTitle}</h2>
         </div>
         {onGoToRules && (
-          <button onClick={onGoToRules} className="group flex items-center gap-2 rounded-xl border-2 border-[#0D0D0D] bg-white px-4 py-2 font-mono text-[10px] font-black uppercase tracking-widest text-[#0D0D0D] transition-all hover:bg-primary hover:text-white dark:border-white/20 dark:bg-zinc-900 dark:text-zinc-300 shadow-[4px_4px_0_0_#0D0D0D]">
-            Configurar <ArrowUpRight className="h-3 w-3" />
+          <button onClick={onGoToRules} className={propertyTokens.ui.preview.rulesButtonClass}>
+            {propertyCopy.preview.configure} <ArrowUpRight className="h-3 w-3" />
           </button>
         )}
       </div>
 
       <div className="grid gap-0 lg:grid-cols-2">
-        <div className="border-[#0D0D0D]/10 p-6 md:p-8 dark:border-white/10 lg:border-r-2">
+        <div className={propertyTokens.ui.preview.rulesLeftPanelClass}>
           <div className="space-y-8">
             <div>
-              <span className={proMeta}>Protocolo de Check-in/Out</span>
+              <span className={proMeta}>{propertyCopy.preview.checkInOutProtocol}</span>
               <div className="mt-6 flex items-center gap-6">
                 <div className="flex-1 rounded-2xl border-2 border-primary/20 bg-primary/[0.03] p-6 text-center">
-                  <p className="font-serif text-4xl font-bold italic text-primary dark:text-white">{rules.checkInTime || "00:00"}</p>
-                  <p className="mt-2 text-[9px] font-black uppercase tracking-[0.3em] text-primary/60">Entrada</p>
+                  <p className="font-serif text-4xl font-bold italic text-primary dark:text-white">{rules.checkInTime || propertyCopy.preview.timeFallback}</p>
+                  <p className="mt-2 text-[9px] font-black uppercase tracking-[0.3em] text-primary/60">{propertyCopy.preview.checkIn}</p>
                 </div>
-                <div className="flex-1 rounded-2xl border-2 border-[#0D0D0D]/5 bg-[#FAFAF5]/50 p-6 text-center">
-                  <p className="font-serif text-4xl font-bold italic text-[#0D0D0D] dark:text-white">{rules.checkOutTime || "00:00"}</p>
-                  <p className="mt-2 text-[9px] font-black uppercase tracking-[0.3em] text-[#8C7B6B]">Saída</p>
+                <div className={propertyTokens.ui.preview.checkOutCardClass}>
+                  <p className={propertyTokens.ui.preview.checkOutTimeClass}>{rules.checkOutTime || propertyCopy.preview.timeFallback}</p>
+                  <p className={propertyTokens.ui.preview.checkOutLabelClass}>{propertyCopy.preview.checkOut}</p>
                 </div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-xl border-2 border-[#0D0D0D]/5 bg-[#FAFAF5]/30 p-5">
-                <span className={proMeta}>Estadia</span>
-                <p className="mt-3 font-serif text-lg font-bold italic text-[#0D0D0D] dark:text-white">{rules.minNights ?? 0}d - {rules.maxNights ?? "∞"}</p>
+              <div className={propertyTokens.ui.preview.infoBoxClass}>
+                <span className={proMeta}>{propertyCopy.preview.stay}</span>
+                <p className={propertyTokens.ui.preview.infoValueClass}>{rules.minNights ?? 0}d - {rules.maxNights ?? propertyCopy.preview.infinity}</p>
               </div>
-              <div className="rounded-xl border-2 border-[#0D0D0D]/5 bg-[#FAFAF5]/30 p-5">
-                <span className={proMeta}>Antecedência</span>
-                <p className="mt-3 font-serif text-lg font-bold italic text-[#0D0D0D] dark:text-white">{rules.bookingLeadTimeDays ?? 0} DIAS</p>
+              <div className={propertyTokens.ui.preview.infoBoxClass}>
+                <span className={proMeta}>{propertyCopy.preview.leadTime}</span>
+                <p className={propertyTokens.ui.preview.infoValueClass}>
+                  {rules.bookingLeadTimeDays ?? 0} {propertyCopy.preview.daysLabel}
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-[#FAFAF5]/30 p-6 md:p-8 dark:bg-zinc-900/20">
-          <span className={proMeta}>Janelas de Rendimento ({seasons.length})</span>
+        <div className={propertyTokens.ui.preview.seasonsPanelClass}>
+          <span className={proMeta}>{propertyCopy.preview.yieldWindowsPrefix} ({seasons.length})</span>
           <div className="mt-6 space-y-3">
             {seasons.map((s, i) => (
-              <div key={i} className="flex items-center justify-between rounded-xl border-2 border-[#0D0D0D]/5 bg-white p-4">
+              <div key={i} className={propertyTokens.ui.preview.seasonRowClass}>
                 <div className="flex items-center gap-4">
                   <Calendar size={18} className="text-primary" />
                   <div className="flex flex-col">
-                    <span className="font-mono text-[10px] font-black uppercase text-primary">Protocolo_{i + 1}</span>
+                    <span className="font-mono text-[10px] font-black uppercase text-primary">
+                      {propertyCopy.preview.protocolPrefix}
+                      {i + 1}
+                    </span>
                     <span className="text-xs font-bold">{s.startDate} → {s.endDate}</span>
                   </div>
                 </div>
@@ -347,7 +354,7 @@ function PreviewRulesSection({ property, onGoToRules }: { property: OwnProperty;
               </div>
             ))}
             {seasons.length === 0 && (
-              <div className="py-12 text-center opacity-30 font-mono text-[10px] font-black uppercase tracking-widest">YIELD_VOID</div>
+              <div className={propertyTokens.ui.preview.yieldVoidClass}>{propertyCopy.preview.yieldVoid}</div>
             )}
           </div>
         </div>
@@ -377,7 +384,12 @@ function PreviewRulesSection({ property, onGoToRules }: { property: OwnProperty;
  * @see PreviewRulesSection — Visualização de regras e janelas de preço
  */
 export function PreviewSection({ property, onGoToRules }: PreviewSectionProps) {
-  const [syncedAt] = useState(() => new Date().toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" }))
+  const [syncedAt] = useState(() =>
+    new Date().toLocaleString(propertyTokens.ui.preview.dateLocale, {
+      dateStyle: propertyTokens.ui.preview.dateStyle,
+      timeStyle: propertyTokens.ui.preview.timeStyle,
+    })
+  )
 
   if (!property) return null
 
@@ -420,13 +432,13 @@ export function PreviewSection({ property, onGoToRules }: PreviewSectionProps) {
       {/* Rodapé de Protocolo */}
       <motion.footer 
         variants={itemFadeUp}
-        className="flex flex-col gap-4 border-t border-[#0D0D0D]/15 pt-8 text-sm text-[#8C7B6B] dark:border-zinc-800 md:flex-row md:items-center md:justify-between"
+        className={propertyTokens.ui.preview.footerClass}
       >
         <div className="flex flex-wrap gap-6 font-mono text-[10px] font-black uppercase tracking-widest">
-          <span>Vista Atualizada // {syncedAt}</span>
-          <span className="flex items-center gap-1.5 underline underline-offset-4 decoration-primary/30">ID_{property.id?.toString().slice(0, 12)}</span>
+          <span>{propertyCopy.preview.updatedViewPrefix} {syncedAt}</span>
+          <span className={propertyTokens.ui.preview.footerIdClass}>ID_{property.id?.toString().slice(0, 12)}</span>
         </div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#8C7B6B]/80 font-black">Nexus_Core // System_Preview</span>
+        <span className={propertyTokens.ui.preview.footerSystemClass}>{propertyCopy.preview.systemPreview}</span>
       </motion.footer>
     </motion.div>
   )

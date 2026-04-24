@@ -10,6 +10,7 @@ import {
 } from "@stripe/react-stripe-js"
 import { Loader2 } from "lucide-react"
 import { notify } from "@/lib/notify"
+import { financeTokens } from "@/features/finance/tokens"
 
 import { Button } from "@/components/ui/forms/button"
 
@@ -41,28 +42,28 @@ function StripePaymentInner({
       })
 
       if (result.error) {
-        notify.error(result.error.message ?? "Pagamento falhou.")
+        notify.error(result.error.message ?? financeTokens.copy.payment.failed)
         return
       }
 
       const intent = result.paymentIntent
       if (!intent) {
-        notify.error("Pagamento incompleto.")
+        notify.error(financeTokens.copy.payment.incomplete)
         return
       }
 
       if (intent.status === "succeeded") {
         await onConfirmed(intent.id)
-        notify.success("Pagamento confirmado.")
+        notify.success(financeTokens.copy.payment.confirmed)
         return
       }
 
       if (intent.status === "processing") {
-        notify.message("Pagamento em processamento.")
+        notify.message(financeTokens.copy.payment.processing)
         return
       }
 
-      notify.message(`Estado do pagamento: ${intent.status}`)
+      notify.message(`${financeTokens.copy.payment.statusPrefix} ${intent.status}`)
     } finally {
       setIsPaying(false)
     }
@@ -71,13 +72,14 @@ function StripePaymentInner({
   return (
     <div className="space-y-4 border-t border-foreground/10 pt-4">
       <div className="flex items-baseline justify-between gap-4">
-        <div className="text-xs font-mono uppercase tracking-widest opacity-70">Stripe</div>
+        <div className="text-xs font-mono uppercase tracking-widest opacity-70">{financeTokens.copy.payment.stripeLabel}</div>
         <div className="text-sm font-black tabular-nums">
-          €{total} {currency}
+          {financeTokens.ui.stripePaymentPanel.currencyPrefix}
+          {total} {currency}
         </div>
       </div>
 
-      <div className="rounded-xl border-2 border-foreground bg-background p-3 shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.8)]">
+      <div className={financeTokens.ui.stripePaymentPanel.paymentElementContainerClass}>
         <PaymentElement />
       </div>
 
@@ -91,15 +93,17 @@ function StripePaymentInner({
         {isPaying ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            A pagar…
+            {financeTokens.copy.payment.paying}
           </>
         ) : (
-          `Pagar • €${total}`
+          `${financeTokens.copy.payment.payPrefix}${total}`
         )}
       </Button>
 
       <div className="text-[10px] font-mono opacity-70">
-        Reserva #{bookingId}. Usa um cartão de teste Stripe (ex: 4242 4242 4242 4242).
+        {financeTokens.copy.payment.testCardHintPrefix}
+        {bookingId}
+        {financeTokens.copy.payment.testCardHintSuffix}
       </div>
     </div>
   )
@@ -127,7 +131,7 @@ export function StripePaymentPanel({
       stripe={stripePromise}
       options={{
         clientSecret,
-        appearance: { theme: "stripe" },
+        appearance: { theme: financeTokens.ui.stripePaymentPanel.stripeTheme },
       }}
     >
       <StripePaymentInner bookingId={bookingId} total={total} currency={currency} onConfirmed={onConfirmed} />

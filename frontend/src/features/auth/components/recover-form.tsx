@@ -24,8 +24,9 @@ import {
 } from "@/components/ui/forms/field"
 import { Input } from "@/components/ui/forms/input"
 import { notify } from "@/lib/notify"
-import {usersAxios} from "@/lib/axiosAPI";
-import {useState} from "react";
+import { authTokens } from "@/features/auth/tokens"
+import { usersAxios } from "@/lib/axiosAPI"
+import { useState } from "react"
 
 /**
  * componente do formulario de recuperação da autenticação
@@ -60,7 +61,7 @@ export function RecoverForm({
 
         // email not filled
         if (!email){
-            notify.warning("Prenche todas as celulas");
+            notify.warning(authTokens.copy.recover.missingEmail);
             return
         }
 
@@ -76,7 +77,7 @@ export function RecoverForm({
             .then(response => {
                 if (response.status === 200) { // Assuming a successful login returns a 200 status code
                     console.log("Recuperação efetuada!", response.data);
-                    notify.success("Pedido enviado com sucesso!");
+                    notify.success(authTokens.copy.recover.requestOk);
                 }
                 else {
                     console.log("resposta:", response);
@@ -112,9 +113,9 @@ export function RecoverForm({
             <BrutalCard>
 
                 <CardHeader className="text-center">
-                    <CardTitle className="text-xl">Recover Account</CardTitle>
+                    <CardTitle className="text-xl">{authTokens.copy.recover.title}</CardTitle>
                     <CardDescription>
-                        Enter the email of your account to receive a password reset link
+                        {authTokens.copy.recover.subtitle}
                     </CardDescription>
                 </CardHeader>
                 
@@ -140,7 +141,7 @@ export function RecoverForm({
                         disabled={isTryingRegister}
                         onClick={handleRegister}
                     >
-                        Send Reset Link
+                        {authTokens.copy.recover.submit}
                     </Button>
                 </CardContent>
 

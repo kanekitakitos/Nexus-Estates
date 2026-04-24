@@ -9,6 +9,7 @@
 export const B = {
   cream: "#F0ECD9",
   black: "#0D0D0D",
+  graphite: "#1a1a1a",
   orange: "#e2621cff",
   muted: "#8C7B6B",
   border: "rgba(13,13,13,0.12)",
@@ -69,3 +70,136 @@ export const STEPS = [
   { n:"03", title:"Recebe Reservas",  desc:"O motor confirma, bloqueia e notifica. Zero intervenção manual necessária." },
   { n:"04", title:"Faturação Auto",   desc:"Faturas e registos SEF gerados e enviados assim que a reserva é confirmada." },
 ] as const
+
+export const LANDING_COPY = {
+  padChar: "0",
+  plans: {
+    popularBadge: "Mais Popular",
+    sectionSuffix: "Planos",
+    sectionJoiner: " — ",
+    choosePrefix: "Escolher ",
+    chooseSuffix: " →",
+  },
+  about: {
+    sectionSuffix: "Sobre",
+    cardTitleSuffix: " →",
+  },
+  features: {
+    sectionSuffix: "Produto",
+    labelTitle: "Features",
+    hoverHint: "Hover para expandir",
+  },
+  workflow: {
+    sectionSuffix: "Fluxo",
+  },
+  cta: {
+    sectionSuffix: "Start",
+    primaryAriaLabel: "Criar conta grátis",
+    primaryText: "Criar Conta Grátis →",
+    disclaimer: "Sem cartão de crédito · Cancela quando quiseres · Suporte em PT",
+    disclaimerJoiner: " · ",
+  },
+  landingView: {
+    keyboardHint: "usa as teclas ← →",
+  },
+  nav: {
+    brand: "Nexus Estates",
+    dashboard: "Dashboard",
+    login: "Login",
+    start: "Começar",
+  },
+  cassette: {
+    screwSymbol: "+",
+    num: "90",
+    time: "2×30MIN",
+  },
+} as const
+
+export const CASSETTE = {
+  colors: {
+    wrapperDropShadow: "drop-shadow(6px 10px 15px rgba(0, 0, 0, 0.4))",
+    bottomDropShadow: "drop-shadow(0px -2px 4px rgba(0, 0, 0, 0.3))",
+    cardBg: "#252525",
+    screwFg: "#111",
+    screwBorder: "#111",
+    screwBg: "lightgrey",
+    stickerBg: "#FFFDD0",
+    lineBg: "#111",
+    yellowBandBg: "rgb(242, 188, 0)",
+    rollBg: "#171717",
+    tapeBg: "#252525",
+    wheelBorder: "#fff",
+    wheelShadow: "#fff",
+    numFg: "#111",
+    orangeBandBg: "rgb(241, 90, 37)",
+    timeFg: "#F0ECD9",
+    bottomShapeBg: "#252525",
+    chipBg: "rgb(190, 190, 190)",
+  },
+} as const
+
+export const LANDING_UI = {
+  effects: {
+    transparentBoxShadow: "0px 0px 0 0 rgba(0,0,0,0)",
+    dotGridSmall: "radial-gradient(circle, rgba(0,0,0,0.3) 1px, transparent 1px)",
+    dotGridLarge: "radial-gradient(circle, rgba(0,0,0,0.35) 1px, transparent 1px)",
+    iconDropShadow: "drop-shadow(0 0 4px rgba(255,255,255,0.02))",
+  },
+  colors: {
+    brutalGridLight: "rgba(240,236,217,0.16)",
+    brutalGridDark: "rgba(13,13,13,0.12)",
+  },
+  workflow: {
+    stepCardInactiveBorder: "2px solid rgba(240,236,217,0.35)",
+    stepCardActiveShadow: "6px 6px 0 0 rgba(232,86,10,0.25)",
+    stepCardInactiveShadow: "4px 4px 0 0 rgba(240,236,217,0.16)",
+    stepCardActiveBg: "rgba(13,13,13,0.95)",
+    stepCardInactiveBg: "rgba(13,13,13,0.6)",
+  },
+  about: {
+    infoCardBorder: "2px solid rgba(240,236,217,0.55)",
+    infoCardShadow: "6px 6px 0 0 rgba(240,236,217,0.18)",
+    infoCardBg: "rgba(240,236,217,0.03)",
+  },
+  features: {
+    glassShadowClass: "shadow-[0_25px_25px_rgba(0,0,0,0.25)]",
+    glassBackTextColor: "rgba(240,236,217,0.86)",
+  },
+} as const
+
+export const ABOUT_INFO_CARDS = [
+  {
+    n: "01",
+    title: "Missão",
+    body: "Reduzir a fricção operacional no AL. Centralizamos tudo para o anfitrião focar no que importa.",
+  },
+  {
+    n: "02",
+    title: "Tecnologia",
+    body: "Stack moderna, sync em tempo real, API robusta. Construído para anfitriões exigentes.",
+  },
+  {
+    n: "03",
+    title: "Suporte",
+    body: "Equipa dedicada que entende o mercado português. Sempre ao teu lado.",
+  },
+] as const
+
+export const landingTokens = {
+  ui: {
+    palette: B,
+    cassette: CASSETTE,
+    landing: LANDING_UI,
+  },
+  copy: {
+    tickerItems: TICKER_ITEMS,
+    morphing: MORPHING,
+    landing: LANDING_COPY,
+  },
+  data: {
+    sections: SECTIONS,
+    plans: PLANS,
+    bentoFeatures: BENTO_FEATURES,
+    steps: STEPS,
+  },
+} as const

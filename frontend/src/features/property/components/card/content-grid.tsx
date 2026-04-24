@@ -3,7 +3,7 @@
 import { MapPin, Users2, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { OwnProperty } from "@/types"
-import { nexusEyebrowClass } from "../../lib/property-tokens"
+import { nexusEyebrowClass, propertyCopy, propertyTokens } from "../../lib/property-tokens"
 import { StatusBadge } from "./status-badge"
 
 interface ContentGridProps {
@@ -25,13 +25,14 @@ export function ContentGrid({ title, prop, onEdit }: ContentGridProps) {
       <div className="space-y-2 pt-3">
         <div className="flex items-center justify-between gap-2">
           <StatusBadge status={prop.status} />
-          <div className="font-mono text-[7px] font-black uppercase tracking-[0.2em] text-[#0D0D0D]/20 dark:text-white/20">
-            REF_{prop.id.slice(-4).toUpperCase()}
+          <div className={propertyTokens.ui.cards.gridRefClass}>
+            {propertyCopy.cards.refPrefix}
+            {prop.id.slice(-4).toUpperCase()}
           </div>
         </div>
 
         <h3
-          className="font-black uppercase leading-[0.9] tracking-[-0.03em] text-[#0D0D0D] dark:text-white transition-colors duration-300 group-hover:text-primary text-center"
+          className={propertyTokens.ui.cards.gridTitleClass}
           style={{ fontSize: "clamp(1rem, 2vw, 1.35rem)" }}
         >
           {title}
@@ -45,21 +46,21 @@ export function ContentGrid({ title, prop, onEdit }: ContentGridProps) {
         </p>
       </div>
 
-      <div className="mt-4 flex items-center border-t-2 border-[#0D0D0D] dark:border-white/10 pt-3 gap-2">
+      <div className={propertyTokens.ui.cards.gridDividerClass}>
         <div className="flex flex-1 items-center">
-          <div className="flex flex-col items-center flex-1 border-r border-[#0D0D0D]/10 dark:border-white/10">
+          <div className={propertyTokens.ui.cards.gridYieldDividerClass}>
             <span className="font-mono text-[7px] font-black uppercase tracking-widest text-primary/60 mb-0.5">
-              RENDIMENTO
+              {propertyCopy.cards.yieldLabel}
             </span>
-            <span className="text-lg font-black tabular-nums tracking-tighter text-[#0D0D0D] dark:text-white">
+            <span className={propertyTokens.ui.cards.gridValueClass}>
               {prop.price}€
             </span>
           </div>
           <div className="flex flex-col items-center flex-1">
             <span className="font-mono text-[7px] font-black uppercase tracking-widest text-primary/60 mb-0.5">
-              CAPACIDADE
+              {propertyCopy.cards.capacityLabel}
             </span>
-            <div className="flex items-center gap-1 font-mono text-base font-black text-[#0D0D0D] dark:text-white">
+            <div className={propertyTokens.ui.cards.gridPaxClass}>
               <Users2 className="h-3 w-3 text-primary" strokeWidth={3} />
               {prop.maxGuests}
             </div>
@@ -69,7 +70,7 @@ export function ContentGrid({ title, prop, onEdit }: ContentGridProps) {
         {onEdit && (
           <button
             onClick={(e) => { e.stopPropagation(); onEdit(prop) }}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-2 border-[#0D0D0D] bg-primary text-white shadow-[3px_3px_0_0_#0D0D0D] transition-all hover:bg-[#FF5E1A] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+            className={propertyTokens.ui.cards.gridEditButtonClass}
           >
             <Pencil size={14} strokeWidth={3} />
           </button>

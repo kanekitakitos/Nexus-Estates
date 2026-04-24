@@ -8,6 +8,7 @@ import { ImageInput } from "@/components/ui/file-handler/imageInput"
 import Image from "next/image"
 import { OwnProperty } from "@/types"
 import { PropertyMediaModal } from "./property-media-modal"
+import { propertyCopy, propertyTokens } from "../lib/property-tokens"
 
 // ─── Tipos e Props ────────────────────────────────────────────────────────
 
@@ -18,14 +19,6 @@ export interface PropertyGalleryProps {
     /** Callback disparado após sucesso no upload de nova média */
     onUpdateImage?: (newImageUrl: string) => void
 }
-
-// ─── Constantes de Fallback ──────────────────────────────────────────────
-
-/** Imagens de exemplo utilizadas quando o ativo não possui media cadastrada */
-const PLACEHOLDER_GALLERY = [
-    "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=1200&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=1200&auto=format&fit=crop",
-]
 
 // ─── Sub-Componentes Internos ───────────────────────────────────────────────
 
@@ -44,7 +37,7 @@ function GalleryViewer({
     onExpand: () => void 
 }) {
     return (
-        <div className="relative overflow-hidden rounded-[2.5rem] border-[3px] border-foreground dark:border-zinc-800 aspect-[16/9] md:aspect-[21/9] bg-muted/10 group shadow-[12px_12px_0_0_#0D0D0D] dark:shadow-none">
+        <div className={propertyTokens.ui.gallery.viewerWrapClass}>
             <AnimatePresence mode="wait">
                 <motion.img
                     key={activeIndex} 
@@ -61,9 +54,9 @@ function GalleryViewer({
             {/* Crachá de Destaque */}
             {isFeatured && (
                 <div className="absolute top-6 left-6 z-10">
-                    <div className="flex items-center gap-3 rounded-2xl bg-primary px-4 py-2 text-white font-mono font-black border-[3px] border-foreground shadow-[4px_4px_0_0_#000] text-[11px] uppercase tracking-widest -rotate-2">
+                    <div className={propertyTokens.ui.gallery.featuredBadgeClass}>
                         <Star className="h-4 w-4 fill-current" strokeWidth={4} />
-                        <span>Premium_Asset</span>
+                        <span>{propertyCopy.gallery.featuredBadge}</span>
                     </div>
                 </div>
             )}
@@ -71,21 +64,23 @@ function GalleryViewer({
             {/* Controlos de Navegação */}
             {images.length > 1 && (
                 <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 flex justify-between z-10 pointer-events-none">
-                    <button onClick={onPrev} className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-2xl border-[3px] border-foreground bg-white shadow-[4px_4px_0_0_#0D0D0D] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all opacity-0 group-hover:opacity-100 dark:bg-zinc-900" title="Anterior"><ChevronLeft className="h-8 w-8" strokeWidth={4} /></button>
-                    <button onClick={onNext} className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-2xl border-[3px] border-foreground bg-white shadow-[4px_4px_0_0_#0D0D0D] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all opacity-0 group-hover:opacity-100 dark:bg-zinc-900" title="Próxima"><ChevronRight className="h-8 w-8" strokeWidth={4} /></button>
+                    <button onClick={onPrev} className={propertyTokens.ui.gallery.navButtonClass} title={propertyCopy.gallery.prevTitle}><ChevronLeft className="h-8 w-8" strokeWidth={4} /></button>
+                    <button onClick={onNext} className={propertyTokens.ui.gallery.navButtonClass} title={propertyCopy.gallery.nextTitle}><ChevronRight className="h-8 w-8" strokeWidth={4} /></button>
                 </div>
             )}
 
             {/* Ação de Expansão */}
-            <button onClick={onExpand} className="absolute bottom-6 right-6 z-10 flex h-14 w-14 items-center justify-center rounded-2xl border-[3px] border-foreground bg-white shadow-[4px_4px_0_0_#0D0D0D] hover:shadow-none transition-all opacity-0 group-hover:opacity-100 dark:bg-zinc-900 text-primary" title="Ecrã Inteiro">
+            <button onClick={onExpand} className={propertyTokens.ui.gallery.fullscreenButtonClass} title={propertyCopy.gallery.fullscreenTitle}>
                 <Eye className="h-7 w-7" strokeWidth={3} />
             </button>
 
             {/* Indicador de Paginação */}
             {images.length > 1 && (
                 <div className="absolute bottom-6 left-6 z-10">
-                    <div className="flex items-center gap-2 rounded-xl border-[3px] border-foreground bg-foreground px-4 py-2 text-white font-mono font-black text-[11px] tracking-widest shadow-[4px_4px_0_0_rgba(0,0,0,0.3)]">
-                        {String(activeIndex + 1).padStart(2, '0')}{" // "}{String(images.length).padStart(2, '0')}
+                    <div className={propertyTokens.ui.gallery.paginationClass}>
+                        {String(activeIndex + 1).padStart(2, propertyCopy.gallery.padChar)}
+                        {propertyCopy.gallery.indexDivider}
+                        {String(images.length).padStart(2, propertyCopy.gallery.padChar)}
                     </div>
                 </div>
             )}
@@ -112,13 +107,13 @@ function GalleryThumbs({
                     className={cn(
                         "relative aspect-square overflow-hidden rounded-2xl transition-all duration-300 border-[3px]",
                         activeIndex === i 
-                            ? "border-primary shadow-[4px_4px_0_0_#0D0D0D] -translate-y-1.5" 
+                            ? propertyTokens.ui.gallery.thumbsSelectedClass
                             : "border-foreground/20 dark:border-white/10 hover:border-foreground/40 hover:-translate-y-1"
                     )}
                 >
                     <Image
                         src={src}
-                        alt=""
+                        alt={propertyCopy.gallery.thumbAlt}
                         fill
                         sizes="96px"
                         className={cn(
@@ -138,19 +133,19 @@ function GalleryThumbs({
  */
 function UploadMediaSection({ onUpload }: { onUpload: (urls: string[]) => void }) {
     return (
-        <div className="relative group rounded-[2.5rem] border-[3px] border-dashed border-foreground/30 dark:border-white/10 bg-[#FAFAF5]/50 dark:bg-zinc-900/40 p-12 transition-all hover:border-primary/50 hover:bg-white dark:hover:bg-zinc-900">
+        <div className={propertyTokens.ui.gallery.uploadWrapClass}>
             <div className="flex flex-col items-center justify-center gap-6 text-center">
                 <div className="relative">
                     <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full group-hover:bg-primary/30 transition-all" />
-                    <div className="relative h-20 w-20 flex items-center justify-center rounded-3xl border-[3px] border-foreground bg-white shadow-[6px_6px_0_0_#0D0D0D] group-hover:translate-x-1 group-hover:translate-y-1 group-hover:shadow-none transition-all dark:bg-zinc-800">
+                    <div className={propertyTokens.ui.gallery.uploadIconWrapClass}>
                         <UploadCloud className="h-10 w-10 text-primary" strokeWidth={2.5} />
                     </div>
                 </div>
                 
                 <div className="space-y-2">
-                    <h5 className="font-serif text-xl font-bold italic uppercase tracking-tight">Anexar Média Visual</h5>
+                    <h5 className="font-serif text-xl font-bold italic uppercase tracking-tight">{propertyCopy.gallery.uploadTitle}</h5>
                     <p className="font-mono text-[9px] font-black uppercase text-muted-foreground/60 tracking-[0.2em]">
-                        Protocolo_Upload // PNG_JPG_WEBP // Max_25MB_Asset
+                        {propertyCopy.gallery.uploadProtocol}
                     </p>
                 </div>
 
@@ -175,7 +170,7 @@ export function PropertyGallery({ property, onUpdateImage }: PropertyGalleryProp
     // Configuração de Imagens (com fallbacks de placeholder)
     const galleryImages = property.imageUrl?.trim()
         ? [property.imageUrl.trim()]
-        : PLACEHOLDER_GALLERY
+        : [...propertyTokens.ui.gallery.placeholderImages]
 
     const [activeImageIndex, setActiveImageIndex] = useState(0)
     const [isFullscreen, setIsFullscreen] = useState(false)
@@ -190,7 +185,7 @@ export function PropertyGallery({ property, onUpdateImage }: PropertyGalleryProp
             <GalleryViewer 
                 images={galleryImages} 
                 activeIndex={activeImageIndex} 
-                title={typeof property.title === 'string' ? property.title : property.title?.pt || "Nexus Asset"} 
+                title={typeof property.title === "string" ? property.title : property.title?.pt || propertyCopy.gallery.placeholderTitle} 
                 isFeatured={property.featured} 
                 onPrev={handlePrev} 
                 onNext={handleNext} 
@@ -216,7 +211,7 @@ export function PropertyGallery({ property, onUpdateImage }: PropertyGalleryProp
                 isOpen={isFullscreen}
                 onClose={() => setIsFullscreen(false)}
                 images={galleryImages}
-                title={typeof property.title === 'string' ? property.title : (property.title?.pt || "Nexus Gallery")}
+                title={typeof property.title === "string" ? property.title : (property.title?.pt || propertyCopy.gallery.placeholderModalTitle)}
                 initialIndex={activeImageIndex}
             />
         </div>

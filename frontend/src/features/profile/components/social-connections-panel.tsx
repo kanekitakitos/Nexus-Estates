@@ -5,6 +5,7 @@ import { ProfilePanel } from "@/features/profile/components/profile-panel"
 import { Button } from "@/components/ui/button"
 import { Github, Mail, AlertCircle, CheckCircle2 } from "lucide-react"
 import { motion } from "framer-motion"
+import { profileTokens } from "@/features/profile/tokens"
 
 /**
  * Interface para os dados de uma ligação social
@@ -64,35 +65,34 @@ export function SocialConnectionsPanel({
     switch (provider) {
       case 'google':
         return {
-          name: 'Google',
+          name: profileTokens.copy.social.googleName,
           icon: <Mail className="w-5 h-5" />,
-          color: 'bg-red-500/10 text-red-500 border-red-500/20',
-          hoverColor: 'hover:bg-red-500 hover:text-white',
-          bgColor: 'bg-white text-black hover:bg-gray-100',
+          color: profileTokens.ui.social.googleBadgeClass,
+          hoverColor: profileTokens.ui.social.googleBadgeHoverClass,
+          bgColor: profileTokens.ui.social.googleButtonClass,
         }
       case 'github':
         return {
-          name: 'GitHub',
+          name: profileTokens.copy.social.githubName,
           icon: <Github className="w-5 h-5" />,
-          color: 'bg-slate-800/10 text-slate-800 border-slate-800/20 dark:bg-slate-200/10 dark:text-slate-200 dark:border-slate-200/20',
-          hoverColor: 'hover:bg-slate-800 hover:text-white dark:hover:bg-slate-200 dark:hover:text-black',
-          bgColor: 'bg-[#24292F] text-white hover:bg-[#24292F]/90 dark:bg-white dark:text-black dark:hover:bg-gray-200',
+          color: profileTokens.ui.social.githubBadgeClass,
+          hoverColor: profileTokens.ui.social.githubBadgeHoverClass,
+          bgColor: profileTokens.ui.social.githubButtonClass,
         }
     }
   }
 
   return (
     <ProfilePanel
-      title="Contas Vinculadas"
-      subtitle="Faz login rapidamente utilizando os teus serviços favoritos"
+      title={profileTokens.copy.social.title}
+      subtitle={profileTokens.copy.social.subtitle}
     >
       <div className="space-y-4">
         {/* Aviso de Segurança */}
         <div className="flex items-start gap-3 p-4 rounded-2xl bg-(--fg-color)/5 border border-(--fg-color)/10">
           <AlertCircle className="w-5 h-5 text-(--primary-accent) shrink-0 mt-0.5" />
           <p className="text-xs font-mono text-(--fg-color)/70 leading-relaxed">
-            Vincular uma conta permite que faças login no Nexus Estates sem precisares de inserir a tua password.
-            Apenas teremos acesso ao teu email e nome público.
+            {profileTokens.copy.social.warningLine1} {profileTokens.copy.social.warningLine2}
           </p>
         </div>
 
@@ -120,12 +120,12 @@ export function SocialConnectionsPanel({
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <CheckCircle2 className="w-3 h-3 text-green-500" />
                         <span className="text-[10px] font-mono text-(--fg-color)/50 truncate max-w-[120px]">
-                          {connection.email || 'Vinculado'}
+                          {connection.email || profileTokens.copy.social.connectedFallback}
                         </span>
                       </div>
                     ) : (
                       <div className="text-[10px] font-mono text-(--fg-color)/40 mt-0.5">
-                        Não vinculado
+                        {profileTokens.copy.social.notConnected}
                       </div>
                     )}
                   </div>
@@ -140,7 +140,7 @@ export function SocialConnectionsPanel({
                       disabled={isBusy || loadingProvider !== null}
                       className="w-full rounded-xl border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
                     >
-                      {isBusy ? "A processar..." : "Desvincular"}
+                      {isBusy ? profileTokens.copy.social.processing : profileTokens.copy.social.btnDisconnect}
                     </Button>
                   ) : (
                     <Button
@@ -150,7 +150,7 @@ export function SocialConnectionsPanel({
                       disabled={isBusy || loadingProvider !== null}
                       className={`w-full rounded-xl font-bold tracking-wide shadow-none transition-colors ${info.bgColor}`}
                     >
-                      {isBusy ? "A processar..." : `Conectar com ${info.name}`}
+                      {isBusy ? profileTokens.copy.social.processing : `${profileTokens.copy.social.btnConnectPrefix}${info.name}`}
                     </Button>
                   )}
                 </div>

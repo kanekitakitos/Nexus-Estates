@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { OwnProperty } from "@/types"
 import { resolveTranslation } from "../../model/hooks"
-import { nexusShadowSm } from "../../lib/property-tokens"
+import { nexusShadowSm, propertyCopy, propertyTokens } from "../../lib/property-tokens"
 import { PropertyCardDisplayVariant } from "../../model/property-constants"
 
 interface CardMediaThumbProps {
@@ -25,7 +25,7 @@ interface CardMediaThumbProps {
  * adaptando dimensões e overlays à variante de display.
  */
 export function CardMediaThumb({ prop, mode, serialId }: CardMediaThumbProps) {
-  const title = resolveTranslation(prop.title) || "Asset"
+  const title = resolveTranslation(prop.title) || propertyCopy.cards.fallbackTitle
   const rail = mode === "inventoryRail"
   const grid = mode === "grid"
   const portfolio = mode === "portfolio"
@@ -33,7 +33,9 @@ export function CardMediaThumb({ prop, mode, serialId }: CardMediaThumbProps) {
   return (
     <div
       className={cn(
-        "relative shrink-0 overflow-hidden bg-[#E8E4D4] dark:bg-zinc-900 border-[#0D0D0D] dark:border-zinc-600 group/img transition-transform duration-500",
+        propertyTokens.ui.cards.mediaThumbBaseClass,
+        propertyTokens.ui.cards.mediaThumbBgClass,
+        propertyTokens.ui.cards.mediaThumbBorderColorClass,
         rail && "m-1 h-12 w-12 rounded-xl border-2",
         grid && "h-20 w-32 rounded-xl border-2",
         portfolio &&
@@ -47,10 +49,10 @@ export function CardMediaThumb({ prop, mode, serialId }: CardMediaThumbProps) {
           className="h-full w-full object-cover grayscale-[0.15] transition-all duration-700 group-hover/img:grayscale-0 group-hover/img:scale-[1.04]"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center bg-[#F0ECD9]/50 dark:bg-zinc-800/50">
+        <div className={propertyTokens.ui.cards.mediaThumbPlaceholderBgClass}>
           <Home
             className={cn(
-              "text-[#8C7B6B]/50 dark:text-zinc-500",
+              propertyTokens.ui.cards.mediaThumbIconColorClass,
               rail ? "h-6 w-6" : grid ? "h-8 w-8" : "h-14 w-14"
             )}
             strokeWidth={1.2}
@@ -63,13 +65,13 @@ export function CardMediaThumb({ prop, mode, serialId }: CardMediaThumbProps) {
         <div className="absolute left-2 top-2 z-10 md:left-3 md:top-3">
           <div
             className={cn(
-              "flex items-center gap-1.5 rounded-lg border-2 border-[#0D0D0D] bg-primary px-2 py-0.5 font-black uppercase tracking-widest text-white",
+              propertyTokens.ui.cards.mediaThumbFeaturedBadgeClass,
               nexusShadowSm,
               grid ? "text-[8px]" : "text-[9px]"
             )}
           >
             <Star className="h-2.5 w-2.5 fill-current" />
-            <span>HOT</span>
+            <span>{propertyCopy.cards.featuredBadge}</span>
           </div>
         </div>
       )}

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/forms/button";
 import { Input } from "@/components/ui/forms/input";
 import { Avatar as UiAvatar, AvatarImage, AvatarFallback } from "@/components/ui/data-display/avatar";
 import { ArrowLeft } from "lucide-react";
+import { chatTokens } from "@/features/chat/tokens";
 
 export const initials = (name: string) =>
   name
@@ -23,7 +24,12 @@ export const ChatHeader: React.FC<{
 }> = ({ name, avatarUrl, status, onBack, rightSlot }) => (
   <div className="flex items-center gap-3 px-4 py-3 border-b">
     {onBack && (
-      <Button variant="outline" size="icon-sm" onClick={onBack} aria-label="Voltar">
+      <Button
+        variant="outline"
+        size="icon-sm"
+        onClick={onBack}
+        aria-label={chatTokens.copy.ui.header.backAriaLabel}
+      >
         <ArrowLeft className="size-4" />
       </Button>
     )}
@@ -75,7 +81,7 @@ export const ChatFooter: React.FC<{
   placeholder?: string;
   disabled?: boolean;
   onSend?: (text: string) => void;
-}> = ({ placeholder = "Mensagem", disabled, onSend }) => {
+}> = ({ placeholder = chatTokens.copy.ui.composer.messagePlaceholder, disabled, onSend }) => {
   const [text, setText] = React.useState("");
 
   const send = () => {
@@ -97,7 +103,7 @@ export const ChatFooter: React.FC<{
         className="flex-1"
       />
       <Button onClick={send} disabled={disabled}>
-        Enviar
+        {chatTokens.copy.ui.composer.sendButton}
       </Button>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client"
 
-import { SECTIONS, B } from "../lib/tokens"
+import { SECTIONS, B, landingTokens } from "../lib/tokens"
 import { BoingText } from "@/components/effects/BoingText"
 import { useSyncExternalStore } from "react"
 import { AuthService } from "@/services/auth.service"
@@ -40,7 +40,7 @@ function Logo({ goTo, fg, accentColor }: { goTo?: NavProps["goTo"]; fg: string; 
       className="font-black uppercase tracking-tight text-[18px] md:text-[20px]"
       style={{ color: fg }}
     >
-      <BoingText text="Nexus Estates" color={fg} activeColor={accentColor ?? B.orange} />
+      <BoingText text={landingTokens.copy.landing.nav.brand} color={fg} activeColor={accentColor ?? B.orange} />
     </button>
   )
 }
@@ -53,7 +53,7 @@ function NavLinks({ active, goTo, fg, accentColor, activeLinkColor, hideLinks }:
       {SECTIONS.slice(1).map((s, i) => {
         const idx = i + 1
         const isActive = active === idx
-        const baseColor = isActive ? (activeLinkColor ?? B.orange) : (fg || "#000000")
+        const baseColor = isActive ? (activeLinkColor ?? B.orange) : (fg || B.black)
         return (
           <button
             key={s.id}
@@ -88,7 +88,7 @@ function NavActions({
           className="hidden md:inline font-black uppercase tracking-widest text-[14px]"
           style={{ color: fg, opacity: 0.88 }}
         >
-          <BoingText text="Dashboard" color={fg} activeColor={accentColor ?? B.orange} />
+          <BoingText text={landingTokens.copy.landing.nav.dashboard} color={fg} activeColor={accentColor ?? B.orange} />
         </a>
       ) : (
         <a
@@ -96,7 +96,7 @@ function NavActions({
           className="hidden md:inline font-black uppercase tracking-widest text-[14px]"
           style={{ color: fg, opacity: 0.88 }}
         >
-          <BoingText text="Login" color={fg} activeColor={accentColor ?? B.orange} />
+          <BoingText text={landingTokens.copy.landing.nav.login} color={fg} activeColor={accentColor ?? B.orange} />
         </a>
       )}
       <a
@@ -104,7 +104,7 @@ function NavActions({
         className="font-black uppercase tracking-widest text-[14px]"
         style={{ color: ctaColor ?? B.orange }}
       >
-        <BoingText text="Começar" color={ctaColor ?? B.orange} activeColor={accentColor ?? B.orange} />
+        <BoingText text={landingTokens.copy.landing.nav.start} color={ctaColor ?? B.orange} activeColor={accentColor ?? B.orange} />
       </a>
     </div>
   )
@@ -112,7 +112,7 @@ function NavActions({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function Nav({ active = 0, goTo, fg = "#000000", accentColor, activeLinkColor, ctaColor, hideLinks = false }: NavProps) {
+export function Nav({ active = 0, goTo, fg = B.black, accentColor, activeLinkColor, ctaColor, hideLinks = false }: NavProps) {
   const isAuthenticated = useSyncExternalStore(
     (onStoreChange) => {
       const handleStorageChange = () => onStoreChange();

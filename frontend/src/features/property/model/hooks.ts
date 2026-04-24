@@ -6,6 +6,7 @@ import { OwnProperty, Filters, WizardStep } from "@/types"
 import { PropertyService } from "@/services/property.service"
 import { AmenityService, Amenity } from "@/services/amenity.service"
 import type { CreatePropertyRequest } from "@/types/property"
+import { propertyCopy } from "../lib/property-tokens"
 import { mapPropertyRecordToOwnProperty, resolveTranslation } from "../lib/property-utils"
 
 export const DEFAULT_FILTERS: Filters = {
@@ -60,7 +61,7 @@ export function usePropertyManager(selectedPropertyId: string | null) {
         await PropertyService.deleteProperty(Number(id))
         await refresh()
       } catch {
-        notify.error("Erro ao eliminar")
+        notify.error(propertyCopy.manager.deleteError)
       }
     }
   }
@@ -102,7 +103,7 @@ export function useAmenityCatalog() {
   useEffect(() => {
     AmenityService.listAll()
       .then(setAmenities)
-      .catch(() => notify.error("Erro ao carregar catálogo"))
+      .catch(() => notify.error(propertyCopy.amenities.loadCatalogError))
       .finally(() => setIsLoading(false))
   }, [])
 
@@ -174,11 +175,11 @@ export function usePropertyForm(initialData: OwnProperty | null, onSaved: () => 
             imageUrl: payload.imageUrl,
           } as CreatePropertyRequest)
         }
-        notify.success("Operação concluída com sucesso")
+        notify.success(propertyCopy.form.saveOk)
         await onSaved()
       } catch (err) {
         console.error("Save error:", err)
-        notify.error("Falha na sincronização")
+        notify.error(propertyCopy.form.syncFail)
       } finally {
         setIsSaving(false)
       }

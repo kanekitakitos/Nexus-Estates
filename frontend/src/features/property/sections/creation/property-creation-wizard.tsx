@@ -17,6 +17,7 @@ import { BrutalSurface } from "@/components/ui/layout/brutal-surface"
 import { AmenitiesField } from "../../components/amenities-field"
 import { PropertyCardItem } from "../../components/property-card-item"
 import { CollaboratorManager } from "../../components/collaborator-manager"
+import { propertyCopy, propertyTokens } from "../../lib/property-tokens"
 
 // ─── Tipos e Interfaces ───────────────────────────────────────────────────
 
@@ -60,11 +61,11 @@ export interface WizardStepMeta {
  * 5. Revisão (preview) — validação final antes de guardar
  */
 const STEPS_META: WizardStepMeta[] = [
-    { key: "essence", label: "Identidade", n: "1" },
-    { key: "location", label: "Localização", n: "2" },
-    { key: "amenities", label: "Comodidades", n: "3" },
-    { key: "permissions", label: "Equipa", n: "4" },
-    { key: "preview", label: "Revisão", n: "5" },
+    { key: "essence", label: propertyCopy.wizard.stepEssenceLabel, n: propertyCopy.wizard.stepEssenceN },
+    { key: "location", label: propertyCopy.wizard.stepLocationLabel, n: propertyCopy.wizard.stepLocationN },
+    { key: "amenities", label: propertyCopy.wizard.stepAmenitiesLabel, n: propertyCopy.wizard.stepAmenitiesN },
+    { key: "permissions", label: propertyCopy.wizard.stepPermissionsLabel, n: propertyCopy.wizard.stepPermissionsN },
+    { key: "preview", label: propertyCopy.wizard.stepPreviewLabel, n: propertyCopy.wizard.stepPreviewN },
 ]
 
 // ─── Sub-Componentes de UI ──────────────────────────────────────────────────
@@ -84,17 +85,17 @@ const STEPS_META: WizardStepMeta[] = [
 function WizardProgress({ currentStep, isEdit }: { currentStep: WizardStep; isEdit: boolean }) {
     const currentIdx = STEPS_META.findIndex((s) => s.key === currentStep)
     return (
-        <div className="mb-10 flex flex-col gap-6 border-b border-[#0D0D0D]/15 pb-8 dark:border-zinc-800 md:flex-row md:items-start md:justify-between">
+        <div className={propertyTokens.ui.wizard.progressWrapClass}>
             <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[#0D0D0D]/25 bg-primary text-white dark:border-zinc-600">
+                <div className={propertyTokens.ui.wizard.progressIconWrapClass}>
                     <Layout className="h-6 w-6" strokeWidth={2} />
                 </div>
                 <div>
-                    <p className="mb-2 font-mono text-[9px] font-black uppercase tracking-[0.4em] text-[#8C7B6B]">
-                        {isEdit ? "Protocolo_Edição // Ativo" : "Protocolo_Criação // Novo"}
+                    <p className={propertyTokens.ui.wizard.progressProtocolClass}>
+                        {isEdit ? propertyCopy.wizard.editProtocol : propertyCopy.wizard.createProtocol}
                     </p>
-                    <h2 className="font-serif text-3xl font-bold italic uppercase leading-none tracking-tighter text-[#0D0D0D] md:text-5xl dark:text-white">
-                        <BoingText text={STEPS_META.find((s) => s.key === currentStep)?.label || ""} color="currentColor" activeColor="#F97316" />
+                    <h2 className={propertyTokens.ui.wizard.progressTitleClass}>
+                        <BoingText text={STEPS_META.find((s) => s.key === currentStep)?.label || ""} color="currentColor" activeColor={propertyTokens.ui.preview.boingActiveColor} />
                     </h2>
                 </div>
             </div>
@@ -108,13 +109,13 @@ function WizardProgress({ currentStep, isEdit }: { currentStep: WizardStep; isEd
                                     ? "border-primary bg-primary/15 text-primary"
                                     : idx < currentIdx
                                       ? "border-emerald-600/40 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
-                                      : "border-[#0D0D0D]/15 text-[#8C7B6B] dark:border-zinc-700"
+                                      : propertyTokens.ui.wizard.progressPendingStepClass
                             )}
                         >
                             {s.n}
                         </span>
                         {idx < STEPS_META.length - 1 && (
-                            <span className="hidden h-px w-4 bg-[#0D0D0D]/15 sm:block dark:bg-zinc-700" aria-hidden />
+                            <span className={propertyTokens.ui.wizard.progressConnectorClass} aria-hidden />
                         )}
                     </li>
                 ))}
@@ -141,9 +142,9 @@ function EssenceStep({
     const getVal = (v: OwnProperty['title'] | OwnProperty['description']) => typeof v === 'string' ? v : v?.pt || ""
     return (
         <div className="grid gap-6">
-            <BrutalField label="Título" value={getVal(property.title)} savedValue={initial ? getVal(initial.title) : ""} onChange={(v) => updateField('title', v as string)} onRevert={() => updateField('title', initial?.title || "")} />
-            <BrutalField label="Descrição" value={getVal(property.description)} savedValue={initial ? getVal(initial.description) : ""} onChange={(v) => updateField('description', v as string)} onRevert={() => updateField('description', initial?.description || "")} multiline rows={4} />
-            <BrutalField label="Valor Base (€)" type="number" value={property.price as number} savedValue={initial?.price || 0} onChange={(v) => updateField('price', Number(v))} onRevert={() => updateField('price', initial?.price || 0)} />
+            <BrutalField label={propertyCopy.wizard.essenceTitleLabel} value={getVal(property.title)} savedValue={initial ? getVal(initial.title) : ""} onChange={(v) => updateField('title', v as string)} onRevert={() => updateField('title', initial?.title || "")} />
+            <BrutalField label={propertyCopy.wizard.essenceDescriptionLabel} value={getVal(property.description)} savedValue={initial ? getVal(initial.description) : ""} onChange={(v) => updateField('description', v as string)} onRevert={() => updateField('description', initial?.description || "")} multiline rows={4} />
+            <BrutalField label={propertyCopy.wizard.essenceBaseValueLabel} type="number" value={property.price as number} savedValue={initial?.price || 0} onChange={(v) => updateField('price', Number(v))} onRevert={() => updateField('price', initial?.price || 0)} />
         </div>
     )
 }
@@ -165,10 +166,10 @@ function LocationStep({
 }) {
     return (
         <div className="grid gap-6">
-            <BrutalField label="Região" value={property.location as string} savedValue={initial?.location || ""} onChange={(v) => updateField('location', v as string)} onRevert={() => updateField('location', initial?.location || "")} />
+            <BrutalField label={propertyCopy.wizard.locationRegionLabel} value={property.location as string} savedValue={initial?.location || ""} onChange={(v) => updateField('location', v as string)} onRevert={() => updateField('location', initial?.location || "")} />
             <div className="grid grid-cols-2 gap-6">
-                <BrutalField label="Cidade" value={property.city as string} savedValue={initial?.city || ""} onChange={(v) => updateField('city', v as string)} onRevert={() => updateField('city', initial?.city || "")} />
-                <BrutalField label="Morada" value={property.address as string} savedValue={initial?.address || ""} onChange={(v) => updateField('address', v as string)} onRevert={() => updateField('address', initial?.address || "")} />
+                <BrutalField label={propertyCopy.wizard.locationCityLabel} value={property.city as string} savedValue={initial?.city || ""} onChange={(v) => updateField('city', v as string)} onRevert={() => updateField('city', initial?.city || "")} />
+                <BrutalField label={propertyCopy.wizard.locationAddressLabel} value={property.address as string} savedValue={initial?.address || ""} onChange={(v) => updateField('address', v as string)} onRevert={() => updateField('address', initial?.address || "")} />
             </div>
         </div>
     )
@@ -215,8 +216,8 @@ function PermissionsStep({
 }) {
     return (
         <div className="space-y-6">
-            <p className="text-sm font-serif italic text-[#8C7B6B] dark:text-zinc-500">
-                Opcional. Podes convidar colegas antes de publicar — as permissões efetivas dependem do nível de acesso Nexus.
+            <p className={propertyTokens.ui.wizard.permissionsHintClass}>
+                {propertyCopy.wizard.permissionsHint}
             </p>
             <CollaboratorManager 
                 isCard={false}
@@ -237,7 +238,7 @@ function PermissionsStep({
  * @param property - Dados completos do ativo para revisão
  */
 function PreviewStep({ property }: { property: OwnProperty }) {
-    const titleStr = typeof property.title === "string" ? property.title : property.title?.pt || "—"
+    const titleStr = typeof property.title === "string" ? property.title : property.title?.pt || propertyCopy.wizard.previewTitleFallback
     return (
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             <div className="min-w-0">
@@ -245,21 +246,21 @@ function PreviewStep({ property }: { property: OwnProperty }) {
             </div>
             <BrutalSurface variant="pro" padding="lg" className="space-y-6">
                 <div>
-                    <h3 className="font-serif text-xl font-bold italic uppercase tracking-tight text-[#0D0D0D] dark:text-white">Protocolo_Final // Resumo</h3>
-                    <p className="mt-1 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-[#8C7B6B] dark:text-zinc-500">Confere os dados principais antes de guardar no Nexus_Core.</p>
+                    <h3 className={propertyTokens.ui.wizard.previewTitleClass}>{propertyCopy.wizard.previewSummaryTitle}</h3>
+                    <p className={propertyTokens.ui.wizard.previewSubtitleClass}>{propertyCopy.wizard.previewSummarySubtitle}</p>
                 </div>
-                <ul className="space-y-4 border-t border-[#0D0D0D]/10 pt-4 dark:border-zinc-800">
+                <ul className={propertyTokens.ui.wizard.previewListClass}>
                     {[
-                        { l: "Título", v: titleStr, i: Home },
-                        { l: "Local", v: `${property.city} · ${property.location}`, i: MapPin },
-                        { l: "Preço base", v: `${property.price} €`, i: Sparkles },
-                        { l: "Lotação", v: `${property.maxGuests} hóspedes`, i: Users },
+                        { l: propertyCopy.wizard.previewLabelTitle, v: titleStr, i: Home },
+                        { l: propertyCopy.wizard.previewLabelLocation, v: `${property.city}${propertyCopy.wizard.previewLocationJoiner}${property.location}`, i: MapPin },
+                        { l: propertyCopy.wizard.previewLabelBasePrice, v: `${property.price}${propertyCopy.wizard.previewPriceSuffix}`, i: Sparkles },
+                        { l: propertyCopy.wizard.previewLabelCapacity, v: `${property.maxGuests}${propertyCopy.wizard.previewGuestsSuffix}`, i: Users },
                     ].map((item, i) => (
                         <li key={i} className="flex gap-3">
                             <item.i className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2} />
                             <div>
-                                <p className="text-[10px] font-medium uppercase tracking-wider text-[#8C7B6B]">{item.l}</p>
-                                <p className="text-sm font-medium text-[#0D0D0D] dark:text-zinc-100">{item.v}</p>
+                                <p className={propertyTokens.ui.wizard.previewLabelClass}>{item.l}</p>
+                                <p className={propertyTokens.ui.wizard.previewValueClass}>{item.v}</p>
                             </div>
                         </li>
                     ))}
@@ -288,23 +289,23 @@ function WizardFooter({
     step: WizardStep; isSaving: boolean; isEdit: boolean; onBack: () => void; onNext: () => void; onSave: () => void; onClose: () => void 
 }) {
     return (
-        <div className="mt-12 flex flex-col gap-4 border-t border-[#0D0D0D]/15 pt-8 dark:border-zinc-800 sm:flex-row sm:items-center sm:justify-between">
+        <div className={propertyTokens.ui.wizard.footerWrapClass}>
             <BrutalButton type="button" variant="brutal-wizard-exit" onClick={onClose}>
-                Sair
+                {propertyCopy.wizard.footerExit}
             </BrutalButton>
             <div className="flex flex-wrap gap-3">
                 {step !== "essence" && (
                     <BrutalButton type="button" variant="brutal-wizard-back" onClick={onBack}>
-                        Anterior
+                        {propertyCopy.wizard.footerBack}
                     </BrutalButton>
                 )}
                 {step === "preview" ? (
                     <BrutalButton type="button" variant="brutal-wizard-save" onClick={onSave} disabled={isSaving}>
-                        {isSaving ? "A guardar…" : "Guardar propriedade"} <Save size={16} strokeWidth={2} />
+                        {isSaving ? propertyCopy.wizard.footerSaving : propertyCopy.wizard.footerSave} <Save size={16} strokeWidth={2} />
                     </BrutalButton>
                 ) : (
                     <BrutalButton type="button" variant="brutal-wizard-next" onClick={onNext}>
-                        Seguinte <ArrowRight size={16} strokeWidth={2} />
+                        {propertyCopy.wizard.footerNext} <ArrowRight size={16} strokeWidth={2} />
                     </BrutalButton>
                 )}
             </div>

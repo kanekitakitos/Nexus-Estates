@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/forms/input"
 import { useRef, useState } from "react"
 import { AuthService } from "@/services/auth.service"
 import { notify } from "@/lib/notify"
+import { authTokens } from "@/features/auth/tokens"
 import { getIdentityProviderKey, isClerkConfigured } from "@/features/auth/strategies/use-identity-provider"
 
 // Os sub-componentes SocialDivider, ClerkSocialIconRow e DisabledSocialIconRow
@@ -55,13 +56,13 @@ export function RegisterForm() {
 
     if (!email || !phone || !password || !passwordConfirm) {
       setPasswordError(true)
-      notify.warning("Preenche todos os campos")
+      notify.warning(authTokens.copy.register.missingFields)
       return
     }
 
     if (password !== passwordConfirm) {
       setPasswordError(true)
-      notify.error("As passwords não coincidem. Tenta novamente.")
+      notify.error(authTokens.copy.register.passwordMismatch)
       return
     }
 
@@ -88,9 +89,9 @@ export function RegisterForm() {
       <BrutalCard>
 
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Criar conta</CardTitle>
+          <CardTitle className="text-xl">{authTokens.copy.register.title}</CardTitle>
           <CardDescription>
-            Cria a tua conta com email e password, ou usa um provedor social.
+            {authTokens.copy.register.subtitle}
           </CardDescription>
         </CardHeader>
 
@@ -99,7 +100,7 @@ export function RegisterForm() {
             <FieldGroup>
 
               <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <FieldLabel htmlFor="email">{authTokens.copy.register.emailLabel}</FieldLabel>
                 <Input
                   ref={emailRef}
                   variant="brutal"
@@ -112,7 +113,7 @@ export function RegisterForm() {
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="phone">Telemóvel</FieldLabel>
+                <FieldLabel htmlFor="phone">{authTokens.copy.register.phoneLabel}</FieldLabel>
                 <Input
                   ref={phoneRef}
                   variant="brutal"
@@ -125,7 +126,7 @@ export function RegisterForm() {
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="password">Nova Password</FieldLabel>
+                <FieldLabel htmlFor="password">{authTokens.copy.register.passwordLabel}</FieldLabel>
                 <Input
                   ref={passwordRef}
                   variant={passwordError ? "error" : "brutal"}
@@ -138,7 +139,7 @@ export function RegisterForm() {
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="confirm-password">Confirmar Password</FieldLabel>
+                <FieldLabel htmlFor="confirm-password">{authTokens.copy.register.confirmPasswordLabel}</FieldLabel>
                 <Input
                   ref={passwordConfirmRef}
                   variant={passwordError ? "error" : "brutal"}
@@ -157,12 +158,12 @@ export function RegisterForm() {
                   disabled={isTryingRegister}
                   className="w-full mt-2"
                 >
-                  {isTryingRegister ? "A criar conta..." : "Criar Conta"}
+                  {isTryingRegister ? authTokens.copy.register.submitting : authTokens.copy.register.submit}
                 </Button>
                 <FieldDescription className="text-center">
-                  Já tens conta?{" "}
+                  {authTokens.copy.register.hasAccountPrefix}{" "}
                   <a href="/login" className="underline-offset-4 hover:underline">
-                    Entrar
+                    {authTokens.copy.register.loginCta}
                   </a>
                 </FieldDescription>
               </Field>

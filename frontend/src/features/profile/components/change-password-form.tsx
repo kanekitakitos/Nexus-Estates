@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/forms/input"
 import { Label } from "@/components/ui/forms/label"
 import { Button } from "@/components/ui/button"
 import { notify } from "@/lib/notify"
+import { profileTokens } from "@/features/profile/tokens"
 import { ProfilePanel } from "@/features/profile/components/profile-panel"
 import { ShieldAlert, Lock, CheckCircle2 } from "lucide-react"
 
@@ -71,9 +72,9 @@ export function ChangePasswordForm({ onSubmit }: ChangePasswordFormProps) {
         newPassword: values.newPassword 
       })
       form.reset()
-      notify.success("Password atualizada com sucesso.")
+      notify.success(profileTokens.copy.security.updatedOk)
     } catch {
-      notify.error("Ocorreu um erro ao atualizar a password.")
+      notify.error(profileTokens.copy.security.updatedError)
     } finally {
       setIsSubmitting(false)
     }
@@ -81,8 +82,8 @@ export function ChangePasswordForm({ onSubmit }: ChangePasswordFormProps) {
 
   return (
     <ProfilePanel 
-      title="Segurança" 
-      subtitle="Protege a tua conta com uma credencial forte"
+      title={profileTokens.copy.security.panelTitle} 
+      subtitle={profileTokens.copy.security.panelSubtitle}
     >
       <div className="space-y-6">
         <div className="grid gap-6 md:grid-cols-1">
@@ -199,7 +200,7 @@ function SubmitPasswordButton({ isSubmitting, onClick }: { isSubmitting: boolean
         disabled={isSubmitting}
         className="h-12 px-8 rounded-lg bg-(--primary-accent) text-white font-bold uppercase tracking-widest transition-transform hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 shadow-sm"
       >
-        {isSubmitting ? "A Processar..." : "Atualizar Segurança"}
+        {isSubmitting ? profileTokens.copy.security.submitting : profileTokens.copy.security.submit}
       </Button>
     </div>
   )

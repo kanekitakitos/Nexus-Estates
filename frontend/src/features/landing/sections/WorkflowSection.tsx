@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
-import { B, SECTIONS, STEPS } from "../lib/tokens"
+import { B, SECTIONS, STEPS, landingTokens } from "../lib/tokens"
 import { Title } from "../ui/Title"
 import { ease, revealTransition } from "../lib/motion"
 
@@ -18,9 +18,9 @@ const STEP_INTERVAL_MS = 2400
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const stepCardStyle = (active: boolean) => ({
-  border:     active ? `2px solid ${B.orange}` : "2px solid rgba(240,236,217,0.35)",
-  boxShadow:  active ? `6px 6px 0 0 rgba(232,86,10,0.25)` : "4px 4px 0 0 rgba(240,236,217,0.16)",
-  background: active ? "rgba(13,13,13,0.95)" : "rgba(13,13,13,0.6)",
+  border:     active ? `2px solid ${B.orange}` : landingTokens.ui.landing.workflow.stepCardInactiveBorder,
+  boxShadow:  active ? landingTokens.ui.landing.workflow.stepCardActiveShadow : landingTokens.ui.landing.workflow.stepCardInactiveShadow,
+  background: active ? landingTokens.ui.landing.workflow.stepCardActiveBg : landingTokens.ui.landing.workflow.stepCardInactiveBg,
 })
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -185,7 +185,9 @@ export function WorkflowSection({ s }: { s: Section }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        {s.label} — Fluxo
+        {s.label}
+        {landingTokens.copy.landing.plans.sectionJoiner}
+        {landingTokens.copy.landing.workflow.sectionSuffix}
       </motion.span>
 
       <div className="mb-10 relative z-20">

@@ -7,7 +7,7 @@ import { BrutalField } from "@/components/ui/forms/brutal-field"
 import { BrutalCard } from "@/components/ui/data-display/brutal-card"
 import { BrutalButton } from "@/components/ui/forms/button"
 import { CollaboratorManager } from "../../components/collaborator-manager"
-import { proMeta, proPanel } from "../../lib/property-tokens"
+import { proMeta, proPanel, propertyCopy, propertyTokens } from "../../lib/property-tokens"
 import { BoingText } from "@/components/effects/BoingText"
 import { motion } from "framer-motion"
 import { staggerContainer, itemFadeUp } from "../../lib/animations"
@@ -45,9 +45,9 @@ function TooltipGuide({ text }: { text: string }) {
     return (
         <div className="relative group inline-block ml-2 mb-1">
             <HelpCircle size={14} className="text-foreground/30 hover:text-primary transition-colors cursor-help" />
-            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 p-3 bg-foreground text-background dark:bg-white dark:text-black font-mono text-[9px] uppercase tracking-wider leading-relaxed rounded-lg z-50 text-center shadow-[4px_4px_0_0_rgba(0,0,0,0.3)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none border border-white/10 backdrop-blur-md">
+            <div className={propertyTokens.ui.rules.tooltipBoxClass}>
                 {text}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground dark:border-t-white" />
+                <div className={propertyTokens.ui.rules.tooltipArrowClass} />
             </div>
         </div>
     )
@@ -64,29 +64,29 @@ function TooltipGuide({ text }: { text: string }) {
 function RulesHeaderSection() {
     return (
         <div className={cn(
-            "relative overflow-hidden p-8 rounded-[2rem] border-[3px] transition-all duration-500 mb-12",
-            "border-[#0D0D0D] dark:border-[#FAFAF5]/40",
-            "bg-[#FAFAF5]/95 dark:bg-[#FAFAF5]/10 backdrop-blur-xl",
-            "shadow-[12px_12px_0_0_#0D0D0D] dark:shadow-[12px_12px_0_0_rgba(250,250,245,0.1)]"
+            propertyTokens.ui.rules.headerWrapClass,
+            propertyTokens.ui.rules.headerBorderClass,
+            propertyTokens.ui.rules.headerBgClass,
+            propertyTokens.ui.rules.headerShadowClass
         )}>
             <div className="flex flex-col md:flex-row md:items-center gap-6 relative z-10">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-[3px] border-[#0D0D0D] dark:border-[#FAFAF5] bg-primary text-white shadow-[4px_4px_0_0_#0D0D0D] dark:shadow-[4px_4px_0_0_rgba(250,250,245,0.2)]">
+                <div className={propertyTokens.ui.rules.headerIconWrapClass}>
                     <Sparkles className="h-8 w-8" strokeWidth={2.5} />
                 </div>
                 <div>
                     <span className="font-mono text-[10px] font-black uppercase tracking-[0.4em] text-primary block mb-2">
-                        Global_Override // Property_Rules
+                        {propertyCopy.rules.headerKicker}
                     </span>
-                    <h3 className="font-serif text-3xl font-bold italic uppercase leading-none tracking-tighter text-[#0D0D0D] dark:text-[#FAFAF5]">
-                        <BoingText text="Regras operacionais" color="currentColor" activeColor="#F97316" />
+                    <h3 className={propertyTokens.ui.rules.headerTitleClass}>
+                        <BoingText text={propertyCopy.rules.headerTitle} color="currentColor" activeColor={propertyTokens.ui.preview.boingActiveColor} />
                     </h3>
-                    <p className="mt-3 max-w-3xl text-[13px] font-medium leading-relaxed text-[#8C7B6B] dark:text-[#FAFAF5]/60">
-                        Configure os protocolos de janelas temporais, gestão de rendimentos via sazonalidade e a matriz de autoridade da rede Nexus para este ativo.
+                    <p className={propertyTokens.ui.rules.headerSubtitleClass}>
+                        {propertyCopy.rules.headerSubtitle}
                     </p>
                 </div>
             </div>
-            <div className="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 font-serif text-[120px] leading-none pointer-events-none select-none font-bold italic -translate-y-8 translate-x-8 text-[#0D0D0D] dark:text-[#FAFAF5]">
-                03
+            <div className={propertyTokens.ui.rules.headerIndexClass}>
+                {propertyCopy.rules.sectionIndex}
             </div>
         </div>
     )
@@ -115,46 +115,46 @@ function OperationalRulesCard({
     return (
         <BrutalCard
             id="operational-rules"
-            title={<BoingText text="Horários e estadia" color="currentColor" activeColor="#F97316" duration={0.3} />}
-            subtitle="Check-in, check-out e limites"
+            title={<BoingText text={propertyCopy.rules.operationalCardTitle} color="currentColor" activeColor={propertyTokens.ui.preview.boingActiveColor} duration={0.3} />}
+            subtitle={propertyCopy.rules.operationalCardSubtitle}
             icon={<Clock size={24} />}
             iconBgColor="bg-orange-500/10 border-orange-500/20"
             iconTextColor="text-orange-500"
         >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 <div className="relative">
-                    <BrutalField label="Check-in" type="time" value={rules.checkInTime || ""} savedValue={initRules.checkInTime || ""} onChange={(v) => onRuleChange('checkInTime', v as string)} onRevert={() => onRuleChange('checkInTime', initRules.checkInTime)} />
+                    <BrutalField label={propertyCopy.rules.checkInLabel} type="time" value={rules.checkInTime || ""} savedValue={initRules.checkInTime || ""} onChange={(v) => onRuleChange('checkInTime', v as string)} onRevert={() => onRuleChange('checkInTime', initRules.checkInTime)} />
                     <div className="absolute top-0 right-0 -translate-y-6">
-                        <TooltipGuide text="Bloqueia entradas de hóspedes antes deste horário." />
+                        <TooltipGuide text={propertyCopy.rules.checkInHelp} />
                     </div>
                 </div>
                 <div className="relative">
-                    <BrutalField label="Check-out" type="time" value={rules.checkOutTime || ""} savedValue={initRules.checkOutTime || ""} onChange={(v) => onRuleChange('checkOutTime', v as string)} onRevert={() => onRuleChange('checkOutTime', initRules.checkOutTime)} />
+                    <BrutalField label={propertyCopy.rules.checkOutLabel} type="time" value={rules.checkOutTime || ""} savedValue={initRules.checkOutTime || ""} onChange={(v) => onRuleChange('checkOutTime', v as string)} onRevert={() => onRuleChange('checkOutTime', initRules.checkOutTime)} />
                     <div className="absolute top-0 right-0 -translate-y-6">
-                        <TooltipGuide text="Limite forçado para abandono da propriedade." />
+                        <TooltipGuide text={propertyCopy.rules.checkOutHelp} />
                     </div>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pt-8 border-t-2 border-foreground/5 dark:border-white/5">
-                <BrutalField label="Noites mínimas" type="number" value={rules.minNights || ""} savedValue={initRules.minNights || ""} onChange={(v) => onRuleChange('minNights', Number(v))} onRevert={() => onRuleChange('minNights', initRules.minNights)} />
-                <BrutalField label="Noites máximas" type="number" value={rules.maxNights || ""} savedValue={initRules.maxNights || ""} onChange={(v) => onRuleChange('maxNights', Number(v))} onRevert={() => onRuleChange('maxNights', initRules.maxNights)} />
-                <BrutalField label="Antecedência (dias)" type="number" value={rules.bookingLeadTimeDays || ""} savedValue={initRules.bookingLeadTimeDays || ""} onChange={(v) => onRuleChange('bookingLeadTimeDays', Number(v))} onRevert={() => onRuleChange('bookingLeadTimeDays', initRules.bookingLeadTimeDays)} />
+                <BrutalField label={propertyCopy.rules.minNightsLabel} type="number" value={rules.minNights || ""} savedValue={initRules.minNights || ""} onChange={(v) => onRuleChange('minNights', Number(v))} onRevert={() => onRuleChange('minNights', initRules.minNights)} />
+                <BrutalField label={propertyCopy.rules.maxNightsLabel} type="number" value={rules.maxNights || ""} savedValue={initRules.maxNights || ""} onChange={(v) => onRuleChange('maxNights', Number(v))} onRevert={() => onRuleChange('maxNights', initRules.maxNights)} />
+                <BrutalField label={propertyCopy.rules.bookingLeadDaysLabel} type="number" value={rules.bookingLeadTimeDays || ""} savedValue={initRules.bookingLeadTimeDays || ""} onChange={(v) => onRuleChange('bookingLeadTimeDays', Number(v))} onRevert={() => onRuleChange('bookingLeadTimeDays', initRules.bookingLeadTimeDays)} />
                 
                 <div className="relative">
-                    <span className="font-mono text-[9px] font-black uppercase tracking-widest text-[#8C7B6B] block mb-3">Fuso Horário (UTC)</span>
-                    <div className="flex items-center gap-2 rounded-lg border-2 border-foreground bg-white px-3 py-2 dark:border-white/20 dark:bg-zinc-950 shadow-[2px_2px_0_0_#0D0D0D] dark:shadow-none">
+                    <span className={propertyTokens.ui.rules.timezoneLabelClass}>{propertyCopy.rules.timezoneLabel}</span>
+                    <div className={propertyTokens.ui.rules.timezoneWrapClass}>
                         <Globe size={14} className="text-primary" />
                         <select 
-                            value={rules.timezone || "Europe/Lisbon"} 
+                            value={rules.timezone || propertyCopy.rules.timezoneDefault} 
                             onChange={(e) => onRuleChange('timezone', e.target.value)}
                             className="w-full bg-transparent text-xs font-bold uppercase outline-none cursor-pointer"
                         >
-                            <option value="UTC">UTC (Universal)</option>
-                            <option value="Europe/Lisbon">Lisbon / London (WET)</option>
-                            <option value="Europe/Madrid">Madrid / Paris (CET)</option>
-                            <option value="America/New_York">New York (EST)</option>
-                            <option value="America/Sao_Paulo">São Paulo (BRT)</option>
+                            <option value="UTC">{propertyCopy.rules.timezoneOptionUTC}</option>
+                            <option value="Europe/Lisbon">{propertyCopy.rules.timezoneOptionLisbon}</option>
+                            <option value="Europe/Madrid">{propertyCopy.rules.timezoneOptionMadrid}</option>
+                            <option value="America/New_York">{propertyCopy.rules.timezoneOptionNewYork}</option>
+                            <option value="America/Sao_Paulo">{propertyCopy.rules.timezoneOptionSaoPaulo}</option>
                         </select>
                     </div>
                 </div>
@@ -188,8 +188,8 @@ function YieldManagementCard({
     return (
         <BrutalCard
             id="yield-rules"
-            title={<BoingText text="Preço sazonal" color="currentColor" activeColor="#F97316" duration={0.3} />}
-            subtitle="Janelas e multiplicadores"
+            title={<BoingText text={propertyCopy.rules.yieldCardTitle} color="currentColor" activeColor={propertyTokens.ui.preview.boingActiveColor} duration={0.3} />}
+            subtitle={propertyCopy.rules.yieldCardSubtitle}
             icon={<Sun size={24} />}
             iconBgColor="bg-yellow-500/10 border-yellow-500/20"
             iconTextColor="text-yellow-500"
@@ -204,34 +204,34 @@ function YieldManagementCard({
                     className="!h-10 !px-4 !text-[10px] !font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     <Plus size={16} strokeWidth={2.5} /> 
-                    {hasUnfinished ? "Preencher Janelas" : "Nova janela"}
+                    {hasUnfinished ? propertyCopy.rules.yieldAddDisabled : propertyCopy.rules.yieldAddEnabled}
                 </BrutalButton>
             </div>
 
             <div className="space-y-4">
                 {seasonRules.length === 0 ? (
                     <div className={cn(proPanel, "border-dashed p-10 text-center bg-white/30")}>
-                        <Calendar className="mx-auto mb-3 h-10 w-10 text-[#8C7B6B]" strokeWidth={1.5} />
-                        <p className={proMeta}>Sem regras de preço sazonal</p>
-                        <p className="mt-2 text-sm text-[#8C7B6B] italic font-serif opacity-60">Adiciona intervalos (ex.: época alta) com multiplicador sobre o preço base.</p>
+                        <Calendar className={propertyTokens.ui.rules.yieldEmptyIconClass} strokeWidth={1.5} />
+                        <p className={proMeta}>{propertyCopy.rules.yieldEmptyTitle}</p>
+                        <p className={propertyTokens.ui.rules.yieldEmptySubtitleClass}>{propertyCopy.rules.yieldEmptySubtitle}</p>
                     </div>
                 ) : (
                     seasonRules.map((sr, idx) => (
                         <div key={sr.id} className={cn(proPanel, "flex flex-col gap-4 p-4 md:flex-row md:items-end bg-white/50 dark:bg-zinc-900/50")}>
                             <div className="min-w-0 flex-1">
-                                <BrutalField type="date" label="Início" value={sr.startDate} savedValue={sr.startDate} onChange={(v) => onUpdate(idx, "startDate", v as string)} onRevert={() => { }} />
+                                <BrutalField type="date" label={propertyCopy.rules.seasonStartLabel} value={sr.startDate} savedValue={sr.startDate} onChange={(v) => onUpdate(idx, "startDate", v as string)} onRevert={() => { }} />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <BrutalField type="date" label="Fim" value={sr.endDate} savedValue={sr.endDate} onChange={(v) => onUpdate(idx, "endDate", v as string)} onRevert={() => { }} />
+                                <BrutalField type="date" label={propertyCopy.rules.seasonEndLabel} value={sr.endDate} savedValue={sr.endDate} onChange={(v) => onUpdate(idx, "endDate", v as string)} onRevert={() => { }} />
                             </div>
                             <div className="w-full md:w-36">
-                                <BrutalField type="number" label="Multiplicador" value={sr.priceModifier} savedValue={sr.priceModifier} onChange={(v) => onUpdate(idx, "priceModifier", Number(v))} onRevert={() => { }} />
+                                <BrutalField type="number" label={propertyCopy.rules.seasonMultiplierLabel} value={sr.priceModifier} savedValue={sr.priceModifier} onChange={(v) => onUpdate(idx, "priceModifier", Number(v))} onRevert={() => { }} />
                             </div>
                             <button
                                 type="button"
                                 onClick={() => onRemove(idx)}
                                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-rose-200 text-rose-600 transition-all hover:bg-rose-50 hover:border-rose-300 dark:border-rose-900/50 dark:hover:bg-rose-950/40"
-                                title="Remover"
+                                title={propertyCopy.rules.removeActionTitle}
                             >
                                 <Trash2 size={18} strokeWidth={2} />
                             </button>

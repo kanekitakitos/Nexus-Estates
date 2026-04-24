@@ -1,7 +1,7 @@
 "use client"
 
 import { motion, useReducedMotion } from "framer-motion"
-import { B, SECTIONS } from "../lib/tokens"
+import { B, SECTIONS, landingTokens } from "../lib/tokens"
 import { ease } from "../lib/motion"
 import { CassetteCard } from "../ui/CassetteCard"
 
@@ -17,7 +17,7 @@ function DotGrid() {
       <div
         className="absolute inset-0 pointer-events-none opacity-10"
         style={{
-          backgroundImage: "radial-gradient(circle, rgba(0,0,0,0.3) 1px, transparent 1px)",
+          backgroundImage: landingTokens.ui.landing.effects.dotGridSmall,
           backgroundSize: "22px 22px",
         }}
       />
@@ -34,7 +34,7 @@ function AnimatedDotGrid() {
       animate={reduce ? undefined : { opacity: [0.06, 0.12, 0.06] }}
       transition={{ duration: 4.8, repeat: Infinity, ease: ease.inOut }}
       style={{
-        backgroundImage: "radial-gradient(circle, rgba(0,0,0,0.35) 1px, transparent 1px)",
+        backgroundImage: landingTokens.ui.landing.effects.dotGridLarge,
         backgroundSize: "28px 28px",
       }}
     />
@@ -100,12 +100,12 @@ function PrimaryCtaButton({ reduce }: { reduce: boolean | null }) {
       }}
       animate={reduce ? undefined : { scale: [1, 1.02, 1] }}
       transition={{ duration: 2.2, repeat: Infinity, ease: ease.inOut }}
-      whileHover={{ x: 2, y: 2, boxShadow: "0px 0px 0 0 rgba(0,0,0,0)" }}
+      whileHover={{ x: 2, y: 2, boxShadow: landingTokens.ui.landing.effects.transparentBoxShadow }}
       whileTap={{ scale: 0.97 }}
-      aria-label="Criar conta grátis"
+      aria-label={landingTokens.copy.landing.cta.primaryAriaLabel}
       data-hover
     >
-      Criar Conta Grátis →
+      {landingTokens.copy.landing.cta.primaryText}
     </motion.a>
   )
 }
@@ -134,7 +134,7 @@ function Disclaimer() {
       animate={{ opacity: 1 }}
       transition={{ delay: 1.1 }}
     >
-      Sem cartão de crédito · Cancela quando quiseres · Suporte em PT
+      {landingTokens.copy.landing.cta.disclaimer}
     </motion.p>
   )
 }
@@ -155,7 +155,9 @@ export function CtaSection({ s }: { s: Section }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        {s.label} — Start
+        {s.label}
+        {landingTokens.copy.landing.plans.sectionJoiner}
+        {landingTokens.copy.landing.cta.sectionSuffix}
       </motion.span>
 
       <div className="relative z-20 flex flex-col lg:flex-row lg:items-start gap-8 lg:gap-2">

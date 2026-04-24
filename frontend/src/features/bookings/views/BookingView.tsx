@@ -35,6 +35,7 @@ import { BookingCheckoutForm } from "../components/booking-checkout-form"
 import { cn } from "@/lib/utils"
 import { PropertyService } from "@/services/property.service"
 import { notify } from "@/lib/notify"
+import { bookingsTokens } from "@/features/bookings/tokens"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import {
   comicPopVariants, gummyHover, gummyTap,
@@ -92,7 +93,7 @@ function useBookingCatalog() {
       const data = await PropertyService.getAllProperties()
       setProperties(data)
     } catch {
-      notify.error("Não foi possível carregar as propriedades.")
+      notify.error(bookingsTokens.copy.errors.loadProperties)
     } finally {
       setIsLoading(false)
     }

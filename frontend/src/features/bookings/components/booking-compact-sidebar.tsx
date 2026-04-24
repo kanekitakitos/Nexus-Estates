@@ -7,6 +7,7 @@ import type { BookingResponse } from "@/services/booking.service"
 import { SidebarFilterBar } from "@/components/ui/data-display/sidebar-filter-bar"
 import { cn } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/overlay/dropdown-menu"
+import { bookingsTokens } from "@/features/bookings/tokens"
 
 type UserRole = "ADMIN" | "GUEST" | "OWNER" | "STAFF"
 
@@ -22,7 +23,7 @@ function dateAtStartOfDay(dateLike: string | Date) {
 }
 
 function bookingHaystack(b: BookingResponse) {
-  return `reserva booking ${b.id} ${b.propertyId} ${b.status} ${b.currency} ${b.totalPrice} ${b.checkInDate} ${b.checkOutDate}`.toLowerCase()
+  return `${bookingsTokens.copy.sidebar.bookingHaystackPrefix}${b.id} ${b.propertyId} ${b.status} ${b.currency} ${b.totalPrice} ${b.checkInDate} ${b.checkOutDate}`.toLowerCase()
 }
 
 export function BookingCompactSidebar({
@@ -98,8 +99,8 @@ export function BookingCompactSidebar({
     return (
       <div className="p-4">
         <div className="text-muted-foreground text-sm">
-          <div className="mb-2">Precisa de iniciar sessão para ver as suas reservas.</div>
-          <Link href="/login" className="underline">Ir para Login</Link>
+          <div className="mb-2">{bookingsTokens.copy.sidebar.needsAuthTitle}</div>
+          <Link href="/login" className="underline">{bookingsTokens.copy.sidebar.goToLogin}</Link>
         </div>
       </div>
     )
@@ -108,7 +109,7 @@ export function BookingCompactSidebar({
   if (isLoading) {
     return (
       <div className="p-4">
-        <div className="text-muted-foreground text-sm">A carregar reservas…</div>
+        <div className="text-muted-foreground text-sm">{bookingsTokens.copy.sidebar.loadingBookings}</div>
       </div>
     )
   }
@@ -146,24 +147,22 @@ function BookingScopeToggle({
       <button
         type="button"
         onClick={() => onChange("properties")}
-        className={`h-9 px-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest transition-colors ${
-          scope === "properties"
-            ? "bg-black text-white border-black"
-            : "bg-white text-black/70 border-black hover:bg-black hover:text-white"
-        }`}
+        className={cn(
+          bookingsTokens.ui.sidebar.scopeBtnBaseClass,
+          scope === "properties" ? bookingsTokens.ui.sidebar.scopeBtnActiveClass : bookingsTokens.ui.sidebar.scopeBtnInactiveClass
+        )}
       >
-        Das Propriedades
+        {bookingsTokens.copy.sidebar.scopeProperties}
       </button>
       <button
         type="button"
         onClick={() => onChange("mine")}
-        className={`h-9 px-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest transition-colors ${
-          scope === "mine"
-            ? "bg-black text-white border-black"
-            : "bg-white text-black/70 border-black hover:bg-black hover:text-white"
-        }`}
+        className={cn(
+          bookingsTokens.ui.sidebar.scopeBtnBaseClass,
+          scope === "mine" ? bookingsTokens.ui.sidebar.scopeBtnActiveClass : bookingsTokens.ui.sidebar.scopeBtnInactiveClass
+        )}
       >
-        Minhas
+        {bookingsTokens.copy.sidebar.scopeMine}
       </button>
     </div>
   )
@@ -196,7 +195,7 @@ function BookingFilterBar({
     <SidebarFilterBar
       query={query}
       onQueryChange={onQueryChange}
-      placeholder="PESQUISAR..."
+      placeholder={bookingsTokens.copy.sidebar.searchPlaceholder}
       inputClassName="normal-case tracking-normal"
     >
       <BookingStatusDropdown value={status} onChange={onStatusChange} />
@@ -208,13 +207,13 @@ function BookingFilterBar({
         onClick={onClear}
         disabled={!canClear}
         className={cn(
-          "ml-auto inline-flex h-6 items-center justify-center rounded-md border-2 border-foreground dark:border-zinc-700 bg-primary/10 px-1 py-0.5 text-[7px] font-mono font-black uppercase tracking-widest text-primary transition-all",
-          "shadow-[2px_2px_0_0_#0D0D0D] dark:shadow-[2px_2px_0_0_rgba(255,255,255,0.25)]",
-          "hover:shadow-[3px_3px_0_0_#0D0D0D] hover:-translate-x-0.5 hover:-translate-y-0.5",
+          bookingsTokens.ui.sidebar.clearBtnClass,
+          bookingsTokens.ui.sidebar.clearBtnShadowClass,
+          bookingsTokens.ui.sidebar.clearBtnHoverShadowClass,
           !canClear && "opacity-40 pointer-events-none shadow-none dark:shadow-none",
         )}
       >
-        Limpar
+        {bookingsTokens.copy.sidebar.clear}
       </button>
     </SidebarFilterBar>
   )
@@ -229,23 +228,23 @@ function BookingStatusDropdown({
 }) {
   const label =
     value === "ALL"
-      ? "STATUS"
+      ? bookingsTokens.copy.sidebar.statusAllLabel
       : value === "PENDING_PAYMENT"
-        ? "PEND"
+        ? bookingsTokens.copy.sidebar.statusPendingShort
         : value === "CONFIRMED"
-          ? "CONF"
+          ? bookingsTokens.copy.sidebar.statusConfirmedShort
           : value === "CANCELLED"
-            ? "CANC"
+            ? bookingsTokens.copy.sidebar.statusCancelledShort
             : value === "COMPLETED"
-              ? "COMP"
-              : "REFU"
+              ? bookingsTokens.copy.sidebar.statusCompletedShort
+              : bookingsTokens.copy.sidebar.statusRefundedShort
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "flex items-center justify-center gap-2 rounded-md border-2 border-foreground dark:border-zinc-700 bg-primary/10 font-mono font-black uppercase tracking-widest shadow-[2px_2px_0_0_#0D0D0D] hover:shadow-[3px_3px_0_0_#0D0D0D] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all text-primary px-2 py-1 text-[8px]",
+            bookingsTokens.ui.sidebar.dropdownTriggerClass,
           )}
         >
           <span>{label}</span>
@@ -253,44 +252,44 @@ function BookingStatusDropdown({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="w-44 border-2 border-foreground shadow-[4px_4px_0_0_#0D0D0D] p-1 bg-white/80 dark:bg-black/80 backdrop-blur-md"
+        className={cn("w-44", bookingsTokens.ui.sidebar.dropdownContentClass)}
       >
         <DropdownMenuRadioGroup value={value} onValueChange={(v) => onChange(v as typeof value)}>
           <DropdownMenuRadioItem
             value="ALL"
             className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
           >
-            Todas
+            {bookingsTokens.copy.sidebar.statusAll}
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem
             value="PENDING_PAYMENT"
             className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
           >
-            Pending
+            {bookingsTokens.copy.sidebar.statusPending}
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem
             value="CONFIRMED"
             className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
           >
-            Confirmed
+            {bookingsTokens.copy.sidebar.statusConfirmed}
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem
             value="CANCELLED"
             className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
           >
-            Cancelled
+            {bookingsTokens.copy.sidebar.statusCancelled}
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem
             value="COMPLETED"
             className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
           >
-            Completed
+            {bookingsTokens.copy.sidebar.statusCompleted}
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem
             value="REFUNDED"
             className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
           >
-            Refunded
+            {bookingsTokens.copy.sidebar.statusRefunded}
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
@@ -305,14 +304,14 @@ function BookingWhenDropdown({
   value: "all" | "upcoming" | "past"
   onChange: (value: "all" | "upcoming" | "past") => void
 }) {
-  const label = value === "all" ? "DATA" : value === "upcoming" ? "FUT" : "PAS"
+  const label = value === "all" ? bookingsTokens.copy.sidebar.whenAllShort : value === "upcoming" ? bookingsTokens.copy.sidebar.whenUpcomingShort : bookingsTokens.copy.sidebar.whenPastShort
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "flex items-center justify-center gap-2 rounded-md border-2 border-foreground dark:border-zinc-700 bg-primary/10 font-mono font-black uppercase tracking-widest shadow-[2px_2px_0_0_#0D0D0D] hover:shadow-[3px_3px_0_0_#0D0D0D] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all text-primary px-2 py-1 text-[8px]",
+            bookingsTokens.ui.sidebar.dropdownTriggerClass,
           )}
         >
           <span>{label}</span>
@@ -320,26 +319,26 @@ function BookingWhenDropdown({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="w-36 border-2 border-foreground shadow-[4px_4px_0_0_#0D0D0D] p-1 bg-white/80 dark:bg-black/80 backdrop-blur-md"
+        className={cn("w-36", bookingsTokens.ui.sidebar.dropdownContentClass)}
       >
         <DropdownMenuRadioGroup value={value} onValueChange={(v) => onChange(v as typeof value)}>
           <DropdownMenuRadioItem
             value="all"
             className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
           >
-            Todas
+            {bookingsTokens.copy.sidebar.whenAll}
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem
             value="upcoming"
             className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
           >
-            Futuras
+            {bookingsTokens.copy.sidebar.whenUpcoming}
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem
             value="past"
             className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
           >
-            Passadas
+            {bookingsTokens.copy.sidebar.whenPast}
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
@@ -354,14 +353,14 @@ function BookingSortDropdown({
   value: "recentes" | "antigas"
   onChange: (value: "recentes" | "antigas") => void
 }) {
-  const label = value === "antigas" ? "ASC" : "DESC"
+  const label = value === "antigas" ? bookingsTokens.copy.sidebar.sortAscShort : bookingsTokens.copy.sidebar.sortDescShort
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "flex items-center justify-center gap-2 rounded-md border-2 border-foreground dark:border-zinc-700 bg-primary/10 font-mono font-black uppercase tracking-widest shadow-[2px_2px_0_0_#0D0D0D] hover:shadow-[3px_3px_0_0_#0D0D0D] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all text-primary px-2 py-1 text-[8px]",
+            bookingsTokens.ui.sidebar.dropdownTriggerClass,
           )}
         >
           <ArrowUpDown className="h-3 w-3" strokeWidth={3} />
@@ -370,20 +369,20 @@ function BookingSortDropdown({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-40 border-2 border-foreground shadow-[4px_4px_0_0_#0D0D0D] p-1 bg-white/80 dark:bg-black/80 backdrop-blur-md"
+        className={cn("w-40", bookingsTokens.ui.sidebar.dropdownContentClass)}
       >
         <DropdownMenuRadioGroup value={value} onValueChange={(v) => onChange(v as "recentes" | "antigas")}>
           <DropdownMenuRadioItem
             value="recentes"
             className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
           >
-            Recentes
+            {bookingsTokens.copy.sidebar.sortRecent}
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem
             value="antigas"
             className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
           >
-            Antigas
+            {bookingsTokens.copy.sidebar.sortOld}
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
@@ -395,7 +394,7 @@ function BookingCards({ bookings }: { bookings: BookingResponse[] }) {
   if (bookings.length === 0) {
     return (
       <div className="text-muted-foreground text-sm">
-        Ainda não tem reservas.
+        {bookingsTokens.copy.sidebar.empty}
       </div>
     )
   }
@@ -405,16 +404,16 @@ function BookingCards({ bookings }: { bookings: BookingResponse[] }) {
       {bookings.map((b) => (
         <div
           key={b.id}
-          className="rounded-2xl border-2 border-foreground bg-background p-4 text-sm text-foreground shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.35)]"
+          className={bookingsTokens.ui.sidebar.cardClass}
         >
           <div className="flex items-center justify-between gap-2">
-            <div className="font-medium">Reserva #{b.id}</div>
+            <div className="font-medium">{bookingsTokens.copy.sidebar.bookingLabelPrefix}{b.id}</div>
             <div className="text-xs text-muted-foreground font-mono uppercase tracking-widest">{b.status}</div>
           </div>
           <div className="mt-2 grid gap-1 text-xs text-muted-foreground font-mono">
-            <div>Property: {b.propertyId}</div>
+            <div>{bookingsTokens.copy.sidebar.propertyLabel}{b.propertyId}</div>
             <div>{b.checkInDate} → {b.checkOutDate}</div>
-            <div>Total: {b.totalPrice} {b.currency}</div>
+            <div>{bookingsTokens.copy.sidebar.totalLabel}{b.totalPrice} {b.currency}</div>
           </div>
         </div>
       ))}

@@ -12,6 +12,8 @@ import {
   nexusShadowMd,
   nexusShadowSm,
   nexusKineticLight,
+  propertyCopy,
+  propertyTokens,
 } from "../lib/property-tokens"
 import { STATUS_CONFIG } from "../model/property-constants"
 import { resolvePropertyCardVariant, resolvedSerialId } from "../lib/property-utils"
@@ -58,31 +60,31 @@ export function PropertyCardItem({
   const statusConfig =
     STATUS_CONFIG[prop.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.AVAILABLE
   const serial = resolvedSerialId(prop.id)
-  const title = resolveTranslation(prop.title) || "Asset"
+  const title = resolveTranslation(prop.title) || propertyCopy.cards.fallbackTitle
 
   const shell = cn(
     nexusHardBorder,
-    "group cursor-pointer overflow-hidden bg-[#FAFAF5] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] dark:bg-[#0a0a0a]",
+    propertyTokens.ui.cards.cardShellBgClass,
     nexusCardPressHover,
     mode === "inventoryRail" &&
       cn(
         "mx-auto w-[85%] rounded-md",
         nexusShadowSm,
-        "hover:shadow-[5px_5px_0_0_#0D0D0D] dark:hover:shadow-[5px_5px_0_0_rgba(255,255,255,0.75)]",
+        propertyTokens.ui.cards.cardShellHoverRailClass,
         nexusKineticLight
       ),
     mode === "grid" &&
       cn(
         "rounded-[1.35rem] md:rounded-[1.75rem] h-full mx-auto w-full max-w-[300px]",
         nexusShadowMd,
-        "hover:shadow-[7px_7px_0_0_#0D0D0D] dark:hover:shadow-[7px_7px_0_0_rgba(24,24,27,1)]",
+        propertyTokens.ui.cards.cardShellHoverGridClass,
         nexusKineticLight
       ),
     mode === "portfolio" &&
       cn(
         "rounded-[1.75rem] md:rounded-[2.25rem]",
         nexusShadowLg,
-        "hover:shadow-[10px_10px_0_0_#0D0D0D] dark:hover:shadow-[10px_10px_0_0_rgba(24,24,27,1)]",
+        propertyTokens.ui.cards.cardShellHoverPortfolioClass,
         nexusKineticLight,
         "hover:bg-white dark:hover:bg-zinc-900/50"
       )

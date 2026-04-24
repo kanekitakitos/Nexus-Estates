@@ -10,6 +10,7 @@ import { useView } from "@/providers/view-context"
 import { usePropertyManager } from "../model/hooks"
 import { OwnProperty } from "@/types"
 import { pageVariants } from "../lib/animations"
+import { propertyTokens } from "../lib/property-tokens"
 
 export type PropertyInternalView = "list" | "wizard" | "detail"
 
@@ -51,7 +52,7 @@ export function PropertyView() {
   })
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#F0ECD9]/35 dark:bg-zinc-950">
+    <div className={propertyTokens.ui.view.pageBgClass}>
       <RubberBackground />
 
       <AnimatePresence mode="wait">
