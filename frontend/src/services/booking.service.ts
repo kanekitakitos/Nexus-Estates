@@ -1,6 +1,6 @@
 import { bookingsAxios } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { AuthService } from "@/services/auth.service";
 import type {
     BookingResponse,
@@ -91,7 +91,7 @@ export class BookingService {
             }
 
             const response = await bookingsAxios.post<BookingResponse>("", payload);
-            toast.success("Reserva criada com sucesso.");
+            notify.success("Reserva criada com sucesso.");
             return response.data;
         } catch (error) {
             this.handleError(error, "criar a reserva");
@@ -160,16 +160,16 @@ export class BookingService {
         if (this.isAxiosError(error) && error.response) {
             const status = error.response.status;
             if (status === 409) {
-                toast.error("Estas datas já não estão disponíveis.");
+                notify.error("Estas datas já não estão disponíveis.");
             } else if (status === 403) {
-                toast.error("Não tem permissão para esta ação.");
+                notify.error("Não tem permissão para esta ação.");
             } else if (status === 401) {
-                toast.error("Sessão expirada. Faça login novamente.");
+                notify.error("Sessão expirada. Faça login novamente.");
             } else {
-                toast.error(`Erro ao ${action}. Tente novamente.`);
+                notify.error(`Erro ao ${action}. Tente novamente.`);
             }
         } else {
-            toast.error("Erro de conexão ao servidor de reservas.");
+            notify.error("Erro de conexão ao servidor de reservas.");
         }
     }
 

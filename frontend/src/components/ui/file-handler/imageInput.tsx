@@ -4,7 +4,7 @@ import { useState, useRef, useCallback } from 'react';
 import Image from "next/image";
 import { X, Loader2, UploadCloud, Trash2 } from 'lucide-react';
 import axios from "axios";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify"
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { PropertyService } from "@/services/property.service";
@@ -266,7 +266,7 @@ export function ImageInput({
             const params = await PropertyService.getUploadParams() as unknown as CloudinarySignatureParams
 
             if (!params.signature) {
-                toast.error("Protocolo de segurança inválido.")
+                notify.error("Protocolo de segurança inválido.")
                 return
             }
 
@@ -282,7 +282,7 @@ export function ImageInput({
                 uploadedUrls.push(response.data.secure_url)
             }
 
-            toast.success(`Protocolo ${uploadedUrls.length} finalizado.`)
+            notify.success(`Protocolo ${uploadedUrls.length} finalizado.`)
             clearStage()
 
             if (onUploadComplete) onUploadComplete(uploadedUrls)
@@ -290,7 +290,7 @@ export function ImageInput({
 
         } catch (error) {
             console.error("Cloudinary Sync Err:", error)
-            toast.error("Falha na sincronização Nexus_Cloud.")
+            notify.error("Falha na sincronização Nexus_Cloud.")
         } finally {
             setIsUploading(false)
         }

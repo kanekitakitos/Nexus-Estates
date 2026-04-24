@@ -1,5 +1,7 @@
+"use client"
+
 import { useState, useMemo, useCallback, useEffect } from "react"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { OwnProperty, Filters, WizardStep } from "@/types"
 import { PropertyService } from "@/services/property.service"
 import { AmenityService, Amenity } from "@/services/amenity.service"
@@ -58,7 +60,7 @@ export function usePropertyManager(selectedPropertyId: string | null) {
         await PropertyService.deleteProperty(Number(id))
         await refresh()
       } catch {
-        toast.error("Erro ao eliminar")
+        notify.error("Erro ao eliminar")
       }
     }
   }
@@ -100,7 +102,7 @@ export function useAmenityCatalog() {
   useEffect(() => {
     AmenityService.listAll()
       .then(setAmenities)
-      .catch(() => toast.error("Erro ao carregar catálogo"))
+      .catch(() => notify.error("Erro ao carregar catálogo"))
       .finally(() => setIsLoading(false))
   }, [])
 
@@ -172,11 +174,11 @@ export function usePropertyForm(initialData: OwnProperty | null, onSaved: () => 
             imageUrl: payload.imageUrl,
           } as CreatePropertyRequest)
         }
-        toast.success("Operação concluída com sucesso")
+        notify.success("Operação concluída com sucesso")
         await onSaved()
       } catch (err) {
         console.error("Save error:", err)
-        toast.error("Falha na sincronização")
+        notify.error("Falha na sincronização")
       } finally {
         setIsSaving(false)
       }

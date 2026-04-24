@@ -1,6 +1,6 @@
 import { usersAxios } from "@/lib/axiosAPI"
 import type { AxiosError } from "axios"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import type { UserProfile } from "@/types/user"
 
 export type { UserProfile } from "@/types/user"
@@ -132,11 +132,11 @@ export class UserService {
 
     if (response?.status) {
       const status = response.status
-      if (status === 400) toast.error("Dados inválidos.")
-      else if (status === 401) toast.error("Sessão expirada.")
-      else toast.error(`Erro ao ${action}.`)
+      if (status === 400) notify.error("Dados inválidos.")
+      else if (status === 401) notify.error("Sessão expirada.")
+      else notify.error(`Erro ao ${action}.`)
     } else {
-      toast.error("Erro de conexão.")
+      notify.error("Erro de conexão.")
     }
   }
 }

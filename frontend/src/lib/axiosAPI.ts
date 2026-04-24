@@ -5,11 +5,17 @@
  */
 
 import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
-import { toast } from 'sonner';
 import { AuthService } from '@/services/auth.service';
 
 // URL base do API Gateway (Porta 8080)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+
+const safeNotifyError = (message: string) => {
+    if (typeof window === 'undefined') return;
+    void import('@/lib/notify')
+        .then(({ notify }) => notify.error(message))
+        .catch(() => {});
+};
 
 /**
  * Instância principal para chamadas ao Gateway
@@ -121,7 +127,7 @@ const responseErrorHandler = (error: AxiosError): Promise<AxiosError> => {
 
     // Erro de Rede (Servidor desligado ou problemas de conectividade)
     if (!error.response) {
-        toast.error('Erro de rede: O servidor não responde. Verifique se o backend está ligado.');
+        safeNotifyError('Erro de rede: O servidor não responde. Verifique se o backend está ligado.');
         if (process.env.NODE_ENV === 'development') {
             console.error('[Network Error]: O servidor em ' + API_BASE_URL + ' não está a responder.');
         }
@@ -135,12 +141,12 @@ const responseErrorHandler = (error: AxiosError): Promise<AxiosError> => {
 
     // Erro de Permissão (403)
     if (status === 403) {
-        toast.error('Não tem permissão para realizar esta ação.');
+        safeNotifyError('Não tem permissão para realizar esta ação.');
     }
 
     // Erros de Servidor (500+)
     if (status && status >= 500) {
-        toast.error('Erro no servidor. Tente novamente mais tarde.');
+        safeNotifyError('Erro no servidor. Tente novamente mais tarde.');
     }
 
     // Log de erro para debug em desenvolvimento

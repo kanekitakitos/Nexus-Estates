@@ -2,10 +2,28 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { ArrowUpDown } from "lucide-react"
 import type { BookingResponse } from "@/services/booking.service"
 import { SidebarFilterBar } from "@/components/ui/data-display/sidebar-filter-bar"
+import { cn } from "@/lib/utils"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/overlay/dropdown-menu"
 
 type UserRole = "ADMIN" | "GUEST" | "OWNER" | "STAFF"
+
+function normalizeQuery(value: string) {
+  return value.trim().toLowerCase()
+}
+
+function dateAtStartOfDay(dateLike: string | Date) {
+  const d = typeof dateLike === "string" ? new Date(dateLike) : new Date(dateLike)
+  if (Number.isNaN(d.getTime())) return null
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function bookingHaystack(b: BookingResponse) {
+  return `reserva booking ${b.id} ${b.propertyId} ${b.status} ${b.currency} ${b.totalPrice} ${b.checkInDate} ${b.checkOutDate}`.toLowerCase()
+}
 
 export function BookingCompactSidebar({
   isAuthenticated,
@@ -26,6 +44,7 @@ export function BookingCompactSidebar({
   const [query, setQuery] = React.useState("")
   const [status, setStatus] = React.useState<"ALL" | BookingResponse["status"]>("ALL")
   const [when, setWhen] = React.useState<"all" | "upcoming" | "past">("all")
+  const [sort, setSort] = React.useState<"recentes" | "antigas">("recentes")
 
   React.useEffect(() => {
     if (!isAuthenticated) {
@@ -38,15 +57,13 @@ export function BookingCompactSidebar({
 
   const filtered = React.useMemo(() => {
     const scoped = scope === "properties" ? propertyBookings : myBookings
-    const q = query.trim().toLowerCase()
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const q = normalizeQuery(query)
+    const today = dateAtStartOfDay(new Date()) ?? new Date()
 
     const whenOk = (checkInDate: string) => {
       if (when === "all") return true
-      const d = new Date(checkInDate)
-      if (Number.isNaN(d.getTime())) return true
-      d.setHours(0, 0, 0, 0)
+      const d = dateAtStartOfDay(checkInDate)
+      if (!d) return true
       if (when === "upcoming") return d >= today
       return d < today
     }
@@ -55,14 +72,21 @@ export function BookingCompactSidebar({
 
     if (!q && status === "ALL" && when === "all") return scoped
 
-    return scoped.filter((b) => {
+    const next = scoped.filter((b) => {
       if (!statusOk(b.status)) return false
       if (!whenOk(b.checkInDate)) return false
       if (!q) return true
-      const hay = `${b.id} ${b.propertyId} ${b.status} ${b.currency} ${b.totalPrice}`.toLowerCase()
-      return hay.includes(q)
+      return bookingHaystack(b).includes(q)
     })
-  }, [myBookings, propertyBookings, query, scope, status, when])
+
+    return next
+      .slice()
+      .sort((a, b) =>
+        sort === "antigas"
+          ? (a.checkInDate || "").localeCompare(b.checkInDate || "")
+          : (b.checkInDate || "").localeCompare(a.checkInDate || ""),
+      )
+  }, [myBookings, propertyBookings, query, scope, sort, status, when])
 
   const clear = React.useCallback(() => {
     setQuery("")
@@ -100,6 +124,8 @@ export function BookingCompactSidebar({
           onStatusChange={setStatus}
           when={when}
           onWhenChange={setWhen}
+          sort={sort}
+          onSortChange={setSort}
           onClear={clear}
         />
         <BookingCards bookings={filtered} />
@@ -150,6 +176,8 @@ function BookingFilterBar({
   onStatusChange,
   when,
   onWhenChange,
+  sort,
+  onSortChange,
   onClear,
 }: {
   query: string
@@ -158,34 +186,33 @@ function BookingFilterBar({
   onStatusChange: (value: "ALL" | BookingResponse["status"]) => void
   when: "all" | "upcoming" | "past"
   onWhenChange: (value: "all" | "upcoming" | "past") => void
+  sort: "recentes" | "antigas"
+  onSortChange: (value: "recentes" | "antigas") => void
   onClear: () => void
 }) {
+  const canClear = query.length > 0 || status !== "ALL" || when !== "all"
+
   return (
     <SidebarFilterBar
       query={query}
       onQueryChange={onQueryChange}
       placeholder="PESQUISAR..."
+      inputClassName="normal-case tracking-normal"
     >
-      <select
-        title="Filtrar por estado"
-        value={status}
-        onChange={(e) => onStatusChange(e.target.value as typeof status)}
-        className="h-10 rounded-xl border-2 border-black bg-white px-3 text-[10px] font-black uppercase tracking-widest text-black outline-none"
-      >
-        <option value="ALL">Todos os estados</option>
-        <option value="PENDING_PAYMENT">PENDING_PAYMENT</option>
-        <option value="CONFIRMED">CONFIRMED</option>
-        <option value="CANCELLED">CANCELLED</option>
-        <option value="COMPLETED">COMPLETED</option>
-        <option value="REFUNDED">REFUNDED</option>
-      </select>
-
-      <BookingWhenToggle value={when} onChange={onWhenChange} />
+      <BookingStatusDropdown value={status} onChange={onStatusChange} />
+      <BookingWhenDropdown value={when} onChange={onWhenChange} />
+      <BookingSortDropdown value={sort} onChange={onSortChange} />
 
       <button
         type="button"
         onClick={onClear}
-        className="ml-auto h-10 px-3 rounded-xl border-2 border-black bg-white text-[10px] font-black uppercase tracking-widest text-black/70 hover:bg-black hover:text-white transition-colors"
+        disabled={!canClear}
+        className={cn(
+          "ml-auto inline-flex h-6 items-center justify-center rounded-md border-2 border-foreground dark:border-zinc-700 bg-primary/10 px-1 py-0.5 text-[7px] font-mono font-black uppercase tracking-widest text-primary transition-all",
+          "shadow-[2px_2px_0_0_#0D0D0D] dark:shadow-[2px_2px_0_0_rgba(255,255,255,0.25)]",
+          "hover:shadow-[3px_3px_0_0_#0D0D0D] hover:-translate-x-0.5 hover:-translate-y-0.5",
+          !canClear && "opacity-40 pointer-events-none shadow-none dark:shadow-none",
+        )}
       >
         Limpar
       </button>
@@ -193,56 +220,181 @@ function BookingFilterBar({
   )
 }
 
-function BookingWhenToggle({
+function BookingStatusDropdown({
+  value,
+  onChange,
+}: {
+  value: "ALL" | BookingResponse["status"]
+  onChange: (value: "ALL" | BookingResponse["status"]) => void
+}) {
+  const label =
+    value === "ALL"
+      ? "STATUS"
+      : value === "PENDING_PAYMENT"
+        ? "PEND"
+        : value === "CONFIRMED"
+          ? "CONF"
+          : value === "CANCELLED"
+            ? "CANC"
+            : value === "COMPLETED"
+              ? "COMP"
+              : "REFU"
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className={cn(
+            "flex items-center justify-center gap-2 rounded-md border-2 border-foreground dark:border-zinc-700 bg-primary/10 font-mono font-black uppercase tracking-widest shadow-[2px_2px_0_0_#0D0D0D] hover:shadow-[3px_3px_0_0_#0D0D0D] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all text-primary px-2 py-1 text-[8px]",
+          )}
+        >
+          <span>{label}</span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="start"
+        className="w-44 border-2 border-foreground shadow-[4px_4px_0_0_#0D0D0D] p-1 bg-white/80 dark:bg-black/80 backdrop-blur-md"
+      >
+        <DropdownMenuRadioGroup value={value} onValueChange={(v) => onChange(v as typeof value)}>
+          <DropdownMenuRadioItem
+            value="ALL"
+            className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
+          >
+            Todas
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem
+            value="PENDING_PAYMENT"
+            className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
+          >
+            Pending
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem
+            value="CONFIRMED"
+            className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
+          >
+            Confirmed
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem
+            value="CANCELLED"
+            className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
+          >
+            Cancelled
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem
+            value="COMPLETED"
+            className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
+          >
+            Completed
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem
+            value="REFUNDED"
+            className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
+          >
+            Refunded
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function BookingWhenDropdown({
   value,
   onChange,
 }: {
   value: "all" | "upcoming" | "past"
   onChange: (value: "all" | "upcoming" | "past") => void
 }) {
+  const label = value === "all" ? "DATA" : value === "upcoming" ? "FUT" : "PAS"
+
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => onChange("all")}
-        className={`h-10 px-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest transition-colors ${
-          value === "all"
-            ? "bg-black text-white border-black"
-            : "bg-white text-black/70 border-black hover:bg-black hover:text-white"
-        }`}
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className={cn(
+            "flex items-center justify-center gap-2 rounded-md border-2 border-foreground dark:border-zinc-700 bg-primary/10 font-mono font-black uppercase tracking-widest shadow-[2px_2px_0_0_#0D0D0D] hover:shadow-[3px_3px_0_0_#0D0D0D] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all text-primary px-2 py-1 text-[8px]",
+          )}
+        >
+          <span>{label}</span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="start"
+        className="w-36 border-2 border-foreground shadow-[4px_4px_0_0_#0D0D0D] p-1 bg-white/80 dark:bg-black/80 backdrop-blur-md"
       >
-        Todas
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange("upcoming")}
-        className={`h-10 px-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest transition-colors ${
-          value === "upcoming"
-            ? "bg-black text-white border-black"
-            : "bg-white text-black/70 border-black hover:bg-black hover:text-white"
-        }`}
+        <DropdownMenuRadioGroup value={value} onValueChange={(v) => onChange(v as typeof value)}>
+          <DropdownMenuRadioItem
+            value="all"
+            className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
+          >
+            Todas
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem
+            value="upcoming"
+            className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
+          >
+            Futuras
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem
+            value="past"
+            className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
+          >
+            Passadas
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function BookingSortDropdown({
+  value,
+  onChange,
+}: {
+  value: "recentes" | "antigas"
+  onChange: (value: "recentes" | "antigas") => void
+}) {
+  const label = value === "antigas" ? "ASC" : "DESC"
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className={cn(
+            "flex items-center justify-center gap-2 rounded-md border-2 border-foreground dark:border-zinc-700 bg-primary/10 font-mono font-black uppercase tracking-widest shadow-[2px_2px_0_0_#0D0D0D] hover:shadow-[3px_3px_0_0_#0D0D0D] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all text-primary px-2 py-1 text-[8px]",
+          )}
+        >
+          <ArrowUpDown className="h-3 w-3" strokeWidth={3} />
+          <span>{label}</span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className="w-40 border-2 border-foreground shadow-[4px_4px_0_0_#0D0D0D] p-1 bg-white/80 dark:bg-black/80 backdrop-blur-md"
       >
-        Futuras
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange("past")}
-        className={`h-10 px-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest transition-colors ${
-          value === "past"
-            ? "bg-black text-white border-black"
-            : "bg-white text-black/70 border-black hover:bg-black hover:text-white"
-        }`}
-      >
-        Passadas
-      </button>
-    </>
+        <DropdownMenuRadioGroup value={value} onValueChange={(v) => onChange(v as "recentes" | "antigas")}>
+          <DropdownMenuRadioItem
+            value="recentes"
+            className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
+          >
+            Recentes
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem
+            value="antigas"
+            className="font-mono text-[9px] font-bold uppercase tracking-widest py-2 focus:bg-primary focus:text-primary-foreground"
+          >
+            Antigas
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
 function BookingCards({ bookings }: { bookings: BookingResponse[] }) {
   if (bookings.length === 0) {
     return (
-      <div className="text-black/60 text-sm">
+      <div className="text-muted-foreground text-sm">
         Ainda não tem reservas.
       </div>
     )
@@ -253,13 +405,13 @@ function BookingCards({ bookings }: { bookings: BookingResponse[] }) {
       {bookings.map((b) => (
         <div
           key={b.id}
-          className="rounded-2xl border-2 border-black bg-white p-4 text-sm text-black shadow-[4px_4px_0_0_#000]"
+          className="rounded-2xl border-2 border-foreground bg-background p-4 text-sm text-foreground shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.35)]"
         >
           <div className="flex items-center justify-between gap-2">
             <div className="font-medium">Reserva #{b.id}</div>
-            <div className="text-xs text-black/60 font-mono uppercase tracking-widest">{b.status}</div>
+            <div className="text-xs text-muted-foreground font-mono uppercase tracking-widest">{b.status}</div>
           </div>
-          <div className="mt-2 grid gap-1 text-xs text-black/70 font-mono">
+          <div className="mt-2 grid gap-1 text-xs text-muted-foreground font-mono">
             <div>Property: {b.propertyId}</div>
             <div>{b.checkInDate} → {b.checkOutDate}</div>
             <div>Total: {b.totalPrice} {b.currency}</div>

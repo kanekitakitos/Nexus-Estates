@@ -9,7 +9,7 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js"
 import { Loader2 } from "lucide-react"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { Button } from "@/components/ui/forms/button"
 
@@ -41,28 +41,28 @@ function StripePaymentInner({
       })
 
       if (result.error) {
-        toast.error(result.error.message ?? "Pagamento falhou.")
+        notify.error(result.error.message ?? "Pagamento falhou.")
         return
       }
 
       const intent = result.paymentIntent
       if (!intent) {
-        toast.error("Pagamento incompleto.")
+        notify.error("Pagamento incompleto.")
         return
       }
 
       if (intent.status === "succeeded") {
         await onConfirmed(intent.id)
-        toast.success("Pagamento confirmado.")
+        notify.success("Pagamento confirmado.")
         return
       }
 
       if (intent.status === "processing") {
-        toast.message("Pagamento em processamento.")
+        notify.message("Pagamento em processamento.")
         return
       }
 
-      toast.message(`Estado do pagamento: ${intent.status}`)
+      notify.message(`Estado do pagamento: ${intent.status}`)
     } finally {
       setIsPaying(false)
     }

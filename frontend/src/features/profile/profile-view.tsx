@@ -13,7 +13,7 @@ import { PixelBlast } from "@/components/ui/PixelBlast"
 import { motion, AnimatePresence } from "framer-motion"
 
 import { SidebarProvider } from "@/components/ui/layout/sidebar"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { ProfilePanel } from "@/features/profile/components/profile-panel"
 import { AuthService } from "@/services/auth.service"
 import { SyncService } from "@/services/sync.service"
@@ -487,11 +487,11 @@ function WebhookSubscriptionsPanel({
     try {
       const created = await SyncService.createWebhook({ targetUrl: targetUrl.trim(), subscribedEvents: events })
       await navigator.clipboard.writeText(created.secret)
-      toast.success("Secret copiado para o clipboard.")
+      notify.success("Secret copiado para o clipboard.")
       setTargetUrl("")
       await onReload()
     } catch {
-      toast.error("Falha ao criar webhook.")
+      notify.error("Falha ao criar webhook.")
     } finally {
       setIsBusy(false)
     }

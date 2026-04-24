@@ -36,7 +36,7 @@ import Image from "next/image"
 import type { BookingProperty } from "@/types/booking"
 import { cn } from "@/lib/utils"
 import { DateRangeCalendar } from "./date-range-calendar"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { format, differenceInCalendarDays } from "date-fns"
 import {
   AnimatePresence, motion,
@@ -124,7 +124,7 @@ export function BookingDetails({
       handleConfirmDates(booking.checkIn, booking.checkOut)
     } else {
       scrollToCalendar()
-      toast.info("Seleciona as datas de check-in e check-out.")
+      notify.info("Seleciona as datas de check-in e check-out.")
     }
   }, [booking, handleConfirmDates, scrollToCalendar])
 
@@ -181,7 +181,7 @@ export function BookingDetails({
                     onConfirmBooking={({ range }) => {
                       if (range.from && range.to) handleConfirmDates(range.from, range.to)
                     }}
-                    onContactOwner={() => toast.info("Chat ainda não disponível.")}
+                    onContactOwner={() => notify.info("Chat ainda não disponível.")}
                   />
                 </div>
               </div>
@@ -197,7 +197,7 @@ export function BookingDetails({
                 nights={nights}
                 total={total}
                 onBookNow={handleBookNow}
-                onContactOwner={() => toast.info("Chat ainda não disponível.")}
+                onContactOwner={() => notify.info("Chat ainda não disponível.")}
               />
             </div>
           </aside>

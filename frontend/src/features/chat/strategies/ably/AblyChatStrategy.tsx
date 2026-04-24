@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/forms/input";
 import { BookingService, type BookingResponse } from "@/services/booking.service";
 import { SyncService } from "@/services/sync.service";
 import { AuthService } from "@/services/auth.service";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 // --- 1. Global Provider ---
 
@@ -177,7 +177,7 @@ const AblyBookingChatWindow: React.FC<{ bookingId: string; onBack?: () => void }
         setIsReady(true);
       } catch (e) {
         console.error("Erro ao iniciar chat Ably:", e);
-        toast.error("Não foi possível iniciar o chat.");
+        notify.error("Não foi possível iniciar o chat.");
       } finally {
         setIsConnecting(false);
       }
@@ -226,7 +226,7 @@ const AblyBookingChatWindow: React.FC<{ bookingId: string; onBack?: () => void }
 
       channelRef.current
         .publish("new-message", optimistic)
-        .catch(() => toast.error("Falha ao enviar mensagem."));
+        .catch(() => notify.error("Falha ao enviar mensagem."));
     },
     [isReady, mySenderId]
   );

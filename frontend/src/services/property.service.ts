@@ -1,7 +1,7 @@
 import { propertiesAxios, ApiResponse } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import type { BookingProperty } from "@/types/booking";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import type {
     CreatePropertyRequest,
     ExpandedPropertyResponse,
@@ -243,7 +243,7 @@ export class PropertyService {
     static async updateRules(id: number, dto: PropertyRuleDTO): Promise<PropertyRuleDTO> {
         try {
             const response = await propertiesAxios.put<ApiResponse<PropertyRuleDTO>>(`/${id}/rules`, dto);
-            toast.success("Regras atualizadas.");
+            notify.success("Regras atualizadas.");
             return response.data.data;
         } catch (error) {
             this.handleError(error, "atualizar regras da propriedade");
@@ -376,7 +376,7 @@ export class PropertyService {
             const response = await propertiesAxios.patch<ApiResponse<Record<string, unknown>>>(`/${id}`, request, {
                 headers: actorUserId ? { "X-Actor-UserId": actorUserId } : undefined,
             });
-            toast.success("Propriedade atualizada.");
+            notify.success("Propriedade atualizada.");
             return response.data.data;
         } catch (error) {
             this.handleError(error, "atualizar propriedade");
@@ -398,7 +398,7 @@ export class PropertyService {
             await propertiesAxios.delete<void>(`/${id}`, {
                 headers: actorUserId ? { "X-Actor-UserId": String(actorUserId) } : undefined,
             });
-            toast.success("Propriedade eliminada.");
+            notify.success("Propriedade eliminada.");
         } catch (error) {
             this.handleError(error, "eliminar propriedade");
             throw error;
@@ -484,12 +484,12 @@ export class PropertyService {
         if (this.isAxiosError(error) && error.response) {
             const status = error.response.status;
             if (status === 404) {
-                toast.error("Propriedade não encontrada.");
+                notify.error("Propriedade não encontrada.");
             } else {
-                toast.error(`Erro ao ${action}. Tente novamente mais tarde.`);
+                notify.error(`Erro ao ${action}. Tente novamente mais tarde.`);
             }
         } else {
-            toast.error("Erro de conexão. Verifique a sua internet.");
+            notify.error("Erro de conexão. Verifique a sua internet.");
         }
     }
 }

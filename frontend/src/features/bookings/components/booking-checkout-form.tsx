@@ -38,7 +38,7 @@ import {
   useWatch,
 } from "react-hook-form"
 import { z } from "zod"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { Check, ChevronRight, Lock, Loader2, ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/forms/button"
@@ -277,7 +277,7 @@ function useBookingSubmit(
       const from = parseDate(checkIn)
       const to = parseDate(checkOut)
       if (!from || !to) {
-        toast.error("Datas inválidas.")
+        notify.error("Datas inválidas.")
         return false
       }
 
@@ -329,7 +329,7 @@ function useBookingSubmit(
         }
         return true
       } catch {
-        toast.error("Erro ao criar reserva. Tenta novamente.")
+        notify.error("Erro ao criar reserva. Tenta novamente.")
         return false
       } finally {
         setIsSubmitting(false)
@@ -471,7 +471,7 @@ export function BookingCheckoutForm({
       ["fullName", "email", "phone", "guestCount", "nationality"],
       { shouldFocus: true }
     )
-    if (!ok) { toast.warning("Revê os campos assinalados."); return }
+    if (!ok) { notify.warning("Revê os campos assinalados."); return }
     setIdentityOpen(true)
   }
 
@@ -480,7 +480,7 @@ export function BookingCheckoutForm({
       ? (["issuingCountry", "passportNumber", "passportIssueDate"] as const)
       : (["documentNumber"] as const)
     const ok = await form.trigger(fields, { shouldFocus: true })
-    if (!ok) { toast.warning("Revê os campos assinalados."); return }
+    if (!ok) { notify.warning("Revê os campos assinalados."); return }
     setReviewOpen(true)
   }
 
@@ -551,7 +551,7 @@ export function BookingCheckoutForm({
                   disabled={!authSession.isAuthenticated}
                   onCheckedChange={(next) => {
                     if (!authSession.isAuthenticated && !next) {
-                      toast.info("Inicia sessão para reservar com conta.")
+                      notify.info("Inicia sessão para reservar com conta.")
                       return
                     }
                     setCheckoutAsGuest(next)

@@ -7,7 +7,7 @@ import { useForm, type UseFormReturn } from "react-hook-form"
 import { Input } from "@/components/ui/forms/input"
 import { Label } from "@/components/ui/forms/label"
 import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { ProfilePanel } from "@/features/profile/components/profile-panel"
 import { ShieldAlert, Lock, CheckCircle2 } from "lucide-react"
 
@@ -71,9 +71,9 @@ export function ChangePasswordForm({ onSubmit }: ChangePasswordFormProps) {
         newPassword: values.newPassword 
       })
       form.reset()
-      toast.success("Password atualizada com sucesso.")
+      notify.success("Password atualizada com sucesso.")
     } catch {
-      toast.error("Ocorreu um erro ao atualizar a password.")
+      notify.error("Ocorreu um erro ao atualizar a password.")
     } finally {
       setIsSubmitting(false)
     }

@@ -29,7 +29,7 @@ import {
   useSidebar,
 } from "@/components/ui/layout/sidebar"
 import { BookingService, type BookingResponse } from "@/services/booking.service"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { BookingCompactSidebar } from "@/features/bookings"
 import { PropertyCompactSidebar } from "@/features/property"
@@ -239,7 +239,7 @@ export function AppSidebar({
       } catch (err) {
         console.error(err)
         setProperties([])
-        toast.error("Não foi possível carregar as tuas propriedades.")
+        notify.error("Não foi possível carregar as tuas propriedades.")
       } finally {
         setIsLoadingProperties(false)
       }

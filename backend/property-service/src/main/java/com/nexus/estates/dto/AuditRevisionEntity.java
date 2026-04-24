@@ -1,7 +1,6 @@
-package com.nexus.estates.audit;
+package com.nexus.estates.dto;
 
-import jakarta.persistence.AttributeOverride;
-import jakarta.persistence.AttributeOverrides;
+import com.nexus.estates.audit.AuditRevisionListener;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -11,10 +10,6 @@ import org.hibernate.envers.RevisionEntity;
 @Entity
 @Table(name = "revinfo")
 @RevisionEntity(AuditRevisionListener.class)
-@AttributeOverrides({
-        @AttributeOverride(name = "id", column = @Column(name = "rev")),
-        @AttributeOverride(name = "timestamp", column = @Column(name = "revtstmp"))
-})
 public class AuditRevisionEntity extends DefaultTrackingModifiedEntitiesRevisionEntity {
     @Column(name = "actor_user_id")
     private Long actorUserId;

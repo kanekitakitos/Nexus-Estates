@@ -13,7 +13,7 @@ import {
     DropdownMenuTrigger 
 } from "@/components/ui/overlay/dropdown-menu"
 import { BrutalCard } from "@/components/ui/data-display/brutal-card"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { proPanel } from "../lib/property-tokens"
 import { motion, AnimatePresence } from "framer-motion"
 import { staggerContainer, itemFadeUp } from "../lib/animations"
@@ -171,12 +171,12 @@ export function CollaboratorManager({ permissions, onAdd, onRemove, isCard = tru
     /** Executa o protocolo de convite com verificação de rede mockada */
     const handleInvite = async (email: string, role: string) => {
         if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-            toast.error("Email inválido")
+            notify.error("Email inválido")
             return
         }
 
         if (permissions.some(p => p.email === email)) {
-            toast.error("Colaborador já adicionado")
+            notify.error("Colaborador já adicionado")
             return
         }
 
@@ -185,9 +185,9 @@ export function CollaboratorManager({ permissions, onAdd, onRemove, isCard = tru
             // Nexus Network Protocol: Simulação de verificação
             await new Promise(r => setTimeout(r, 800))
             onAdd(email, role)
-            toast.success(`Protocolo: ${email} indexado com sucesso`)
+            notify.success(`Protocolo: ${email} indexado com sucesso`)
         } catch {
-            toast.error("Falha na rede Nexus")
+            notify.error("Falha na rede Nexus")
         } finally {
             setIsVerifying(false)
         }

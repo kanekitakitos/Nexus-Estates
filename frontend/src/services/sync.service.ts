@@ -1,6 +1,6 @@
 import { syncAxios } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/lib/axiosAPI"
 import type { SyncMessage, WebhookSubscription, CreateWebhookSubscriptionRequest, CreatedWebhookSubscription } from "@/types/sync";
 
@@ -87,7 +87,7 @@ export class SyncService {
     static async createWebhook(payload: CreateWebhookSubscriptionRequest): Promise<CreatedWebhookSubscription> {
         try {
             const response = await syncAxios.post<ApiResponse<CreatedWebhookSubscription>>(`/webhooks`, payload)
-            toast.success("Webhook criado. Guarde o secret.")
+            notify.success("Webhook criado. Guarde o secret.")
             return response.data.data
         } catch (error) {
             this.handleError(error, "criar webhook")
@@ -107,7 +107,7 @@ export class SyncService {
     static async deleteWebhook(id: number): Promise<void> {
         try {
             await syncAxios.delete<ApiResponse<void>>(`/webhooks/${id}`)
-            toast.success("Webhook removido.")
+            notify.success("Webhook removido.")
         } catch (error) {
             this.handleError(error, "remover webhook")
             throw error
@@ -124,9 +124,9 @@ export class SyncService {
     private static handleError(error: unknown, action: string): void {
         console.error(`Erro ao ${action}:`, error);
         if (this.isAxiosError(error) && error.response) {
-            toast.error(`Erro ao ${action}. Verifique a sua ligação.`);
+            notify.error(`Erro ao ${action}. Verifique a sua ligação.`);
         } else {
-            toast.error("Erro de conexão com o serviço de tempo real.");
+            notify.error("Erro de conexão com o serviço de tempo real.");
         }
     }
 }

@@ -34,7 +34,7 @@ import { BookingDetails } from "../components/booking-details"
 import { BookingCheckoutForm } from "../components/booking-checkout-form"
 import { cn } from "@/lib/utils"
 import { PropertyService } from "@/services/property.service"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import {
   comicPopVariants, gummyHover, gummyTap,
@@ -92,7 +92,7 @@ function useBookingCatalog() {
       const data = await PropertyService.getAllProperties()
       setProperties(data)
     } catch {
-      toast.error("Não foi possível carregar as propriedades.")
+      notify.error("Não foi possível carregar as propriedades.")
     } finally {
       setIsLoading(false)
     }

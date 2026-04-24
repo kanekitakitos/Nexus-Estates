@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/forms/input"
 import { useRef, useState } from "react"
 import { AuthService } from "@/services/auth.service"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { getIdentityProviderKey, isClerkConfigured } from "@/features/auth/strategies/use-identity-provider"
 import {
   SocialDivider,
@@ -47,7 +47,7 @@ export function LoginForm({
     const password = passwordRef.current?.value.trim() ?? ""
 
     if (!email || !password) {
-      toast.warning("Preenche todos os campos")
+      notify.warning("Preenche todos os campos")
       return
     }
 

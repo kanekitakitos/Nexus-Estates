@@ -12,6 +12,7 @@ export function SidebarFilterBar({
   icon,
   children,
   className,
+  inputClassName,
 }: {
   query: string
   onQueryChange: (value: string) => void
@@ -19,6 +20,7 @@ export function SidebarFilterBar({
   icon?: React.ReactNode
   children?: React.ReactNode
   className?: string
+  inputClassName?: string
 }) {
   return (
     <motion.div
@@ -47,6 +49,7 @@ export function SidebarFilterBar({
             className={cn(
               "w-full rounded-xl border-2 border-[#0D0D0D] bg-white pr-4 font-mono font-bold uppercase tracking-widest text-[#0D0D0D] transition-all placeholder:font-black placeholder:text-[#8C7B6B]/55 focus:bg-white focus:shadow-[4px_4px_0_0_#0D0D0D] focus:outline-none dark:border-zinc-600 dark:bg-zinc-950 dark:text-white",
               "pl-9 py-2 text-[9px]",
+              inputClassName,
             )}
           />
         </div>
@@ -57,4 +60,3 @@ export function SidebarFilterBar({
     </motion.div>
   )
 }
-

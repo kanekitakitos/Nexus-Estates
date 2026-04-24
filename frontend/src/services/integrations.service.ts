@@ -1,6 +1,6 @@
 import { usersAxios, ApiResponse } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import type { ExternalIntegrationDTO, ExternalProviderName } from "@/types/integrations";
 
 export type { ExternalIntegrationDTO, ExternalProviderName } from "@/types/integrations";
@@ -28,7 +28,7 @@ export class IntegrationsService {
     try {
       const response = await usersAxios.post<ApiResponse<ExternalIntegrationDTO>>("/integrations", payload);
       if (response.status === 200 && response.data.success) {
-        toast.success("Integração criada.");
+        notify.success("Integração criada.");
         return response.data.data;
       }
       throw new Error("Falha ao criar integração");
@@ -64,7 +64,7 @@ export class IntegrationsService {
     try {
       const response = await usersAxios.delete<ApiResponse<void>>(`/integrations/${id}`);
       if (response.status === 200) {
-        toast.success("Integração removida.");
+        notify.success("Integração removida.");
         return true;
       }
       return false;
@@ -82,14 +82,14 @@ export class IntegrationsService {
     if (this.isAxiosError(error) && error.response) {
       const status = error.response.status;
       if (status === 401) {
-        toast.error("Sessão expirada. Faça login novamente.");
+        notify.error("Sessão expirada. Faça login novamente.");
       } else if (status === 403) {
-        toast.error("Sem permissões para esta operação.");
+        notify.error("Sem permissões para esta operação.");
       } else {
-        toast.error(`Erro ao ${action}.`);
+        notify.error(`Erro ao ${action}.`);
       }
     } else {
-      toast.error("Erro de conexão com o serviço de utilizadores.");
+      notify.error("Erro de conexão com o serviço de utilizadores.");
     }
   }
 }

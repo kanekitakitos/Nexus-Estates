@@ -1,5 +1,6 @@
 package com.nexus.estates.audit;
 
+import com.nexus.estates.dto.AuditRevisionEntity;
 import com.nexus.estates.entity.Property;
 import jakarta.persistence.Table;
 import org.hibernate.envers.Audited;

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { AuthService } from "@/services/auth.service"
 import { getIdentityProviderKey, isClerkConfigured } from "@/features/auth/strategies/use-identity-provider"
 import { useClerkIdentityProvider } from "@/features/auth/strategies/clerk/use-clerk-identity-provider"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/forms/button"
 
@@ -49,7 +49,7 @@ function ClerkCallbackInner() {
         setStatus("A sincronizar com servidor...")
         await AuthService.clerkExchange(clerkToken)
         
-        toast.success("Login social efetuado com sucesso!")
+        notify.success("Login social efetuado com sucesso!")
         router.replace("/")
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Falhou autenticação social."

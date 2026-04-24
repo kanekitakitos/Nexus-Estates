@@ -1,5 +1,6 @@
 package com.nexus.estates.audit;
 
+import com.nexus.estates.dto.AuditRevisionEntity;
 import org.hibernate.envers.RevisionListener;
 
 public class AuditRevisionListener implements RevisionListener {

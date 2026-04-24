@@ -1,6 +1,6 @@
 import { usersAxios, ApiResponse } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import type { AuthCredentials, AuthResponse } from "@/types/auth";
 
 export type { AuthCredentials, AuthResponse } from "@/types/auth";
@@ -56,7 +56,7 @@ export class AuthService {
             if (response.status === 200 && response.data.success) {
                 const data = response.data.data;
                 this.setSession(data);
-                toast.success("Bem-vindo de volta!");
+                notify.success("Bem-vindo de volta!");
                 return data;
             }
             return null;
@@ -79,7 +79,7 @@ export class AuthService {
             if (response.status === 200 && response.data.success) {
                 const data = response.data.data;
                 this.setSession(data);
-                toast.success("Conta criada com sucesso! Bem-vindo.");
+                notify.success("Conta criada com sucesso! Bem-vindo.");
                 return data;
             }
             return null;
@@ -102,12 +102,12 @@ export class AuthService {
         try {
             const response = await usersAxios.post<ApiResponse<void>>("/auth/password/forgot", { email });
             if (response.status === 200 && response.data.success) {
-                toast.success("Se o email existir, enviámos instruções para recuperar a password.");
+                notify.success("Se o email existir, enviámos instruções para recuperar a password.");
                 return true;
             }
             return false;
         } catch (error: unknown) {
-            toast.error("Não foi possível iniciar a recuperação de password.");
+            notify.error("Não foi possível iniciar a recuperação de password.");
             throw error;
         }
     }
@@ -122,12 +122,12 @@ export class AuthService {
         try {
             const response = await usersAxios.post<ApiResponse<void>>("/auth/password/reset", { token, newPassword });
             if (response.status === 200 && response.data.success) {
-                toast.success("Password alterada com sucesso. Faça login novamente.");
+                notify.success("Password alterada com sucesso. Faça login novamente.");
                 return true;
             }
             return false;
         } catch (error: unknown) {
-            toast.error("Token inválido ou expirado.");
+            notify.error("Token inválido ou expirado.");
             throw error;
         }
     }
@@ -143,12 +143,12 @@ export class AuthService {
             if (response.status === 200 && response.data.success) {
                 const data = response.data.data;
                 this.setSession(data);
-                toast.success("Login social concluído.");
+                notify.success("Login social concluído.");
                 return data;
             }
             return null;
         } catch (error: unknown) {
-            toast.error("Falhou login social.");
+            notify.error("Falhou login social.");
             throw error;
         }
     }
@@ -166,7 +166,7 @@ export class AuthService {
         // Notifica outros componentes sobre a mudança de autenticação
         window.dispatchEvent(new Event('auth-change'));
         
-        toast.success("Sessão terminada com sucesso.");
+        notify.success("Sessão terminada com sucesso.");
         setTimeout(() => {
             window.location.href = "/";
         }, 1000);
@@ -199,22 +199,22 @@ export class AuthService {
             
             if (type === 'login') {
                 switch (status) {
-                    case 401: toast.error("Email ou senha incorretos. Tente novamente."); break;
-                    case 403: toast.error("A sua conta está desativada. Contacte o suporte."); break;
-                    case 404: toast.error("Utilizador não encontrado."); break;
-                    case 429: toast.warning("Muitas tentativas. Tente novamente mais tarde."); break;
-                    default: toast.error("Erro no servidor. Por favor, tente mais tarde.");
+                    case 401: notify.error("Email ou senha incorretos. Tente novamente."); break;
+                    case 403: notify.error("A sua conta está desativada. Contacte o suporte."); break;
+                    case 404: notify.error("Utilizador não encontrado."); break;
+                    case 429: notify.warning("Muitas tentativas. Tente novamente mais tarde."); break;
+                    default: notify.error("Erro no servidor. Por favor, tente mais tarde.");
                 }
             } else {
                 switch (status) {
-                    case 400: toast.error("Dados inválidos. Verifique os campos."); break;
-                    case 409: toast.error("Este email já está registado. Tente fazer login."); break;
-                    case 422: toast.error("Dados de registo inconsistentes."); break;
-                    default: toast.error("Erro no servidor ao criar conta. Tente mais tarde.");
+                    case 400: notify.error("Dados inválidos. Verifique os campos."); break;
+                    case 409: notify.error("Este email já está registado. Tente fazer login."); break;
+                    case 422: notify.error("Dados de registo inconsistentes."); break;
+                    default: notify.error("Erro no servidor ao criar conta. Tente mais tarde.");
                 }
             }
         } else {
-            toast.error("Erro de conexão. Verifique a sua internet.");
+            notify.error("Erro de conexão. Verifique a sua internet.");
         }
     }
 }

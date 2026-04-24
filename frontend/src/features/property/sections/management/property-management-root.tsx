@@ -10,9 +10,10 @@ import { PreviewSection } from "./preview-section"
 import { RulesSection } from "./rules-section"
 import { DetailsSection } from "./details-section"
 import { PropertyService } from "@/services/property.service"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { BoingText } from "@/components/effects/BoingText"
 import { pageVariants } from "../../lib/animations"
+import { NexusAlertDialog } from "@/components/ui/feedback/nexus-alert-dialog"
 
 // ─── Tipos e Props ────────────────────────────────────────────────────────
 
@@ -183,6 +184,7 @@ export function PropertyManagementRoot({ property: initialProperty, onBack, onSa
     const [isSaving, setIsSaving] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
     const [pendingChanges, setPendingChanges] = useState(false)
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
     // ─── Handlers Nucleares ─────────────────────────────────────────────
 
@@ -207,10 +209,10 @@ export function PropertyManagementRoot({ property: initialProperty, onBack, onSa
             await onSave(draft)
             setPendingChanges(false)
             setMode('VIEW')
-            toast.success("Nexus Asset // Actualização executada com sucesso")
+            notify.success("Nexus Asset // Actualização executada com sucesso")
         } catch (error) {
             console.error("[PropertyManagementRoot] Save Error:", error)
-            toast.error("Erro Crítico // Falha na sincronização do ativo")
+            notify.error("Erro Crítico // Falha na sincronização do ativo")
         } finally {
             setIsSaving(false)
         }
@@ -221,9 +223,11 @@ export function PropertyManagementRoot({ property: initialProperty, onBack, onSa
      * @description Solicita confirmação e remove o ativo permanentemente
      * dos registos ativos da rede Nexus.
      */
-    const handleDelete = async () => {
-        if (!confirm("Tem certeza que deseja desativar este ativo? Esta acção é irreversível nos protocolos Nexus.")) return
+    const handleDelete = () => {
+        setIsDeleteDialogOpen(true)
+    }
 
+    const confirmDelete = async () => {
         setIsDeleting(true)
         try {
             const propertyId = typeof draft.id === 'string' ? parseInt(draft.id) : (draft.id as number)
@@ -232,10 +236,11 @@ export function PropertyManagementRoot({ property: initialProperty, onBack, onSa
             await PropertyService.deleteProperty(propertyId)
             if (onDelete) await onDelete(propertyId)
             onBack()
-            toast.success("Ativo Desativado // Removido dos registos activos")
+            notify.success("Ativo Desativado // Removido dos registos activos")
+            setIsDeleteDialogOpen(false)
         } catch (error) {
             console.error("[PropertyManagementRoot] Decommission Error:", error)
-            toast.error("Falha no Decommission // Contacte o suporte técnico")
+            notify.error("Falha no Decommission // Contacte o suporte técnico")
         } finally {
             setIsDeleting(false)
         }
@@ -295,6 +300,18 @@ export function PropertyManagementRoot({ property: initialProperty, onBack, onSa
                     )}
                 </motion.main>
             </AnimatePresence>
+
+            <NexusAlertDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={(open) => { if (!isDeleting) setIsDeleteDialogOpen(open) }}
+                variant="warning"
+                title="Desativar ativo?"
+                description="Esta ação é irreversível nos protocolos Nexus. O ativo será removido dos registos activos."
+                confirmLabel="Desativar"
+                cancelLabel="Cancelar"
+                isConfirming={isDeleting}
+                onConfirm={confirmDelete}
+            />
         </div>
     )
 }

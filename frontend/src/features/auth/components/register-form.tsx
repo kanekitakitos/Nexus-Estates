@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/forms/input"
 import { useRef, useState } from "react"
 import { AuthService } from "@/services/auth.service"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { getIdentityProviderKey, isClerkConfigured } from "@/features/auth/strategies/use-identity-provider"
 
 // Os sub-componentes SocialDivider, ClerkSocialIconRow e DisabledSocialIconRow
@@ -55,13 +55,13 @@ export function RegisterForm() {
 
     if (!email || !phone || !password || !passwordConfirm) {
       setPasswordError(true)
-      toast.warning("Preenche todos os campos")
+      notify.warning("Preenche todos os campos")
       return
     }
 
     if (password !== passwordConfirm) {
       setPasswordError(true)
-      toast.error("As passwords não coincidem. Tenta novamente.")
+      notify.error("As passwords não coincidem. Tenta novamente.")
       return
     }
 

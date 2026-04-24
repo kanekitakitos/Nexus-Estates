@@ -2,7 +2,7 @@
 
 import React from "react"
 import { Copy } from "lucide-react"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { Button } from "@/components/ui/forms/button"
 import { Input } from "@/components/ui/forms/input"
@@ -75,9 +75,9 @@ export function PaymentDetails({
             onClick={async () => {
               try {
                 await navigator.clipboard.writeText(readClientSecret(payment) ?? "")
-                toast.success("Copiado.")
+                notify.success("Copiado.")
               } catch {
-                toast.error("Não foi possível copiar.")
+                notify.error("Não foi possível copiar.")
               }
             }}
           >
@@ -89,4 +89,3 @@ export function PaymentDetails({
     </div>
   )
 }
-
