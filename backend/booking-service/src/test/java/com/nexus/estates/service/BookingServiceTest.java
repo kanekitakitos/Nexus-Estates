@@ -13,7 +13,6 @@ import com.nexus.estates.repository.BookingRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -40,21 +39,22 @@ class BookingServiceTest {
     private BookingPaymentService bookingPaymentService;
 
     @Mock
-    private Proxy api;
-
-    @Mock
     private NexusClients.PropertyClient propertyClient;
 
     @Mock
     private NexusClients.UserClient userClient;
 
-    @InjectMocks
     private BookingService bookingService;
 
     private CreateBookingRequest request;
 
     @BeforeEach
     void setUp() {
+        Proxy api = new Proxy(propertyClient, userClient, null);
+        bookingService = new BookingService(bookingRepository, bookingEventPublisher, bookingPaymentService, api);
+
+        when(bookingRepository.existsOverlappingBooking(anyLong(), any(), any())).thenReturn(false);
+
         request = new CreateBookingRequest(
                 1L,
                 100L,
@@ -70,9 +70,6 @@ class BookingServiceTest {
         PropertyQuoteResponse quote = PropertyQuoteResponse.failure(List.of("O número mínimo de noites é 5"));
         ApiResponse<PropertyQuoteResponse> response = ApiResponse.success(quote, "OK");
 
-        when(api.propertyClient()).thenReturn(propertyClient);
-        when(api.userClient()).thenReturn(userClient);
-        when(userClient.getUserEmail(anyLong())).thenReturn("user@example.com");
         when(propertyClient.quote(anyLong(), any(PropertyQuoteRequest.class))).thenReturn(response);
 
         assertThrows(RuleViolationException.class, () -> bookingService.createBooking(request));
@@ -83,9 +80,6 @@ class BookingServiceTest {
         PropertyQuoteResponse quote = PropertyQuoteResponse.failure(List.of("O número máximo de noites é 2"));
         ApiResponse<PropertyQuoteResponse> response = ApiResponse.success(quote, "OK");
 
-        when(api.propertyClient()).thenReturn(propertyClient);
-        when(api.userClient()).thenReturn(userClient);
-        when(userClient.getUserEmail(anyLong())).thenReturn("user@example.com");
         when(propertyClient.quote(anyLong(), any(PropertyQuoteRequest.class))).thenReturn(response);
 
         assertThrows(RuleViolationException.class, () -> bookingService.createBooking(request));
@@ -96,9 +90,6 @@ class BookingServiceTest {
         PropertyQuoteResponse quote = PropertyQuoteResponse.failure(List.of("A reserva deve ser feita com pelo menos 10 dias de antecedência."));
         ApiResponse<PropertyQuoteResponse> response = ApiResponse.success(quote, "OK");
 
-        when(api.propertyClient()).thenReturn(propertyClient);
-        when(api.userClient()).thenReturn(userClient);
-        when(userClient.getUserEmail(anyLong())).thenReturn("user@example.com");
         when(propertyClient.quote(anyLong(), any(PropertyQuoteRequest.class))).thenReturn(response);
 
         assertThrows(RuleViolationException.class, () -> bookingService.createBooking(request));
@@ -109,12 +100,7 @@ class BookingServiceTest {
         PropertyQuoteResponse quote = PropertyQuoteResponse.success(new BigDecimal("300.00"), "EUR");
         ApiResponse<PropertyQuoteResponse> response = ApiResponse.success(quote, "OK");
 
-        when(api.propertyClient()).thenReturn(propertyClient);
-        when(api.userClient()).thenReturn(userClient);
-        when(userClient.getUserEmail(anyLong())).thenReturn("user@example.com");
         when(propertyClient.quote(anyLong(), any(PropertyQuoteRequest.class))).thenReturn(response);
-        
-        when(bookingRepository.existsOverlappingBooking(anyLong(), any(), any())).thenReturn(false);
         when(bookingRepository.save(any(Booking.class))).thenAnswer(i -> {
             Booking b = i.getArgument(0);
             b.setId(1L);
