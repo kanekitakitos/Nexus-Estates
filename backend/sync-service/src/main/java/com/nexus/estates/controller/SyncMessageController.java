@@ -109,8 +109,11 @@ public class SyncMessageController {
     @PostMapping("/webhook")
     public ResponseEntity<String> handleWebhook(
             @RequestBody String rawBody,
-            @Parameter(description = "Assinatura HMAC-SHA256 (formato: sha256=...)") @RequestHeader("X-Ably-Signature") String signature
+            @Parameter(description = "Assinatura HMAC-SHA256 (formato: sha256=...)") @RequestHeader(value = "X-Ably-Signature", required = false) String signature
     ) {
+        if (signature == null || signature.isBlank()) {
+            return ResponseEntity.badRequest().body("Missing X-Ably-Signature header");
+        }
         if (!webhookService.isSignatureValid(rawBody, signature)) {
             return ResponseEntity.status(401).body("Invalid signature");
         }
