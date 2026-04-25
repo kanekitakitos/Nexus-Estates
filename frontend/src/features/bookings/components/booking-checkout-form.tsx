@@ -37,6 +37,7 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form"
+import type { DateRange } from "react-day-picker"
 import { z } from "zod"
 import { notify } from "@/lib/notify"
 import { Check, ChevronRight, Lock, Loader2, ArrowLeft } from "lucide-react"
@@ -44,12 +45,16 @@ import { Check, ChevronRight, Lock, Loader2, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/forms/button"
 import { Input } from "@/components/ui/forms/input"
 import { Switch } from "@/components/ui/forms/switch"
+import { BrutalCalendar } from "@/components/ui/calendars/calendar"
 import type { BookingProperty } from "@/types/booking"
 import { BookingService } from "@/services/booking.service"
 import { AuthService } from "@/services/auth.service"
 import { FinanceService } from "@/services/finance.service"
 import type { PaymentResponse, ProviderInfo } from "@/types/finance"
 import { cn } from "@/lib/utils"
+import { propertiesAxios, type ApiResponse } from "@/lib/axiosAPI"
+import type { PropertyQuoteResponse } from "@/types/property"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { PaymentDetails } from "@/features/finance/components/payment-details"
 import { StripePaymentPanel } from "@/features/finance/components/stripe-payment-panel"
 
@@ -97,6 +102,10 @@ const tk = {
 
 const EMAIL_REGEX =
   /^(?!.*\.\.)(?!\.)([A-Z0-9!#$%&'*+/=?^_`{|}~-]+(\.[A-Z0-9!#$%&'*+/=?^_`{|}~-]+)*)@([A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,63}$/i
+
+const CLEANING_FEE_EUR = 25
+const TOURIST_TAX_PER_PERSON_PER_NIGHT_EUR = 2
+const TOURIST_TAX_MAX_NIGHTS = 7
 
 const NATIONALITY_OPTIONS = [
   { value: "PT", label: "Portugal" },
@@ -158,6 +167,23 @@ function parseDate(v: string): Date | null {
   } catch {
     return null
   }
+}
+
+const TODAY = new Date(new Date().setHours(0, 0, 0, 0))
+
+function formatMoney(amount: number, currency: string) {
+  const safeAmount = Number.isFinite(amount) ? amount : 0
+  try {
+    return new Intl.NumberFormat("pt-PT", { style: "currency", currency }).format(safeAmount)
+  } catch {
+    return `${currency} ${safeAmount.toFixed(2)}`
+  }
+}
+
+function calcTouristTax(nights: number, guestCount: number) {
+  const billableNights = Math.min(Math.max(0, nights), TOURIST_TAX_MAX_NIGHTS)
+  const guests = Math.max(1, guestCount)
+  return billableNights * guests * TOURIST_TAX_PER_PERSON_PER_NIGHT_EUR
 }
 
 function nationalityLabel(code: string) {
@@ -363,12 +389,25 @@ export function BookingCheckoutForm({
   onBack,
   onSuccess,
 }: BookingCheckoutParams) {
+  const isDesktop = useMediaQuery("(min-width: 768px)")
   const [authSession, setAuthSession] = React.useState({
     isAuthenticated: false,
     userId: null as number | null,
     email: "",
   })
   const [checkoutAsGuest, setCheckoutAsGuest] = React.useState(true)
+  const [stayRange, setStayRange] = React.useState<DateRange | undefined>(() => {
+    const from = parseDate(checkIn)
+    const to = parseDate(checkOut)
+    return from && to ? { from, to } : undefined
+  })
+  const [quote, setQuote] = React.useState<{ total: number; currency: string } | null>(null)
+  const [quoteStatus, setQuoteStatus] = React.useState<{
+    loading: boolean
+    error: string | null
+    validationErrors: string[]
+  }>({ loading: false, error: null, validationErrors: [] })
+  const quoteSeq = React.useRef(0)
 
   // Progressive unlock state
   const [identityOpen, setIdentityOpen] = React.useState(false)
@@ -397,14 +436,79 @@ export function BookingCheckoutForm({
 
   const preview = useWatch({ control: form.control })
   const nationality = useWatch({ control: form.control, name: "nationality" })
+  const guestCount = useWatch({ control: form.control, name: "guestCount" })
   const isForeign = normalize.countryCode(nationality || "PT") !== "PT"
 
-  const { nights, total } = React.useMemo(() => {
-    const from = parseDate(checkIn)
-    const to = parseDate(checkOut)
+  const hasSelectedRange = Boolean(stayRange?.from && stayRange?.to)
+
+  const effectiveCheckIn = React.useMemo(() => {
+    if (hasSelectedRange && stayRange?.from) return format(stayRange.from, "yyyy-MM-dd")
+    return checkIn
+  }, [hasSelectedRange, stayRange, checkIn])
+
+  const effectiveCheckOut = React.useMemo(() => {
+    if (hasSelectedRange && stayRange?.to) return format(stayRange.to, "yyyy-MM-dd")
+    return checkOut
+  }, [hasSelectedRange, stayRange, checkOut])
+
+  const { nights, estimateTotal } = React.useMemo(() => {
+    const from = parseDate(effectiveCheckIn)
+    const to = parseDate(effectiveCheckOut)
     const n = from && to ? Math.max(1, differenceInCalendarDays(to, from)) : 0
-    return { nights: n, total: n * property.price }
-  }, [checkIn, checkOut, property.price])
+    return { nights: n, estimateTotal: n * property.price }
+  }, [effectiveCheckIn, effectiveCheckOut, property.price])
+
+  React.useEffect(() => {
+    const from = parseDate(effectiveCheckIn)
+    const to = parseDate(effectiveCheckOut)
+    if (!from || !to || nights <= 0) {
+      setQuote(null)
+      setQuoteStatus({ loading: false, error: null, validationErrors: [] })
+      return
+    }
+
+    const seq = (quoteSeq.current += 1)
+    setQuoteStatus((s) => ({ ...s, loading: true, error: null }))
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await propertiesAxios.post<ApiResponse<PropertyQuoteResponse>>(
+          `/${Number(property.id)}/quote`,
+          { checkInDate: effectiveCheckIn, checkOutDate: effectiveCheckOut, guestCount: Math.max(1, guestCount ?? 1) }
+        )
+
+        if (seq !== quoteSeq.current) return
+
+        const data = res.data?.data
+        if (data?.valid && data.totalPrice != null) {
+          setQuote({ total: Number(data.totalPrice), currency: String(data.currency || "EUR") })
+          setQuoteStatus({ loading: false, error: null, validationErrors: [] })
+          return
+        }
+
+        setQuote(null)
+        setQuoteStatus({
+          loading: false,
+          error: null,
+          validationErrors: Array.isArray(data?.validationErrors) ? data.validationErrors : [],
+        })
+      } catch {
+        if (seq !== quoteSeq.current) return
+        setQuote(null)
+        setQuoteStatus({ loading: false, error: "Não foi possível simular o preço agora.", validationErrors: [] })
+      }
+    }, 250)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [effectiveCheckIn, effectiveCheckOut, guestCount, nights, property.id])
+
+  const pricingCurrency = quote?.currency ?? "EUR"
+  const pricingTotal = quote?.total ?? estimateTotal
+  const cleaningFee = nights > 0 ? CLEANING_FEE_EUR : 0
+  const touristTax = nights > 0 ? calcTouristTax(nights, guestCount ?? 1) : 0
+  const accommodation = Math.max(0, pricingTotal - cleaningFee - touristTax)
 
   const getAuth = React.useCallback(() => authSession, [authSession])
   const isGuest = React.useCallback(() => checkoutAsGuest, [checkoutAsGuest])
@@ -421,7 +525,7 @@ export function BookingCheckoutForm({
     retryPayment,
     submit,
   } =
-    useBookingSubmit(checkIn, checkOut, property, getAuth, isGuest)
+    useBookingSubmit(effectiveCheckIn, effectiveCheckOut, property, getAuth, isGuest)
 
   const stripeClientSecret = React.useMemo(() => {
     if (!payment || typeof payment !== "object") return null
@@ -559,6 +663,76 @@ export function BookingCheckoutForm({
                 />
               </div>
 
+              <div className={cn(tk.card, "p-4 space-y-4")}>
+                <div>
+                  <div className={tk.label}>Datas da estadia</div>
+                  <div className={cn(tk.mono, "mt-0.5")}>
+                    Ao ajustar o calendário, recalculamos o preço total e o breakdown em tempo real.
+                  </div>
+                </div>
+
+                <BrutalCalendar
+                  title="Selecionar datas"
+                  initialFocus
+                  mode="range"
+                  defaultMonth={stayRange?.from}
+                  selected={stayRange}
+                  onSelect={setStayRange}
+                  numberOfMonths={isDesktop ? 2 : 1}
+                  className="w-full max-w-[320px] md:max-w-none"
+                  disabled={(d) => d < TODAY}
+                />
+
+                <div className={cn(tk.divider, "pt-4 space-y-2")}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className={cn(tk.mono, "uppercase tracking-widest")}>Breakdown</span>
+                    <span className={cn(tk.mono, "tabular-nums")}>
+                      {quoteStatus.loading ? "A calcular…" : quote ? "Simulado" : "Estimativa"}
+                    </span>
+                  </div>
+
+                  {quoteStatus.validationErrors.length > 0 ? (
+                    <div className="rounded-lg border border-foreground/15 bg-foreground/[0.03] p-3 text-xs">
+                      <div className={cn(tk.mono, "uppercase tracking-widest")}>Validação</div>
+                      <div className="mt-1 text-muted-foreground">
+                        {quoteStatus.validationErrors.join(" · ")}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {quoteStatus.error ? (
+                    <div className="rounded-lg border border-foreground/15 bg-foreground/[0.03] p-3 text-xs text-muted-foreground">
+                      {quoteStatus.error}
+                    </div>
+                  ) : null}
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className={cn(tk.mono, "underline decoration-dotted underline-offset-2")}>
+                        Estadia ({nights} noite{nights !== 1 ? "s" : ""})
+                      </span>
+                      <span className="font-black tabular-nums">{formatMoney(accommodation, pricingCurrency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className={cn(tk.mono, "underline decoration-dotted underline-offset-2")}>
+                        Taxa de limpeza
+                      </span>
+                      <span className="font-black tabular-nums">{formatMoney(cleaningFee, pricingCurrency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className={cn(tk.mono, "underline decoration-dotted underline-offset-2")}>
+                        Taxa turística
+                      </span>
+                      <span className="font-black tabular-nums">{formatMoney(touristTax, pricingCurrency)}</span>
+                    </div>
+                    <div className={cn("flex items-center justify-between pt-3", tk.divider)}>
+                      <span className={cn(tk.mono, "uppercase tracking-widest")}>Total</span>
+                      <span className="text-xl font-black tabular-nums">{formatMoney(pricingTotal, pricingCurrency)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <RHFField
                 name="fullName"
                 label="Nome completo"
@@ -687,10 +861,10 @@ export function BookingCheckoutForm({
                   <div>
                     <div className={tk.label}>Total a pagar</div>
                     <div className={cn(tk.mono, "mt-0.5")}>
-                      {nights} noite{nights !== 1 ? "s" : ""} × €{property.price}
+                      {formatMoney(accommodation, pricingCurrency)} + {formatMoney(cleaningFee, pricingCurrency)} + {formatMoney(touristTax, pricingCurrency)}
                     </div>
                   </div>
-                  <div className="text-2xl font-black tabular-nums">€{total}</div>
+                  <div className="text-2xl font-black tabular-nums">{formatMoney(pricingTotal, pricingCurrency)}</div>
                 </div>
 
                 <SectionCTA
@@ -730,8 +904,8 @@ export function BookingCheckoutForm({
                     publishableKey={stripePublishableKey}
                     clientSecret={stripeClientSecret}
                     bookingId={bookingId}
-                    total={paymentAmount ?? total}
-                    currency={paymentCurrency ?? "EUR"}
+                    total={paymentAmount ?? pricingTotal}
+                    currency={paymentCurrency ?? pricingCurrency}
                     onConfirmed={confirmPayment}
                   />
                 ) : null}
@@ -752,15 +926,15 @@ export function BookingCheckoutForm({
               <div className="font-black uppercase leading-snug text-sm">{property.title}</div>
 
               <div className={cn("mt-3 pt-3 space-y-2", tk.divider)}>
-                <SidebarRow label="Check-in" value={checkIn} />
-                <SidebarRow label="Check-out" value={checkOut} />
+                <SidebarRow label="Check-in" value={effectiveCheckIn} />
+                <SidebarRow label="Check-out" value={effectiveCheckOut} />
                 <SidebarRow label="Noites" value={String(nights)} />
                 <SidebarRow label="Por noite" value={`€${property.price}`} />
               </div>
 
               <div className={cn("mt-3 pt-3 flex items-baseline justify-between", tk.divider)}>
                 <span className={tk.mono}>Total</span>
-                <span className="text-2xl font-black tabular-nums">€{total}</span>
+                <span className="text-2xl font-black tabular-nums">{formatMoney(pricingTotal, pricingCurrency)}</span>
               </div>
             </div>
 
