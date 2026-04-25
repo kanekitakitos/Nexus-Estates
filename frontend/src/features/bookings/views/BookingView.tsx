@@ -131,12 +131,12 @@ function useBookingFlow(properties: BookingProperty[]) {
   )
 
   const navigateBackToList = useCallback(() => {
-    if (isTransitioning) return
+    if (screen === "list") return
     setExitCleanup("clearAll")
     setIsTransitioning(true)
     setScreen("list")
     window.scrollTo(0, 0)
-  }, [isTransitioning])
+  }, [screen])
 
   const navigateToCheckout = useCallback(
     (payload: { checkIn: string; checkOut: string }) => {
@@ -151,12 +151,12 @@ function useBookingFlow(properties: BookingProperty[]) {
   )
 
   const navigateBackToDetails = useCallback(() => {
-    if (isTransitioning) return
+    if (screen === "details") return
     setExitCleanup("clearCheckout")
     setIsTransitioning(true)
     setScreen("details")
     window.scrollTo(0, 0)
-  }, [isTransitioning])
+  }, [screen])
 
   const onExitComplete = useCallback(() => {
     /**

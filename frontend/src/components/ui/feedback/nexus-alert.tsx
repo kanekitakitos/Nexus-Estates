@@ -16,27 +16,32 @@ type VariantConfig = {
 }
 
 const DEFAULT_MASCOT_SRC = "/ico/icoC.png"
+const SUCCESS_MASCOT_SRC = "/notifications/success.png"
+const ALERT_MASCOT_SRC = "/notifications/alert.png"
+
+
+
 
 const VARIANTS: Record<NexusNoticeVariant, VariantConfig> = {
   success: {
     titleClassName: "text-emerald-600",
     borderClassName: "border-emerald-600/40",
     accentClassName: "bg-emerald-500/10 text-emerald-700",
-    mascotSrc: DEFAULT_MASCOT_SRC,
+    mascotSrc: SUCCESS_MASCOT_SRC,
     mascotAlt: "Mascote (sucesso)",
   },
   error: {
     titleClassName: "text-rose-600",
     borderClassName: "border-rose-600/40",
     accentClassName: "bg-rose-500/10 text-rose-700",
-    mascotSrc: DEFAULT_MASCOT_SRC,
+    mascotSrc: ALERT_MASCOT_SRC,
     mascotAlt: "Mascote (erro)",
   },
   warning: {
     titleClassName: "text-amber-600",
     borderClassName: "border-amber-600/40",
     accentClassName: "bg-amber-500/10 text-amber-700",
-    mascotSrc: DEFAULT_MASCOT_SRC,
+    mascotSrc: ALERT_MASCOT_SRC,
     mascotAlt: "Mascote (aviso)",
   },
   info: {
@@ -74,21 +79,28 @@ export function NexusAlert({
   return (
     <Alert
       className={cn(
-        "rounded-2xl border-2 bg-background text-foreground shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.22)]",
+        "!grid-cols-[auto_1fr] !items-center gap-x-3 rounded-2xl border-2 bg-background text-foreground shadow-[4px_4px_0_0_rgb(0,0,0)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.22)]",
         cfg.borderClassName,
         className,
       )}
     >
-      <div className="flex items-start gap-3">
-        <div className={cn("relative mt-0.5 size-10 shrink-0 overflow-hidden rounded-xl border-2", cfg.borderClassName, cfg.accentClassName)}>
-          <Image src={finalMascotSrc} alt={cfg.mascotAlt} fill sizes="40px" className="object-cover" />
+      <div
+        className={cn(
+          "relative mt-0.5 size-17 shrink-0 overflow-hidden rounded-2xl",
+          cfg.accentClassName,
+        )}
+      >
+        <Image src={finalMascotSrc} alt={cfg.mascotAlt} fill sizes="76px" className="object-cover" />
+      </div>
+      <div className="min-w-0 flex flex-col items-center justify-center text-center">
+        <div className={cn("font-mono text-[11px] font-black uppercase tracking-widest leading-tight break-words text-center", cfg.titleClassName)}>
+          {title}
         </div>
-        <div className="min-w-0">
-          <div className={cn("font-mono text-[10px] font-black uppercase tracking-widest", cfg.titleClassName)}>{title}</div>
-          {description ? (
-            <div className="mt-1 text-xs text-muted-foreground font-mono leading-relaxed">{description}</div>
-          ) : null}
-        </div>
+        {description ? (
+          <div className="mt-1 text-[11px] text-muted-foreground font-mono leading-snug break-words text-center">
+            {description}
+          </div>
+        ) : null}
       </div>
     </Alert>
   )

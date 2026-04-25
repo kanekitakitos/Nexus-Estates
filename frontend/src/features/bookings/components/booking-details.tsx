@@ -133,13 +133,13 @@ export function BookingDetails({
     <div className="relative min-h-screen overflow-x-hidden bg-background pb-24 lg:pb-0">
 
       {/* ── Back button — in normal document flow, above gallery */}
-      <div className="px-4 md:px-6 lg:px-10 pt-4 md:pt-6">
+      <div className="relative z-20 px-4 md:px-6 lg:px-10 pt-4 md:pt-6">
         <motion.div
           {...slideInLeftEnter(0, -14, 0.22)}
           className="inline-block"
         >
           <motion.div whileHover={pillHover} whileTap={pillTap} transition={springSnap}>
-            <Button onClick={handleBack} variant="brutal-outline" className="group">
+            <Button type="button" onClick={handleBack} variant="brutal-outline" className="group">
               <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
               <span>Voltar</span>
             </Button>

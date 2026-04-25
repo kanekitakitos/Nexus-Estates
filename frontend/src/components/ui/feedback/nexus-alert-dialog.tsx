@@ -16,11 +16,13 @@ import {
 import type { NexusNoticeVariant } from "@/components/ui/feedback/nexus-alert"
 
 const DEFAULT_MASCOT_SRC = "/ico/icoC.png"
+const SUCCESS_MASCOT_SRC = "/notifications/success.png"
+const ALERT_MASCOT_SRC = "/notifications/alert.png"
 
 const DEFAULT_MASCOT_BY_VARIANT: Record<NexusNoticeVariant, string> = {
-  success: DEFAULT_MASCOT_SRC,
-  error: DEFAULT_MASCOT_SRC,
-  warning: DEFAULT_MASCOT_SRC,
+  success: SUCCESS_MASCOT_SRC,
+  error: ALERT_MASCOT_SRC,
+  warning: ALERT_MASCOT_SRC,
   info: DEFAULT_MASCOT_SRC,
   loading: DEFAULT_MASCOT_SRC,
 }

@@ -38,7 +38,7 @@ export function ListHeader({ onAdd, showAdd }: ListHeaderProps) {
             {propertyCopy.list.headerTitleAccent}
           </span>
         </h1>
-        <p className={cn(nexusEyebrowClass, "mt-4 max-w-xl normal-case")}>
+        <p className={cn(nexusEyebrowClass, "pl-1 mt-4 max-w-xl normal-case text-lg")}>
           {propertyCopy.list.headerSubtitle}
         </p>
       </motion.div>
