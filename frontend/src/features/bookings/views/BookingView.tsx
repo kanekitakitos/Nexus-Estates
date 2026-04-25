@@ -432,6 +432,7 @@ export function BookingView() {
     >
       {screen === "list" && (
         <BookingListScreen
+          key="booking-list"
           filters={filters}
           setFilter={setFilter}
           isLoading={isLoading}
@@ -446,6 +447,7 @@ export function BookingView() {
 
       {screen === "details" && selectedProperty && (
         <BookingDetailsScreen
+          key="booking-details"
           property={selectedProperty}
           onBack={navigateBackToList}
           onCheckout={navigateToCheckout}
@@ -456,6 +458,7 @@ export function BookingView() {
 
       {screen === "checkout" && selectedProperty && checkout && (
         <BookingCheckoutScreen
+          key="booking-checkout"
           property={selectedProperty}
           checkout={checkout}
           onBack={navigateBackToDetails}

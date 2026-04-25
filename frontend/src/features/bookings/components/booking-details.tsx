@@ -173,11 +173,18 @@ export function BookingDetails({
                 <div className="mt-4">
                   <DateRangeCalendar
                     pricePerNight={property.price}
+                    showSummary={false}
                     defaultValue={
                       booking.checkIn && booking.checkOut
                         ? { from: booking.checkIn, to: booking.checkOut }
                         : undefined
                     }
+                    onRangeChange={(range) => {
+                      setBooking({
+                        checkIn: range?.from ?? null,
+                        checkOut: range?.to ?? null,
+                      })
+                    }}
                     onConfirmBooking={({ range }) => {
                       if (range.from && range.to) handleConfirmDates(range.from, range.to)
                     }}

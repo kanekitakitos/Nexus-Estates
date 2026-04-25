@@ -44,7 +44,6 @@ import { Check, ChevronRight, Lock, Loader2, ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/forms/button"
 import { Input } from "@/components/ui/forms/input"
-import { Switch } from "@/components/ui/forms/switch"
 import { BrutalCalendar } from "@/components/ui/calendars/calendar"
 import type { BookingProperty } from "@/types/booking"
 import { BookingService } from "@/services/booking.service"
@@ -52,7 +51,7 @@ import { AuthService } from "@/services/auth.service"
 import { FinanceService } from "@/services/finance.service"
 import type { PaymentResponse, ProviderInfo } from "@/types/finance"
 import { cn } from "@/lib/utils"
-import { propertiesAxios, type ApiResponse } from "@/lib/axiosAPI"
+import { propertiesAxios, usersAxios, type ApiResponse } from "@/lib/axiosAPI"
 import type { PropertyQuoteResponse } from "@/types/property"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { PaymentDetails } from "@/features/finance/components/payment-details"
@@ -82,6 +81,14 @@ type CheckoutFormValues = {
   documentNumber: string
   passportNumber: string
   passportIssueDate: string
+}
+
+type MeResponse = {
+  id: number
+  email: string
+  phone: string | null
+  role: string | null
+  clerkUserId: string | null
 }
 
 // ─────────────────────────────────────────────
@@ -150,6 +157,20 @@ const normalize = {
   documentNumber(v: string) {
     return v.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 20)
   },
+  nicRaw(v: string) {
+    return v.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 12)
+  },
+  nicIsValid(v: string) {
+    return /^\d{9}[A-Z]{2}\d$/.test(this.nicRaw(v))
+  },
+  nic(v: string) {
+    const raw = this.nicRaw(v)
+    const p1 = raw.slice(0, 8)
+    const p2 = raw.slice(8, 9)
+    const p3 = raw.slice(9, 11)
+    const p4 = raw.slice(11, 12)
+    return [p1, p2, p3, p4].filter(Boolean).join(" ")
+  },
   clampInt(v: string, min: number, max: number) {
     const n = Number(v.replace(/\D/g, "") || String(min))
     return Number.isNaN(n) ? min : Math.min(max, Math.max(min, n))
@@ -195,7 +216,8 @@ function nationalityLabel(code: string) {
 function readAuthSession() {
   const session = AuthService.getSession()
   const ok = Boolean(session.token && session.email && isJwtValid(session.token))
-  return { isAuthenticated: ok, userId: null as number | null, email: ok ? session.email : "" }
+  const id = ok ? Number(session.userId) : NaN
+  return { isAuthenticated: ok, userId: Number.isFinite(id) ? id : null, email: ok ? session.email : "" }
 }
 
 function isJwtValid(token: string) {
@@ -244,8 +266,8 @@ const checkoutSchema = z
       if (!parseDate(data.passportIssueDate))
         ctx.addIssue({ code: "custom", path: ["passportIssueDate"], message: "Data inválida." })
     } else {
-      if (!normalize.documentNumber(data.documentNumber))
-        ctx.addIssue({ code: "custom", path: ["documentNumber"], message: "Obrigatório." })
+      if (!normalize.nicIsValid(data.documentNumber))
+        ctx.addIssue({ code: "custom", path: ["documentNumber"], message: "Formato: 12345678 0 XX 1" })
     }
   })
 
@@ -331,7 +353,7 @@ function useBookingSubmit(
             documentType,
             documentNumber: foreign
               ? normalize.documentNumber(values.passportNumber)
-              : normalize.documentNumber(values.documentNumber),
+              : normalize.nicRaw(values.documentNumber),
             documentIssueDate: foreign ? values.passportIssueDate.trim() : undefined,
           },
         })
@@ -395,7 +417,6 @@ export function BookingCheckoutForm({
     userId: null as number | null,
     email: "",
   })
-  const [checkoutAsGuest, setCheckoutAsGuest] = React.useState(true)
   const [stayRange, setStayRange] = React.useState<DateRange | undefined>(() => {
     const from = parseDate(checkIn)
     const to = parseDate(checkOut)
@@ -511,6 +532,7 @@ export function BookingCheckoutForm({
   const accommodation = Math.max(0, pricingTotal - cleaningFee - touristTax)
 
   const getAuth = React.useCallback(() => authSession, [authSession])
+  const checkoutAsGuest = !authSession.isAuthenticated
   const isGuest = React.useCallback(() => checkoutAsGuest, [checkoutAsGuest])
 
   const {
@@ -545,11 +567,34 @@ export function BookingCheckoutForm({
     const s = readAuthSession()
     setAuthSession(s)
     if (s.isAuthenticated) {
-      setCheckoutAsGuest(false)
       form.setValue("email", s.email, { shouldValidate: true })
       form.setValue("fullName", s.email.split("@")[0] ?? "", { shouldValidate: true })
     }
   }, [form])
+
+  React.useEffect(() => {
+    if (!authSession.isAuthenticated) return
+
+    let cancelled = false
+
+    void usersAxios
+      .get<ApiResponse<MeResponse>>("/me")
+      .then((res) => {
+        if (cancelled) return
+        const me = res.data?.data
+        if (!me) return
+
+        const current = form.getValues()
+
+        if (!current.email && me.email) form.setValue("email", me.email, { shouldValidate: true })
+        if (!current.phone && me.phone) form.setValue("phone", normalize.phone(me.phone), { shouldValidate: true })
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [authSession.isAuthenticated, form])
 
   // Reset doc fields on nationality change
   React.useEffect(() => {
@@ -642,25 +687,15 @@ export function BookingCheckoutForm({
               locked={false}
               completed={progress.trip}
             >
-              {/* Guest toggle */}
-              <div className="flex items-center justify-between gap-4 pb-4 border-b border-foreground/10">
-                <div>
-                  <div className={tk.label}>Reservar sem conta</div>
-                  <div className={cn(tk.mono, "mt-0.5")}>
-                    Sem criação de utilizador — apenas dados do hóspede.
-                  </div>
+              <div className="pb-4 border-b border-foreground/10">
+                <div className={tk.label}>
+                  {authSession.isAuthenticated ? "Reservar com conta" : "Reservar como convidado"}
                 </div>
-                <Switch
-                  checked={checkoutAsGuest}
-                  disabled={!authSession.isAuthenticated}
-                  onCheckedChange={(next) => {
-                    if (!authSession.isAuthenticated && !next) {
-                      notify.info("Inicia sessão para reservar com conta.")
-                      return
-                    }
-                    setCheckoutAsGuest(next)
-                  }}
-                />
+                <div className={cn(tk.mono, "mt-0.5")}>
+                  {authSession.isAuthenticated
+                    ? `Associado à conta: ${authSession.email}`
+                    : "Sem login — apenas dados do hóspede."}
+                </div>
               </div>
 
               <div className={cn(tk.card, "p-4 space-y-4")}>
@@ -747,7 +782,13 @@ export function BookingCheckoutForm({
                   label="Email"
                   required
                   transform={(v) => v.trim()}
-                  inputProps={{ type: "email", maxLength: 120, autoComplete: "email", placeholder: "email@exemplo.com" }}
+                  inputProps={{
+                    type: "email",
+                    maxLength: 120,
+                    autoComplete: "email",
+                    placeholder: "email@exemplo.com",
+                    readOnly: authSession.isAuthenticated && !checkoutAsGuest,
+                  }}
                 />
                 <RHFField
                   name="phone"
@@ -819,10 +860,10 @@ export function BookingCheckoutForm({
                 ) : (
                   <RHFField
                     name="documentNumber"
-                    label="Nº Cartão de Cidadão"
+                    label="NIC (Cartão de Cidadão)"
                     required
-                    transform={normalize.documentNumber}
-                    inputProps={{ maxLength: 20, autoComplete: "off", placeholder: "12345678 0 ZZ4" }}
+                    transform={normalize.nic}
+                    inputProps={{ maxLength: 15, autoComplete: "off", placeholder: "12345678 0 XX 1" }}
                   />
                 )}
 
@@ -852,7 +893,7 @@ export function BookingCheckoutForm({
                     value={
                       isForeign
                         ? `Passaporte · ${preview.passportNumber || "—"} · ${preview.issuingCountry || "—"}`
-                        : `CC · ${preview.documentNumber || "—"}`
+                        : `NIC · ${preview.documentNumber ? normalize.nic(preview.documentNumber) : "—"}`
                     }
                   />
                 </div>

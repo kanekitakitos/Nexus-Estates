@@ -47,8 +47,10 @@ interface DateRangeCalendarProps {
   className?: string
   pricePerNight: number
   defaultValue?: DateRange
+  onRangeChange?: (range: DateRange | undefined) => void
   onConfirmBooking?: (data: BookingActionPayload) => void
   onContactOwner?: (data: BookingActionPayload) => void
+  showSummary?: boolean
 }
 
 // ─────────────────────────────────────────────
@@ -72,8 +74,10 @@ export function DateRangeCalendar({
   className,
   pricePerNight,
   defaultValue,
+  onRangeChange,
   onConfirmBooking,
   onContactOwner,
+  showSummary = true,
 }: DateRangeCalendarProps) {
   const [date, setDate] = React.useState<DateRange | undefined>(defaultValue)
   const isDesktop = useMediaQuery("(min-width: 768px)")
@@ -87,8 +91,22 @@ export function DateRangeCalendar({
     [isValid, date, total, nights]
   )
 
+  const handleSelect = React.useCallback(
+    (next: DateRange | undefined) => {
+      setDate(next)
+      onRangeChange?.(next)
+    },
+    [onRangeChange]
+  )
+
   return (
-    <div className={cn("grid gap-6 grid-cols-1 lg:grid-cols-[1fr_360px]", className)}>
+    <div
+      className={cn(
+        "grid gap-6 grid-cols-1",
+        showSummary ? "lg:grid-cols-[1fr_360px]" : "",
+        className
+      )}
+    >
 
       {/* Left — Calendar */}
       <motion.div
@@ -100,7 +118,7 @@ export function DateRangeCalendar({
           mode="range"
           defaultMonth={date?.from}
           selected={date}
-          onSelect={setDate}
+          onSelect={handleSelect}
           numberOfMonths={isDesktop ? 2 : 1}
           className="w-full max-w-[300px] md:max-w-none"
           disabled={(d) => d < TODAY}
@@ -108,25 +126,27 @@ export function DateRangeCalendar({
       </motion.div>
 
       {/* Right — Pricing summary */}
-      <motion.div
-        {...fadeUpEnter(0.08, 12, 0.3)}
-        className="space-y-4"
-      >
-        <BrutalCard>
-          <PricingSummary
-            pricePerNight={pricePerNight}
-            nights={nights}
-            total={total}
-            date={date}
-          />
-          <BookingActions
-            payload={payload}
-            isValid={isValid}
-            onConfirmBooking={onConfirmBooking}
-            onContactOwner={onContactOwner}
-          />
-        </BrutalCard>
-      </motion.div>
+      {showSummary ? (
+        <motion.div
+          {...fadeUpEnter(0.08, 12, 0.3)}
+          className="space-y-4"
+        >
+          <BrutalCard>
+            <PricingSummary
+              pricePerNight={pricePerNight}
+              nights={nights}
+              total={total}
+              date={date}
+            />
+            <BookingActions
+              payload={payload}
+              isValid={isValid}
+              onConfirmBooking={onConfirmBooking}
+              onContactOwner={onContactOwner}
+            />
+          </BrutalCard>
+        </motion.div>
+      ) : null}
     </div>
   )
 }
