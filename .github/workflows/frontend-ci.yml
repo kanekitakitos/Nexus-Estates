@@ -34,13 +34,15 @@ jobs:
 
       - name: Build backend services (skip tests)
         working-directory: ./backend
-        run: mvn -B -pl api-gateway,booking-service,property-service,user-service -am package -DskipTests
+        run: mvn -B -pl api-gateway,booking-service,property-service,user-service,sync-service,finance-service -am package -DskipTests
 
       - name: Start backend services
         run: |
           nohup java -jar backend/user-service/target/user-service-1.0.0.jar > user-service.log 2>&1 &
           nohup java -jar backend/property-service/target/property-service-1.0.0.jar > property-service.log 2>&1 &
           nohup java -jar backend/booking-service/target/booking-service-1.0.0.jar > booking-service.log 2>&1 &
+          nohup java -jar backend/sync-service/target/sync-service-1.0.0.jar > sync-service.log 2>&1 &
+          nohup java -jar backend/finance-service/target/finance-service-1.0.0.jar > finance-service.log 2>&1 &
           nohup java -jar backend/api-gateway/target/api-gateway-1.0.0.jar > api-gateway.log 2>&1 &
 
       - name: Wait for API Gateway
@@ -53,6 +55,19 @@ jobs:
             sleep 2
           done
           echo "API Gateway not ready"
+          exit 1
+
+      - name: Wait for Sync + Finance
+        run: |
+          for i in {1..60}; do
+            syncCode="$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8084/v3/api-docs || true)"
+            financeCode="$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8085/v3/api-docs || true)"
+            if [ "$syncCode" = "200" ] && [ "$financeCode" = "200" ]; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Sync/Finance not ready"
           exit 1
 
       - name: Set up Bun
@@ -79,3 +94,7 @@ jobs:
           tail -n 400 property-service.log || true
           echo "===== booking-service.log ====="
           tail -n 400 booking-service.log || true
+          echo "===== sync-service.log ====="
+          tail -n 400 sync-service.log || true
+          echo "===== finance-service.log ====="
+          tail -n 400 finance-service.log || true
