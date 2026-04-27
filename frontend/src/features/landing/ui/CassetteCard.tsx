@@ -1,6 +1,7 @@
 "use client"
 
 import { useReducedMotion } from "framer-motion"
+import { CASSETTE, landingTokens } from "../lib/tokens"
 
 type CassetteCardProps = {
   className?: string
@@ -8,7 +9,7 @@ type CassetteCardProps = {
 
 // 1. Sub-componente genérico para os parafusos (reaproveitável 5 vezes)
 const Screw = ({ className = "" }: { className?: string }) => (
-  <div className={`ne-cassette-screw ${className}`}>+</div>
+  <div className={`ne-cassette-screw ${className}`}>{landingTokens.copy.landing.cassette.screwSymbol}</div>
 )
 
 // 2. Sub-componente para o adesivo central
@@ -24,11 +25,11 @@ const CassetteSticker = ({ reduceMotion }: { reduceMotion: boolean | null }) => 
         <div className="ne-cassette-tape" />
         <div className={`ne-cassette-wheel ${reduceMotion ? "ne-paused" : ""}`} />
       </div>
-      <p className="ne-cassette-num">90</p>
+      <p className="ne-cassette-num">{landingTokens.copy.landing.cassette.num}</p>
     </div>
 
     <div className="ne-cassette-orange-band">
-      <p className="ne-cassette-time">2×30MIN</p>
+      <p className="ne-cassette-time">{landingTokens.copy.landing.cassette.time}</p>
     </div>
   </div>
 )
@@ -70,7 +71,7 @@ export function CassetteCard({ className = "" }: CassetteCardProps) {
         .ne-cassette-wrapper {
           display: inline-block;
           transform: rotate(45deg);
-          filter: drop-shadow(6px 10px 15px rgba(0, 0, 0, 0.4));
+          filter: ${CASSETTE.colors.wrapperDropShadow};
           position: relative;
           z-index: 0;
         }
@@ -78,7 +79,7 @@ export function CassetteCard({ className = "" }: CassetteCardProps) {
         .ne-cassette-card {
           width: 300px;
           height: 200px;
-          background: #252525;
+          background: ${CASSETTE.colors.cardBg};
           border-radius: 8px;
           position: relative;
           box-sizing: border-box;
@@ -90,9 +91,9 @@ export function CassetteCard({ className = "" }: CassetteCardProps) {
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #111;
-          border: 1px solid #111;
-          background-color: lightgrey;
+          color: ${CASSETTE.colors.screwFg};
+          border: 1px solid ${CASSETTE.colors.screwBorder};
+          background-color: ${CASSETTE.colors.screwBg};
           height: 12px;
           width: 12px;
           border-radius: 50%;
@@ -114,7 +115,7 @@ export function CassetteCard({ className = "" }: CassetteCardProps) {
           transform: translateX(-50%);
           width: 260px;
           height: 130px;
-          background-color: #FFFDD0;
+          background-color: ${CASSETTE.colors.stickerBg};
           clip-path: polygon(5% 0, 95% 0, 100% 10%, 100% 100%, 0 100%, 0 10%);
           border-radius: 5px;
           overflow: hidden;
@@ -124,7 +125,7 @@ export function CassetteCard({ className = "" }: CassetteCardProps) {
           position: absolute;
           width: 85%;
           height: 1px;
-          background-color: #111;
+          background-color: ${CASSETTE.colors.lineBg};
           left: 7.5%;
         }
         .ne-line-1 { top: 16px; }
@@ -136,7 +137,7 @@ export function CassetteCard({ className = "" }: CassetteCardProps) {
           align-items: center;
           width: 100%;
           height: 50px;
-          background-color: rgb(242, 188, 0);
+          background-color: ${CASSETTE.colors.yellowBandBg};
           margin-top: 45px;
           padding: 0 15px;
           box-sizing: border-box;
@@ -146,7 +147,7 @@ export function CassetteCard({ className = "" }: CassetteCardProps) {
           flex: 1;
           height: 32px;
           border-radius: 16px;
-          background-color: #171717;
+          background-color: ${CASSETTE.colors.rollBg};
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -158,7 +159,7 @@ export function CassetteCard({ className = "" }: CassetteCardProps) {
           position: absolute;
           width: 60px;
           height: 24px;
-          background-color: #252525;
+          background-color: ${CASSETTE.colors.tapeBg};
           left: 50%;
           transform: translateX(-50%);
         }
@@ -166,8 +167,8 @@ export function CassetteCard({ className = "" }: CassetteCardProps) {
         .ne-cassette-wheel {
           width: 24px;
           height: 24px;
-          border: 2px dashed #fff;
-          box-shadow: 0 0 0 3px #fff;
+          border: 2px dashed ${CASSETTE.colors.wheelBorder};
+          box-shadow: 0 0 0 3px ${CASSETTE.colors.wheelShadow};
           border-radius: 50%;
           animation: 2s neCassetteRun infinite linear;
           z-index: 2;
@@ -180,7 +181,7 @@ export function CassetteCard({ className = "" }: CassetteCardProps) {
           font-family: ui-monospace, monospace;
           font-weight: 700;
           font-size: 16px;
-          color: #111;
+          color: ${CASSETTE.colors.numFg};
           margin: 0 0 0 16px;
         }
 
@@ -189,14 +190,14 @@ export function CassetteCard({ className = "" }: CassetteCardProps) {
           display: flex;
           width: 100%;
           height: 24px;
-          background-color: rgb(241, 90, 37);
+          background-color: ${CASSETTE.colors.orangeBandBg};
           align-items: center;
           justify-content: center;
         }
 
         .ne-cassette-time {
           font-size: 10px;
-          color: #F0ECD9;
+          color: ${CASSETTE.colors.timeFg};
           letter-spacing: 2px;
           text-transform: uppercase;
           font-family: ui-monospace, monospace;
@@ -211,13 +212,13 @@ export function CassetteCard({ className = "" }: CassetteCardProps) {
           transform: translateX(-50%);
           width: 160px;
           height: 45px;
-          filter: drop-shadow(0px -2px 4px rgba(0, 0, 0, 0.3));
+          filter: ${CASSETTE.colors.bottomDropShadow};
         }
 
         .ne-cassette-bottom-shape {
           width: 100%;
           height: 100%;
-          background-color: #252525;
+          background-color: ${CASSETTE.colors.bottomShapeBg};
           clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);
           position: relative;
         }
@@ -226,7 +227,7 @@ export function CassetteCard({ className = "" }: CassetteCardProps) {
           position: absolute;
           width: 8px;
           height: 8px;
-          background-color: rgb(190, 190, 190);
+          background-color: ${CASSETTE.colors.chipBg};
           border-radius: 50%;
           bottom: 8px;
         }
@@ -237,7 +238,7 @@ export function CassetteCard({ className = "" }: CassetteCardProps) {
           position: absolute;
           width: 8px;
           height: 8px;
-          background-color: rgb(190, 190, 190);
+          background-color: ${CASSETTE.colors.chipBg};
           border-radius: 2px;
           top: 8px;
         }

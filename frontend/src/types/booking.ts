@@ -57,3 +57,16 @@ export interface CreateBookingRequest {
     documentIssueDate?: string;
   };
 }
+
+export interface BookingProperty {
+  id: string
+  title: string
+  description: string
+  location: string
+  price: number
+  imageUrl: string
+  status: "AVAILABLE" | "BOOKED" | "MAINTENANCE"
+  rating?: number
+  featured?: boolean
+  tags?: string[]
+}

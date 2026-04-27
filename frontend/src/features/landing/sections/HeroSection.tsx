@@ -1,14 +1,14 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { B, MORPHING, SECTIONS } from "../tokens"
+import { B, MORPHING, SECTIONS } from "../lib/tokens"
 import { Title } from "../ui/Title"
 import { MorphText } from "../ui/MorphText"
-import { ease, fadeUpEnter, slideInLeftEnter } from "../motion"
+import { ease, fadeUpEnter, slideInLeftEnter } from "../lib/motion"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Section = typeof SECTIONS[0]
+type Section = (typeof SECTIONS)[number]
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 

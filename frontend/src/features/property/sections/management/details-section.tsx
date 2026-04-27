@@ -11,8 +11,9 @@ import { BrutalField } from "@/components/ui/forms/brutal-field"
 import { BrutalCard } from "@/components/ui/data-display/brutal-card"
 import { ImageInput } from "@/components/ui/file-handler/imageInput"
 import { AmenitiesField } from "../../components/amenities-field"
-import { BoingText } from "@/components/BoingText"
-import { nexusEntrance, staggerContainer, itemFadeUp, microPop } from "../../animations"
+import { BoingText } from "@/components/effects/BoingText"
+import { staggerContainer, itemFadeUp } from "../../lib/animations"
+import { propertyCopy, propertyTokens } from "../../lib/property-tokens"
 
 // ─── Tipos de Props Internos ────────────────────────────────────────────────
 
@@ -50,12 +51,12 @@ function StatusToggle({
                 "flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left transition-colors",
                 isActive
                     ? "border-primary bg-primary/10 ring-1 ring-primary/30"
-                    : "border-[#0D0D0D]/12 bg-white hover:border-[#0D0D0D]/25 dark:border-zinc-700 dark:bg-zinc-900/80"
+                    : propertyTokens.ui.details.statusInactiveClass
             )}
         >
             <div className="flex items-center gap-2.5">
                 <Icon size={16} className={cn(isActive ? "text-primary" : color)} strokeWidth={2.5} />
-                <span className="text-xs font-medium text-[#0D0D0D] dark:text-zinc-200">{label}</span>
+                <span className={propertyTokens.ui.details.statusLabelClass}>{label}</span>
             </div>
             <span className={cn(
                 "h-2 w-2 shrink-0 rounded-full border-2",
@@ -78,22 +79,22 @@ function StatusToggle({
 function IdentitySection({ draft, initial, updateField }: SectionDraftProps) {
     return (
         <BrutalCard
-            title="Identidade & Preço"
-            subtitle="Definição base do ativo"
+            title={propertyCopy.details.identityTitle}
+            subtitle={propertyCopy.details.identitySubtitle}
             icon={<Info size={20} strokeWidth={2.5} />}
-            iconBgColor="bg-primary/10 border-primary/20"
-            iconTextColor="text-primary"
+            iconBgColor={propertyTokens.ui.details.identityIconBgColor}
+            iconTextColor={propertyTokens.ui.details.identityIconTextColor}
         >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <BrutalField
-                    label="Título do Ativo"
+                    label={propertyCopy.details.fieldTitle}
                     value={draft.title as string}
                     savedValue={initial.title as string}
                     onChange={(v) => updateField('title', v as string)}
                     onRevert={() => updateField('title', initial.title as string)}
                 />
                 <BrutalField
-                    label="Preço por Noite (€)"
+                    label={propertyCopy.details.fieldPrice}
                     type="number"
                     value={draft.price as number}
                     savedValue={initial.price as number}
@@ -102,7 +103,7 @@ function IdentitySection({ draft, initial, updateField }: SectionDraftProps) {
                 />
             </div>
             <BrutalField
-                label="Descrição Técnica"
+                label={propertyCopy.details.fieldDescription}
                 value={draft.description as string}
                 savedValue={initial.description as string}
                 onChange={(v) => updateField('description', v as string)}
@@ -126,11 +127,11 @@ function IdentitySection({ draft, initial, updateField }: SectionDraftProps) {
 function MediaSection({ draft, updateField }: Pick<SectionDraftProps, "draft" | "updateField">) {
     return (
         <BrutalCard
-            title="Imagem Principal"
-            subtitle="Representação visual de catálogo"
+            title={propertyCopy.details.mediaTitle}
+            subtitle={propertyCopy.details.mediaSubtitle}
             icon={<Sparkles size={20} strokeWidth={2.5} />}
-            iconBgColor="bg-amber-500/10 border-amber-500/20"
-            iconTextColor="text-amber-600"
+            iconBgColor={propertyTokens.ui.details.mediaIconBgColor}
+            iconTextColor={propertyTokens.ui.details.mediaIconTextColor}
         >
             <div className="flex flex-col md:flex-row gap-8 items-start">
                 <div className="w-full md:w-1/2">
@@ -141,19 +142,19 @@ function MediaSection({ draft, updateField }: Pick<SectionDraftProps, "draft" | 
                     />
                 </div>
                 <div className="w-full md:w-1/2 space-y-4">
-                    <p className="text-xs leading-relaxed text-[#8C7B6B] dark:text-zinc-500 font-medium font-serif italic">
-                        Esta imagem será o "face" do ativo em todos os protocolos de listagem e sincronização externa. Recomenda-se formato 16:9.
+                    <p className={propertyTokens.ui.details.mediaHintClass}>
+                        {propertyCopy.details.mediaHint}
                     </p>
                     <div className="pt-2">
-                        <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-[#0D0D0D]/5 bg-[#FAFAF5]/50 px-4 py-3 transition-colors hover:border-primary/20 dark:border-white/5 dark:bg-zinc-900/40">
+                        <label className={propertyTokens.ui.details.featuredRowClass}>
                             <input
                                 type="checkbox"
                                 className="h-4 w-4 rounded-md border-2 border-primary text-primary focus:ring-primary/20"
                                 checked={!!draft.featured}
                                 onChange={(e) => updateField("featured", e.target.checked)}
                             />
-                            <Star className={cn("h-4 w-4", draft.featured ? "text-primary fill-current" : "text-[#8C7B6B]")} />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-[#0D0D0D] dark:text-zinc-300">Destaque de Portfólio</span>
+                            <Star className={cn("h-4 w-4", draft.featured ? "text-primary fill-current" : propertyTokens.ui.details.featuredIconInactiveClass)} />
+                            <span className={propertyTokens.ui.details.featuredLabelClass}>{propertyCopy.details.featuredLabel}</span>
                         </label>
                     </div>
                 </div>
@@ -173,17 +174,17 @@ function MediaSection({ draft, updateField }: Pick<SectionDraftProps, "draft" | 
  */
 function OperationalStatusSection({ status, onUpdate }: { status: string; onUpdate: (s: string) => void }) {
     return (
-        <div className="rounded-3xl border-2 border-[#0D0D0D] bg-white p-6 shadow-[8px_8px_0_0_#0D0D0D] dark:border-zinc-100 dark:bg-zinc-950 dark:shadow-[8px_8px_0_0_rgba(255,255,255,0.1)]">
+        <div className={propertyTokens.ui.details.operationalBoxClass}>
             <div className="mb-6 flex items-center justify-between">
-                <h3 className="font-mono text-[10px] font-black uppercase tracking-[0.3em] text-[#0D0D0D] dark:text-zinc-100">
-                    <BoingText text="Estado Operacional" color="currentColor" activeColor="#F97316" />
+                <h3 className={propertyTokens.ui.details.operationalTitleClass}>
+                    <BoingText text={propertyCopy.details.operationalTitle} color="currentColor" activeColor={propertyTokens.ui.preview.boingActiveColor} />
                 </h3>
                 <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             </div>
             <div className="grid gap-3">
-                <StatusToggle label="Ativo / Disponível" icon={CheckCircle2} color="text-emerald-500" isActive={status === "AVAILABLE"} onClick={() => onUpdate("AVAILABLE")} />
-                <StatusToggle label="Protocolo Manutenção" icon={Timer} color="text-amber-500" isActive={status === "MAINTENANCE"} onClick={() => onUpdate("MAINTENANCE")} />
-                <StatusToggle label="Ocupação / Bloqueado" icon={AlertCircle} color="text-rose-500" isActive={status === "BOOKED"} onClick={() => onUpdate("BOOKED")} />
+                <StatusToggle label={propertyCopy.details.statusAvailable} icon={CheckCircle2} color="text-emerald-500" isActive={status === "AVAILABLE"} onClick={() => onUpdate("AVAILABLE")} />
+                <StatusToggle label={propertyCopy.details.statusMaintenance} icon={Timer} color="text-amber-500" isActive={status === "MAINTENANCE"} onClick={() => onUpdate("MAINTENANCE")} />
+                <StatusToggle label={propertyCopy.details.statusBooked} icon={AlertCircle} color="text-rose-500" isActive={status === "BOOKED"} onClick={() => onUpdate("BOOKED")} />
             </div>
         </div>
     )
@@ -201,25 +202,25 @@ function OperationalStatusSection({ status, onUpdate }: { status: string; onUpda
 function LogisticsSection({ draft, initial, updateField }: SectionDraftProps) {
     return (
         <BrutalCard
-            title="Localização & Lotação"
-            subtitle="Geografia e fluxos"
+            title={propertyCopy.details.logisticsTitle}
+            subtitle={propertyCopy.details.logisticsSubtitle}
             icon={<Globe size={20} strokeWidth={2.5} />}
-            iconBgColor="bg-indigo-500/10 border-indigo-500/20"
-            iconTextColor="text-indigo-500"
+            iconBgColor={propertyTokens.ui.details.logisticsIconBgColor}
+            iconTextColor={propertyTokens.ui.details.logisticsIconTextColor}
             tone="cream"
         >
             <div className="space-y-6">
                 <BrutalField
-                    label="Região / Zona" value={draft.location as string} savedValue={initial.location as string}
+                    label={propertyCopy.details.fieldRegion} value={draft.location as string} savedValue={initial.location as string}
                     onChange={(v) => updateField('location', v as string)} onRevert={() => updateField('location', initial.location as string)}
                 />
                 <div className="grid grid-cols-2 gap-4">
                     <BrutalField
-                        label="Cidade" value={draft.city as string} savedValue={initial.city as string}
+                        label={propertyCopy.details.fieldCity} value={draft.city as string} savedValue={initial.city as string}
                         onChange={(v) => updateField('city', v as string)} onRevert={() => updateField('city', initial.city as string)}
                     />
                     <BrutalField
-                        label="Capacidade Máx." type="number" value={draft.maxGuests as number} savedValue={initial.maxGuests as number}
+                        label={propertyCopy.details.fieldCapacity} type="number" value={draft.maxGuests as number} savedValue={initial.maxGuests as number}
                         onChange={(v) => updateField('maxGuests', Number(v))} onRevert={() => updateField('maxGuests', initial.maxGuests as number)}
                     />
                 </div>
@@ -239,26 +240,29 @@ function LogisticsSection({ draft, initial, updateField }: SectionDraftProps) {
  */
 function DecommissionZone({ isDeleting, onDelete }: { isDeleting: boolean; onDelete: () => void }) {
     return (
-        <div className="overflow-hidden rounded-3xl border-2 border-[#0D0D0D] bg-white shadow-[8px_8px_0_0_#0D0D0D] dark:border-zinc-100 dark:bg-zinc-950 dark:shadow-[8px_8px_0_0_rgba(255,255,255,0.1)]">
-            <div className="flex items-center gap-4 border-b-2 border-[#0D0D0D]/10 bg-[#0D0D0D] px-5 py-3 dark:bg-zinc-900/40">
+        <div className={propertyTokens.ui.details.decommissionBoxClass}>
+            <div className={propertyTokens.ui.details.decommissionHeaderClass}>
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-rose-600 shadow-sm">
                     <Trash2 size={16} className={cn(isDeleting && "animate-spin")} />
                 </div>
                 <div className="min-w-0">
-                    <h4 className="font-mono text-[9px] font-black uppercase tracking-[0.3em] text-white">Critical_Zone</h4>
-                    <p className="truncate font-serif text-[11px] font-bold italic text-zinc-50/80">Protocolo de Exclusão</p>
+                    <h4 className={propertyTokens.ui.details.decommissionZoneTitleClass}>{propertyCopy.details.criticalZone}</h4>
+                    <p className={propertyTokens.ui.details.decommissionZoneSubtitleClass}>{propertyCopy.details.deleteProtocolTitle}</p>
                 </div>
             </div>
 
             <div className="p-6">
-                <p className="text-[10px] font-bold leading-relaxed text-zinc-900/60 dark:text-zinc-400/60 font-mono">
-                    <span className="text-rose-600">AVISO:</span> A remoção deste ativo da rede Nexus é terminal e irreversível. Todos os dados associados no <span className="text-rose-600 underline">Nexus_Core</span> serão apagados.
+                <p className={propertyTokens.ui.details.decommissionWarningClass}>
+                    <span className="text-rose-600">{propertyCopy.details.deleteWarningPrefix}</span>{" "}
+                    {propertyCopy.details.deleteWarningBodyPrefix}{" "}
+                    <span className="text-rose-600 underline">{propertyCopy.details.deleteWarningCore}</span>{" "}
+                    {propertyCopy.details.deleteWarningBodySuffix}
                 </p>
                 <button
                     type="button" onClick={onDelete} disabled={isDeleting}
-                    className="mt-5 w-full rounded-xl border-2 border-[#0D0D0D] bg-white py-3 font-mono text-[10px] font-black uppercase tracking-[0.2em] text-rose-600 transition-all hover:bg-rose-600 hover:text-white active:scale-95 shadow-[4px_4px_0_0_#FF5E1A] hover:shadow-none active:translate-x-1 active:translate-y-1"
+                    className={propertyTokens.ui.details.decommissionButtonClass}
                 >
-                    {isDeleting ? "EXPURGANDO DADOS..." : "AUTORIZAR EXCLUSÃO"}
+                    {isDeleting ? propertyCopy.details.deleting : propertyCopy.details.authorizeDelete}
                 </button>
             </div>
         </div>
@@ -286,8 +290,8 @@ function AmenitiesSection({
 
     return (
         <div className={cn(
-            "rounded-3xl border-2 border-[#0D0D0D] bg-white transition-all duration-500 dark:border-white/10 dark:bg-zinc-950",
-            isOpen ? "shadow-[12px_12px_0_0_#FF5E1A]" : "shadow-[8px_8px_0_0_#0D0D0D]"
+            propertyTokens.ui.details.amenitiesBoxClass,
+            isOpen ? propertyTokens.ui.details.amenitiesShadowOpenClass : propertyTokens.ui.details.amenitiesShadowClosedClass
         )}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
@@ -301,18 +305,18 @@ function AmenitiesSection({
                         <Sparkles size={24} strokeWidth={2} />
                     </div>
                     <div className="text-left">
-                        <span className="font-mono text-[10px] font-black uppercase tracking-[0.4em] text-primary block mb-2">Protocolo_Comfort // Matrix</span>
-                        <h3 className="font-serif text-3xl font-bold italic uppercase leading-none tracking-tighter text-[#0D0D0D] dark:text-white">
-                            <BoingText text="Comodidades do Ativo" color="currentColor" activeColor="#F97316" />
+                        <span className={propertyTokens.ui.details.amenitiesKickerClass}>{propertyCopy.details.amenitiesKicker}</span>
+                        <h3 className={propertyTokens.ui.details.amenitiesTitleClass}>
+                            <BoingText text={propertyCopy.details.amenitiesTitle} color="currentColor" activeColor={propertyTokens.ui.preview.boingActiveColor} />
                             <span className="ml-2 opacity-30">({selectedIds.length})</span>
                         </h3>
                     </div>
                 </div>
                 <div className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#0D0D0D]/10 bg-[#FAFAF5] transition-transform duration-300 dark:bg-zinc-900",
-                    isOpen ? "rotate-180" : "rotate-0 shadow-[2px_2px_0_0_#0D0D0D]"
+                    propertyTokens.ui.details.amenitiesChevronWrapClass,
+                    isOpen ? "rotate-180" : cn("rotate-0", propertyTokens.ui.details.amenitiesChevronShadowClass)
                 )}>
-                    <ChevronDown size={20} className="text-[#0D0D0D] dark:text-white" />
+                    <ChevronDown size={20} className={propertyTokens.ui.details.amenitiesChevronIconClass} />
                 </div>
             </button>
 
@@ -326,7 +330,7 @@ function AmenitiesSection({
                         className="overflow-hidden"
                     >
                         <div className="px-6 pb-10 md:px-10 lg:px-12">
-                            <div className="h-px w-full bg-[#0D0D0D]/10 mb-8 dark:bg-white/10" />
+                            <div className={propertyTokens.ui.details.amenitiesDividerClass} />
                             <AmenitiesField
                                 selectedIds={selectedIds}
                                 savedIds={savedIds}
@@ -377,7 +381,7 @@ export function DetailsSection({
                 </motion.div>
 
                 <motion.div variants={itemFadeUp} className="lg:col-span-5 space-y-8">
-                    <OperationalStatusSection status={draft.status} onUpdate={(s) => updateField("status", s as import("../../property-constants").PropertyStatus)} />
+                    <OperationalStatusSection status={draft.status} onUpdate={(s) => updateField("status", s as import("../../model/property-constants").PropertyStatus)} />
                     <LogisticsSection draft={draft} initial={initial} updateField={updateField} />
                     <DecommissionZone isDeleting={isDeleting} onDelete={onDelete} />
                 </motion.div>

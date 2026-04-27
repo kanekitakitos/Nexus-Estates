@@ -88,7 +88,7 @@ class PropertyServiceTest {
         when(amenityRepository.findAllById(any())).thenReturn(new ArrayList<>());
         when(repository.save(any(Property.class))).thenReturn(savedProperty);
 
-        Property result = service.create(validRequest);
+        Property result = service.create(validRequest, null);
 
         assertNotNull(result);
         verify(repository).save(any(Property.class));

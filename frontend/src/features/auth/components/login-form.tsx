@@ -18,7 +18,8 @@ import {
 import { Input } from "@/components/ui/forms/input"
 import { useRef, useState } from "react"
 import { AuthService } from "@/services/auth.service"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
+import { authTokens } from "@/features/auth/tokens"
 import { getIdentityProviderKey, isClerkConfigured } from "@/features/auth/strategies/use-identity-provider"
 import {
   SocialDivider,
@@ -47,7 +48,7 @@ export function LoginForm({
     const password = passwordRef.current?.value.trim() ?? ""
 
     if (!email || !password) {
-      toast.warning("Preenche todos os campos")
+      notify.warning(authTokens.copy.login.missingFields)
       return
     }
 
@@ -73,9 +74,9 @@ export function LoginForm({
       <BrutalCard>
 
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Bem-vindo de volta</CardTitle>
+          <CardTitle className="text-xl">{authTokens.copy.login.title}</CardTitle>
           <CardDescription>
-            Entra com as tuas credenciais ou continua com uma conta social.
+            {authTokens.copy.login.subtitle}
           </CardDescription>
         </CardHeader>
 
@@ -84,7 +85,7 @@ export function LoginForm({
             <FieldGroup>
 
               <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <FieldLabel htmlFor="email">{authTokens.copy.login.emailLabel}</FieldLabel>
                 <Input
                   ref={emailRef}
                   variant="brutal"
@@ -98,12 +99,12 @@ export function LoginForm({
 
               <Field>
                 <div className="flex items-center">
-                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <FieldLabel htmlFor="password">{authTokens.copy.login.passwordLabel}</FieldLabel>
                   <a
                     href="/recover"
                     className="ml-auto text-sm underline-offset-4 hover:underline"
                   >
-                    Esqueceste a password?
+                    {authTokens.copy.login.forgotPassword}
                   </a>
                 </div>
                 <Input
@@ -122,12 +123,12 @@ export function LoginForm({
                   type="submit"
                   disabled={isTryingLogin}
                 >
-                  {isTryingLogin ? "A entrar..." : "Entrar"}
+                  {isTryingLogin ? authTokens.copy.login.submitting : authTokens.copy.login.submit}
                 </Button>
                 <FieldDescription className="text-center">
-                  Ainda não tens conta?{" "}
+                  {authTokens.copy.login.noAccountPrefix}{" "}
                   <a href="/register" className="underline-offset-4 hover:underline">
-                    Regista-te
+                    {authTokens.copy.login.registerCta}
                   </a>
                 </FieldDescription>
               </Field>

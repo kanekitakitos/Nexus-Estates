@@ -11,7 +11,6 @@
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/forms/button"
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
@@ -20,14 +19,14 @@ import {
 import { BrutalCard } from "@/components/ui/data-display/card"
 import {
   Field,
-  FieldDescription,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/forms/field"
 import { Input } from "@/components/ui/forms/input"
-import {toast} from "sonner";
-import {usersAxios} from "@/lib/axiosAPI";
-import {useState} from "react";
+import { notify } from "@/lib/notify"
+import { authTokens } from "@/features/auth/tokens"
+import { usersAxios } from "@/lib/axiosAPI"
+import { useState } from "react"
 
 /**
  * componente do formulario de recuperação da autenticação
@@ -62,7 +61,7 @@ export function RecoverForm({
 
         // email not filled
         if (!email){
-            toast.warning("Prenche todas as celulas");
+            notify.warning(authTokens.copy.recover.missingEmail);
             return
         }
 
@@ -78,7 +77,7 @@ export function RecoverForm({
             .then(response => {
                 if (response.status === 200) { // Assuming a successful login returns a 200 status code
                     console.log("Recuperação efetuada!", response.data);
-                    toast.success("Pedido enviado com sucesso!");
+                    notify.success(authTokens.copy.recover.requestOk);
                 }
                 else {
                     console.log("resposta:", response);
@@ -89,18 +88,18 @@ export function RecoverForm({
                 if (error.response) {
                     console.error("Mensagem do servidor:", error.response.data);
                     switch (error.response.status) {
-                        case 401: toast.error("Email ou senha incorretos. Tente novamente."); break;
-                        case 404: toast.error("Usuário não encontrado. Verifique seu email ou registre-se."); break;
-                        default: toast.error("Erro no servidor. Status: " + error.response.status); break;
+                        case 401: notify.error("Email ou senha incorretos. Tente novamente."); break;
+                        case 404: notify.error("Usuário não encontrado. Verifique seu email ou registre-se."); break;
+                        default: notify.error("Erro no servidor. Status: " + error.response.status); break;
                     }
                 }
                 else if (error.request) {
                     console.error("Requisição feita, mas sem resposta:", error.request);
-                    toast.error("Nenhuma resposta do servidor. Verifique sua conexão.");
+                    notify.error("Nenhuma resposta do servidor. Verifique sua conexão.");
                 }
                 else {
                     console.error("Erro ao configurar a requisição :", error.message);
-                    toast.error("Erro ao configurar a requisição da mensagem: " + error.message);
+                    notify.error("Erro ao configurar a requisição da mensagem: " + error.message);
                 }
             });
 
@@ -110,13 +109,13 @@ export function RecoverForm({
 
     // Codigo html da JSX.Element
     return (
-        <div className={cn("flex flex-col gap-6", className)}>
+        <div className={cn("flex flex-col gap-6", className)} {...props}>
             <BrutalCard>
 
                 <CardHeader className="text-center">
-                    <CardTitle className="text-xl">Recover Account</CardTitle>
+                    <CardTitle className="text-xl">{authTokens.copy.recover.title}</CardTitle>
                     <CardDescription>
-                        Enter the email of your account to receive a password reset link
+                        {authTokens.copy.recover.subtitle}
                     </CardDescription>
                 </CardHeader>
                 
@@ -142,7 +141,7 @@ export function RecoverForm({
                         disabled={isTryingRegister}
                         onClick={handleRegister}
                     >
-                        Send Reset Link
+                        {authTokens.copy.recover.submit}
                     </Button>
                 </CardContent>
 

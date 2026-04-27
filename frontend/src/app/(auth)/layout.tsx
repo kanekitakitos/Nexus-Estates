@@ -1,5 +1,4 @@
 import { PixelBlast } from "@/components/ui/PixelBlast";
-import {Nav} from "@/features/landing/ui/Nav"
 
 export default function AuthLayout({
   children,

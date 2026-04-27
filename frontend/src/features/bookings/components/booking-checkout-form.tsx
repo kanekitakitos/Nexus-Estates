@@ -37,18 +37,23 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form"
+import type { DateRange } from "react-day-picker"
 import { z } from "zod"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { Check, ChevronRight, Lock, Loader2, ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/forms/button"
 import { Input } from "@/components/ui/forms/input"
-import { Switch } from "@/components/ui/forms/switch"
-import type { BookingProperty } from "@/features/bookings/components/booking-card"
+import { BrutalCalendar } from "@/components/ui/calendars/calendar"
+import type { BookingProperty } from "@/types/booking"
 import { BookingService } from "@/services/booking.service"
+import { AuthService } from "@/services/auth.service"
 import { FinanceService } from "@/services/finance.service"
 import type { PaymentResponse, ProviderInfo } from "@/types/finance"
 import { cn } from "@/lib/utils"
+import { propertiesAxios, usersAxios, type ApiResponse } from "@/lib/axiosAPI"
+import type { PropertyQuoteResponse } from "@/types/property"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { PaymentDetails } from "@/features/finance/components/payment-details"
 import { StripePaymentPanel } from "@/features/finance/components/stripe-payment-panel"
 
@@ -78,6 +83,14 @@ type CheckoutFormValues = {
   passportIssueDate: string
 }
 
+type MeResponse = {
+  id: number
+  email: string
+  phone: string | null
+  role: string | null
+  clerkUserId: string | null
+}
+
 // ─────────────────────────────────────────────
 // Design tokens — single source of truth
 // ─────────────────────────────────────────────
@@ -96,6 +109,10 @@ const tk = {
 
 const EMAIL_REGEX =
   /^(?!.*\.\.)(?!\.)([A-Z0-9!#$%&'*+/=?^_`{|}~-]+(\.[A-Z0-9!#$%&'*+/=?^_`{|}~-]+)*)@([A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,63}$/i
+
+const CLEANING_FEE_EUR = 25
+const TOURIST_TAX_PER_PERSON_PER_NIGHT_EUR = 2
+const TOURIST_TAX_MAX_NIGHTS = 7
 
 const NATIONALITY_OPTIONS = [
   { value: "PT", label: "Portugal" },
@@ -140,6 +157,20 @@ const normalize = {
   documentNumber(v: string) {
     return v.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 20)
   },
+  nicRaw(v: string) {
+    return v.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 12)
+  },
+  nicIsValid(v: string) {
+    return /^\d{9}[A-Z]{2}\d$/.test(this.nicRaw(v))
+  },
+  nic(v: string) {
+    const raw = this.nicRaw(v)
+    const p1 = raw.slice(0, 8)
+    const p2 = raw.slice(8, 9)
+    const p3 = raw.slice(9, 11)
+    const p4 = raw.slice(11, 12)
+    return [p1, p2, p3, p4].filter(Boolean).join(" ")
+  },
   clampInt(v: string, min: number, max: number) {
     const n = Number(v.replace(/\D/g, "") || String(min))
     return Number.isNaN(n) ? min : Math.min(max, Math.max(min, n))
@@ -159,6 +190,23 @@ function parseDate(v: string): Date | null {
   }
 }
 
+const TODAY = new Date(new Date().setHours(0, 0, 0, 0))
+
+function formatMoney(amount: number, currency: string) {
+  const safeAmount = Number.isFinite(amount) ? amount : 0
+  try {
+    return new Intl.NumberFormat("pt-PT", { style: "currency", currency }).format(safeAmount)
+  } catch {
+    return `${currency} ${safeAmount.toFixed(2)}`
+  }
+}
+
+function calcTouristTax(nights: number, guestCount: number) {
+  const billableNights = Math.min(Math.max(0, nights), TOURIST_TAX_MAX_NIGHTS)
+  const guests = Math.max(1, guestCount)
+  return billableNights * guests * TOURIST_TAX_PER_PERSON_PER_NIGHT_EUR
+}
+
 function nationalityLabel(code: string) {
   return (
     NATIONALITY_OPTIONS.find((o) => o.value === normalize.countryCode(code || "PT"))?.label ?? code
@@ -166,14 +214,10 @@ function nationalityLabel(code: string) {
 }
 
 function readAuthSession() {
-  if (typeof window === "undefined")
-    return { isAuthenticated: false, userId: null as number | null, email: "" }
-  const token = localStorage.getItem("token") ?? ""
-  const email = localStorage.getItem("userEmail") ?? ""
-  const rawId = localStorage.getItem("userId")
-  const userId = rawId && /^\d+$/.test(rawId) ? Number(rawId) : null
-  const ok = Boolean(token && email && isJwtValid(token))
-  return { isAuthenticated: ok, userId: ok ? userId : null, email: ok ? email : "" }
+  const session = AuthService.getSession()
+  const ok = Boolean(session.token && session.email && isJwtValid(session.token))
+  const id = ok ? Number(session.userId) : NaN
+  return { isAuthenticated: ok, userId: Number.isFinite(id) ? id : null, email: ok ? session.email : "" }
 }
 
 function isJwtValid(token: string) {
@@ -222,8 +266,8 @@ const checkoutSchema = z
       if (!parseDate(data.passportIssueDate))
         ctx.addIssue({ code: "custom", path: ["passportIssueDate"], message: "Data inválida." })
     } else {
-      if (!normalize.documentNumber(data.documentNumber))
-        ctx.addIssue({ code: "custom", path: ["documentNumber"], message: "Obrigatório." })
+      if (!normalize.nicIsValid(data.documentNumber))
+        ctx.addIssue({ code: "custom", path: ["documentNumber"], message: "Formato: 12345678 0 XX 1" })
     }
   })
 
@@ -281,7 +325,7 @@ function useBookingSubmit(
       const from = parseDate(checkIn)
       const to = parseDate(checkOut)
       if (!from || !to) {
-        toast.error("Datas inválidas.")
+        notify.error("Datas inválidas.")
         return false
       }
 
@@ -309,7 +353,7 @@ function useBookingSubmit(
             documentType,
             documentNumber: foreign
               ? normalize.documentNumber(values.passportNumber)
-              : normalize.documentNumber(values.documentNumber),
+              : normalize.nicRaw(values.documentNumber),
             documentIssueDate: foreign ? values.passportIssueDate.trim() : undefined,
           },
         })
@@ -333,7 +377,7 @@ function useBookingSubmit(
         }
         return true
       } catch {
-        toast.error("Erro ao criar reserva. Tenta novamente.")
+        notify.error("Erro ao criar reserva. Tenta novamente.")
         return false
       } finally {
         setIsSubmitting(false)
@@ -367,12 +411,24 @@ export function BookingCheckoutForm({
   onBack,
   onSuccess,
 }: BookingCheckoutParams) {
+  const isDesktop = useMediaQuery("(min-width: 768px)")
   const [authSession, setAuthSession] = React.useState({
     isAuthenticated: false,
     userId: null as number | null,
     email: "",
   })
-  const [checkoutAsGuest, setCheckoutAsGuest] = React.useState(true)
+  const [stayRange, setStayRange] = React.useState<DateRange | undefined>(() => {
+    const from = parseDate(checkIn)
+    const to = parseDate(checkOut)
+    return from && to ? { from, to } : undefined
+  })
+  const [quote, setQuote] = React.useState<{ total: number; currency: string } | null>(null)
+  const [quoteStatus, setQuoteStatus] = React.useState<{
+    loading: boolean
+    error: string | null
+    validationErrors: string[]
+  }>({ loading: false, error: null, validationErrors: [] })
+  const quoteSeq = React.useRef(0)
 
   // Progressive unlock state
   const [identityOpen, setIdentityOpen] = React.useState(false)
@@ -401,16 +457,82 @@ export function BookingCheckoutForm({
 
   const preview = useWatch({ control: form.control })
   const nationality = useWatch({ control: form.control, name: "nationality" })
+  const guestCount = useWatch({ control: form.control, name: "guestCount" })
   const isForeign = normalize.countryCode(nationality || "PT") !== "PT"
 
-  const { nights, total } = React.useMemo(() => {
-    const from = parseDate(checkIn)
-    const to = parseDate(checkOut)
+  const hasSelectedRange = Boolean(stayRange?.from && stayRange?.to)
+
+  const effectiveCheckIn = React.useMemo(() => {
+    if (hasSelectedRange && stayRange?.from) return format(stayRange.from, "yyyy-MM-dd")
+    return checkIn
+  }, [hasSelectedRange, stayRange, checkIn])
+
+  const effectiveCheckOut = React.useMemo(() => {
+    if (hasSelectedRange && stayRange?.to) return format(stayRange.to, "yyyy-MM-dd")
+    return checkOut
+  }, [hasSelectedRange, stayRange, checkOut])
+
+  const { nights, estimateTotal } = React.useMemo(() => {
+    const from = parseDate(effectiveCheckIn)
+    const to = parseDate(effectiveCheckOut)
     const n = from && to ? Math.max(1, differenceInCalendarDays(to, from)) : 0
-    return { nights: n, total: n * property.price }
-  }, [checkIn, checkOut, property.price])
+    return { nights: n, estimateTotal: n * property.price }
+  }, [effectiveCheckIn, effectiveCheckOut, property.price])
+
+  React.useEffect(() => {
+    const from = parseDate(effectiveCheckIn)
+    const to = parseDate(effectiveCheckOut)
+    if (!from || !to || nights <= 0) {
+      setQuote(null)
+      setQuoteStatus({ loading: false, error: null, validationErrors: [] })
+      return
+    }
+
+    const seq = (quoteSeq.current += 1)
+    setQuoteStatus((s) => ({ ...s, loading: true, error: null }))
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await propertiesAxios.post<ApiResponse<PropertyQuoteResponse>>(
+          `/${Number(property.id)}/quote`,
+          { checkInDate: effectiveCheckIn, checkOutDate: effectiveCheckOut, guestCount: Math.max(1, guestCount ?? 1) }
+        )
+
+        if (seq !== quoteSeq.current) return
+
+        const data = res.data?.data
+        if (data?.valid && data.totalPrice != null) {
+          setQuote({ total: Number(data.totalPrice), currency: String(data.currency || "EUR") })
+          setQuoteStatus({ loading: false, error: null, validationErrors: [] })
+          return
+        }
+
+        setQuote(null)
+        setQuoteStatus({
+          loading: false,
+          error: null,
+          validationErrors: Array.isArray(data?.validationErrors) ? data.validationErrors : [],
+        })
+      } catch {
+        if (seq !== quoteSeq.current) return
+        setQuote(null)
+        setQuoteStatus({ loading: false, error: "Não foi possível simular o preço agora.", validationErrors: [] })
+      }
+    }, 250)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [effectiveCheckIn, effectiveCheckOut, guestCount, nights, property.id])
+
+  const pricingCurrency = quote?.currency ?? "EUR"
+  const pricingTotal = quote?.total ?? estimateTotal
+  const cleaningFee = nights > 0 ? CLEANING_FEE_EUR : 0
+  const touristTax = nights > 0 ? calcTouristTax(nights, guestCount ?? 1) : 0
+  const accommodation = Math.max(0, pricingTotal - cleaningFee - touristTax)
 
   const getAuth = React.useCallback(() => authSession, [authSession])
+  const checkoutAsGuest = !authSession.isAuthenticated
   const isGuest = React.useCallback(() => checkoutAsGuest, [checkoutAsGuest])
 
   const {
@@ -425,7 +547,7 @@ export function BookingCheckoutForm({
     retryPayment,
     submit,
   } =
-    useBookingSubmit(checkIn, checkOut, property, getAuth, isGuest)
+    useBookingSubmit(effectiveCheckIn, effectiveCheckOut, property, getAuth, isGuest)
 
   const stripeClientSecret = React.useMemo(() => {
     if (!payment || typeof payment !== "object") return null
@@ -445,11 +567,34 @@ export function BookingCheckoutForm({
     const s = readAuthSession()
     setAuthSession(s)
     if (s.isAuthenticated) {
-      setCheckoutAsGuest(false)
       form.setValue("email", s.email, { shouldValidate: true })
       form.setValue("fullName", s.email.split("@")[0] ?? "", { shouldValidate: true })
     }
   }, [form])
+
+  React.useEffect(() => {
+    if (!authSession.isAuthenticated) return
+
+    let cancelled = false
+
+    void usersAxios
+      .get<ApiResponse<MeResponse>>("/me")
+      .then((res) => {
+        if (cancelled) return
+        const me = res.data?.data
+        if (!me) return
+
+        const current = form.getValues()
+
+        if (!current.email && me.email) form.setValue("email", me.email, { shouldValidate: true })
+        if (!current.phone && me.phone) form.setValue("phone", normalize.phone(me.phone), { shouldValidate: true })
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [authSession.isAuthenticated, form])
 
   // Reset doc fields on nationality change
   React.useEffect(() => {
@@ -475,7 +620,7 @@ export function BookingCheckoutForm({
       ["fullName", "email", "phone", "guestCount", "nationality"],
       { shouldFocus: true }
     )
-    if (!ok) { toast.warning("Revê os campos assinalados."); return }
+    if (!ok) { notify.warning("Revê os campos assinalados."); return }
     setIdentityOpen(true)
   }
 
@@ -484,7 +629,7 @@ export function BookingCheckoutForm({
       ? (["issuingCountry", "passportNumber", "passportIssueDate"] as const)
       : (["documentNumber"] as const)
     const ok = await form.trigger(fields, { shouldFocus: true })
-    if (!ok) { toast.warning("Revê os campos assinalados."); return }
+    if (!ok) { notify.warning("Revê os campos assinalados."); return }
     setReviewOpen(true)
   }
 
@@ -542,25 +687,85 @@ export function BookingCheckoutForm({
               locked={false}
               completed={progress.trip}
             >
-              {/* Guest toggle */}
-              <div className="flex items-center justify-between gap-4 pb-4 border-b border-foreground/10">
+              <div className="pb-4 border-b border-foreground/10">
+                <div className={tk.label}>
+                  {authSession.isAuthenticated ? "Reservar com conta" : "Reservar como convidado"}
+                </div>
+                <div className={cn(tk.mono, "mt-0.5")}>
+                  {authSession.isAuthenticated
+                    ? `Associado à conta: ${authSession.email}`
+                    : "Sem login — apenas dados do hóspede."}
+                </div>
+              </div>
+
+              <div className={cn(tk.card, "p-4 space-y-4")}>
                 <div>
-                  <div className={tk.label}>Reservar sem conta</div>
+                  <div className={tk.label}>Datas da estadia</div>
                   <div className={cn(tk.mono, "mt-0.5")}>
-                    Sem criação de utilizador — apenas dados do hóspede.
+                    Ao ajustar o calendário, recalculamos o preço total e o breakdown em tempo real.
                   </div>
                 </div>
-                <Switch
-                  checked={checkoutAsGuest}
-                  disabled={!authSession.isAuthenticated}
-                  onCheckedChange={(next) => {
-                    if (!authSession.isAuthenticated && !next) {
-                      toast.info("Inicia sessão para reservar com conta.")
-                      return
-                    }
-                    setCheckoutAsGuest(next)
-                  }}
+
+                <BrutalCalendar
+                  title="Selecionar datas"
+                  initialFocus
+                  mode="range"
+                  defaultMonth={stayRange?.from}
+                  selected={stayRange}
+                  onSelect={setStayRange}
+                  numberOfMonths={isDesktop ? 2 : 1}
+                  className="w-full max-w-[320px] md:max-w-none"
+                  disabled={(d) => d < TODAY}
                 />
+
+                <div className={cn(tk.divider, "pt-4 space-y-2")}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className={cn(tk.mono, "uppercase tracking-widest")}>Breakdown</span>
+                    <span className={cn(tk.mono, "tabular-nums")}>
+                      {quoteStatus.loading ? "A calcular…" : quote ? "Simulado" : "Estimativa"}
+                    </span>
+                  </div>
+
+                  {quoteStatus.validationErrors.length > 0 ? (
+                    <div className="rounded-lg border border-foreground/15 bg-foreground/[0.03] p-3 text-xs">
+                      <div className={cn(tk.mono, "uppercase tracking-widest")}>Validação</div>
+                      <div className="mt-1 text-muted-foreground">
+                        {quoteStatus.validationErrors.join(" · ")}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {quoteStatus.error ? (
+                    <div className="rounded-lg border border-foreground/15 bg-foreground/[0.03] p-3 text-xs text-muted-foreground">
+                      {quoteStatus.error}
+                    </div>
+                  ) : null}
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className={cn(tk.mono, "underline decoration-dotted underline-offset-2")}>
+                        Estadia ({nights} noite{nights !== 1 ? "s" : ""})
+                      </span>
+                      <span className="font-black tabular-nums">{formatMoney(accommodation, pricingCurrency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className={cn(tk.mono, "underline decoration-dotted underline-offset-2")}>
+                        Taxa de limpeza
+                      </span>
+                      <span className="font-black tabular-nums">{formatMoney(cleaningFee, pricingCurrency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className={cn(tk.mono, "underline decoration-dotted underline-offset-2")}>
+                        Taxa turística
+                      </span>
+                      <span className="font-black tabular-nums">{formatMoney(touristTax, pricingCurrency)}</span>
+                    </div>
+                    <div className={cn("flex items-center justify-between pt-3", tk.divider)}>
+                      <span className={cn(tk.mono, "uppercase tracking-widest")}>Total</span>
+                      <span className="text-xl font-black tabular-nums">{formatMoney(pricingTotal, pricingCurrency)}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <RHFField
@@ -577,7 +782,13 @@ export function BookingCheckoutForm({
                   label="Email"
                   required
                   transform={(v) => v.trim()}
-                  inputProps={{ type: "email", maxLength: 120, autoComplete: "email", placeholder: "email@exemplo.com" }}
+                  inputProps={{
+                    type: "email",
+                    maxLength: 120,
+                    autoComplete: "email",
+                    placeholder: "email@exemplo.com",
+                    readOnly: authSession.isAuthenticated && !checkoutAsGuest,
+                  }}
                 />
                 <RHFField
                   name="phone"
@@ -649,10 +860,10 @@ export function BookingCheckoutForm({
                 ) : (
                   <RHFField
                     name="documentNumber"
-                    label="Nº Cartão de Cidadão"
+                    label="NIC (Cartão de Cidadão)"
                     required
-                    transform={normalize.documentNumber}
-                    inputProps={{ maxLength: 20, autoComplete: "off", placeholder: "12345678 0 ZZ4" }}
+                    transform={normalize.nic}
+                    inputProps={{ maxLength: 15, autoComplete: "off", placeholder: "12345678 0 XX 1" }}
                   />
                 )}
 
@@ -682,7 +893,7 @@ export function BookingCheckoutForm({
                     value={
                       isForeign
                         ? `Passaporte · ${preview.passportNumber || "—"} · ${preview.issuingCountry || "—"}`
-                        : `CC · ${preview.documentNumber || "—"}`
+                        : `NIC · ${preview.documentNumber ? normalize.nic(preview.documentNumber) : "—"}`
                     }
                   />
                 </div>
@@ -691,10 +902,10 @@ export function BookingCheckoutForm({
                   <div>
                     <div className={tk.label}>Total a pagar</div>
                     <div className={cn(tk.mono, "mt-0.5")}>
-                      {nights} noite{nights !== 1 ? "s" : ""} × €{property.price}
+                      {formatMoney(accommodation, pricingCurrency)} + {formatMoney(cleaningFee, pricingCurrency)} + {formatMoney(touristTax, pricingCurrency)}
                     </div>
                   </div>
-                  <div className="text-2xl font-black tabular-nums">€{total}</div>
+                  <div className="text-2xl font-black tabular-nums">{formatMoney(pricingTotal, pricingCurrency)}</div>
                 </div>
 
                 <SectionCTA
@@ -734,8 +945,8 @@ export function BookingCheckoutForm({
                     publishableKey={stripePublishableKey}
                     clientSecret={stripeClientSecret}
                     bookingId={bookingId}
-                    total={paymentAmount ?? total}
-                    currency={paymentCurrency ?? "EUR"}
+                    total={paymentAmount ?? pricingTotal}
+                    currency={paymentCurrency ?? pricingCurrency}
                     onConfirmed={confirmPayment}
                   />
                 ) : null}
@@ -756,15 +967,15 @@ export function BookingCheckoutForm({
               <div className="font-black uppercase leading-snug text-sm">{property.title}</div>
 
               <div className={cn("mt-3 pt-3 space-y-2", tk.divider)}>
-                <SidebarRow label="Check-in" value={checkIn} />
-                <SidebarRow label="Check-out" value={checkOut} />
+                <SidebarRow label="Check-in" value={effectiveCheckIn} />
+                <SidebarRow label="Check-out" value={effectiveCheckOut} />
                 <SidebarRow label="Noites" value={String(nights)} />
                 <SidebarRow label="Por noite" value={`€${property.price}`} />
               </div>
 
               <div className={cn("mt-3 pt-3 flex items-baseline justify-between", tk.divider)}>
                 <span className={tk.mono}>Total</span>
-                <span className="text-2xl font-black tabular-nums">€{total}</span>
+                <span className="text-2xl font-black tabular-nums">{formatMoney(pricingTotal, pricingCurrency)}</span>
               </div>
             </div>
 

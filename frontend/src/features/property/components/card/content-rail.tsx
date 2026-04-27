@@ -1,6 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import { propertyCopy, propertyTokens } from "../../lib/property-tokens"
 
 interface ContentRailProps {
   title: string
@@ -20,7 +21,7 @@ interface ContentRailProps {
 export function ContentRail({ title, price, location, statusDot }: ContentRailProps) {
   return (
     <div className="min-w-0 flex-1">
-      <h3 className="truncate text-sm font-black uppercase leading-tight tracking-tight text-[#0D0D0D] dark:text-white">
+      <h3 className={propertyTokens.ui.cards.railTitleClass}>
         {title}
       </h3>
       <div className="mt-1 flex items-center gap-2">
@@ -28,7 +29,7 @@ export function ContentRail({ title, price, location, statusDot }: ContentRailPr
           className={cn("h-2 w-2 shrink-0 animate-pulse rounded-full", statusDot)}
         />
         <span className="truncate font-mono text-[11px] font-black tracking-tight text-primary">
-          {price}€{" - "}{location}
+          {price}€{propertyCopy.cards.locationSeparator}{location}
         </span>
       </div>
     </div>

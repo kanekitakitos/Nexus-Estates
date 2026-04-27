@@ -78,6 +78,7 @@ public class GlobalExceptionHandler {
             UserNotFoundException.class,
             InvalidCredentialsException.class,
             InvalidTokenException.class,
+            IllegalStateException.class,
             AccessDeniedException.class
     })
     public ResponseEntity<ApiResponse<Object>> handleKnownExceptions(Exception ex, HttpServletRequest request) {
@@ -86,6 +87,7 @@ public class GlobalExceptionHandler {
                 ex instanceof UserNotFoundException ? HttpStatus.NOT_FOUND :
                 ex instanceof InvalidCredentialsException ? HttpStatus.UNAUTHORIZED :
                 ex instanceof InvalidTokenException ? HttpStatus.BAD_REQUEST :
+                ex instanceof IllegalStateException ? HttpStatus.UNAUTHORIZED :
                 ex instanceof AccessDeniedException ? HttpStatus.FORBIDDEN :
                 HttpStatus.INTERNAL_SERVER_ERROR;
         return buildErrorResponse(ex, status, request, null);

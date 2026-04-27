@@ -86,15 +86,6 @@ public class BookingService
         if (!request.checkOutDate().isAfter(request.checkInDate()))
             throw new IllegalArgumentException("Check-out date must be after check-in date");
 
-        // 1.5 Validação: Utilizador Registado vs Guest
-        if (request.userId() != null) {
-            try {
-                api.userClient().getUserEmail(request.userId());
-            } catch (Exception e) {
-                throw new IllegalArgumentException("O utilizador informado não existe ou o serviço está indisponível.", e);
-            }
-        }
-
         // 2. Verificar Disponibilidade com Pessimistic Lock (domínio do booking-service)
         // Rejeita se existir sobreposição com CONFIRMED, BLOCKED ou PENDING_PAYMENT
         boolean isOccupied = bookingRepository.existsOverlappingBooking(

@@ -1,5 +1,8 @@
 package com.nexus.estates.dto.payment;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -27,6 +30,13 @@ import java.util.Map;
  * @see PaymentStatus
  * @see PaymentMethod
  */
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "kind")
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = PaymentResponse.Intent.class, name = "INTENT"),
+        @JsonSubTypes.Type(value = PaymentResponse.Success.class, name = "SUCCESS"),
+        @JsonSubTypes.Type(value = PaymentResponse.Failure.class, name = "FAILURE"),
+        @JsonSubTypes.Type(value = PaymentResponse.RequiresAction.class, name = "REQUIRES_ACTION"),
+})
 public sealed interface PaymentResponse permits 
     PaymentResponse.Intent, 
     PaymentResponse.Success, 
@@ -51,7 +61,7 @@ public sealed interface PaymentResponse permits
      * Geralmente utilizada em fluxos onde o pagamento é iniciado no backend mas finalizado
      * no frontend (ex: Stripe Elements).
      * </p>
-     * 
+     *
      * @param transactionId ID interno da transação.
      * @param clientSecret Segredo do cliente para autenticação no frontend (específico do provedor).
      * @param amount Valor a ser pago.

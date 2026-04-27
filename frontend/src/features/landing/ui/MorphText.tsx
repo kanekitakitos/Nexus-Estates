@@ -2,9 +2,9 @@
 
 import { AnimatePresence, motion } from "framer-motion"
 import { useEffect, useState } from "react"
-import { morphTransition } from "../motion"
+import { morphTransition } from "../lib/motion"
 
-export function MorphText({ texts, color }: { texts: string[]; color: string }) {
+export function MorphText({ texts, color }: { texts: readonly string[]; color: string }) {
   const [idx, setIdx] = useState(0)
   useEffect(() => {
     const t = setInterval(() => setIdx(i => (i + 1) % texts.length), 2200)

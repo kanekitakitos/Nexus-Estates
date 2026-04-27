@@ -3,9 +3,9 @@
 import { MapPin, Users2, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { OwnProperty } from "@/types"
-import { BoingText } from "@/components/BoingText"
-import { nexusEyebrowClass, nexusEyebrowAccentClass } from "../../property-tokens"
-import { resolvePropertyDescription } from "../../property-utils"
+import { BoingText } from "@/components/effects/BoingText"
+import { nexusEyebrowClass, nexusEyebrowAccentClass, propertyCopy, propertyTokens } from "../../lib/property-tokens"
+import { resolvePropertyDescription } from "../../lib/property-utils"
 import { StatusBadge } from "./status-badge"
 
 interface ContentPortfolioProps {
@@ -30,7 +30,7 @@ export function ContentPortfolio({ title, prop, onEdit }: ContentPortfolioProps)
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.08] dark:invert"
         style={{
-          backgroundImage: "radial-gradient(circle, #0D0D0D 1px, transparent 1px)",
+          backgroundImage: propertyTokens.ui.cards.portfolioTextureBgImage,
           backgroundSize: "20px 20px",
         }}
       />
@@ -45,52 +45,52 @@ export function ContentPortfolio({ title, prop, onEdit }: ContentPortfolioProps)
             </span>
           </p>
           <div className="font-mono text-[9px] font-black uppercase tracking-[0.4em] text-primary/40">
-            Nexus_System_Active
+            {propertyCopy.cards.systemActive}
           </div>
         </div>
 
         {/* Título Editorial */}
         <h1
-          className="font-black uppercase leading-[0.85] tracking-tighter text-[#0D0D0D] dark:text-white"
+          className={propertyTokens.ui.cards.portfolioTitleClass}
           style={{ fontSize: "clamp(2rem, 5vw, 4rem)" }}
         >
-          <BoingText text={title} color="currentColor" activeColor="#F97316" />
+          <BoingText text={title} color="currentColor" activeColor={propertyTokens.ui.preview.boingActiveColor} />
         </h1>
 
         {/* Status + Versão */}
         <div className="flex items-center gap-4">
           <StatusBadge status={prop.status} />
-          <div className="rounded-full bg-[#0D0D0D]/5 px-4 py-2 font-mono text-[9px] font-black uppercase tracking-widest text-[#0D0D0D]/40 dark:bg-white/5 dark:text-white/20">
-            Ver: 1.0.4
+          <div className={propertyTokens.ui.cards.portfolioVersionTagClass}>
+            {propertyCopy.cards.versionTag}
           </div>
         </div>
 
         {/* Descrição */}
-        <p className="max-w-xl border-l-4 border-primary pl-6 font-mono text-sm font-bold leading-relaxed text-[#0D0D0D]/60 dark:text-zinc-400 italic line-clamp-3">
+        <p className={propertyTokens.ui.cards.portfolioDescriptionClass}>
           {description}
         </p>
 
         {/* Métricas + CTA */}
-        <div className="flex flex-wrap items-end justify-between gap-6 overflow-hidden border-t-4 border-[#0D0D0D] pt-8 dark:border-white/10">
+        <div className={propertyTokens.ui.cards.portfolioDividerClass}>
           <div className="flex gap-12">
             {/* Rendimento */}
             <div>
               <span className={cn(nexusEyebrowAccentClass, "mb-2 block uppercase")}>
-                Rendimento_Estimado //
+                {propertyCopy.cards.yieldEstimated}
               </span>
-              <span className="text-5xl font-black tabular-nums tracking-tighter text-[#0D0D0D] md:text-6xl dark:text-white">
+              <span className={propertyTokens.ui.cards.portfolioYieldValueClass}>
                 {prop.price}€
               </span>
             </div>
 
             {/* Capacidade */}
-            <div className="hidden border-l-2 border-[#0D0D0D]/10 pl-10 dark:border-white/10 sm:block">
+            <div className={propertyTokens.ui.cards.portfolioAudienceWrapClass}>
               <span className={cn(nexusEyebrowAccentClass, "mb-2 block uppercase")}>
-                Audiência_Alvo //
+                {propertyCopy.cards.audienceTarget}
               </span>
-              <div className="flex items-center gap-3 font-mono text-2xl font-black text-[#0D0D0D] dark:text-white">
+              <div className={propertyTokens.ui.cards.portfolioPaxClass}>
                 <Users2 className="h-6 w-6 text-primary" strokeWidth={3} />
-                {prop.maxGuests} PAX
+                {prop.maxGuests} {propertyCopy.cards.paxSuffix}
               </div>
             </div>
           </div>
@@ -99,11 +99,11 @@ export function ContentPortfolio({ title, prop, onEdit }: ContentPortfolioProps)
           {onEdit && (
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(prop) }}
-              className="group relative flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-[#0D0D0D] bg-primary text-white shadow-[5px_5px_0_0_#0D0D0D] transition-all hover:bg-[#FF5E1A] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+              className={propertyTokens.ui.cards.portfolioEditButtonClass}
             >
               <Pencil size={24} strokeWidth={3} />
               <div className="absolute -bottom-8 font-mono text-[8px] font-black uppercase tracking-widest text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                Editar_Ativo
+                {propertyCopy.cards.editAsset}
               </div>
             </button>
           )}

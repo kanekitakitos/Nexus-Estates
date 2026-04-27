@@ -1,7 +1,7 @@
 "use client";
 
 import { Effect, EffectComposer, EffectPass, RenderPass } from 'postprocessing';
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { cn } from '@/lib/utils';
 
@@ -623,7 +623,9 @@ export const PixelBlast: React.FC<PixelBlastProps> = ({
         const noisePass = new EffectPass(camera, noiseEffect);
         noisePass.renderToScreen = true;
         if (composer && composer.passes.length > 0) {
-          composer.passes.forEach((p: any) => p.renderToScreen = false);
+          composer.passes.forEach((p) => {
+            (p as { renderToScreen?: boolean }).renderToScreen = false
+          })
         }
         composer.addPass(noisePass);
       }
@@ -669,14 +671,17 @@ export const PixelBlast: React.FC<PixelBlastProps> = ({
         
         if (composer) {
           if (touch) touch.update();
-          composer.passes.forEach((p: any) => {
-            if (p.effects) {
-              p.effects.forEach((eff: any) => {
-                const timeUniform = eff.uniforms?.get('uTime');
-                if (timeUniform) timeUniform.value = uniforms.uTime.value;
-              });
-            }
-          });
+          type UniformLike = { value: unknown }
+          type EffectLike = { uniforms?: Map<string, UniformLike> }
+          type PassLike = { effects?: EffectLike[] }
+
+          composer.passes.forEach((p) => {
+            const pass = p as PassLike
+            pass.effects?.forEach((eff) => {
+              const timeUniform = eff.uniforms?.get("uTime")
+              if (timeUniform) timeUniform.value = uniforms.uTime.value
+            })
+          })
           composer.render();
         } else renderer.render(scene, camera);
         
@@ -708,9 +713,11 @@ export const PixelBlast: React.FC<PixelBlastProps> = ({
       else t.renderer.setClearColor(0x000000, 1);
       
       if (t.liquidEffect) {
-        const liqEffect = t.liquidEffect as any;
-        liqEffect.uniforms.get('uStrength').value = liquidStrength;
-        liqEffect.uniforms.get('uFreq').value = liquidWobbleSpeed;
+        const liqEffect = t.liquidEffect as { uniforms: Map<string, { value: unknown }> }
+        const strength = liqEffect.uniforms.get("uStrength")
+        const freq = liqEffect.uniforms.get("uFreq")
+        if (strength) strength.value = liquidStrength
+        if (freq) freq.value = liquidWobbleSpeed
       }
       if (t.touch) t.touch.radiusScale = liquidRadius;
     }

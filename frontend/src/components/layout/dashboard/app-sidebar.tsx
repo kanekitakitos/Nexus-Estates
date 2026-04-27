@@ -11,7 +11,8 @@
 import * as React from "react"
 import { Building2, Calendar, LayoutDashboard, MessageSquare } from "lucide-react"
 import Link from "next/link"
-import { useView } from "@/features/view-context"
+import { usePathname, useRouter } from "next/navigation"
+import { useView } from "@/providers/view-context"
 
 import { NavUser } from "@/components/layout/dashboard/nav-user"
 import { motion } from "framer-motion"
@@ -27,14 +28,16 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/layout/sidebar"
-import { useChatStrategy } from "@/features/chat/ChatProvider"
 import { BookingService, type BookingResponse } from "@/services/booking.service"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
-import { PropertyList, PropertyListBars } from "../../../features/property/property-list"
+import { BookingCompactSidebar } from "@/features/bookings"
+import { PropertyCompactSidebar } from "@/features/property"
+import { ChatCompactSidebar } from "@/features/chat"
 import { OwnProperty } from "@/types"
-import {BrutalButton} from "@/components/ui/forms/button";
 import { PropertyService } from "@/services/property.service"
+import { AuthService } from "@/services/auth.service"
+import { mapPropertyRecordToOwnProperty } from "@/features/property/lib/property-utils"
 
 type UserRole = "ADMIN" | "GUEST" | "OWNER" | "STAFF"
 
@@ -78,13 +81,12 @@ export function AppSidebar({
                              ...props
                            }: React.ComponentProps<typeof Sidebar>) {
 
+  const router = useRouter()
+  const pathname = usePathname()
   const { setOpen, state } = useSidebar()
   const [activeItem, setActiveItem] = React.useState("Bookings")
-  const chatStrategy = useChatStrategy()
-  const ChatList = chatStrategy.ChatList
-  const ChatWindow = chatStrategy.ChatWindow
-  const [selectedChatId, setSelectedChatId] = React.useState<string | undefined>(undefined)
-  const [bookings, setBookings] = React.useState<BookingResponse[]>([])
+  const [myBookings, setMyBookings] = React.useState<BookingResponse[]>([])
+  const [propertyBookings, setPropertyBookings] = React.useState<BookingResponse[]>([])
   const [isLoadingBookings, setIsLoadingBookings] = React.useState(false)
   const [properties, setProperties] = React.useState<OwnProperty[]>([])
   const [isLoadingProperties, setIsLoadingProperties] = React.useState(false)
@@ -99,10 +101,10 @@ export function AppSidebar({
   })
 
   const syncUserSession = React.useCallback(() => {
-    if (typeof window !== 'undefined') {
-      const email = localStorage.getItem('userEmail')
-      const token = localStorage.getItem('token')
-      const roleRaw = localStorage.getItem('userRole')
+    const session = AuthService.getSession()
+    const email = session.email || null
+    const token = session.token || null
+    const roleRaw = session.role || null
 
       const normalizeRole = (value: string | null): UserRole => {
         const normalized = (value || "").replace(/^ROLE_/, "").toUpperCase()
@@ -130,7 +132,6 @@ export function AppSidebar({
           isAuthenticated: false,
         })
       }
-    }
   }, [])
 
   React.useEffect(() => {
@@ -154,44 +155,82 @@ export function AppSidebar({
       if (!currentUser.isAuthenticated) return
       try {
         setIsLoadingBookings(true)
-        const data = await BookingService.getMyBookings()
-        setBookings(data)
+        const minePromise = BookingService.getMyBookings().catch(() => [])
+
+        const role = currentUser.role
+        const canSeePropertyBookings = role === "OWNER" || role === "ADMIN" || role === "STAFF"
+        let nextProperties = properties
+
+        if (canSeePropertyBookings && nextProperties.length === 0) {
+          try {
+            const page = await PropertyService.listMine({ page: 0, size: 25, sort: "name,asc" })
+            const mapped: OwnProperty[] = page.content.map((p) => {
+              const base = mapPropertyRecordToOwnProperty(p as unknown as Record<string, unknown>)
+              return {
+                ...base,
+                description: "",
+                imageUrl: "",
+                tags: [],
+                amenityIds: [],
+              }
+            })
+            setProperties(mapped)
+            nextProperties = mapped
+          } catch {
+            nextProperties = []
+          }
+        }
+
+        const propertyIds = canSeePropertyBookings
+          ? nextProperties
+              .map((p) => {
+                const n = Number(p.id)
+                return Number.isNaN(n) ? null : n
+              })
+              .filter((n): n is number => typeof n === "number")
+          : []
+
+        const propertyBookingsPromise = canSeePropertyBookings
+          ? Promise.all(
+              propertyIds.map((id) => BookingService.getBookingsByProperty(id, { silent: true }).catch(() => [])),
+            ).then((chunks) =>
+              chunks.flat(),
+            )
+          : Promise.resolve([])
+
+        const [mine, owned] = await Promise.all([minePromise, propertyBookingsPromise])
+
+        const sortDesc = (items: BookingResponse[]) =>
+          [...items].sort((a, b) => (b.checkInDate || "").localeCompare(a.checkInDate || ""))
+
+        setMyBookings(sortDesc(mine))
+
+        const byId = new Map<number, BookingResponse>()
+        for (const b of owned) {
+          if (typeof b?.id === "number") byId.set(b.id, b)
+        }
+        setPropertyBookings(sortDesc(Array.from(byId.values())))
       } finally {
         setIsLoadingBookings(false)
       }
     }
 
     load()
-  }, [activeItem, currentUser.isAuthenticated])
+  }, [activeItem, currentUser.isAuthenticated, currentUser.role, properties])
 
   React.useEffect(() => {
     const load = async () => {
       if (activeItem !== "Properties") return
       if (!currentUser.isAuthenticated) { setProperties([]); return }
-      if (typeof window === "undefined") return
-      const userIdRaw = localStorage.getItem("userId")
-      if (!userIdRaw) { setProperties([]); return }
       try {
         setIsLoadingProperties(true)
-        const page = await PropertyService.listByUser({ userId: Number(userIdRaw), page: 0, size: 25, sort: "name,asc" })
+        const page = await PropertyService.listMine({ page: 0, size: 25, sort: "name,asc" })
         const mapped: OwnProperty[] = page.content.map((p) => {
-          const city = String(p.city ?? "")
-          const location = String(p.location ?? city)
-          const address = String(p.address ?? "")
-          const maxGuests = Number(p.maxGuests ?? 1)
+          const base = mapPropertyRecordToOwnProperty(p as unknown as Record<string, unknown>)
           return {
-            id: String(p.id ?? ""),
-            title: String(p.name ?? ""),
+            ...base,
             description: "",
-            location,
-            city,
-            address,
-            maxGuests,
-            price: Number(p.basePrice ?? 0),
             imageUrl: "",
-            status: p.isActive ? "AVAILABLE" : "MAINTENANCE",
-            rating: 0,
-            featured: false,
             tags: [],
             amenityIds: [],
           }
@@ -200,7 +239,7 @@ export function AppSidebar({
       } catch (err) {
         console.error(err)
         setProperties([])
-        toast.error("Não foi possível carregar as tuas propriedades.")
+        notify.error("Não foi possível carregar as tuas propriedades.")
       } finally {
         setIsLoadingProperties(false)
       }
@@ -293,83 +332,51 @@ export function AppSidebar({
             <SidebarHeader className="border-b-2 border-foreground/10 p-4 h-[64px] flex items-center gap-3">
               <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
               <div className="text-foreground text-sm font-black font-mono uppercase tracking-[0.2em] italic">
-                {activeItem} //
+                {activeItem}
               </div>
             </SidebarHeader>
 
             <SidebarContent className="p-0">
               {activeItem === "Chat" ? (
                 <>
-                  {!selectedChatId ? (
-                    <div className="h-[calc(100vh-56px)] overflow-y-auto animate-slide-in-left">
-                      <ChatList
-                        onSelectChat={setSelectedChatId}
-                        selectedChatId={selectedChatId}
-                      />
-                    </div>
-                  ) : (
-                    <div key={selectedChatId} className="flex-1 h-[calc(100vh-56px)] overflow-hidden animate-slide-in-right">
-                      <ChatWindow chatId={selectedChatId} onBack={() => setSelectedChatId(undefined)} />
-                    </div>
-                  )}
+                  {/* Painel: Chat */}
+                  <ChatCompactSidebar />
                 </>
-              ) 
-              : activeItem === "Properties" ? (
-                  <div key={selectedChatId} className="flex flex-col p-3">
-                    <BrutalButton 
-                      className={"w-full mb-3 cursor-pointer relative z-20 hover:scale-[1.02] active:scale-[0.98] transition-transform"} 
-                      onClick={() => {
-                        console.log("Navigating to Properties view...");
-                        setView("properties");
-                        selectPropertyId(null);
-                      }}
-                    >
-                      Gestão de Ativos //
-                    </BrutalButton>
-                    {isLoadingProperties ? (
-                      <div className="py-10 text-center">
-                        <span className="font-mono text-[10px] uppercase font-black opacity-50 animate-pulse">
-                          Syncing_Assets...
-                        </span>
-                      </div>
-                    ) : (
-                      <PropertyListBars propertys={properties} onSelect={(id)=>{selectPropertyId(id)}}/>
-                    )}
-                  </div>
-              )
-              : activeItem === "Bookings" ? (
-                <div className="p-4">
-                  {!currentUser.isAuthenticated ? (
-                    <div className="text-muted-foreground text-sm">
-                      <div className="mb-2">Precisa de iniciar sessão para ver as suas reservas.</div>
-                      <Link href="/login" className="underline">Ir para Login</Link>
-                    </div>
-                  ) : isLoadingBookings ? (
-                    <div className="text-muted-foreground text-sm">A carregar reservas…</div>
-                  ) : bookings.length === 0 ? (
-                    <div className="text-muted-foreground text-sm">Ainda não tem reservas.</div>
-                  ) : (
-                    <div className="space-y-3">
-                      {bookings.map((b) => (
-                        <div key={b.id} className="rounded-lg border p-3 text-sm">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="font-medium">Reserva #{b.id}</div>
-                            <div className="text-xs text-muted-foreground">{b.status}</div>
-                          </div>
-                          <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
-                            <div>Property: {b.propertyId}</div>
-                            <div>{b.checkInDate} → {b.checkOutDate}</div>
-                            <div>Total: {b.totalPrice} {b.currency}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              ) : activeItem === "Properties" ? (
+                <>
+                  {/* Painel: Properties */}
+                  <PropertyCompactSidebar
+                    isAuthenticated={currentUser.isAuthenticated}
+                    isLoading={isLoadingProperties}
+                    properties={properties}
+                    onManage={() => {
+                      setView("properties")
+                      selectPropertyId(null)
+                      if (pathname !== "/properties") router.push("/properties")
+                    }}
+                    onSelect={(id) => {
+                      setView("properties")
+                      selectPropertyId(id)
+                      if (pathname !== "/properties") router.push("/properties")
+                    }}
+                  />
+                </>
+              ) : activeItem === "Bookings" ? (
+                <>
+                  {/* Painel: Bookings */}
+                  <BookingCompactSidebar
+                    isAuthenticated={currentUser.isAuthenticated}
+                    role={currentUser.role}
+                    isLoading={isLoadingBookings}
+                    myBookings={myBookings}
+                    propertyBookings={propertyBookings}
+                  />
+                </>
               ) : (
-                  <div className="text-muted-foreground flex h-full items-center justify-center p-4 text-sm">
-                    Conteúdo de {activeItem}
-                  </div>
+                <div className="text-muted-foreground flex h-full items-center justify-center p-4 text-sm">
+                  {/* Estado default */}
+                  Conteúdo de {activeItem}
+                </div>
               )}
             </SidebarContent>
           </Sidebar>

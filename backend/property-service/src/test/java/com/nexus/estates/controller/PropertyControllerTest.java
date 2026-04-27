@@ -59,12 +59,12 @@ class PropertyControllerTest {
                 null
         );
 
-        when(propertyService.create(any(CreatePropertyRequest.class))).thenReturn(new Property());
+        when(propertyService.create(any(CreatePropertyRequest.class), any())).thenReturn(new Property());
 
-        ResponseEntity<ApiResponse<Property>> response = controller.create(request);
+        ResponseEntity<ApiResponse<Property>> response = controller.create(request, null);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        verify(propertyService, times(1)).create(request);
+        verify(propertyService, times(1)).create(request, null);
     }
 
     @Test

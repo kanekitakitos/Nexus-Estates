@@ -1,6 +1,6 @@
 import { amenitiesAxios } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import type { Amenity } from "@/types/amenity";
 
 export type { Amenity } from "@/types/amenity";
@@ -56,7 +56,7 @@ export class AmenityService {
   static async create(payload: { name: string; category: string }): Promise<Amenity> {
     try {
       const response = await amenitiesAxios.post<Amenity>("", payload);
-      toast.success("Comodidade criada.");
+      notify.success("Comodidade criada.");
       return response.data;
     } catch (error) {
       this.handleError(error, "criar comodidade");
@@ -73,7 +73,7 @@ export class AmenityService {
   static async update(id: number, payload: { name: string; category: string }): Promise<Amenity> {
     try {
       const response = await amenitiesAxios.put<Amenity>(`/${id}`, payload);
-      toast.success("Comodidade atualizada.");
+      notify.success("Comodidade atualizada.");
       return response.data;
     } catch (error) {
       this.handleError(error, "atualizar comodidade");
@@ -90,7 +90,7 @@ export class AmenityService {
   static async delete(id: number): Promise<void> {
     try {
       await amenitiesAxios.delete<void>(`/${id}`);
-      toast.success("Comodidade removida.");
+      notify.success("Comodidade removida.");
     } catch (error) {
       this.handleError(error, "remover comodidade");
       throw error;
@@ -105,14 +105,14 @@ export class AmenityService {
     if (this.isAxiosError(error) && error.response) {
       const status = error.response.status;
       if (status === 404) {
-        toast.error("Comodidade não encontrada.");
+        notify.error("Comodidade não encontrada.");
       } else if (status === 400) {
-        toast.error("Dados inválidos.");
+        notify.error("Dados inválidos.");
       } else {
-        toast.error(`Erro ao ${action}.`);
+        notify.error(`Erro ao ${action}.`);
       }
     } else {
-      toast.error("Erro de conexão com o serviço de comodidades.");
+      notify.error("Erro de conexão com o serviço de comodidades.");
     }
   }
 }

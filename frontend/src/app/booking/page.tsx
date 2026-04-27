@@ -1,7 +1,7 @@
 "use client"
 
 import { AppShell } from "@/components/layout/app-shell"
-import { BookingView } from "@/features/bookings/booking-view"
+import { BookingView } from "@/features/bookings"
 
 /**
  * @route ´/booking´
