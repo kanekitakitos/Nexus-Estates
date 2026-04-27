@@ -5,12 +5,23 @@ import {useEffect, useState} from "react";
 export function ActiveArea({year, month, period, isStart, isEnd }: {year:number, month:number, period: Period, isStart: boolean, isEnd: boolean }) {
     const dayWidth = 56; // w-14
 
-    const show = (period.startDay.getMonth() == month || period.endDay.getMonth() == month)
+    const show = (period.startDay.getMonth() <= month || period.endDay.getMonth() >= month)
         && (period.startDay.getFullYear() == year || period.endDay.getFullYear() == year)
 
+    let startPos: number = 0
+    let duration: number = 0
+    if (period.startDay.getMonth() < month && period.endDay.getMonth() > month){
+        startPos =  -1 * dayWidth
+        duration =  new Date(year, month + 1, 0).getDate() + 2
+    }
+    else {
     // Se houver transição, esticamos um pouco a largura para elas se sobreporem e o corte ser visível
-    const startPos = (period.startDay.getDate() - 1) * dayWidth
-    const duration = period.endDay.getDate() - period.startDay.getDate() + 1
+        startPos = (period.startDay.getMonth() < month ? -1 : period.startDay.getDate() - 1) * dayWidth
+        duration = period.endDay.getDate() - period.startDay.getDate() + 1
+            + (period.endDay.getMonth() > month ? new Date(year, month+1, 0).getDate() + 1 : 0)
+    }
+
+
 
     // Ajuste de largura: se não houver vizinho, damos um pequeno gap (como tinhas antes)
     // Se houver vizinho, a largura vai até ao limite exato para o clip-path funcionar

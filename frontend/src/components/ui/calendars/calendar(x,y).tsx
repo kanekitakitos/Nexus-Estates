@@ -95,7 +95,7 @@ export function CalendarTimeline({ items, year, month }: CalendarTimelineProps) 
                                 }</span>
                             </div>
 
-                            <div className="flex relative" style={{height: '64px'}}>
+                            <div className="flex relative overflow-hidden" style={{height: '64px'}}>
 
                                 {days.map((day) => {
                                     const date = new Date(year, month, day);
