@@ -1,7 +1,7 @@
 "use client"
 
 import { TrendingUp } from "lucide-react"
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
+import {Bar, BarChart, CartesianGrid, XAxis, YAxis} from "recharts"
 
 import {
     Card,
@@ -16,8 +16,9 @@ import {
     ChartContainer,
     ChartTooltip,
     ChartTooltipContent,
-    type ChartConfig,
+    type ChartConfig, ChartLegendContent, ChartLegend,
 } from "@/components/ui/data-display/Charts/chart"
+import {useMemo} from "react";
 
 export const description = "A multiple bar chart"
 
@@ -38,17 +39,19 @@ export type BarChartData = {
 
 
 const chartConfig = {
-    desktop: {
-        label: "Desktop",
+    occupancy: {
+        label: "Ocupação",
         color: "var(--chart-1)",
     },
-    mobile: {
-        label: "Mobile",
+    profit: {
+        label: "Lucro",
         color: "var(--chart-2)",
     },
 } satisfies ChartConfig
 
-export function ChartBarMultiple({chartData = chartData_MOCK} : {chartData? : BarChartData[]}) {
+export function ChartBarMultiple({chartData = chartData_MOCK} : {chartData : BarChartData[]}) {
+
+
     return (
         <BrutalCard>
             <CardHeader>
@@ -64,14 +67,55 @@ export function ChartBarMultiple({chartData = chartData_MOCK} : {chartData? : Ba
                             tickLine={false}
                             tickMargin={10}
                             axisLine={false}
-                            tickFormatter={(value) => value.slice(0, 3)}
+                            tickFormatter={(value) => value.slice(0, 5)}
+                        />
+                        {/* Eixo Esquerdo - Lucro (€) */}
+                        <YAxis
+                            yAxisId="left"
+                            orientation="left"
+                            tickLine={true}
+                            axisLine={true}
+                            tickFormatter={(v) => `${v}€`}
+                        />
+
+                        {/* Eixo Direito - Ocupação (0-100%) */}
+                        <YAxis
+                            yAxisId="right"
+                            orientation="right"
+                            tickLine={true}
+                            axisLine={true}
+                            domain={[0, 100]} // Define o máximo fixo em 100
+                            tickFormatter={(v) => `${v}%`}
                         />
                         <ChartTooltip
                             cursor={false}
-                            content={<ChartTooltipContent indicator="dashed" />}
+                            content={
+                                <ChartTooltipContent
+                                    indicator="line"
+                                    // Customizar o formatter para mostrar o valor real
+                                    formatter={(value, name, item) => {
+                                        if (name === "occupancy") return `${item.payload.occupancy}%`;
+                                        if(name === "profit") return `${item.payload.profit}€`
+                                        return value;
+                                    }}
+                                />
+                            }
                         />
-                        <Bar dataKey="occupancy" fill="var(--color-desktop)" radius={4} />
-                        <Bar dataKey="profit" fill="var(--color-mobile)" radius={4} />
+                        <ChartLegend content={<ChartLegendContent />}/>
+                        <Bar
+                            yAxisId="right"
+                            name="occupancy"
+                            dataKey="occupancy"
+                            fill="var(--color-occupancy)"
+                            radius={[4, 4, 0, 0]}
+                        />
+                        <Bar
+                            yAxisId="left"
+                            name="profit"
+                            dataKey="profit"
+                            fill="var(--color-profit)"
+                            radius={[4, 4, 0, 0]}
+                        />
                     </BarChart>
                 </ChartContainer>
             </CardContent>

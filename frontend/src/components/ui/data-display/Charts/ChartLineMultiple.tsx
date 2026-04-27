@@ -16,9 +16,10 @@ import {
     ChartContainer,
     ChartTooltip,
     ChartTooltipContent,
-    type ChartConfig,
+    type ChartConfig, ChartLegend, ChartLegendContent,
 } from "@/components/ui/data-display/Charts/chart"
 import { cn } from "@/lib/utils"
+import {useMemo} from "react";
 
 export const description = "A multiple line chart"
 
@@ -39,7 +40,8 @@ const chartConfig = {
     },
 } satisfies ChartConfig
 
-export function ChartLineMultiple({ className, chartData }: { className?: string, chartData?: LineChartData[] }) {
+export function ChartLineMultiple({ className, chartData }: { className?: string, chartData: LineChartData[] }) {
+
     return (
         <BrutalCard className={cn("flex flex-col bg-card", className)}>
             <CardHeader>
@@ -52,21 +54,45 @@ export function ChartLineMultiple({ className, chartData }: { className?: string
                         <CartesianGrid vertical={false} strokeDasharray="3 3" />
                         <XAxis
                             dataKey="day"
-                            tickLine={false}
+                            tickLine={true}
                             axisLine={false}
                             tickMargin={8}
                         />
                         <YAxis
-                            tickLine={false}
-                            axisLine={false}
+                            yAxisId="left"
+                            orientation="left"
+                            tickLine={true}
+                            axisLine={true}
+                            tickFormatter={(value) => `${value}€`}
+                        />
+
+                        {/* Eixo Y Direito - Ocupação (%) */}
+                        <YAxis
+                            yAxisId="right"
+                            orientation="right"
+                            tickLine={true}
+                            axisLine={true}
+                            domain={[0, 100]} // Força o máximo a ser 100%
                             tickFormatter={(value) => `${value}%`}
                         />
                         <ChartTooltip
-                            content={<ChartTooltipContent formatter={(value, name) => (
-                                <span>{value}{name === "occupancy" ? "%" : "€"}</span>
-                            )}/>}
+                            cursor={false}
+                            content={
+                                <ChartTooltipContent
+                                    indicator="line"
+                                    // Customizar o formatter para mostrar o valor real
+                                    formatter={(value, name, item) => {
+                                        if (name === "occupancy") return `${item.payload.occupancy}%`;
+                                        if(name === "profit") return `${item.payload.profit}€`
+                                        return value;
+                                    }}
+                                />
+                            }
                         />
+                        <ChartLegend content={<ChartLegendContent />}/>
                         <Line
+                            yAxisId="right"
+                            name="occupancy"
                             dataKey="occupancy"
                             type="monotone"
                             stroke="var(--color-occupancy)"
@@ -74,26 +100,18 @@ export function ChartLineMultiple({ className, chartData }: { className?: string
                             dot={true}      // Pontos ajudam a ler percentagens exatas
                         />
                         <Line
+                            yAxisId="left"
+                            name="profit"
                             dataKey="profit"
                             type="monotone"
                             stroke="var(--color-profit)"
                             strokeWidth={2}
                         />
                     </LineChart>
+
                 </ChartContainer>
             </CardContent>
-            <CardFooter>
-                <div className="flex w-full items-start gap-2 text-sm">
-                    <div className="grid gap-2">
-                        <div className="flex items-center gap-2 leading-none font-medium">
-                            Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
-                        </div>
-                        <div className="flex items-center gap-2 leading-none text-muted-foreground">
-                            Showing total visitors for the last 6 months
-                        </div>
-                    </div>
-                </div>
-            </CardFooter>
+
         </BrutalCard>
     )
 }

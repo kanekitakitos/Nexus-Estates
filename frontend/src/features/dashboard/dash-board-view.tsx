@@ -75,7 +75,7 @@ export function DashBoardView(){
         const radarData : RadarChartData[]  = monthNames.map(
             name => ({ month:name, occupancy: 0, profit: 0 } as RadarChartData));
 
-        const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+        const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1 , 0).getDate();
         const lineData = Array.from({ length: daysInMonth },
             (_, i) => ({
                 day: i + 1,
@@ -84,10 +84,10 @@ export function DashBoardView(){
                 profit: 0
         }));
 
+
         bookings.forEach((b) => {
             const checkIn = new Date(b.checkInDate);
             const checkOut = new Date(b.checkOutDate);
-            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
 
             if (checkIn > viewDate) totals.checkIn++;
@@ -98,9 +98,29 @@ export function DashBoardView(){
 
             // A. Bar Chart: Lucro por propriedade
             const currentBar = barMap.get(Number(b.propertyId));
-            if (currentBar) {
+            if (currentBar && checkIn.getMonth() <= viewDate.getMonth() && checkOut.getMonth() >= viewDate.getMonth()
+                    && checkIn.getFullYear() <= viewDate.getFullYear() && checkOut.getFullYear() >= viewDate.getFullYear()) {
+
                 currentBar.profit += b.totalPrice;
-                currentBar.occupancy += Math.min(checkOut.getDate(), daysInMonth) - checkIn.getDate();
+
+                const daysOccupied = (checkOut.getMonth() > viewDate.getMonth()? daysInMonth : checkOut.getDate())
+                    - (checkIn.getMonth() < viewDate.getMonth() ? 0 : checkIn.getDate()) + 1
+
+                console.log({
+                    propertie: properties.find((p)=>Number(p.id) == b.propertyId)?.title,
+                    daysOccupied: daysOccupied,
+                    daysInMonth: daysInMonth,
+                    checkOutCalc: (checkOut.getMonth() > viewDate.getMonth()? daysInMonth : checkOut.getDate()),
+                    checkInCalc: (checkIn.getMonth() < viewDate.getMonth() ? 0 : checkIn.getDate()),
+                    dates:{in: checkIn.getDate(), out: checkOut.getDate() },
+                    occupancyPrev: currentBar.occupancy,
+                    occupancyNew: (currentBar.occupancy / 100 * daysInMonth  + daysOccupied) / daysInMonth *100,
+                    checkInDate: checkIn
+                })
+
+                currentBar.occupancy = (currentBar.occupancy / 100 * daysInMonth + daysOccupied) / daysInMonth *100;
+
+
             }
 
 
@@ -108,16 +128,22 @@ export function DashBoardView(){
             if (checkIn.getFullYear() === currentYear) {
                 const m = checkIn.getMonth();
                 radarData[m].profit += b.totalPrice;
-                // Cálculo simplificado de ocupação (contagem de reservas)
-                radarData[m].occupancy += 1;
+                // Cálculo simplificado de ocupação
+                const daysOccupied :number = checkIn.getDate() + (checkOut.getMonth() > checkIn.getMonth() ? daysInMonth : checkOut.getDate())
+                if (properties.length > 0)
+                    radarData[m].occupancy = (radarData[m].occupancy*(daysInMonth * properties.length) + daysOccupied) / (daysInMonth * properties.length)
+                else {
+                    radarData[m].occupancy = 0
+                    console.error("Não existe propriedades para as estatisticas")
+                }
             }
 
             //C. Line Chatr_ Lucro e Ocupação total deste mês
             if (checkIn.getFullYear() == viewDate.getFullYear() && checkOut.getFullYear() == viewDate.getFullYear()
                     && checkIn.getMonth() <= viewDate.getMonth() && checkOut.getMonth() >= viewDate.getMonth()) {
 
-                let day  = checkIn.getMonth() == viewDate.getMonth() ? checkIn.getDay() : 0
-                const endDay = checkOut.getMonth() == viewDate.getMonth() ? checkOut.getDay() : daysInMonth
+                let day  = checkIn.getMonth() == viewDate.getMonth() ? checkIn.getDate() : 0
+                const endDay = checkOut.getMonth() == viewDate.getMonth() ? checkOut.getDate() : daysInMonth
 
                 for (; day < endDay; day++){
                     lineData[day].bookedCount++
@@ -126,16 +152,12 @@ export function DashBoardView(){
             }
         });
 
+        // console.log("INIT DATA -------------------------------------")
+        // console.log(
+        //     stats.barCharData
+        // )
+        // console.log("END DATA -------------------------------------")
 
-        console.log("INIT DATA -------------------------------------")
-        console.log(
-            lineData.map(d => ({
-                day: `${d.day}`,
-                occupancy: properties.length > 0 ? (d.bookedCount / properties.length) * 100 : 0,
-                profit: totalDailyPotentialRevenue > 0 ? (d.profit / totalDailyPotentialRevenue) * 100 : 0
-            })) as LineChartData[]
-        )
-        console.log("END DATA -------------------------------------")
         // 3. Formatação Final
         return {
             ...totals,
@@ -242,6 +264,8 @@ export function DashBoardView(){
         </div>
     )
 }
+
+export default DashBoardView
 
 //--------------------------------------------------
 //              FUNÇÕES AUXILIARES

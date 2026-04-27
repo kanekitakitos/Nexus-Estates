@@ -20,6 +20,7 @@ import {
     ChartTooltipContent,
     type ChartConfig,
 } from "@/components/ui/data-display/Charts/chart"
+import {useMemo} from "react";
 
 export const description = "A radar chart with a legend"
 
@@ -35,13 +36,30 @@ const chartConfig = {
         label: "Desktop",
         color: "var(--chart-1)",
     },
-    mobile: {
-        label: "Mobile",
+    profit: {
+        label: "Lucro",
         color: "var(--chart-2)",
     },
 } satisfies ChartConfig
 
-export function ChartRadarLegend({chartData} : { chartData?:RadarChartData[] }) {
+export function ChartRadarLegend({chartData} : { chartData:RadarChartData[] }) {
+
+    // Normalizar os dados
+    const processedData = useMemo(() => {
+        if (!chartData.length) return [];
+
+        // Encontrar o maior lucro para servir de "teto"
+        const maxProfit = Math.max(...chartData.map(d => d.profit), 1); // evita divisão por zero
+
+        return chartData.map(item => ({
+            ...item,
+            // O valor visual: (percentagem / 100) * valor máximo do lucro
+            normalizedOccupancy: (item.occupancy / 100) * maxProfit,
+            // Guardamos o original para o tooltip se necessário,
+            // mas o Recharts já tem acesso ao item original
+        }));
+    }, [chartData]);
+
     return (
         <BrutalCard className={"bg-card"}>
             <CardHeader className="items-center">
@@ -56,7 +74,7 @@ export function ChartRadarLegend({chartData} : { chartData?:RadarChartData[] }) 
                     className="mx-auto aspect-square max-h-[250px]"
                 >
                     <RadarChart
-                        data={chartData}
+                        data={processedData}
                         margin={{
                             top: -40,
                             bottom: -10,
@@ -66,21 +84,38 @@ export function ChartRadarLegend({chartData} : { chartData?:RadarChartData[] }) 
                     >
                         <ChartTooltip
                             cursor={false}
-                            content={<ChartTooltipContent indicator="line" />}
+                            content={
+                                <ChartTooltipContent
+                                    indicator="line"
+                                    // CORREÇÃO 2: Formatar o valor no Tooltip para mostrar os 0-100% originais
+                                    formatter={(value, name, props) => {
+                                        if (name === "occupancy") {
+                                            return `${props.payload.occupancy}%`;
+                                        }
+                                        // Formata como moeda se for lucro (opcional)
+                                        if (name === "profit") {
+                                            return new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(value as number);
+                                        }
+                                        return value;
+                                    }}
+                                />
+                            }
                         />
                         <PolarAngleAxis dataKey="month" />
                         <PolarGrid />
                         <Radar
-                            dataKey="occupancy"
+                            name="occupancy"
+                            dataKey="normalizedOccupancy"
                             fill="var(--color-desktop)"
                             dot={{
-                                r: 4,
+                                r: 1.5,
                                 fillOpacity: 1,
                             }}
                         />
                         <Radar
+                            name={"profit"}
                             dataKey="profit"
-                            fill="var(--color-mobile)"
+                            fill="var(--color-profit)"
                             fillOpacity={0.6}
                             dot={{
                                 r: 1.5,
