@@ -5,9 +5,6 @@ import {useEffect, useState} from "react";
 export function ActiveArea({year, month, period, isStart, isEnd }: {year:number, month:number, period: Period, isStart: boolean, isEnd: boolean }) {
     const dayWidth = 56; // w-14
 
-    const show = (period.startDay.getMonth() <= month || period.endDay.getMonth() >= month)
-        && (period.startDay.getFullYear() == year || period.endDay.getFullYear() == year)
-
     let startPos: number = 0
     let duration: number = 0
     if (period.startDay.getMonth() < month && period.endDay.getMonth() > month){
@@ -37,43 +34,40 @@ export function ActiveArea({year, month, period, isStart, isEnd }: {year:number,
         ${isStart ? '0% 100%' : '0% 100%'}
     )`;
 
-    if (!show) {
-        return (<></>)
-    }
-    else
-        return (
-            <div
-                id={"active"}
-                className={`absolute ${period.color} flex items-center px-4 group transition-all`}
-                style={{
-                    left: `${startPos}px`,
-                    width: `${width}px`,
-                    height: '48px',
-                    top: '8px',
-                    zIndex: 5,
-                    clipPath: clipPath,
-                    // Raio apenas nas extremidades reais da sequência
-                    borderTopLeftRadius: isStart ? '24px' : '0',
-                    borderBottomLeftRadius: isStart ? '24px' : '0',
-                    borderTopRightRadius: isEnd ? '24px' : '0',
-                    borderBottomRightRadius: isEnd ? '24px' : '0',
-                }}
-            >
-                {/* O "Traço Oblíquo" (apenas se tiver vizinho à direita) */}
-                {!isEnd && (
-                    <div
-                        className="absolute right-0 top-0 h-full w-[4px] bg-black"
-                        style={{
-                            transform: `skewX(-${slant}deg)`,
-                            transformOrigin: 'top',
-                            marginRight: '-2px'
-                        }}
-                    />
-                )}
 
-                <span className="font-mono font-bold uppercase text-xs text-black truncate relative z-10">
-                    {period.name}
-                </span>
-            </div>
-        );
+    return (
+        <div
+            id={"active"}
+            className={`absolute ${period.color} flex items-center px-4 group transition-all`}
+            style={{
+                left: `${startPos}px`,
+                width: `${width}px`,
+                height: '48px',
+                top: '8px',
+                zIndex: 5,
+                clipPath: clipPath,
+                // Raio apenas nas extremidades reais da sequência
+                borderTopLeftRadius: isStart ? '24px' : '0',
+                borderBottomLeftRadius: isStart ? '24px' : '0',
+                borderTopRightRadius: isEnd ? '24px' : '0',
+                borderBottomRightRadius: isEnd ? '24px' : '0',
+            }}
+        >
+            {/* O "Traço Oblíquo" (apenas se tiver vizinho à direita) */}
+            {!isEnd && (
+                <div
+                    className="absolute right-0 top-0 h-full w-[4px] bg-black"
+                    style={{
+                        transform: `skewX(-${slant}deg)`,
+                        transformOrigin: 'top',
+                        marginRight: '-2px'
+                    }}
+                />
+            )}
+
+            <span className="font-mono font-bold uppercase text-xs text-black truncate relative z-10">
+                {period.name}
+            </span>
+        </div>
+    );
 }

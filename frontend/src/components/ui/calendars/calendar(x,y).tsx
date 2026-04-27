@@ -117,17 +117,17 @@ export function CalendarTimeline({ items, year, month }: CalendarTimelineProps) 
                                     const hasLeftNeighbor = item.periods.some(p => p !== period && p.endDay === period.startDay);
                                     // Verifica se existe alguém que começa exatamente quando este acaba
                                     const hasRightNeighbor = item.periods.some(p => p !== period && p.startDay === period.endDay);
-
-                                    return (
-                                        <ActiveArea
-                                            year={year}
-                                            month={month}
-                                            key={idx}
-                                            period={period}
-                                            isStart={!hasLeftNeighbor}
-                                            isEnd={!hasRightNeighbor}
-                                        />
-                                    )
+                                    if (period.startDay <= new Date(year, month+1, 0) && period.endDay >= new Date(year, month, 1))
+                                        return (
+                                            <ActiveArea
+                                                year={year}
+                                                month={month}
+                                                key={idx}
+                                                period={period}
+                                                isStart={!hasLeftNeighbor}
+                                                isEnd={!hasRightNeighbor}
+                                            />
+                                        )
 
                                 })}
                             </div>
