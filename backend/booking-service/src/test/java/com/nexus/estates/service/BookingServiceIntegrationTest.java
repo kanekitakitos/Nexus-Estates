@@ -11,10 +11,10 @@ import com.nexus.estates.entity.Booking;
 import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.messaging.BookingEventPublisher;
 import com.nexus.estates.repository.BookingRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -23,6 +23,8 @@ import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,16 +40,18 @@ class BookingServiceIntegrationTest {
     private BookingPaymentService bookingPaymentService;
 
     @Mock
-    private Proxy api;
-
-    @Mock
     private NexusClients.PropertyClient propertyClient;
 
     @Mock
     private NexusClients.UserClient userClient;
 
-    @InjectMocks
     private BookingService bookingService;
+
+    @BeforeEach
+    void setUp() {
+        Proxy api = new Proxy(propertyClient, userClient, null);
+        bookingService = new BookingService(bookingRepository, bookingEventPublisher, bookingPaymentService, api);
+    }
 
     @Test
     @DisplayName("Should create booking in integrated flow")
@@ -82,16 +86,10 @@ class BookingServiceIntegrationTest {
         savedBooking.setStatus(BookingStatus.PENDING_PAYMENT);
 
         // Mock comportamentos
-        // 1. Configurar o Proxy para devolver os clientes mockados
-        when(api.userClient()).thenReturn(userClient);
-        when(api.propertyClient()).thenReturn(propertyClient);
-
-        // 2. Configurar as respostas dos clientes (User e Property)
-        when(userClient.getUserEmail(request.userId())).thenReturn("test@nexus.com");
         when(propertyClient.quote(eq(request.propertyId()), any(PropertyQuoteRequest.class)))
                 .thenReturn(ApiResponse.success(PropertyQuoteResponse.success(new BigDecimal("300.00"), "EUR"), "OK"));
 
-        when(bookingRepository.existsOverlappingBooking(any(), any(), any())).thenReturn(false);
+        when(bookingRepository.existsOverlappingBooking(anyLong(), any(), any())).thenReturn(false);
         when(bookingRepository.save(any(Booking.class))).thenReturn(savedBooking);
 
         // Act

@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, Check, X, Loader2, UploadCloud, Trash2 } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
+import Image from "next/image";
+import { X, Loader2, UploadCloud, Trash2 } from 'lucide-react';
 import axios from "axios";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify"
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { PropertyService } from "@/services/property.service";
@@ -48,10 +49,13 @@ function AssetPreview({ url, onRemove }: { url: string; onRemove?: () => void })
             className="group relative aspect-video rounded-[32px] border-2 border-[#0D0D0D] bg-zinc-100 p-2 shadow-[8px_8px_0_0_#0D0D0D] dark:border-zinc-200 dark:bg-zinc-900 dark:shadow-[8px_8px_0_0_rgba(255,255,255,0.1)] overflow-hidden"
         >
             <div className="h-full w-full overflow-hidden rounded-[24px] relative">
-                <img 
-                    src={url} 
-                    alt="Asset Visual Preview" 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                <Image
+                    src={url}
+                    alt="Asset Visual Preview"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 800px"
+                    className="object-cover transition-transform duration-700 group-hover:scale-110"
+                    unoptimized={url.startsWith("blob:") || url.startsWith("data:")}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
@@ -154,7 +158,14 @@ function StagedGallery({
                     animate={{ opacity: 1, scale: 1 }}
                     className="group relative aspect-square rounded-2xl border-2 border-[#0D0D0D] overflow-hidden bg-white dark:bg-zinc-800 shadow-[4px_4px_0_0_#0D0D0D]"
                 >
-                    <img src={image} alt={`Stage ${index}`} className="w-full h-full object-cover" />
+                    <Image
+                        src={image}
+                        alt={`Stage ${index}`}
+                        fill
+                        sizes="(max-width: 1024px) 50vw, 25vw"
+                        className="object-cover"
+                        unoptimized={image.startsWith("blob:") || image.startsWith("data:")}
+                    />
                     <div className="absolute top-2 left-2 font-mono text-[8px] font-black bg-black py-0.5 px-2 rounded text-white border border-white/20">
                         TMP_{index + 1}
                     </div>
@@ -255,7 +266,7 @@ export function ImageInput({
             const params = await PropertyService.getUploadParams() as unknown as CloudinarySignatureParams
 
             if (!params.signature) {
-                toast.error("Protocolo de segurança inválido.")
+                notify.error("Protocolo de segurança inválido.")
                 return
             }
 
@@ -271,7 +282,7 @@ export function ImageInput({
                 uploadedUrls.push(response.data.secure_url)
             }
 
-            toast.success(`Protocolo ${uploadedUrls.length} finalizado.`)
+            notify.success(`Protocolo ${uploadedUrls.length} finalizado.`)
             clearStage()
 
             if (onUploadComplete) onUploadComplete(uploadedUrls)
@@ -279,7 +290,7 @@ export function ImageInput({
 
         } catch (error) {
             console.error("Cloudinary Sync Err:", error)
-            toast.error("Falha na sincronização Nexus_Cloud.")
+            notify.error("Falha na sincronização Nexus_Cloud.")
         } finally {
             setIsUploading(false)
         }

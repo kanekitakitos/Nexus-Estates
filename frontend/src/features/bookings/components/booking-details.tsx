@@ -32,10 +32,11 @@ import {
 import { Button } from "@/components/ui/forms/button"
 import { Badge } from "@/components/ui/badge"
 import { BrutalShard } from "@/components/ui/data-display/card"
-import { BookingProperty } from "./booking-card"
+import Image from "next/image"
+import type { BookingProperty } from "@/types/booking"
 import { cn } from "@/lib/utils"
 import { DateRangeCalendar } from "./date-range-calendar"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { format, differenceInCalendarDays } from "date-fns"
 import {
   AnimatePresence, motion,
@@ -43,12 +44,11 @@ import {
   useScroll, useTransform,
 } from "framer-motion"
 import {
-  staggerContainer, staggerItem,
   imageFade, springSnap, springBounce,
   gummyHover, gummyTap, comicSpring,
   pillHover, pillTap,
   slideInLeftEnter,
-} from "@/features/bookings/motion"
+} from "@/features/bookings/lib/motion"
 
 // ─────────────────────────────────────────────
 // Types
@@ -124,7 +124,7 @@ export function BookingDetails({
       handleConfirmDates(booking.checkIn, booking.checkOut)
     } else {
       scrollToCalendar()
-      toast.info("Seleciona as datas de check-in e check-out.")
+      notify.info("Seleciona as datas de check-in e check-out.")
     }
   }, [booking, handleConfirmDates, scrollToCalendar])
 
@@ -133,13 +133,13 @@ export function BookingDetails({
     <div className="relative min-h-screen overflow-x-hidden bg-background pb-24 lg:pb-0">
 
       {/* ── Back button — in normal document flow, above gallery */}
-      <div className="px-4 md:px-6 lg:px-10 pt-4 md:pt-6">
+      <div className="relative z-20 px-4 md:px-6 lg:px-10 pt-4 md:pt-6">
         <motion.div
           {...slideInLeftEnter(0, -14, 0.22)}
           className="inline-block"
         >
           <motion.div whileHover={pillHover} whileTap={pillTap} transition={springSnap}>
-            <Button onClick={handleBack} variant="brutal-outline" className="group">
+            <Button type="button" onClick={handleBack} variant="brutal-outline" className="group">
               <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
               <span>Voltar</span>
             </Button>
@@ -173,15 +173,22 @@ export function BookingDetails({
                 <div className="mt-4">
                   <DateRangeCalendar
                     pricePerNight={property.price}
+                    showSummary={false}
                     defaultValue={
                       booking.checkIn && booking.checkOut
                         ? { from: booking.checkIn, to: booking.checkOut }
                         : undefined
                     }
+                    onRangeChange={(range) => {
+                      setBooking({
+                        checkIn: range?.from ?? null,
+                        checkOut: range?.to ?? null,
+                      })
+                    }}
                     onConfirmBooking={({ range }) => {
                       if (range.from && range.to) handleConfirmDates(range.from, range.to)
                     }}
-                    onContactOwner={() => toast.info("Chat ainda não disponível.")}
+                    onContactOwner={() => notify.info("Chat ainda não disponível.")}
                   />
                 </div>
               </div>
@@ -197,7 +204,7 @@ export function BookingDetails({
                 nights={nights}
                 total={total}
                 onBookNow={handleBookNow}
-                onContactOwner={() => toast.info("Chat ainda não disponível.")}
+                onContactOwner={() => notify.info("Chat ainda não disponível.")}
               />
             </div>
           </aside>
@@ -327,7 +334,14 @@ function PropertyGallery({ property }: { property: RichProperty }) {
                   : "border-foreground/25 hover:border-foreground/60"
               )}
             >
-              <img src={src} alt="" className="h-full w-full object-cover" />
+              <Image
+                src={src}
+                alt=""
+                fill
+                sizes="112px"
+                className="object-cover"
+                unoptimized
+              />
               <div className="absolute inset-0 bg-background/50 opacity-0 group-hover:opacity-100 transition-opacity grid place-items-center">
                 <span className="font-mono text-[8px] uppercase tracking-widest font-bold">Ver</span>
               </div>

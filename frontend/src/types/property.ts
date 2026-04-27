@@ -128,7 +128,7 @@ export type CreatePropertyRequest = {
   title: string;
   description: Record<string, string>;
   price: number;
-  ownerId: number;
+  ownerId?: number;
   location: string;
   city: string;
   address: string;

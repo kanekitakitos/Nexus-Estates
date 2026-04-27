@@ -1,13 +1,12 @@
 export type UserProfile = {
   id: number
-  name: string
   email: string
-  avatarUrl?: string | null
-  createdAt: string
+  phone?: string | null
+  role?: string | null
+  clerkUserId?: string | null
 }
 
 export type ChangePasswordRequest = {
   currentPassword: string
   newPassword: string
 }
-

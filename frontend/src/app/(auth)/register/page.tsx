@@ -1,5 +1,5 @@
 import { FieldDescription } from "@/components/ui/forms/field"
-import { RegisterForm } from "@/features/auth/components/register-form"
+import { RegisterForm } from "@/features/auth"
 
 
 /**

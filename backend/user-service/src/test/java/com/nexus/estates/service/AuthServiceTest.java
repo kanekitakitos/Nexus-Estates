@@ -74,7 +74,7 @@ class AuthServiceTest {
      * </p>
      */
     @Test
-    @DisplayName("Deve registar utilizador com Role OWNER por defeito e retornar token")
+    @DisplayName("Deve registar utilizador com Role GUEST por defeito e retornar token")
     void shouldRegisterWithDefaultOwnerRoleAndReturnToken() {
         // Arrange
         when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.empty());
@@ -103,11 +103,11 @@ class AuthServiceTest {
 
         User saved = userCaptor.getValue();
         assertEquals("hashed", saved.getPassword());
-        assertEquals(UserRole.OWNER, saved.getRole());
+        assertEquals(UserRole.GUEST, saved.getRole());
 
         assertEquals(generatedId, response.getId());
         assertEquals("new@example.com", response.getEmail());
-        assertEquals("OWNER", response.getRole());
+        assertEquals("GUEST", response.getRole());
         assertEquals("token", response.getToken());
     }
 

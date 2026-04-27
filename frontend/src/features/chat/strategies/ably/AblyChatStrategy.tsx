@@ -7,7 +7,9 @@ import { ChatHeader, ChatFooter, ChatMessageList, initials } from "@/features/ch
 import { Input } from "@/components/ui/forms/input";
 import { BookingService, type BookingResponse } from "@/services/booking.service";
 import { SyncService } from "@/services/sync.service";
-import { toast } from "sonner";
+import { AuthService } from "@/services/auth.service";
+import { notify } from "@/lib/notify";
+import { chatTokens } from "@/features/chat/tokens";
 
 // --- 1. Global Provider ---
 
@@ -24,8 +26,7 @@ const AblyChatList: React.FC<{ onSelectChat: (chatId: string) => void, selectedC
 
   React.useEffect(() => {
     const load = async () => {
-      if (typeof window === "undefined") return;
-      if (!localStorage.getItem("token")) return;
+      if (!AuthService.getSession().isAuthenticated) return;
 
       try {
         setIsLoading(true);
@@ -50,16 +51,16 @@ const AblyChatList: React.FC<{ onSelectChat: (chatId: string) => void, selectedC
       <div className="p-3 border-b">
         <Input
           variant="brutal"
-          placeholder="Pesquisar por bookingId ou propertyId…"
+          placeholder={chatTokens.copy.ui.list.searchPlaceholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
       </div>
 
       {isLoading ? (
-        <div className="p-4 text-sm text-muted-foreground">A carregar conversas…</div>
+        <div className="p-4 text-sm text-muted-foreground">{chatTokens.copy.ui.list.loading}</div>
       ) : filtered.length === 0 ? (
-        <div className="p-4 text-sm text-muted-foreground">Sem conversas disponíveis.</div>
+        <div className="p-4 text-sm text-muted-foreground">{chatTokens.copy.ui.list.empty}</div>
       ) : (
         filtered.map((b) => (
           <button
@@ -72,18 +73,26 @@ const AblyChatList: React.FC<{ onSelectChat: (chatId: string) => void, selectedC
           >
             <div className="shrink-0">
               <div className="size-9 rounded-full overflow-hidden bg-secondary grid place-items-center">
-                <span className="text-xs font-medium">{initials(`B ${b.id}`)}</span>
+                <span className="text-xs font-medium">{initials(`${chatTokens.copy.ui.list.bookingInitialsPrefix}${b.id}`)}</span>
               </div>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex w-full items-center justify-between">
                 <span className="font-medium flex items-center gap-2">
-                  <span className="truncate">Booking #{b.id}</span>
+                  <span className="truncate">
+                    {chatTokens.copy.ui.list.bookingPrefix}
+                    {b.id}
+                  </span>
                 </span>
                 <span className="text-xs text-muted-foreground shrink-0">{b.status}</span>
               </div>
               <span className="text-xs text-muted-foreground line-clamp-1">
-                Property {b.propertyId} · {b.checkInDate} → {b.checkOutDate}
+                {chatTokens.copy.ui.list.propertyPrefix}
+                {b.propertyId}
+                {chatTokens.copy.ui.list.lineJoiner}
+                {b.checkInDate}
+                {chatTokens.copy.ui.list.dateArrow}
+                {b.checkOutDate}
               </span>
             </div>
           </button>
@@ -104,8 +113,8 @@ const AblyBookingChatWindow: React.FC<{ bookingId: string; onBack?: () => void }
   const channelRef = React.useRef<Ably.RealtimeChannel | null>(null);
 
   const mySenderId = React.useMemo(() => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("userId") || localStorage.getItem("userEmail");
+    const session = AuthService.getSession();
+    return session.userId || session.email || null;
   }, []);
 
   const channelId = React.useMemo(() => `booking-chat:${bookingId}`, [bookingId]);
@@ -124,7 +133,7 @@ const AblyBookingChatWindow: React.FC<{ bookingId: string; onBack?: () => void }
               const tokenDetails = await SyncService.getRealtimeToken(bookingId);
               callback(null, tokenDetails as unknown as Ably.TokenDetails);
             } catch {
-              callback(new Ably.ErrorInfo("Falha ao obter token Ably.", 50000, 500), null);
+              callback(new Ably.ErrorInfo(chatTokens.copy.errors.realtimeToken, 50000, 500), null);
             }
           },
         });
@@ -177,7 +186,7 @@ const AblyBookingChatWindow: React.FC<{ bookingId: string; onBack?: () => void }
         setIsReady(true);
       } catch (e) {
         console.error("Erro ao iniciar chat Ably:", e);
-        toast.error("Não foi possível iniciar o chat.");
+        notify.error(chatTokens.copy.errors.startChat);
       } finally {
         setIsConnecting(false);
       }
@@ -226,14 +235,18 @@ const AblyBookingChatWindow: React.FC<{ bookingId: string; onBack?: () => void }
 
       channelRef.current
         .publish("new-message", optimistic)
-        .catch(() => toast.error("Falha ao enviar mensagem."));
+        .catch(() => notify.error(chatTokens.copy.errors.sendMessage));
     },
     [isReady, mySenderId]
   );
 
   return (
     <div className="flex h-full w-full flex-col bg-background">
-      <ChatHeader name={`Booking #${bookingId}`} status={isConnecting ? "A ligar..." : "Online"} onBack={onBack} />
+      <ChatHeader
+        name={`${chatTokens.copy.ui.list.bookingPrefix}${bookingId}`}
+        status={isConnecting ? chatTokens.copy.ui.header.statusConnecting : chatTokens.copy.ui.header.statusOnline}
+        onBack={onBack}
+      />
       {isConnecting ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -241,7 +254,11 @@ const AblyBookingChatWindow: React.FC<{ bookingId: string; onBack?: () => void }
       ) : (
         <ChatMessageList messages={messages} />
       )}
-      <ChatFooter disabled={!isReady} placeholder={isReady ? "Mensagem" : "A ligar..."} onSend={onSend} />
+      <ChatFooter
+        disabled={!isReady}
+        placeholder={isReady ? chatTokens.copy.ui.composer.messagePlaceholder : chatTokens.copy.ui.header.statusConnecting}
+        onSend={onSend}
+      />
     </div>
   );
 };

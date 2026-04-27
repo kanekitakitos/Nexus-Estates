@@ -5,10 +5,13 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.Optional;
 
 /**
@@ -32,8 +35,11 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ExternalSyncService {
 
-    private final RestClient externalApiRestClient;
+    private final WebClient externalApiWebClient;
     private final ExternalAuthService authService;
+
+    @Value("${external.api.timeout.request:5s}")
+    private Duration requestTimeout;
 
     /**
      * Executa POST resiliente esperando um corpo de resposta.
@@ -49,15 +55,22 @@ public class ExternalSyncService {
     public <T> Optional<T> post(ExternalApiConfig config, Object payload, Class<T> respType) {
         log.info("Executando POST resiliente para: {}/{}", config.baseUrl(), config.endpoint());
 
-        T response = externalApiRestClient.post()
+        return externalApiWebClient.post()
                 .uri(config.baseUrl() + config.endpoint())
                 .contentType(MediaType.APPLICATION_JSON)
                 .headers(h -> authService.applyAuthentication(h, config))
-                .body(payload)
-                .retrieve()
-                .body(respType);
-
-        return Optional.ofNullable(response);
+                .bodyValue(payload)
+                .exchangeToMono(response -> {
+                    if (response.statusCode().is2xxSuccessful()) {
+                        return response.bodyToMono(respType);
+                    }
+                    if (response.statusCode().is4xxClientError()) {
+                        return Mono.empty();
+                    }
+                    return response.createException().flatMap(Mono::error);
+                })
+                .timeout(requestTimeout)
+                .blockOptional();
     }
 
     /**
@@ -72,15 +85,23 @@ public class ExternalSyncService {
     public boolean postWithoutResponse(ExternalApiConfig config, Object payload) {
         log.info("Executando POST (sem corpo) para: {}/{}", config.baseUrl(), config.endpoint());
 
-        externalApiRestClient.post()
+        return externalApiWebClient.post()
                 .uri(config.baseUrl() + config.endpoint())
                 .contentType(MediaType.APPLICATION_JSON)
                 .headers(h -> authService.applyAuthentication(h, config))
-                .body(payload)
-                .retrieve()
-                .toBodilessEntity();
-
-        return true;
+                .bodyValue(payload)
+                .exchangeToMono(response -> {
+                    if (response.statusCode().is2xxSuccessful()) {
+                        return Mono.just(true);
+                    }
+                    if (response.statusCode().is4xxClientError()) {
+                        return Mono.just(false);
+                    }
+                    return response.createException().flatMap(Mono::error);
+                })
+                .timeout(requestTimeout)
+                .blockOptional()
+                .orElse(false);
     }
 
     /**

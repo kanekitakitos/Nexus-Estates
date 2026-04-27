@@ -1,7 +1,7 @@
 "use client"
 
 import { useReducedMotion } from "framer-motion"
-import { TICKER_ITEMS } from "../tokens"
+import { TICKER_ITEMS } from "../lib/tokens"
 
 export function Ticker({ fg }: { fg: string }) {
   const reduce = useReducedMotion()

@@ -49,11 +49,13 @@ public class AuthService {
             throw new EmailAlreadyRegisteredException("O email '" + request.getEmail() + "' já se encontra registado.");
         }
 
+        UserRole role = request.getRole() != null ? request.getRole() : UserRole.GUEST;
+
         var user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .phone(request.getPhone())
-                .role(UserRole.OWNER)
+                .role(role)
                 .build();
 
         var savedUser = userRepository.save(user);

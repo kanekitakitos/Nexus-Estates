@@ -10,3 +10,20 @@ export interface SyncMessage {
   content: string;
   createdAt: string;
 }
+
+export type WebhookSubscription = {
+  id: number
+  targetUrl: string
+  isActive: boolean
+  subscribedEvents: string
+}
+
+export type CreateWebhookSubscriptionRequest = {
+  targetUrl: string
+  subscribedEvents: string[]
+}
+
+export type CreatedWebhookSubscription = {
+  id: number
+  secret: string
+}

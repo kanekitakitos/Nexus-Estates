@@ -20,7 +20,7 @@ import { BrutalCard } from "@/components/ui/data-display/card"
 import { Button } from "@/components/ui/forms/button"
 import { motion, useReducedMotion } from "framer-motion"
 import { ArrowRight, Search, CalendarCheck, Smile } from "lucide-react"
-import { scannerLine, staggerContainer, staggerItem, springSnap, springBounce } from "@/features/bookings/motion"
+import { scannerLine, staggerContainer, staggerItem, springSnap, springBounce } from "@/features/bookings/lib/motion"
 
 // ─────────────────────────────────────────────
 // Types

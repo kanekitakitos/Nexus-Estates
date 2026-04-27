@@ -13,10 +13,10 @@ import {
     DropdownMenuTrigger 
 } from "@/components/ui/overlay/dropdown-menu"
 import { BrutalCard } from "@/components/ui/data-display/brutal-card"
-import { toast } from "sonner"
-import { proPanel, nexusKineticLight, nexusShadowSm } from "../property-tokens"
+import { notify } from "@/lib/notify"
+import { proPanel, propertyCopy, propertyTokens } from "../lib/property-tokens"
 import { motion, AnimatePresence } from "framer-motion"
-import { staggerContainer, itemFadeUp, microPop } from "../animations"
+import { staggerContainer, itemFadeUp } from "../lib/animations"
 
 // ─── Tipos e Interfaces ───────────────────────────────────────────────────
 
@@ -34,10 +34,10 @@ export interface CollaboratorManagerProps {
 
 /** Definição de papéis/roles disponíveis */
 export const ROLES = [
-    { id: "VIEWER", label: "Leitura" },
-    { id: "EDITOR", label: "Editor" },
-    { id: "ADMIN", label: "Admin" },
-    { id: "OWNER", label: "Proprietário" }
+    { id: "VIEWER", label: propertyCopy.collaboratorManager.roleViewer },
+    { id: "EDITOR", label: propertyCopy.collaboratorManager.roleEditor },
+    { id: "ADMIN", label: propertyCopy.collaboratorManager.roleAdmin },
+    { id: "OWNER", label: propertyCopy.collaboratorManager.roleOwner }
 ]
 
 // ─── Sub-Componentes Internos ──────────────────────────────────────────────
@@ -53,12 +53,12 @@ function RoleSelector({
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <button className="flex w-full min-w-[140px] items-center justify-between gap-2 rounded-xl border-2 border-[#000000] bg-white px-4 py-3 font-mono text-[10px] font-black uppercase tracking-widest text-[#0D0D0D] transition-all hover:bg-[#FAFAF5] dark:border-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 shadow-[2px_2px_0_0_#000000] dark:shadow-[2px_2px_0_0_rgba(255,255,255,0.1)] md:w-auto">
-                    {ROLES.find(r => r.id === value)?.label || "ROLE"}
+                <button className={propertyTokens.ui.collaborator.roleTriggerClass}>
+                    {ROLES.find(r => r.id === value)?.label || propertyCopy.collaboratorManager.roleFallback}
                     <ChevronDown size={14} strokeWidth={3} className="opacity-40" />
                 </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 border-2 border-[#000000] bg-white p-1 shadow-[4px_4px_0_0_#000000] dark:border-zinc-100 dark:bg-zinc-950">
+            <DropdownMenuContent align="end" className={propertyTokens.ui.collaborator.roleContentClass}>
                 <DropdownMenuRadioGroup value={value} onValueChange={onChange}>
                     {ROLES.map((role) => (
                         <DropdownMenuRadioItem 
@@ -96,11 +96,11 @@ function CollaboratorInput({
 
     return (
         <div className={cn(proPanel, "flex flex-col gap-3 p-6 md:flex-row md:items-center")}>
-            <div className="min-w-0 flex-1 rounded-xl border-2 border-[#000000] bg-white px-4 py-3 dark:border-zinc-100 dark:bg-zinc-950 shadow-[2px_2px_0_0_#000000] dark:shadow-[2px_2px_0_0_rgba(255,255,255,0.1)]">
+            <div className={propertyTokens.ui.collaborator.emailBoxClass}>
                 <input
-                    type="email" placeholder="nome@empresa.com" value={email}
+                    type="email" placeholder={propertyCopy.collaboratorManager.emailPlaceholder} value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-transparent text-sm font-medium text-[#0D0D0D] outline-none placeholder:text-[#8C7B6B]/40 dark:text-white"
+                    className={propertyTokens.ui.collaborator.emailInputClass}
                 />
             </div>
 
@@ -112,9 +112,9 @@ function CollaboratorInput({
                 variant="brutal"
             >
                 {isVerifying ? (
-                    <span className="flex items-center gap-2">Verificando <Loader2 className="h-3 w-3 animate-spin" /></span>
+                    <span className="flex items-center gap-2">{propertyCopy.collaboratorManager.verifying} <Loader2 className="h-3 w-3 animate-spin" /></span>
                 ) : (
-                    "Convidar"
+                    propertyCopy.collaboratorManager.invite
                 )}
             </BrutalButton>
         </div>
@@ -132,23 +132,23 @@ function CollaboratorItem({
     return (
         <motion.div 
             variants={itemFadeUp}
-            className="flex items-center justify-between gap-4 rounded-xl border border-[#000000]/10 bg-white px-5 py-3 dark:border-zinc-800 dark:bg-zinc-900/50 hover:shadow-md transition-shadow"
+            className={propertyTokens.ui.collaborator.itemClass}
         >
             <div className="flex items-center gap-3 min-w-0">
                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-black font-mono">
                     {perm.email[0].toUpperCase()}
                 </div>
-                <span className="truncate text-sm font-medium text-[#0D0D0D] dark:text-zinc-100">
+                <span className={propertyTokens.ui.collaborator.itemEmailClass}>
                     {perm.email}
                 </span>
             </div>
             <div className="flex shrink-0 items-center gap-4">
-                <span className="rounded-lg bg-[#FAFAF5] border border-[#0D0D0D]/10 px-3 py-1 font-mono text-[9px] font-black uppercase text-[#8C7B6B] dark:bg-zinc-800 dark:text-zinc-400">
+                <span className={propertyTokens.ui.collaborator.permBadgeClass}>
                     {perm.level}
                 </span>
                 <button
                     type="button" onClick={() => onRemove(perm.email)}
-                    className="p-1.5 text-[#8C7B6B] hover:text-rose-600 transition-colors"
+                    className={propertyTokens.ui.collaborator.removeButtonClass}
                 >
                     <X size={16} strokeWidth={2.5} />
                 </button>
@@ -171,12 +171,12 @@ export function CollaboratorManager({ permissions, onAdd, onRemove, isCard = tru
     /** Executa o protocolo de convite com verificação de rede mockada */
     const handleInvite = async (email: string, role: string) => {
         if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-            toast.error("Email inválido")
+            notify.error(propertyCopy.collaboratorManager.invalidEmail)
             return
         }
 
         if (permissions.some(p => p.email === email)) {
-            toast.error("Colaborador já adicionado")
+            notify.error(propertyCopy.collaboratorManager.alreadyAdded)
             return
         }
 
@@ -185,9 +185,9 @@ export function CollaboratorManager({ permissions, onAdd, onRemove, isCard = tru
             // Nexus Network Protocol: Simulação de verificação
             await new Promise(r => setTimeout(r, 800))
             onAdd(email, role)
-            toast.success(`Protocolo: ${email} indexado com sucesso`)
-        } catch (e) {
-            toast.error("Falha na rede Nexus")
+            notify.success(`${propertyCopy.collaboratorManager.inviteOkPrefix} ${email} ${propertyCopy.collaboratorManager.inviteOkSuffix}`)
+        } catch {
+            notify.error(propertyCopy.collaboratorManager.networkFail)
         } finally {
             setIsVerifying(false)
         }
@@ -211,9 +211,9 @@ export function CollaboratorManager({ permissions, onAdd, onRemove, isCard = tru
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="p-10 text-center border-2 border-dashed border-[#0D0D0D]/10 rounded-2xl bg-[#FAFAF5]/30 dark:bg-zinc-900/20"
+                            className={propertyTokens.ui.collaborator.emptyStateClass}
                         >
-                            <p className="text-sm text-[#8C7B6B] italic font-serif">Sem colaboradores externos indexados.</p>
+                            <p className={propertyTokens.ui.collaborator.emptyTextClass}>{propertyCopy.collaboratorManager.empty}</p>
                         </motion.div>
                     ) : (
                         permissions.map((perm) => (
@@ -229,11 +229,11 @@ export function CollaboratorManager({ permissions, onAdd, onRemove, isCard = tru
         return (
             <BrutalCard 
                 id="collaborator-manager"
-                title="Colaboradores"
-                subtitle="Convites e níveis de acesso"
+                title={propertyCopy.collaboratorManager.cardTitle}
+                subtitle={propertyCopy.collaboratorManager.cardSubtitle}
                 icon={<ShieldCheck size={22} strokeWidth={2} />}
-                iconBgColor="bg-blue-500/10 border-blue-500/20"
-                iconTextColor="text-blue-500"
+                iconBgColor={propertyTokens.ui.collaborator.cardIconBgColor}
+                iconTextColor={propertyTokens.ui.collaborator.cardIconTextColor}
             >
                 {content}
             </BrutalCard>

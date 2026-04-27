@@ -1,8 +1,8 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { SECTIONS, B } from "../tokens"
-import { sideProgressTransition, slideInLeftEnter } from "../motion"
+import { SECTIONS, B } from "../lib/tokens"
+import { sideProgressTransition, slideInLeftEnter } from "../lib/motion"
 
 export function SideProgress({ active, fg }: { active: number; fg: string }) {
   return (

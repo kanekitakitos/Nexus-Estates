@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { useReducedMotion } from "framer-motion"
+import { landingTokens } from "../lib/tokens"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,7 +63,7 @@ function initMeta(): IconMeta[] {
 }
 
 function resolveIconCollisions(meta: IconMeta[], posX: number[], posY: number[]) {
-  // ... (Mantive a tua lógica de colisão intacta, está correta)
+  
   for (let i = 0; i < meta.length; i++) {
     for (let j = i + 1; j < meta.length; j++) {
       const mi = meta[i], mj = meta[j]
@@ -223,7 +224,7 @@ export function FloatingObjects() {
             strokeWidth={2}
             style={{
               mixBlendMode: "overlay",
-              filter: "drop-shadow(0 0 4px rgba(255,255,255,0.02))",
+              filter: landingTokens.ui.landing.effects.iconDropShadow,
             }}
           >
             <path

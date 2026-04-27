@@ -1,6 +1,6 @@
 import { bookingsAxios } from "@/lib/axiosAPI"
 import type { AxiosError } from "axios"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import type { PaymentMethod, PaymentResponse, PaymentStatus, ProviderInfo, RefundResult, TransactionInfo } from "@/types/finance"
 
 export type { PaymentMethod, PaymentResponse, PaymentStatus, ProviderInfo, RefundResult, TransactionInfo } from "@/types/finance"
@@ -108,14 +108,14 @@ export class FinanceService {
     if (this.isAxiosError(error) && error.response) {
       const status = error.response.status
       if (status === 403) {
-        toast.error("Não tem permissão para esta ação.")
+        notify.error("Não tem permissão para esta ação.")
       } else if (status === 401) {
-        toast.error("Sessão expirada. Faça login novamente.")
+        notify.error("Sessão expirada. Faça login novamente.")
       } else {
-        toast.error(`Erro ao ${action}. Tente novamente.`)
+        notify.error(`Erro ao ${action}. Tente novamente.`)
       }
     } else {
-      toast.error("Erro de conexão ao servidor financeiro.")
+      notify.error("Erro de conexão ao servidor financeiro.")
     }
   }
 }
