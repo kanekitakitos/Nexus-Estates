@@ -17,7 +17,7 @@ export const MOCK_BOOKINGS: BookingResponse[] = [
     { id: 10, propertyId: 3, userId: 0, checkInDate: "2026-01-28", checkOutDate: "2026-02-02", guestCount: 2, totalPrice: 750, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
 
     // --- NOVOS (Para preencher o ano) ---
-
+    /**/
     // Primavera (Abril/Maio)
     { id: 11, propertyId: 0, userId: 2, checkInDate: "2026-04-10", checkOutDate: "2026-04-15", guestCount: 2, totalPrice: 700, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
     { id: 12, propertyId: 1, userId: 4, checkInDate: "2026-05-20", checkOutDate: "2026-05-25", guestCount: 2, totalPrice: 425, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
@@ -34,7 +34,9 @@ export const MOCK_BOOKINGS: BookingResponse[] = [
     // Inverno (Novembro/Dezembro)
     { id: 18, propertyId: 0, userId: 4, checkInDate: "2026-11-20", checkOutDate: "2026-11-25", guestCount: 2, totalPrice: 750, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
     { id: 19, propertyId: 2, userId: 3, checkInDate: "2026-12-23", checkOutDate: "2026-12-30", guestCount: 5, totalPrice: 2000, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
+    /**/
 ];
+
 export const MOCK_PROPERTIES: BookingProperty[] = [
     {
         id: "0",
@@ -79,10 +81,10 @@ export const MOCK_PROPERTIES: BookingProperty[] = [
 ];
 
 export const MOCK_USER: UserProfile[] = [
-    { id: 0, name: "Marco Reus", email: "marco@example.com", createdAt: "2024-01-01" },
-    { id: 1, name: "Saul Goodman", email: "bettercall@saul.com", createdAt: "2024-01-05" },
-    { id: 2, name: "Obi-Wan Kenobi", email: "highground@jedi.com", createdAt: "2024-01-10" },
-    { id: 3, name: "Mike Ehrmantraut", email: "nomorehalfmeasures@security.com", createdAt: "2024-01-15" },
-    { id: 4, name: "Walter White", email: "heisenberg@blue.com", createdAt: "2024-02-01" },
-    { id: 5, name: "Jesse Pinkman", email: "science.yo@bitch.com", createdAt: "2024-02-02" },
+    { id: 0, email: "marco@example.com" },
+    { id: 1, email: "bettercall@saul.com"},
+    { id: 2, email: "highground@jedi.com" },
+    { id: 3, email: "nomorehalfmeasures@security.com" },
+    { id: 4, email: "heisenberg@blue.com" },
+    { id: 5, email: "science.yo@bitch.com" },
 ];
