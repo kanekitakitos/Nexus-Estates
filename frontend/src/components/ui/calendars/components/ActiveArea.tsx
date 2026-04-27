@@ -12,8 +12,6 @@ export function ActiveArea({year, month, period, isStart, isEnd }: {year:number,
     const startPos = (period.startDay.getDate() - 1) * dayWidth
     const duration = period.endDay.getDate() - period.startDay.getDate() + 1
 
-
-    console.log("show Active ARea : " + show)
     // Ajuste de largura: se não houver vizinho, damos um pequeno gap (como tinhas antes)
     // Se houver vizinho, a largura vai até ao limite exato para o clip-path funcionar
     const width = duration * dayWidth;
