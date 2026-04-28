@@ -1,5 +1,6 @@
 package com.nexus.estates.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
@@ -22,6 +23,18 @@ import java.util.function.Function;
  */
 @Configuration
 public class ExternalApiClientConfig {
+
+    @Value("${external.api.base-url}")
+    private String externalApiBaseUrl;
+
+    /**
+     * Bean principal de RestClient para comunicação com a API externa padrão.
+     * Necessário para a injeção de dependência no ExternalSyncService.
+     */
+    @Bean
+    public RestClient externalApiRestClient(RestClient.Builder builder) {
+        return builder.baseUrl(externalApiBaseUrl).build();
+    }
 
     /**
      * Factory para criar clientes REST dinamicamente.
