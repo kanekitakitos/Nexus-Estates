@@ -37,6 +37,7 @@ export function CalendarTimeline({ items, year, month, onClickData, onClickActiv
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const days = Array.from({length: daysInMonth}, (_, i) => i + 1);
 
+
     const isThisMonth = year == new Date().getFullYear()
 
     // Nomes dos meses
@@ -169,7 +170,7 @@ export function CalendarTimeline({ items, year, month, onClickData, onClickActiv
                                         // Verifica se existe alguém que começa exatamente quando este acaba
                                         const hasRightNeighbor = item.periods.some(p => p !== period && p.startDay.getTime() === period.endDay.getTime());
 
-                                        if (period.startDay <= new Date(year, month+1, 0) && period.endDay >= new Date(year, month, 1))
+                                        if (period.startDay < new Date(year, month+1, 1) && period.endDay >= new Date(year, month, 1))
                                             return (
                                                 <ActiveArea
                                                     year={year}
@@ -182,7 +183,6 @@ export function CalendarTimeline({ items, year, month, onClickData, onClickActiv
                                                     onClick={()=>onClickActiveArea?.(period)}
                                                 />
                                             )
-
                                     })}
                                 </div>
                             </div>
