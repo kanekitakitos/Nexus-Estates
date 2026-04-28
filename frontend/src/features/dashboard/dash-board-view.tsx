@@ -42,11 +42,11 @@ export function DashBoardView(){
     useEffect(() => {
         const loadData = async () => {
             // 1. Procura as propriedades primeiro
-            //const fetchedProperties = await PropertyService.getAllOwnProperties()
-              //  .catch(() => MOCK_PROPERTIES);
+            //const fetchedProperties = await PropertyService.listMine()
+            //     .catch(() => MOCK_PROPERTIES);
 
             // 2. Procura os bookings usando o resultado direto da API (não o estado)
-           // const fetchedBookings = await getBookingsFromProperties(fetchedProperties);
+            //const fetchedBookings = await getBookingsFromProperties(fetchedProperties);
 
             // 3. Atualiza os estados uma única vez
             setProperties(MOCK_PROPERTIES);
