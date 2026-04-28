@@ -170,7 +170,7 @@ export function CalendarTimeline({ items, year, month, onClickData, onClickActiv
                                         // Verifica se existe alguém que começa exatamente quando este acaba
                                         const hasRightNeighbor = item.periods.some(p => p !== period && p.startDay.getTime() === period.endDay.getTime());
 
-                                        if (period.startDay <= new Date(year, month+1, 1) && period.endDay >= new Date(year, month, 1))
+                                        if (period.startDay < new Date(year, month+1, 1) && period.endDay >= new Date(year, month, 1))
                                             return (
                                                 <ActiveArea
                                                     year={year}
