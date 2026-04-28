@@ -21,6 +21,7 @@ export interface CalendarTimelineProps {
     month: number;
     onClickData?: (item: TimelineItemWithNames) => void;
     onClickActiveArea?: (period: Period) => void;
+    scroolOnScroolEvent? : boolean;
 }
 
 /**
@@ -31,7 +32,7 @@ export interface CalendarTimelineProps {
  * @param title
  * @constructor
  */
-export function CalendarTimeline({ items, year, month, onClickData, onClickActiveArea }: CalendarTimelineProps) {
+export function CalendarTimeline({ items, year, month, onClickData, onClickActiveArea, scroolOnScroolEvent = true}: CalendarTimelineProps) {
     // Calcular número de dias no mês
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const days = Array.from({length: daysInMonth}, (_, i) => i + 1);
@@ -47,6 +48,8 @@ export function CalendarTimeline({ items, year, month, onClickData, onClickActiv
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        if (!scroolOnScroolEvent)
+            return;
         const el = scrollRef.current;
         if (!el) return;
 
