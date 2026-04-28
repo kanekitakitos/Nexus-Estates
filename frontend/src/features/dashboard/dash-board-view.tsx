@@ -14,24 +14,41 @@ import {
     ArrowLeft,
     ArrowRight
 } from 'lucide-react';
-import {ChartPieLabel} from "@/components/ui/data-display/Charts/PieChart";
 import {ChartLineMultiple, LineChartData} from "@/components/ui/data-display/Charts/ChartLineMultiple";
 import {ChartRadarLegend, RadarChartData} from "@/components/ui/data-display/Charts/ChartRadarLegend";
 import {BarChartData, ChartBarMultiple} from "@/components/ui/data-display/Charts/ChartBarMultiple";
 import {BrutalButton} from "@/components/ui/forms/button";
-import {DropdownMenu, DropdownMenuContent, DropdownMenuLabel} from "@/components/ui/overlay/dropdown-menu";
-
-
-
-
-
 
 
 export function DashBoardView(){
-    const [properties, setProperties] = useState<BookingProperty[]>([])
-    const [bookings, setBookings] = useState<BookingResponse[]>([])
+    const [properties, setProperties] = useState<Map<number, BookingProperty>>(new Map())
+    const [bookings, setBookings] = useState<Map<number, BookingResponse[]>>(new Map())
 
-    const [showDropDate, setShowDropDate] = useState<boolean>(false)
+    const [focusPropertie, setFocusPropertie] = useState<BookingProperty | undefined>(undefined);
+
+    // 1. Filtramos as propriedades e bookings com base no foco
+    const filteredProperties: BookingProperty[] = useMemo(() => {
+        return focusPropertie ? [focusPropertie] : properties.values().toArray();
+    }, [focusPropertie, properties]);
+
+    const filteredBookings :BookingResponse[] = useMemo(() => {
+        if (focusPropertie)
+            return bookings.get(Number(focusPropertie.id)) ?? [];
+        else
+            return Array.from(bookings.values()).flat();
+    }, [focusPropertie, bookings]);
+
+    const handlePropertyClick = (item: TimelineItemWithNames) => {
+        if (item.properti != undefined) {
+            // Se clicar na mesma, remove o foco (toggle)
+            if (focusPropertie?.id === item.properti.id) {
+                setFocusPropertie(undefined);
+            } else {
+                setFocusPropertie(properties.get(Number(item.properti.id)));
+            }
+        }
+    };
+
 
     const [viewDate, setViewDate] = useState<Date>(new Date(2026, 1))
     const monthNames = [
@@ -41,26 +58,31 @@ export function DashBoardView(){
 
     useEffect(() => {
         const loadData = async () => {
-            // 1. Procura as propriedades primeiro
             //const fetchedProperties = await PropertyService.listMine()
             //     .catch(() => MOCK_PROPERTIES);
 
-            // 2. Procura os bookings usando o resultado direto da API (não o estado)
             //const fetchedBookings = await getBookingsFromProperties(fetchedProperties);
 
-            // 3. Atualiza os estados uma única vez
-            setProperties(MOCK_PROPERTIES);
-            setBookings(MOCK_BOOKINGS);
+            const properties : Map<number,  BookingProperty> = new Map()
+            MOCK_PROPERTIES.forEach((pro) => properties.set(Number(pro.id), pro))
+
+            const bookings : Map<number,  BookingResponse[]> = new Map()
+            MOCK_BOOKINGS.forEach((book) => {
+                const prev: BookingResponse[] = bookings.get(book.propertyId) || [];
+                bookings.set(Number(book.propertyId), [...prev, book])
+            })
+
+            setProperties(properties);
+            setBookings(bookings);
         };
 
         loadData();
     }, []);
 
+
     const calendarItems = useMemo(() => {
-        return createCalendarItems(properties, bookings);
-    }, [properties, bookings]);
-
-
+        return createCalendarItems(filteredProperties, filteredBookings);
+    }, [filteredProperties, filteredBookings]);
 
 
     const stats = useMemo(() => {
@@ -69,19 +91,19 @@ export function DashBoardView(){
             checkOut: 0,
             lucrado: 0,
             porLucrar: 0,
-            count: bookings.length,
+            count: filteredBookings.length,
         };
 
         const now = new Date();
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
 
-        const totalDailyPotentialRevenue = properties.reduce(
+        const totalDailyPotentialRevenue = filteredProperties.reduce(
             (acc, p) => acc + p.price, 0
         );
 
         const barMap : Map<number, BarChartData> = new Map();
-        properties.forEach(p => {
+        filteredProperties.forEach(p => {
             barMap.set(Number(p.id), { name: p.title, occupancy:0 ,profit: 0 } as BarChartData);
         });
 
@@ -99,13 +121,19 @@ export function DashBoardView(){
         }));
 
 
-        bookings.forEach((b) => {
+        filteredBookings.forEach((b) => {
             const checkIn = new Date(b.checkInDate);
             const checkOut = new Date(b.checkOutDate);
 
 
-            if (checkIn.getMonth() == viewDate.getMonth()) totals.checkIn++;
-            if (checkOut.getMonth() == viewDate.getMonth()) totals.checkOut++;
+            const isSameMonth = checkIn.getMonth() === viewDate.getMonth() &&
+                checkIn.getFullYear() === viewDate.getFullYear();
+
+            const isSameMonthOut = checkOut.getMonth() === viewDate.getMonth() &&
+                checkOut.getFullYear() === viewDate.getFullYear();
+
+            if (isSameMonth) totals.checkIn++;
+            if (isSameMonthOut) totals.checkOut++;
 
             if (checkOut < now) totals.lucrado += b.totalPrice;
             else if (checkIn > now) totals.porLucrar += b.totalPrice;
@@ -131,15 +159,15 @@ export function DashBoardView(){
                 radarData[m].profit += b.totalPrice;
                 // Cálculo simplificado de ocupação
                 const daysOccupied :number = checkIn.getDate() + (checkOut.getMonth() > checkIn.getMonth() ? daysInMonth : checkOut.getDate())
-                if (properties.length > 0)
-                    radarData[m].occupancy = (radarData[m].occupancy*(daysInMonth * properties.length) + daysOccupied) / (daysInMonth * properties.length)
+                if (filteredProperties.length > 0)
+                    radarData[m].occupancy = (radarData[m].occupancy*(daysInMonth * filteredProperties.length) + daysOccupied) / (daysInMonth * filteredProperties.length)
                 else {
                     radarData[m].occupancy = 0
                     console.error("Não existe propriedades para as estatisticas")
                 }
             }
 
-            //C. Line Chatr_ Lucro e Ocupação total deste mês
+            //C. Line Chart:Lucro e Ocupação total deste mês
             if (checkIn.getFullYear() == viewDate.getFullYear() && checkOut.getFullYear() == viewDate.getFullYear()
                     && checkIn.getMonth() <= viewDate.getMonth() && checkOut.getMonth() >= viewDate.getMonth()) {
 
@@ -153,13 +181,6 @@ export function DashBoardView(){
             }
         });
 
-        // console.log("INIT DATA -------------------------------------")
-        // console.log(
-        //     stats.barCharData
-        // )
-        // console.log("END DATA -------------------------------------")
-
-        // 3. Formatação Final
         return {
             ...totals,
             barCharData: Array.from(barMap.values()),
@@ -167,16 +188,16 @@ export function DashBoardView(){
             radarCharData: radarData.map(m => ({
                 ...m,
                 // % em relação ao total de propriedades disponível no mês (ajusta o 30 se quiseres precisão por dias do mês)
-                occupancy: properties.length > 0 ? (m.occupancy / (properties.length * 3)) * 100 : 0
+                occupancy: filteredProperties.length > 0 ? (m.occupancy / (filteredProperties.length * 3)) * 100 : 0
             })) as RadarChartData[],
 
             lineCharData: lineData.map(d => ({
                 day: `${d.day}`,
-                occupancy: properties.length > 0 ? (d.bookedCount / properties.length) * 100 : 0,
+                occupancy: filteredProperties.length > 0 ? (d.bookedCount / filteredProperties.length) * 100 : 0,
                 profit: totalDailyPotentialRevenue > 0 ? (d.profit / totalDailyPotentialRevenue) * 100 : 0
             })) as LineChartData[]
         };
-    }, [bookings, properties, viewDate]);
+    }, [filteredBookings, filteredProperties, viewDate]);
 
 
 
@@ -189,7 +210,7 @@ export function DashBoardView(){
                     color={"text-emerald-500"}
                     glowColor={"bg-emerald-500"}
                     icon={SquareArrowRightEnter}
-                    suffix={"Enter"}
+                    suffix={"Enter this month"}
                     index={0}
                 />
                 <StatCard
@@ -198,12 +219,12 @@ export function DashBoardView(){
                     color={"text-rose-500"}
                     glowColor={"bg-rose-500"}
                     icon={SquareArrowRightExit}
-                    suffix={"Leave"}
+                    suffix={"Leave this month"}
                     index={0}
                 />
                 <StatCard
                     label={"Reservas"}
-                    value={bookings.length}
+                    value={filteredBookings.length}
                     color={"text-amber-600"}
                     glowColor={"bg-amber-600"}
                     icon={SquareArrowRightExit}
@@ -240,7 +261,7 @@ export function DashBoardView(){
 
                 <div
                     className="text-xl rounded-2xl font-black uppercase tracking-wider bg-black text-white px-4 py-3 inline-block"
-                    onClick={()=>{setShowDropDate(!showDropDate)}}
+                    onClick={()=>{setViewDate(new Date())}}
                 >
                     {new Date().getFullYear() == viewDate.getFullYear() && new Date().getMonth() == viewDate.getMonth()
                         ?<>
@@ -265,6 +286,7 @@ export function DashBoardView(){
                 items={calendarItems}
                 year={viewDate.getFullYear()}
                 month={viewDate.getMonth()}
+                onClickData={handlePropertyClick}
             />
 
             <div className="grid grid-cols-3 gap-5">
