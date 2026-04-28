@@ -212,6 +212,7 @@ export function DashBoardView(){
                     icon={SquareArrowRightEnter}
                     suffix={"Enter this month"}
                     index={0}
+                    animatedCount={false}
                 />
                 <StatCard
                     label={"CHECK-OUT"}
@@ -221,6 +222,7 @@ export function DashBoardView(){
                     icon={SquareArrowRightExit}
                     suffix={"Leave this month"}
                     index={0}
+                    animatedCount={false}
                 />
                 <StatCard
                     label={"Reservas"}
@@ -230,6 +232,7 @@ export function DashBoardView(){
                     icon={SquareArrowRightExit}
                     suffix={""}
                     index={0}
+                    animatedCount={false}
                 />
                 <StatCard
                     label={"lucro Faturado"}
@@ -239,6 +242,7 @@ export function DashBoardView(){
                     icon={BanknoteArrowUp}
                     suffix={"€"}
                     index={0}
+                    animatedCount={false}
                 />
                 <StatCard
                     label={"lucro por faturar"}
@@ -248,6 +252,7 @@ export function DashBoardView(){
                     icon={BanknoteX}
                     suffix={"€"}
                     index={0}
+                    animatedCount={false}
                 />
             </div>
 
