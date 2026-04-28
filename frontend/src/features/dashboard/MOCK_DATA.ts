@@ -5,10 +5,10 @@ import { UserProfile } from "@/services";
 export const MOCK_BOOKINGS: BookingResponse[] = [
     // --- EXISTENTES (ID 0 a 10) ---
     { id: 0, propertyId: 0, userId: 0, checkInDate: "2026-02-02", checkOutDate: "2026-02-05", guestCount: 2, totalPrice: 350, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
-    { id: 1, propertyId: 0, userId: 1, checkInDate: "2026-02-08", checkOutDate: "2026-02-10", guestCount: 2, totalPrice: 100, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
-    { id: 2, propertyId: 1, userId: 2, checkInDate: "2026-02-04", checkOutDate: "2026-02-07", guestCount: 3, totalPrice: 600, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
+     { id: 1, propertyId: 0, userId: 1, checkInDate: "2026-02-08", checkOutDate: "2026-02-10", guestCount: 2, totalPrice: 100, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
+     { id: 2, propertyId: 1, userId: 2, checkInDate: "2026-02-04", checkOutDate: "2026-02-07", guestCount: 3, totalPrice: 600, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
     { id: 3, propertyId: 1, userId: 3, checkInDate: "2026-02-12", checkOutDate: "2026-02-15", guestCount: 1, totalPrice: 450, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
-    { id: 4, propertyId: 2, userId: 4, checkInDate: "2026-02-01", checkOutDate: "2026-02-06", guestCount: 4, totalPrice: 1200, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
+    //{ id: 4, propertyId: 2, userId: 4, checkInDate: "2026-02-01", checkOutDate: "2026-02-06", guestCount: 4, totalPrice: 1200, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
     { id: 5, propertyId: 3, userId: 5, checkInDate: "2026-02-10", checkOutDate: "2026-02-14", guestCount: 2, totalPrice: 800, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
     { id: 6, propertyId: 3, userId: 0, checkInDate: "2026-02-16", checkOutDate: "2026-02-20", guestCount: 2, totalPrice: 750, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
     { id: 7, propertyId: 3, userId: 0, checkInDate: "2026-01-16", checkOutDate: "2026-01-20", guestCount: 2, totalPrice: 750, currency: "EUR", status: "CONFIRMED" } as BookingResponse,
