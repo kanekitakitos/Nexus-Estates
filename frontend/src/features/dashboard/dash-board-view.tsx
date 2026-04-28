@@ -1,6 +1,6 @@
 "use client"
 import {CalendarTimeline} from "@/components/ui/calendars/calendar(x,y)";
-import {BookingResponse, Period, TimelineItemWithNames} from "@/types"
+import {BookingResponse, Page, Period, PropertyListItem, TimelineItemWithNames} from "@/types"
 import {BookingService, PropertyService, UserProfile} from "@/services";
 import {BookingProperty} from "@/features/bookings/components/booking-card";
 import {useEffect, useMemo, useState} from "react";
@@ -21,15 +21,16 @@ import {BrutalButton} from "@/components/ui/forms/button";
 
 
 export function DashBoardView(){
-    const [properties, setProperties] = useState<Map<number, BookingProperty>>(new Map())
+    const [properties, setProperties] = useState<Map<number, PropertyListItem>>(new Map())
     const [bookings, setBookings] = useState<Map<number, BookingResponse[]>>(new Map())
 
-    const [focusPropertie, setFocusPropertie] = useState<BookingProperty | undefined>(undefined);
+    const [focusPropertie, setFocusPropertie] = useState<PropertyListItem | undefined>(undefined);
 
-    // 1. Filtramos as propriedades e bookings com base no foco
-    const filteredProperties: BookingProperty[] = useMemo(() => {
+
+    const filteredProperties: PropertyListItem[] = useMemo(() => {
         return focusPropertie ? [focusPropertie] : properties.values().toArray();
     }, [focusPropertie, properties]);
+
 
     const filteredBookings :BookingResponse[] = useMemo(() => {
         if (focusPropertie)
@@ -37,6 +38,7 @@ export function DashBoardView(){
         else
             return Array.from(bookings.values()).flat();
     }, [focusPropertie, bookings]);
+
 
     const handlePropertyClick = (item: TimelineItemWithNames) => {
         if (item.properti != undefined) {
@@ -50,7 +52,7 @@ export function DashBoardView(){
     };
 
 
-    const [viewDate, setViewDate] = useState<Date>(new Date(2026, 1))
+    const [viewDate, setViewDate] = useState<Date>(new Date())
     const monthNames = [
         'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
         'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
@@ -58,22 +60,24 @@ export function DashBoardView(){
 
     useEffect(() => {
         const loadData = async () => {
-            //const fetchedProperties = await PropertyService.listMine()
-            //     .catch(() => MOCK_PROPERTIES);
+            const fetchedProperties : Map<number,PropertyListItem> = new Map<number, PropertyListItem>()
+            await PropertyService.listMine()
+                .then((page :Page<PropertyListItem>) :PropertyListItem[] => page.content)
+                .then((list:PropertyListItem[])=> {
+                        for (const p of list)
+                            fetchedProperties.set(p.id, p)
+                })
+                .catch(() => {console.error("FAIL FETCH PROPERTY")})
 
-            //const fetchedBookings = await getBookingsFromProperties(fetchedProperties);
+            const fetchedBookings :Map<number, BookingResponse[]> = new Map<number, BookingResponse[]>()
+            for (const p of fetchedProperties.values()) {
+                const books :BookingResponse[] = await BookingService.getBookingsByProperty(p.id).then((br :BookingResponse[])=>br)
+                fetchedBookings.set(p.id, books)
+            }
 
-            const properties : Map<number,  BookingProperty> = new Map()
-            MOCK_PROPERTIES.forEach((pro) => properties.set(Number(pro.id), pro))
 
-            const bookings : Map<number,  BookingResponse[]> = new Map()
-            MOCK_BOOKINGS.forEach((book) => {
-                const prev: BookingResponse[] = bookings.get(book.propertyId) || [];
-                bookings.set(Number(book.propertyId), [...prev, book])
-            })
-
-            setProperties(properties);
-            setBookings(bookings);
+            setProperties(fetchedProperties);
+            setBookings(fetchedBookings);
         };
 
         loadData();
@@ -99,12 +103,12 @@ export function DashBoardView(){
         const currentYear = now.getFullYear();
 
         const totalDailyPotentialRevenue = filteredProperties.reduce(
-            (acc, p) => acc + p.price, 0
+            (acc, p) => acc + p.basePrice, 0
         );
 
         const barMap : Map<number, BarChartData> = new Map();
         filteredProperties.forEach(p => {
-            barMap.set(Number(p.id), { name: p.title, occupancy:0 ,profit: 0 } as BarChartData);
+            barMap.set(Number(p.id), { name: p.name, occupancy:0 ,profit: 0 } as BarChartData);
         });
 
         const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -313,7 +317,7 @@ export default DashBoardView
 //--------------------------------------------------
 //              FUNÇÕES AUXILIARES
 
-async function getBookingsFromProperties(properties : BookingProperty[]): Promise<BookingResponse[]> {
+async function getBookingsFromProperties(properties : PropertyListItem[]): Promise<BookingResponse[]> {
     // cria um array de promessas,
     // cada elemento vai buscar os Bookings de uma Propriedade
     const promises :Promise<BookingResponse[]>[] = properties.map(property => {
@@ -336,10 +340,12 @@ async function getBookingsFromProperties(properties : BookingProperty[]): Promis
     return  result.flat()
 }
 
-function createCalendarItems(properties : BookingProperty[], bookings : BookingResponse[]) :TimelineItemWithNames[]{
+function createCalendarItems(properties : PropertyListItem[], bookings : BookingResponse[]) :TimelineItemWithNames[]{
     const calendarItems :TimelineItemWithNames[] = []
     const colors = ["bg-red-500", "bg-green-500", "bg-blue-500", "bg-purple-500"]
     let i = 0
+
+
     properties.forEach((p)=>{
         const id :number = Number(p.id)
         if (!isNaN(id)) {
@@ -365,7 +371,7 @@ function createCalendarItems(properties : BookingProperty[], bookings : BookingR
                 {
                     properti: p,
                     id: id,
-                    label: p.title,
+                    label: p.name,
                     periods: periods,
                 }as TimelineItemWithNames)
         }
