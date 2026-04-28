@@ -1,89 +1,129 @@
 package com.nexus.estates.service;
 
-import com.nexus.estates.common.enums.BookingStatus;
-import com.nexus.estates.common.messaging.BookingCreatedMessage;
-import com.nexus.estates.common.messaging.BookingStatusUpdatedMessage;
+import com.nexus.estates.dto.ExternalApiConfig;
+import com.nexus.estates.service.external.ExternalAuthService;
+import com.nexus.estates.service.external.ExternalSyncService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestClient;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+
+import java.time.Duration;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ExternalSyncServiceTest {
 
     @Mock
-    private RestClient restClient;
+    private WebClient externalApiWebClient;
 
     @Mock
-    private RestClient.RequestBodyUriSpec requestBodyUriSpec;
+    private ExternalAuthService authService;
 
     @Mock
-    private RestClient.RequestBodySpec requestBodySpec;
+    private WebClient.RequestBodyUriSpec requestBodyUriSpec;
 
     @Mock
-    private RestClient.ResponseSpec responseSpec;
+    @SuppressWarnings("rawtypes")
+    private WebClient.RequestHeadersSpec requestHeadersSpec;
 
-    @InjectMocks
+    @Mock
+    private ClientResponse clientResponse;
+
     private ExternalSyncService externalSyncService;
 
-    @Test
-    @DisplayName("Deve confirmar reserva quando API externa aprovar")
-    void shouldConfirmBookingWhenExternalApiApproves() {
-        BookingCreatedMessage message = new BookingCreatedMessage(1L, 10L, 20L, BookingStatus.PENDING_PAYMENT);
-        ExternalSyncService.ExternalSyncResult result = new ExternalSyncService.ExternalSyncResult(true, "OK");
-
-        when(restClient.post()).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.uri("/external/bookings/sync")).thenReturn(requestBodySpec);
-        when(requestBodySpec.body(message)).thenReturn(requestBodySpec);
-        when(requestBodySpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
-        when(responseSpec.toEntity(ExternalSyncService.ExternalSyncResult.class))
-                .thenReturn(ResponseEntity.ok(result));
-
-        BookingStatusUpdatedMessage response = externalSyncService.processBooking(message);
-
-        assertThat(response.status()).isEqualTo(BookingStatus.CONFIRMED);
-        assertThat(response.reason()).isEqualTo("OK");
+    @BeforeEach
+    void setup() {
+        externalSyncService = new ExternalSyncService(externalApiWebClient, authService);
+        ReflectionTestUtils.setField(externalSyncService, "requestTimeout", Duration.ofSeconds(5));
     }
 
     @Test
-    @DisplayName("Deve cancelar reserva quando API externa rejeitar")
-    void shouldCancelBookingWhenExternalApiRejects() {
-        BookingCreatedMessage message = new BookingCreatedMessage(1L, 10L, 20L, BookingStatus.PENDING_PAYMENT);
-        ExternalSyncService.ExternalSyncResult result = new ExternalSyncService.ExternalSyncResult(false, "Rejected");
+    @DisplayName("Deve retornar Optional com resposta quando API externa responder com sucesso")
+    void shouldReturnOptionalWithResponseOnSuccess() {
+        ExternalApiConfig config = ExternalApiConfig.builder()
+                .baseUrl("https://api.com")
+                .endpoint("/test")
+                .build();
+        
+        String payload = "data";
+        String expectedResponse = "success";
 
-        when(restClient.post()).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.uri("/external/bookings/sync")).thenReturn(requestBodySpec);
-        when(requestBodySpec.body(message)).thenReturn(requestBodySpec);
-        when(requestBodySpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
-        when(responseSpec.toEntity(ExternalSyncService.ExternalSyncResult.class))
-                .thenReturn(ResponseEntity.ok(result));
+        when(externalApiWebClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri("https://api.com/test")).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.contentType(any())).thenReturn(requestBodyUriSpec);
+        
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            Consumer<HttpHeaders> headersConsumer = invocation.getArgument(0);
+            headersConsumer.accept(new HttpHeaders());
+            return requestBodyUriSpec;
+        }).when(requestBodyUriSpec).headers(any());
 
-        BookingStatusUpdatedMessage response = externalSyncService.processBooking(message);
+        when(requestBodyUriSpec.bodyValue(payload)).thenReturn(requestHeadersSpec);
+        when(clientResponse.statusCode()).thenReturn(HttpStatus.OK);
+        when(clientResponse.bodyToMono(String.class)).thenReturn(Mono.just(expectedResponse));
+        when(requestHeadersSpec.exchangeToMono(any())).thenAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            Function<ClientResponse, Mono<String>> fn = invocation.getArgument(0);
+            return fn.apply(clientResponse);
+        });
 
-        assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
-        assertThat(response.reason()).isEqualTo("Rejected");
+        Optional<String> result = externalSyncService.post(config, payload, String.class);
+
+        assertThat(result).isPresent().contains(expectedResponse);
+        verify(authService).applyAuthentication(any(), eq(config));
     }
 
     @Test
-    @DisplayName("Fallback deve devolver CANCELLED com razão explicativa")
-    void fallbackShouldReturnCancelledWithReason() {
-        BookingCreatedMessage message = new BookingCreatedMessage(1L, 10L, 20L, BookingStatus.PENDING_PAYMENT);
-        Throwable ex = new RuntimeException("Simulated failure");
+    @DisplayName("Deve retornar true em postWithoutResponse quando API responder com sucesso")
+    void shouldReturnTrueOnPostWithoutResponseSuccess() {
+        ExternalApiConfig config = ExternalApiConfig.builder()
+                .baseUrl("https://api.com")
+                .endpoint("/test")
+                .build();
+        
+        String payload = "payload";
 
-        BookingStatusUpdatedMessage response = externalSyncService.fallbackProcessBooking(message, ex);
+        when(externalApiWebClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri("https://api.com/test")).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.contentType(any())).thenReturn(requestBodyUriSpec);
+        
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            Consumer<HttpHeaders> headersConsumer = invocation.getArgument(0);
+            headersConsumer.accept(new HttpHeaders());
+            return requestBodyUriSpec;
+        }).when(requestBodyUriSpec).headers(any());
 
-        assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
-        assertThat(response.reason()).contains("Falha na integração externa");
+        when(requestBodyUriSpec.bodyValue(payload)).thenReturn(requestHeadersSpec);
+        when(clientResponse.statusCode()).thenReturn(HttpStatus.NO_CONTENT);
+        when(requestHeadersSpec.exchangeToMono(any())).thenAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            Function<ClientResponse, Mono<Boolean>> fn = invocation.getArgument(0);
+            return fn.apply(clientResponse);
+        });
+
+        boolean result = externalSyncService.postWithoutResponse(config, payload);
+
+        assertThat(result).isTrue();
+        verify(authService).applyAuthentication(any(), eq(config));
     }
 }
-

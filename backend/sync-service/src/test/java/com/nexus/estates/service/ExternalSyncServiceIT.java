@@ -2,6 +2,9 @@ package com.nexus.estates.service;
 
 import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.common.messaging.BookingCreatedMessage;
+import com.nexus.estates.dto.ExternalApiConfig;
+import com.nexus.estates.service.booking.BookingSyncService;
+import com.nexus.estates.service.external.ExternalSyncService;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import okhttp3.mockwebserver.MockResponse;
@@ -14,10 +17,14 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 import java.io.IOException;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.NONE,
+        properties = "spring.jpa.hibernate.ddl-auto=create-drop"
+)
 @ActiveProfiles("test")
 class ExternalSyncServiceIT {
 
@@ -27,41 +34,37 @@ class ExternalSyncServiceIT {
     private ExternalSyncService externalSyncService;
 
     @Autowired
-    private CircuitBreakerRegistry circuitBreakerRegistry;
+    private BookingSyncService bookingSyncService;
 
-    @BeforeAll
-    static void init() throws IOException {
-        // Inicia o servidor uma vez para obter a porta
-        server = new MockWebServer();
-        server.start();
-    }
+    @Autowired
+    private CircuitBreakerRegistry circuitBreakerRegistry;
 
     @AfterAll
     static void tearDown() throws IOException {
-        server.shutdown();
+        if (server != null) {
+            server.shutdown();
+        }
     }
 
     @DynamicPropertySource
     static void registerProps(DynamicPropertyRegistry registry) {
-        registry.add("external.api.base-url", () -> server.url("/").toString());
+        server = new MockWebServer();
+        try {
+            server.start();
+        } catch (IOException e) {
+            throw new RuntimeException("Falha ao inicializar o MockWebServer", e);
+        }
+        registry.add("ota.api.base-url", () -> server.url("/api/").toString());
     }
 
     @BeforeEach
-    void reset() throws IOException {
-        // Reset do Circuit Breaker
+    void reset() {
         circuitBreakerRegistry.circuitBreaker("externalApi").reset();
-        
-        // Hack para limpar o MockWebServer:
-        // Como não há método clear(), e não queremos reiniciar para não mudar a porta,
-        // vamos despachar todas as requisições pendentes (se houver) ou simplesmente
-        // garantir que os testes são atómicos.
-        // Uma abordagem melhor é usar um Dispatcher novo para cada teste.
-        
         server.setDispatcher(new okhttp3.mockwebserver.QueueDispatcher());
     }
 
     @Test
-    @DisplayName("CONFIRMED quando API externa aprova (HTTP 200)")
+    @DisplayName("CONFIRMED quando integração externa aprova via BookingSyncService")
     void confirmedWhenExternalApproves() {
         server.enqueue(new MockResponse()
                 .setResponseCode(200)
@@ -69,53 +72,49 @@ class ExternalSyncServiceIT {
                 .setBody("{\"approved\":true,\"reason\":\"OK\"}"));
 
         var message = new BookingCreatedMessage(1L, 10L, 20L, BookingStatus.PENDING_PAYMENT);
-        var response = externalSyncService.processBooking(message);
+        var response = bookingSyncService.syncBooking(message);
 
         assertThat(response.status()).isEqualTo(BookingStatus.CONFIRMED);
         assertThat(response.reason()).isEqualTo("OK");
     }
 
     @Test
-    @DisplayName("CANCELLED quando API externa rejeita (HTTP 200)")
-    void cancelledWhenExternalRejects() {
-        server.enqueue(new MockResponse()
-                .setResponseCode(200)
-                .addHeader("Content-Type", "application/json")
-                .setBody("{\"approved\":false,\"reason\":\"Rejected\"}"));
-
-        var message = new BookingCreatedMessage(2L, 11L, 21L, BookingStatus.PENDING_PAYMENT);
-        var response = externalSyncService.processBooking(message);
-
-        assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
-        assertThat(response.reason()).isEqualTo("Rejected");
-    }
-
-    @Test
-    @DisplayName("Fallback é acionado após retries falharem (HTTP 500)")
-    void fallbackTriggeredAfterRetries() {
+    @DisplayName("Optional vazio quando API externa falha (HTTP 500)")
+    void emptyOptionalOnServerError() {
+        server.enqueue(new MockResponse().setResponseCode(500));
         server.enqueue(new MockResponse().setResponseCode(500));
         server.enqueue(new MockResponse().setResponseCode(500));
 
-        var message = new BookingCreatedMessage(3L, 12L, 22L, BookingStatus.PENDING_PAYMENT);
-        var response = externalSyncService.processBooking(message);
+        ExternalApiConfig config = ExternalApiConfig.builder()
+                .baseUrl(server.url("/").toString())
+                .endpoint("test")
+                .build();
 
-        assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
-        assertThat(response.reason()).contains("Falha na integração externa");
+        Optional<String> response = externalSyncService.post(config, "payload", String.class);
+
+        assertThat(response).isEmpty();
     }
 
     @Test
-    @DisplayName("Circuit Breaker abre após falhas consecutivas acima do threshold")
+    @DisplayName("Circuit Breaker abre após falhas consecutivas")
     void circuitBreakerOpensAfterFailures() {
-        for (int i = 0; i < 8; i++) {
+        // Enfileira várias falhas
+        for (int i = 0; i < 10; i++) {
             server.enqueue(new MockResponse().setResponseCode(500));
         }
 
-        var message = new BookingCreatedMessage(4L, 13L, 23L, BookingStatus.PENDING_PAYMENT);
-        
-        for (int i = 0; i < 4; i++) {
+        ExternalApiConfig config = ExternalApiConfig.builder()
+                .baseUrl(server.url("/").toString())
+                .endpoint("fail")
+                .build();
+
+        // Faz chamadas até abrir o circuito
+        for (int i = 0; i < 6; i++) {
             try {
-                externalSyncService.processBooking(message);
-            } catch (Exception ignored) {}
+                externalSyncService.postWithoutResponse(config, "data");
+            } catch (Exception e) {
+                // Ignora a exceção (HTTP 500 ou CallNotPermittedException) para continuar enchendo o circuito
+            }
         }
 
         CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("externalApi");

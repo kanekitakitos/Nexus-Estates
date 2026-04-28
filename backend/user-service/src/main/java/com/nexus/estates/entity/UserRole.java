@@ -47,6 +47,8 @@ public enum UserRole {
      */
     OWNER,
 
+    STAFF,
+
     /**
      * Administrador do sistema (Super-User):.
      * <p>

@@ -13,7 +13,17 @@ O projeto é um **Maven Multi-Module Project**.
 | **`property-service`** | `:8082` | Catálogo de imóveis, preços e imagens. | `property_db` |
 | **`user-service`** | `:8083` | Autenticação (JWT), perfis e segurança. | `user_db` |
 | **`sync-service`** | `:8084` | Integração com APIs externas (Airbnb/Stripe). Processa eventos assíncronos. | `sync_db` |
+| **`finance-service`** | `:8085` | Pagamentos (Stripe), Webhooks assinados e idempotência. | `finance_db` |
 | **`common-library`** | *N/A* | Código partilhado (DTOs, Eventos, Exceções). | *N/A* |
+
+## 💳 Pagamentos (finance-service)
+
+O processamento de pagamentos é isolado no **`finance-service`**, mantendo o `booking-service` focado em domínio de reservas.
+
+- O `booking-service` chama o `finance-service` de forma síncrona via **Spring Declarative HTTP Client** (padrão `Proxy` + `NexusClients.financeClient`)
+- O `finance-service` expõe endpoints REST de pagamentos e um endpoint público de webhook: `POST /api/finance/webhooks/stripe`
+- O webhook valida `Stripe-Signature` e aplica idempotência via tabela `processed_events`
+- Em eventos de pagamento com sucesso, o `finance-service` notifica o `booking-service` via `POST /api/bookings/{bookingId}/payments/succeeded` para confirmar a reserva
 
 ## 🔄 Consistência de Dados (Padrão Saga)
 
@@ -55,4 +65,15 @@ Recomendamos o uso do **IntelliJ IDEA** para gerir os múltiplos serviços, mas 
 # Para cada serviço:
 cd [nome-do-serviço]
 ./mvnw spring-boot:run
+```
+
+Se não tiveres Maven Wrapper no repositório, usa:
+
+```bash
+# Na raiz do backend
+mvn clean install
+
+# Para cada serviço:
+cd [nome-do-serviço]
+mvn spring-boot:run
 ```

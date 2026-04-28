@@ -71,6 +71,8 @@ class JwtAuthenticationFilterTest {
     @DisplayName("Deve ignorar autenticação quando o header Authorization está ausente")
     void shouldSkipWhenAuthorizationHeaderMissing() throws Exception {
         when(request.getHeader("Authorization")).thenReturn(null);
+        when(request.getHeader("X-User-Email")).thenReturn(null);
+        when(request.getHeader("X-User-Role")).thenReturn(null);
 
         filter.doFilterInternal(request, response, filterChain);
 
@@ -89,6 +91,8 @@ class JwtAuthenticationFilterTest {
     @DisplayName("Deve autenticar utilizador com sucesso através de um token válido")
     void shouldSetAuthenticationOnValidToken() throws Exception {
         when(request.getHeader("Authorization")).thenReturn("Bearer tok");
+        when(request.getHeader("X-User-Email")).thenReturn(null);
+        when(request.getHeader("X-User-Role")).thenReturn(null);
         when(jwtService.extractUsername("tok")).thenReturn("u@example.com");
         User u = User.builder().id(124L).email("u@example.com").password("x").role(UserRole.GUEST).build();
         when(userRepository.findByEmail("u@example.com")).thenReturn(Optional.of(u));
@@ -116,6 +120,7 @@ class JwtAuthenticationFilterTest {
     void shouldPrioritizeXUserRoleHeader() throws Exception {
         when(request.getHeader("Authorization")).thenReturn("Bearer tok");
         when(request.getHeader("X-User-Role")).thenReturn("ADMIN");
+        when(request.getHeader("X-User-Email")).thenReturn(null);
 
         when(jwtService.extractUsername("tok")).thenReturn("u@example.com");
         User u = User.builder().id(124L).email("u@example.com").password("x").role(UserRole.GUEST).build();
@@ -142,11 +147,32 @@ class JwtAuthenticationFilterTest {
     @DisplayName("Deve continuar a cadeia de filtros mesmo se o token for inválido")
     void shouldContinueChainOnInvalidToken() throws Exception {
         when(request.getHeader("Authorization")).thenReturn("Bearer tok");
+        when(request.getHeader("X-User-Email")).thenReturn(null);
+        when(request.getHeader("X-User-Role")).thenReturn(null);
         when(jwtService.extractUsername("tok")).thenThrow(new RuntimeException("bad"));
 
         filter.doFilterInternal(request, response, filterChain);
 
         assertNull(SecurityContextHolder.getContext().getAuthentication());
         verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    @DisplayName("Deve autenticar via headers do Gateway quando Authorization está ausente")
+    void shouldAuthenticateUsingGatewayHeadersWhenAuthorizationMissing() throws Exception {
+        when(request.getHeader("Authorization")).thenReturn(null);
+        when(request.getHeader("X-User-Email")).thenReturn("u@example.com");
+        when(request.getHeader("X-User-Role")).thenReturn("ADMIN");
+
+        User u = User.builder().id(124L).email("u@example.com").password("x").role(UserRole.GUEST).build();
+        when(userRepository.findByEmail("u@example.com")).thenReturn(Optional.of(u));
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        assertNotNull(auth);
+        assertEquals("ROLE_ADMIN", auth.getAuthorities().iterator().next().getAuthority());
+        verify(filterChain).doFilter(request, response);
+        verifyNoInteractions(jwtService);
     }
 }

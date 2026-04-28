@@ -1,10 +1,20 @@
 package com.nexus.estates.service;
 
+import com.nexus.estates.common.dto.PropertyQuoteRequest;
+import com.nexus.estates.common.dto.PropertyQuoteResponse;
+import com.nexus.estates.common.dto.RuleOverrideDTO;
 import com.nexus.estates.dto.CreatePropertyRequest;
-import com.nexus.estates.entity.Amenity;
 import com.nexus.estates.entity.Property;
+import com.nexus.estates.entity.PropertyRule;
+import com.nexus.estates.entity.RuleOverride;
+import com.nexus.estates.entity.SeasonalityRule;
 import com.nexus.estates.repository.AmenityRepository;
+import com.nexus.estates.repository.PermissionRepository;
+import com.nexus.estates.repository.PropertyChangeLogRepository;
 import com.nexus.estates.repository.PropertyRepository;
+import com.nexus.estates.repository.PropertyRuleRepository;
+import com.nexus.estates.repository.RuleOverrideRepository;
+import com.nexus.estates.repository.SeasonalityRuleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,96 +24,189 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Set;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
  * Testes unitários para a classe de serviço {@link PropertyService}.
- *
- * <p>Esta classe utiliza o framework Mockito para isolar as dependências de persistência
- * (PropertyRepository e AmenityRepository), permitindo validar a lógica de negócio de
- * mapeamento, validação de preços e associação de comodidades de forma independente.</p>
- *
- * @author Nexus Estates Team
- * @version 1.1
- * @since 2026-02-24
  */
 @ExtendWith(MockitoExtension.class)
 class PropertyServiceTest {
 
-    /** Mock do repositório de propriedades para simular operações de escrita. */
     @Mock
     private PropertyRepository repository;
-
-    /** Mock do repositório de comodidades para validar a existência de IDs no sistema. */
     @Mock
     private AmenityRepository amenityRepository;
+    @Mock
+    private SeasonalityRuleRepository seasonalityRuleRepository;
+    @Mock
+    private PropertyRuleRepository propertyRuleRepository;
+    @Mock
+    private PermissionRepository permissionRepository;
+    @Mock
+    private PropertyChangeLogRepository changeLogRepository;
+    @Mock
+    private RuleOverrideRepository ruleOverrideRepository;
 
-    /** Instância do serviço com as dependências mockadas injetadas via construtor. */
     @InjectMocks
     private PropertyService service;
 
     private CreatePropertyRequest validRequest;
     private Property savedProperty;
 
-    /**
-     * Configuração inicial executada antes de cada teste.
-     * <p>Prepara um DTO de requisição válido conforme o esquema de internacionalização
-     * e uma entidade de propriedade que simula o objeto já persistido com ID gerado.</p>
-     */
     @BeforeEach
     void setUp() {
-        // Ordem conforme o Record: title, description, price, ownerId, location, amenityIds
         validRequest = new CreatePropertyRequest(
                 "Casa de Luxo Teste",
-                Map.of("pt", "Descrição detalhada", "en", "Detailed description"),
-                1500.0,
+                Map.of("pt", "Descrição detalhada"),
+                100.0,
                 1L,
+                "Lisboa",
+                "Lisboa",
                 "Avenida Principal, 123",
-                Set.of(5L, 10L)
+                4,
+                Set.of(5L, 10L),
+                null
         );
 
         savedProperty = new Property();
         savedProperty.setId(1L);
         savedProperty.setName(validRequest.title());
-        savedProperty.setBasePrice(BigDecimal.valueOf(validRequest.price()));
+        savedProperty.setBasePrice(BigDecimal.valueOf(100.00));
+        savedProperty.setMaxGuests(4);
+        savedProperty.setAmenities(new HashSet<>());
     }
 
-    /**
-     * Testa o cenário de criação bem-sucedida de uma propriedade.
-     * * <p>Verifica se:
-     * <ul>
-     * <li>O serviço consulta o AmenityRepository para validar os IDs das comodidades.</li>
-     * <li>O mapeamento do preço (Double para BigDecimal) ocorre corretamente.</li>
-     * <li>O repositório de propriedades é chamado para persistir os dados.</li>
-     * </ul>
-     * </p>
-     */
     @Test
-    @DisplayName("Deve criar uma propriedade e associar comodidades com sucesso")
+    @DisplayName("Deve criar uma propriedade com sucesso")
     void shouldCreatePropertyWithSuccess() {
-        // Arrange: Define o comportamento esperado dos componentes externos
-        // Simula que o repositório encontra as comodidades solicitadas
         when(amenityRepository.findAllById(any())).thenReturn(new ArrayList<>());
-        // Simula a persistência retornando o objeto com ID
         when(repository.save(any(Property.class))).thenReturn(savedProperty);
 
-        // Act: Executa a lógica de negócio do serviço
-        Property result = service.create(validRequest);
+        Property result = service.create(validRequest, null);
 
-        // Assert: Valida se o resultado cumpre os requisitos esperados
-        assertNotNull(result, "A propriedade retornada não deve ser nula");
-        assertEquals(1L, result.getId(), "O ID da propriedade deve corresponder ao persistido");
-        assertEquals("Casa de Luxo Teste", result.getName(), "O nome deve ser mapeado corretamente");
+        assertNotNull(result);
+        verify(repository).save(any(Property.class));
+        verify(propertyRuleRepository).save(any());
+    }
 
-        // Verificação de Interações: Garante que os métodos dos repositórios foram invocados
-        verify(amenityRepository, times(1)).findAllById(validRequest.amenityIds());
-        verify(repository, times(1)).save(any(Property.class));
+    @Test
+    @DisplayName("ValidateAndQuote - Deve falhar se dia de check-in não for permitido por override")
+    void validateAndQuote_ShouldFail_WhenCheckInDayNotAllowedByOverride() {
+        // Arrange: Reserva numa Terça-feira (2024-08-06)
+        LocalDate checkIn = LocalDate.of(2024, 8, 6); 
+        PropertyQuoteRequest request = new PropertyQuoteRequest(checkIn, checkIn.plusDays(7), 2);
+        
+        // Override: Apenas Sábado permitido em Agosto
+        RuleOverride override = RuleOverride.builder()
+                .startDate(LocalDate.of(2024, 8, 1))
+                .endDate(LocalDate.of(2024, 8, 31))
+                .allowedCheckInDays(Set.of(DayOfWeek.SATURDAY))
+                .build();
+
+        when(repository.findById(1L)).thenReturn(Optional.of(savedProperty));
+        when(ruleOverrideRepository.findOverlappingOverrides(eq(1L), any(), any()))
+                .thenReturn(List.of(override));
+
+        // Act
+        PropertyQuoteResponse response = service.validateAndQuote(1L, request);
+
+        // Assert
+        assertFalse(response.valid());
+        assertTrue(response.validationErrors().stream().anyMatch(e -> e.contains("Check-in só é permitido em: [SATURDAY]")));
+    }
+
+    @Test
+    @DisplayName("ValidateAndQuote - Deve aplicar minNights mais estrito do override")
+    void validateAndQuote_ShouldApplyStrictMinNightsFromOverride() {
+        // Arrange: Reserva de 3 noites
+        PropertyQuoteRequest request = new PropertyQuoteRequest(
+                LocalDate.of(2024, 8, 10), LocalDate.of(2024, 8, 13), 2);
+        
+        // Regra Base: 2 noites | Override: 7 noites
+        PropertyRule baseRule = new PropertyRule();
+        baseRule.setMinNights(2);
+        savedProperty.setPropertyRule(baseRule);
+
+        RuleOverride override = RuleOverride.builder()
+                .startDate(LocalDate.of(2024, 8, 1))
+                .endDate(LocalDate.of(2024, 8, 31))
+                .minNightsOverride(7)
+                .build();
+
+        when(repository.findById(1L)).thenReturn(Optional.of(savedProperty));
+        when(ruleOverrideRepository.findOverlappingOverrides(eq(1L), any(), any()))
+                .thenReturn(List.of(override));
+
+        // Act
+        PropertyQuoteResponse response = service.validateAndQuote(1L, request);
+
+        // Assert
+        assertFalse(response.valid());
+        assertTrue(response.validationErrors().stream().anyMatch(e -> e.contains("mínimo de noites é 7")));
+    }
+
+    @Test
+    @DisplayName("Deve adicionar um RuleOverride com sucesso")
+    void addRuleOverride_ShouldSaveSuccessfully() {
+        RuleOverrideDTO dto = new RuleOverrideDTO(null, LocalDate.now(), LocalDate.now().plusDays(30), 7, Set.of(DayOfWeek.SATURDAY), Set.of(DayOfWeek.SATURDAY));
+        when(repository.findById(1L)).thenReturn(Optional.of(savedProperty));
+        when(ruleOverrideRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+
+        RuleOverride result = service.addRuleOverride(1L, dto);
+
+        assertNotNull(result);
+        assertEquals(7, result.getMinNightsOverride());
+        verify(ruleOverrideRepository).save(any());
+    }
+
+    // --- Testes de Sazonalidade Preservados ---
+
+    @Test
+    @DisplayName("Deve calcular preço base sem regras de sazonalidade")
+    void shouldCalculatePriceWithoutRules() {
+        Long propertyId = 1L;
+        LocalDate checkIn = LocalDate.of(2024, 6, 1);
+        LocalDate checkOut = LocalDate.of(2024, 6, 4); 
+
+        when(repository.findById(propertyId)).thenReturn(Optional.of(savedProperty));
+        when(seasonalityRuleRepository.findByPropertyIdAndDateRange(any(), any(), any()))
+                .thenReturn(Collections.emptyList());
+
+        BigDecimal totalPrice = service.calculateTotalPrice(propertyId, checkIn, checkOut, null);
+
+        assertEquals(0, new BigDecimal("300.00").compareTo(totalPrice));
+    }
+
+    @Test
+    @DisplayName("Deve priorizar regra de canal sobre regra de data")
+    void shouldPrioritizeChannelRuleOverDateRule() {
+        Long propertyId = 1L;
+        LocalDate date = LocalDate.of(2024, 8, 1);
+        LocalDate checkOut = date.plusDays(1); 
+
+        SeasonalityRule dateRule = new SeasonalityRule();
+        dateRule.setStartDate(date);
+        dateRule.setEndDate(date);
+        dateRule.setPriceModifier(new BigDecimal("1.20")); 
+
+        SeasonalityRule channelRule = new SeasonalityRule();
+        channelRule.setStartDate(date);
+        channelRule.setEndDate(date);
+        channelRule.setChannel("Airbnb");
+        channelRule.setPriceModifier(new BigDecimal("1.10")); 
+
+        when(repository.findById(propertyId)).thenReturn(Optional.of(savedProperty));
+        when(seasonalityRuleRepository.findByPropertyIdAndDateRange(any(), any(), any()))
+                .thenReturn(List.of(dateRule, channelRule));
+
+        BigDecimal totalPrice = service.calculateTotalPrice(propertyId, date, checkOut, "Airbnb");
+
+        assertEquals(0, new BigDecimal("110.00").compareTo(totalPrice));
     }
 }

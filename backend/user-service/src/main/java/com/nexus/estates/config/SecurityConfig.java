@@ -3,6 +3,7 @@ package com.nexus.estates.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -31,6 +32,13 @@ public class SecurityConfig {
      */
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilterRegistration(JwtAuthenticationFilter filter) {
+        FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
 
     /**
      * Define o algoritmo de hashing para as passwords dos utilizadores.
@@ -66,6 +74,9 @@ public class SecurityConfig {
 
                         // Endpoints de suporte (Recuperação de password) são públicos
                         .requestMatchers("/api/users/auth/password/**").permitAll()
+
+                        // Endpoints de documentação (Swagger/OpenAPI) são públicos
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
                         // Todos os restantes pedidos (Properties, Amenities, etc.) requerem autenticação
                         .anyRequest().authenticated()

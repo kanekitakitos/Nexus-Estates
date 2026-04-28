@@ -1,10 +1,15 @@
 package com.nexus.estates.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.client.RestClient;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
+import io.netty.channel.ChannelOption;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -24,44 +29,58 @@ import java.util.function.Function;
 @Configuration
 public class ExternalApiClientConfig {
 
-    @Value("${external.api.base-url}")
-    private String externalApiBaseUrl;
+    @Value("${external.api.timeout.connect-ms:2000}")
+    private int connectTimeoutMs;
+
+    @Value("${external.api.timeout.response-ms:5000}")
+    private int responseTimeoutMs;
 
     /**
-     * Bean principal de RestClient para comunicação com a API externa padrão.
-     * Necessário para a injeção de dependência no ExternalSyncService.
+     * Bean principal do RestClient utilizado pelo sistema de sincronização.
+     * <p>
+     * Este cliente é configurado uma única vez para ser reutilizado por todos os serviços,
+     * evitando a criação excessiva de instâncias e fugas de memória (memory leaks),
+     * conforme as boas práticas de arquitetura para sistemas de alta performance.
+     * </p>
+     *
+     * @param builder Builder auto-configurado pelo Spring Boot.
+     * @return Uma instância thread-safe de RestClient.
      */
     @Bean
     public RestClient externalApiRestClient(RestClient.Builder builder) {
-        return builder.baseUrl(externalApiBaseUrl).build();
+        return builder.build();
+    }
+
+    @Bean
+    public WebClient externalApiWebClient() {
+        HttpClient httpClient = HttpClient.create()
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeoutMs)
+                .responseTimeout(Duration.ofMillis(responseTimeoutMs));
+
+        return WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
     }
 
     /**
-     * Factory para criar clientes REST dinamicamente.
+     * Factory para criar instâncias de RestClient dinamicamente para cenários isolados.
      * <p>
-     * Permite instanciar um RestClient configurado com base URL e headers específicos
-     * para cada integração (ex: Airbnb vs Booking).
+     * <b>Atenção:</b> Deve ser usado com cautela para não criar novas instâncias a cada request.
+     * Ideal para inicializar integrações específicas no arranque do sistema.
      * </p>
      *
-     * @return Function que aceita um mapa de configurações (url, headers) e retorna um RestClient.
+     * @return Uma Function que aceita parâmetros de configuração e devolve um RestClient.
      */
-    @Bean
     public Function<Map<String, Object>, RestClient> dynamicRestClientFactory() {
-        return config -> {
-            String baseUrl = (String) config.getOrDefault("baseUrl", "http://localhost");
+        return params -> {
+            String baseUrl = (String) params.getOrDefault("baseUrl", "http://localhost:8080");
             @SuppressWarnings("unchecked")
-            Map<String, String> headers = (Map<String, String>) config.get("headers");
+            Map<String, String> headers = (Map<String, String>) params.getOrDefault("headers", Map.of());
 
-            RestClient.Builder builder = RestClient.builder()
-                    .baseUrl(baseUrl);
-
-            if (headers != null) {
-                builder.defaultHeaders(httpHeaders -> 
-                    headers.forEach(httpHeaders::add)
-                );
-            }
-
-            return builder.build();
+            return RestClient.builder()
+                    .baseUrl(baseUrl)
+                    .defaultHeaders(h -> headers.forEach(h::add))
+                    .build();
         };
     }
 }

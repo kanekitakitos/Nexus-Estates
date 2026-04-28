@@ -1,9 +1,9 @@
 package com.nexus.estates.repository;
 
-
-
 import com.nexus.estates.entity.Booking;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -18,18 +18,42 @@ import java.util.List;
  * personalizadas otimizadas para o domínio de reservas.
  *
  * @author Nexus Estates Team
- * @version 1.0
+ * @version 1.1
  */
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     /**
-     * Deteta sobreposições de agendamento para uma propriedade num intervalo de datas.
+     * Deteta sobreposições de agendamento para uma propriedade num intervalo de datas,
+     * aplicando <b>Pessimistic Write Lock</b> para garantir atomicidade sob alta concorrência.
+     *
      * <p>
-     * <b>Query JPQL Otimizada:</b>
-     * A consulta verifica a interseção de intervalos temporais utilizando a lógica:
-     * {@code (StartA < EndB) e (EndA > StartB)}.
+     * <b>Pessimistic Locking:</b>
+     * A anotação {@link Lock} com {@link LockModeType#PESSIMISTIC_WRITE} emite um
+     * {@code SELECT ... FOR UPDATE} no PostgreSQL, bloqueando as linhas lidas até ao fim
+     * da transação. Isto garante que duas threads concorrentes que verificam a mesma
+     * propriedade para o mesmo período não passam ambas na validação de disponibilidade
+     * (prevenção de double booking ao milissegundo).
      * </p>
+     *
+     * <p>
+     * <b>Estados bloqueantes:</b>
+     * A query considera como "ocupados" os estados {@code CONFIRMED}, {@code BLOCKED}
+     * e {@code PENDING_PAYMENT}:
+     * <ul>
+     *   <li>{@code CONFIRMED} — reserva com pagamento processado, datas definitivamente ocupadas.</li>
+     *   <li>{@code BLOCKED} — bloqueio técnico (manual ou iCal), sem transação financeira.</li>
+     *   <li>{@code PENDING_PAYMENT} — reserva criada mas aguarda pagamento; as datas estão
+     *       temporariamente reservadas para evitar que outro utilizador ocupe o mesmo período
+     *       durante o checkout.</li>
+     * </ul>
+     * </p>
+     *
+     * <p>
+     * <b>Lógica de interseção de intervalos:</b>
+     * {@code (checkIn_A < checkOut_B) AND (checkOut_A > checkIn_B)}.
+     * </p>
+     *
      * <p>
      * <b>Desempenho:</b>
      * Esta operação é crítica para a consistência dos dados. Recomenda-se a existência
@@ -37,14 +61,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
      * </p>
      *
      * @param propertyId O identificador da propriedade alvo.
-     * @param checkIn Data de início do intervalo pretendido.
-     * @param checkOut Data de fim do intervalo pretendido.
-     * @return {@code true} se existir pelo menos uma reserva ativa (não cancelada/reembolsada) que colida com o intervalo.
+     * @param checkIn    Data de início do intervalo pretendido.
+     * @param checkOut   Data de fim do intervalo pretendido.
+     * @return {@code true} se existir pelo menos uma reserva activa (CONFIRMED, BLOCKED ou
+     *         PENDING_PAYMENT) que colida com o intervalo.
      */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
         SELECT COUNT(b) > 0 FROM Booking b
         WHERE b.propertyId = :propertyId
-        AND b.status NOT IN ('CANCELLED', 'REFUNDED')
+        AND b.status IN ('CONFIRMED', 'BLOCKED', 'PENDING_PAYMENT')
         AND (
             b.checkInDate < :checkOut AND b.checkOutDate > :checkIn
         )
@@ -54,9 +80,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("checkIn") LocalDate checkIn,
             @Param("checkOut") LocalDate checkOut
     );
-
-
-
 
     /**
      * Recupera todas as reservas associadas a uma determinada propriedade.
@@ -87,7 +110,5 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 //            LocalDate checkOut,
 //            LocalDate checkIn
 //    );
-
-
 
 }

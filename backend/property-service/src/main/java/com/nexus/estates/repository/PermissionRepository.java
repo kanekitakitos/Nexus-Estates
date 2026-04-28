@@ -15,4 +15,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * @since 2026-02-12
  */
 public interface PermissionRepository extends JpaRepository<PropertyPermission, Long> {
+    java.util.List<PropertyPermission> findByUserId(Long userId);
 }

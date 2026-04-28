@@ -1,6 +1,7 @@
 package com.nexus.estates.controller;
 
 import com.nexus.estates.dto.BookingResponse;
+import com.nexus.estates.dto.CreateBlockRequest;
 import com.nexus.estates.dto.CreateBookingRequest;
 import com.nexus.estates.service.BookingService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,12 +21,12 @@ import java.util.List;
  * Controlador REST responsável pela orquestração das operações de reserva.
  * <p>
  * Este componente atua como a camada de entrada para o domínio de reservas, expondo
- * uma API RESTful versionada. Garante a validação de entrada e delega a lógica
+ * uma API RESTful. Garante a validação de entrada e delega a lógica
  * de negócio para o {@link BookingService}.
  * </p>
  *
  * @author Nexus Estates Team
- * @version 1.0
+ * @version 1.2
  * @since 2026-02-10
  */
 @RestController
@@ -63,7 +64,7 @@ public class BookingController {
      */
     @Operation(
             summary = "Cria uma nova reserva",
-            description = "Valida datas, verifica conflitos e cria uma reserva com estado inicial PENDING_PAYMENT."
+            description = "Valida datas, verifica conflitos (CONFIRMED, BLOCKED, PENDING_PAYMENT) com Pessimistic Lock e cria uma reserva com estado inicial PENDING_PAYMENT."
     )
     @ApiResponses({
             @ApiResponse(
@@ -82,10 +83,85 @@ public class BookingController {
         try {
             if (userIdHeader != null) {
                 Long uid = Long.parseLong(userIdHeader);
-                effective = new CreateBookingRequest(request.propertyId(), uid, request.checkInDate(), request.checkOutDate(), request.guestCount());
+                effective = new CreateBookingRequest(
+                        request.propertyId(),
+                        uid,
+                        request.checkInDate(),
+                        request.checkOutDate(),
+                        request.guestCount(),
+                        request.guestFullName(),
+                        request.guestEmail(),
+                        request.guestPhone(),
+                        request.guestNationality(),
+                        request.guestIssuingCountry(),
+                        request.guestDocumentType(),
+                        request.guestDocumentNumber(),
+                        request.guestDocumentIssueDate()
+                );
             }
         } catch (Exception ignored) {}
         BookingResponse response = bookingService.createBooking(effective);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Cria uma Reserva Técnica (bloqueio manual) para uma propriedade.
+     *
+     * <p>
+     * Bloqueia um intervalo de datas sem envolver qualquer transação financeira.
+     * Usado pelo proprietário para marcar períodos de indisponibilidade por motivos pessoais
+     * (ex: uso próprio, obras, manutenção). O bloqueio impede novas reservas para as mesmas
+     * datas da mesma forma que uma reserva {@code CONFIRMED}.
+     * </p>
+     *
+     * <p>
+     * A verificação de disponibilidade usa <b>Pessimistic Write Lock</b>
+     * ({@code SELECT ... FOR UPDATE}), garantindo atomicidade ao milissegundo
+     * e prevenção de double booking mesmo sob alta concorrência.
+     * </p>
+     *
+     * @param request Payload com propertyId, datas e razão opcional do bloqueio.
+     * @param actorUserIdHeader ID do proprietário que solicita o bloqueio,
+     *                          propagado pelo API Gateway via header {@code X-User-Id}.
+     * @return {@link ResponseEntity} contendo o {@link BookingResponse} com status {@code BLOCKED}.
+     *
+     * @throws org.springframework.web.bind.MethodArgumentNotValidException Se o payload for inválido (400).
+     * @throws com.nexus.estates.exception.BookingConflictException Se as datas colidirem com
+     *         reservas ou bloqueios existentes (409).
+     */
+    @Operation(
+            summary = "Cria um bloqueio manual (Reserva Técnica)",
+            description = """
+                    Bloqueia um período de datas para uma propriedade sem transação financeira.
+                    O estado resultante é BLOCKED, que impede novos agendamentos tal como CONFIRMED.
+                    A verificação de disponibilidade usa Pessimistic Write Lock para garantir
+                    atomicidade sob alta concorrência.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "Bloqueio criado com sucesso",
+                    content = @Content(schema = @Schema(implementation = BookingResponse.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
+            @ApiResponse(responseCode = "409", description = "Conflito de datas — já existe reserva ou bloqueio para este período"),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    @PostMapping("/blocks")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<BookingResponse> createBlock(
+            @Valid @RequestBody CreateBlockRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) String actorUserIdHeader
+    ) {
+        Long actorUserId = null;
+        try {
+            if (actorUserIdHeader != null) {
+                actorUserId = Long.parseLong(actorUserIdHeader);
+            }
+        } catch (Exception ignored) {}
+
+        BookingResponse response = bookingService.createBlock(request, actorUserId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -161,6 +237,32 @@ public class BookingController {
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<BookingResponse>> getByUser(@PathVariable Long userId) {
         return ResponseEntity.ok(bookingService.getBookingsByUser(userId));
+    }
+
+    @Operation(
+            summary = "Lista reservas do utilizador autenticado",
+            description = "Retorna o histórico de reservas do utilizador autenticado, resolvido via header X-User-Id injetado pelo API Gateway."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Reservas encontradas",
+                    content = @Content(schema = @Schema(implementation = BookingResponse.class))
+            ),
+            @ApiResponse(responseCode = "401", description = "Sessão expirada ou ausente"),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    @GetMapping("/me")
+    public ResponseEntity<List<BookingResponse>> getMine(@RequestHeader(value = "X-User-Id", required = false) String userIdHeader) {
+        if (userIdHeader == null || userIdHeader.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        try {
+            Long userId = Long.parseLong(userIdHeader);
+            return ResponseEntity.ok(bookingService.getBookingsByUser(userId));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
     }
 
 }

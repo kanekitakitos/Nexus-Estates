@@ -31,6 +31,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final ExternalIdentityProviderStrategy externalIdentityProvider;
 
     /**
      * Regista um novo utilizador no sistema.
@@ -48,11 +49,13 @@ public class AuthService {
             throw new EmailAlreadyRegisteredException("O email '" + request.getEmail() + "' já se encontra registado.");
         }
 
+        UserRole role = request.getRole() != null ? request.getRole() : UserRole.GUEST;
+
         var user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .phone(request.getPhone())
-                .role(request.getRole() != null ? request.getRole() : UserRole.GUEST)
+                .role(role)
                 .build();
 
         var savedUser = userRepository.save(user);
@@ -84,6 +87,38 @@ public class AuthService {
             throw new InvalidCredentialsException("A password fornecida está incorreta.");
         }
 
+        if (user.getRole() == UserRole.GUEST) {
+            user.setRole(UserRole.OWNER);
+            user = userRepository.save(user);
+        }
+
+        var token = jwtService.generateToken(user);
+
+        return AuthResponse.builder()
+                .token(token)
+                .id(user.getId())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .build();
+    }
+
+    public AuthResponse exchangeClerkToken(String clerkToken) {
+        var identity = externalIdentityProvider.verify(clerkToken);
+
+        var user = externalIdentityProvider.findExistingUser(userRepository, identity).orElse(null);
+
+        if (user == null) {
+            user = User.builder()
+                    .email(identity.email())
+                    .password(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
+                    .phone(null)
+                    .role(UserRole.OWNER)
+                    .build();
+        }
+
+        externalIdentityProvider.applyIdentity(user, identity);
+
+        user = userRepository.save(user);
         var token = jwtService.generateToken(user);
 
         return AuthResponse.builder()

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 
 /**
  * Monitoriza uma query CSS e devolve o seu estado atual (true/false).
@@ -6,26 +6,17 @@ import { useEffect, useState } from "react"
  * @returns Um booleano que indica se a query coincide com o estado do browser. 
  */
 export function useMediaQuery(query: string) {
-  const [matches, setMatches] = useState(false)
-
-  useEffect(() => {
-    const media = window.matchMedia(query)
-    if (media.matches !== matches) {
-      setMatches(media.matches)
-    }
-
-    /**
-     * Função que vai atualizar.
-     * Corre sempre que o eventListener dispara
-     */
-    const listener = () => {
-      setMatches(media.matches)
-    }
-
-    // eventListener que escuta por mudanças de tamanho ou formato
-    media.addEventListener("change", listener)
-    return () => media.removeEventListener("change", listener)
-  }, [matches, query])
-
-  return matches
+  return useSyncExternalStore(
+    (callback) => {
+      if (typeof window === "undefined") return () => {}
+      const media = window.matchMedia(query)
+      media.addEventListener("change", callback)
+      return () => media.removeEventListener("change", callback)
+    },
+    () => {
+      if (typeof window === "undefined") return false
+      return window.matchMedia(query).matches
+    },
+    () => false
+  )
 }

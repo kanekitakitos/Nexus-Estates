@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import org.hibernate.envers.Audited;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Representação persistente de um Utilizador no sistema de Identidade.
@@ -57,6 +58,10 @@ public class User {
     @Schema(description = "Email do utilizador", example = "user@example.com")
     private String email;
 
+    @Column(name = "clerk_user_id", unique = true)
+    @Schema(description = "ID do utilizador no Clerk (quando autenticado via social login)", example = "user_2abc123")
+    private String clerkUserId;
+
     /**
      * Hash da palavra-passe do utilizador.
      * <p>
@@ -66,6 +71,7 @@ public class User {
      */
     @Column(nullable = false)
     @Schema(description = "Hash da password (não exposto em leituras)", hidden = true)
+    @JsonIgnore
     private String password;
 
     /**
@@ -88,4 +94,14 @@ public class User {
     @Column(nullable = false)
     @Schema(description = "Papel do utilizador", example = "GUEST")
     private UserRole role;
+
+    /**
+     * Integrações externas associadas ao utilizador.
+     * <p>
+     * Contém credenciais encriptadas para canais externos (Airbnb, Booking, etc.).
+     * </p>
+     */
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private java.util.List<ExternalIntegration> integrations;
 }

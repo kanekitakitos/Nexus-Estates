@@ -9,9 +9,11 @@
 import {
   BadgeCheck,
   ChevronsUpDown,
+  KeyRound,
   LogIn,
   LogOut,
 } from "lucide-react"
+import Link from "next/link"
 
 import {
   Avatar,
@@ -33,6 +35,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/layout/sidebar"
+import { AuthService } from "@/services/auth.service"
 
 /**
  * Componete da sideBar, onde o utilizador, pode gerir a sua conta, ou entrar numa.
@@ -41,7 +44,7 @@ import {
  * 1. GUEST - um utilizador que não está a usar uma conta.
  * Fornece uma atalho para a pagina de login
  * 
- * 2. ADMIN - um utilizador com conta iniciada
+ * 2. ADMIN/OWNER/STAFF - um utilizador com conta iniciada
  * Fornece um dropDown menu, com a opção de aceder a mais detalhes da conta, ou terminar a sessão
  * 
  * @param user - dados do utilizador 
@@ -54,18 +57,22 @@ export function NavUser({
     name: string
     email: string
     avatar: string
-    role: "ADMIN" | "GUEST"
+    role: "ADMIN" | "GUEST" | "OWNER" | "STAFF"
+    isAuthenticated: boolean
   }
 }) {
   const { isMobile } = useSidebar()
 
-  // interface para o utilizador convidado
-  if (user.role === "GUEST") {
+  const handleLogout = () => {
+    AuthService.logout();
+  }
+
+  if (!user.isAuthenticated) {
     return (
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0">
-            <a href="/login">
+            <Link href="/login">
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <LogIn className="size-4" />
               </div>
@@ -73,7 +80,7 @@ export function NavUser({
                 <span className="truncate font-medium">Log in</span>
                 <span className="truncate text-xs">Access your account</span>
               </div>
-            </a>
+            </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
@@ -123,17 +130,25 @@ export function NavUser({
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <BadgeCheck />
-                Account
+                <Link href="/profile" className="flex-1">
+                  Account
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <KeyRound />
+                <Link href="/profile#apis" className="flex-1">
+                  APIs
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarMenuItem>
     </SidebarMenu>
   )
 }

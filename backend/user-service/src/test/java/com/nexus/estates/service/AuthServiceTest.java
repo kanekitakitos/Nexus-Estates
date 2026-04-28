@@ -45,6 +45,8 @@ class AuthServiceTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private JwtService jwtService;
+    @Mock
+    private ExternalIdentityProviderStrategy externalIdentityProvider;
 
     @InjectMocks
     private AuthService authService;
@@ -67,13 +69,13 @@ class AuthServiceTest {
      * Valida a criação de um novo utilizador com o papel padrão.
      * <p>
      * <b>Cenário:</b> Pedido de registo sem role definido.<br>
-     * <b>Expectativa:</b> O utilizador deve ser gravado com {@link UserRole#GUEST}
+     * <b>Expectativa:</b> O utilizador deve ser gravado com {@link UserRole#OWNER}
      * e a password deve ser encriptada.
      * </p>
      */
     @Test
     @DisplayName("Deve registar utilizador com Role GUEST por defeito e retornar token")
-    void shouldRegisterWithDefaultGuestRoleAndReturnToken() {
+    void shouldRegisterWithDefaultOwnerRoleAndReturnToken() {
         // Arrange
         when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("plain")).thenReturn("hashed");
@@ -146,8 +148,9 @@ class AuthServiceTest {
                 .build();
 
         when(userRepository.findByEmail("u@example.com")).thenReturn(Optional.of(existing));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(passwordEncoder.matches("plain", "hashed")).thenReturn(true);
-        when(jwtService.generateToken(existing)).thenReturn("tok");
+        when(jwtService.generateToken(any(User.class))).thenReturn("tok");
 
         LoginRequest req = LoginRequest.builder().email("u@example.com").password("plain").build();
 
@@ -157,7 +160,7 @@ class AuthServiceTest {
         // Assert
         assertEquals(id, response.getId());
         assertEquals("u@example.com", response.getEmail());
-        assertEquals("GUEST", response.getRole());
+        assertEquals("OWNER", response.getRole());
         assertEquals("tok", response.getToken());
     }
 

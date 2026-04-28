@@ -2,30 +2,29 @@ package com.nexus.estates.service;
 
 import com.nexus.estates.client.NexusClients;
 import com.nexus.estates.client.Proxy;
+import com.nexus.estates.common.dto.ApiResponse;
+import com.nexus.estates.common.dto.PropertyQuoteRequest;
+import com.nexus.estates.common.dto.PropertyQuoteResponse;
 import com.nexus.estates.dto.BookingResponse;
 import com.nexus.estates.dto.CreateBookingRequest;
-import com.nexus.estates.dto.payment.PaymentResponse;
-import com.nexus.estates.dto.payment.PaymentStatus;
-import com.nexus.estates.dto.payment.RefundResult;
-import com.nexus.estates.dto.payment.RefundStatus;
 import com.nexus.estates.entity.Booking;
 import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.messaging.BookingEventPublisher;
 import com.nexus.estates.repository.BookingRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,27 +40,37 @@ class BookingServiceIntegrationTest {
     private BookingPaymentService bookingPaymentService;
 
     @Mock
-    private Proxy api;
-
-    @Mock
     private NexusClients.PropertyClient propertyClient;
 
     @Mock
     private NexusClients.UserClient userClient;
 
-    @InjectMocks
     private BookingService bookingService;
 
+    @BeforeEach
+    void setUp() {
+        Proxy api = new Proxy(propertyClient, userClient, null);
+        bookingService = new BookingService(bookingRepository, bookingEventPublisher, bookingPaymentService, api);
+    }
+
     @Test
-    @DisplayName("Should create booking and payment intent in integrated flow")
-    void shouldCreateBookingAndPaymentIntentInIntegratedFlow() {
+    @DisplayName("Should create booking in integrated flow")
+    void shouldCreateBookingInIntegratedFlow() {
         // Arrange
         CreateBookingRequest request = new CreateBookingRequest(
                 10L,
                 20L,
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(4),
-                2
+                2,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
 
         // Criamos o objeto que o repositório irá retornar
@@ -77,15 +86,10 @@ class BookingServiceIntegrationTest {
         savedBooking.setStatus(BookingStatus.PENDING_PAYMENT);
 
         // Mock comportamentos
-        // 1. Configurar o Proxy para devolver os clientes mockados
-        when(api.userClient()).thenReturn(userClient);
-        when(api.propertyClient()).thenReturn(propertyClient);
+        when(propertyClient.quote(eq(request.propertyId()), any(PropertyQuoteRequest.class)))
+                .thenReturn(ApiResponse.success(PropertyQuoteResponse.success(new BigDecimal("300.00"), "EUR"), "OK"));
 
-        // 2. Configurar as respostas dos clientes (User e Property)
-        when(userClient.getUserEmail(request.userId())).thenReturn("test@nexus.com");
-        when(propertyClient.getPropertyPrice(request.propertyId())).thenReturn(new BigDecimal("100.00"));
-
-        when(bookingRepository.existsOverlappingBooking(any(), any(), any())).thenReturn(false);
+        when(bookingRepository.existsOverlappingBooking(anyLong(), any(), any())).thenReturn(false);
         when(bookingRepository.save(any(Booking.class))).thenReturn(savedBooking);
 
         // Act
@@ -99,76 +103,5 @@ class BookingServiceIntegrationTest {
         // Verify interações
         verify(bookingRepository).save(any(Booking.class));
         verify(bookingEventPublisher).publishBookingCreated(any());
-    }
-
-    @Test
-    @DisplayName("Should confirm booking when payment is successful")
-    void shouldConfirmBookingWhenPaymentIsSuccessful() {
-        // Arrange
-        Long bookingId = 1L;
-        String paymentIntentId = "pi_123456";
-        
-        PaymentResponse.Success confirmation = new PaymentResponse.Success(
-            paymentIntentId,
-            paymentIntentId,
-            new BigDecimal("300.00"),
-            "EUR",
-            PaymentStatus.SUCCEEDED,
-            LocalDateTime.now(),
-            "receipt_url",
-            "auth_code",
-            BigDecimal.ZERO,
-            new PaymentResponse.PaymentMethodDetails("card", "4242", "visa"),
-            Map.of()
-        );
-
-        // Mock comportamentos
-        when(bookingPaymentService.confirmPayment(eq(paymentIntentId), any()))
-                .thenReturn(confirmation);
-
-        // Act
-        PaymentResponse result = bookingService.confirmPayment(bookingId, paymentIntentId);
-
-        // Assert
-        assertThat(result.status()).isEqualTo(PaymentStatus.SUCCEEDED);
-        
-        // Verify interações
-        verify(bookingPaymentService).confirmPayment(eq(paymentIntentId), any());
-    }
-
-    @Test
-    @DisplayName("Should process refund successfully")
-    void shouldProcessRefundSuccessfully() {
-        // Arrange
-        Long bookingId = 1L;
-        String reason = "Customer request";
-        BigDecimal amount = new BigDecimal("300.00");
-        
-        RefundResult refundResult = new RefundResult(
-            "refund_123",
-            "refund_123",
-            "txn_123",
-            amount,
-            "EUR",
-            RefundStatus.SUCCEEDED,
-            LocalDateTime.now(),
-            reason,
-            Map.of(),
-            null,
-            BigDecimal.ZERO
-        );
-
-        // Mock comportamentos
-        when(bookingPaymentService.processRefund(bookingId, amount, reason))
-                .thenReturn(refundResult);
-
-        // Act
-        RefundResult result = bookingService.processRefund(bookingId, amount, reason);
-
-        // Assert
-        assertThat(result.status()).isEqualTo(RefundStatus.SUCCEEDED);
-        
-        // Verify interações
-        verify(bookingPaymentService).processRefund(bookingId, amount, reason);
     }
 }

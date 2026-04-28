@@ -1,18 +1,18 @@
 package com.nexus.estates.service;
 
+import com.nexus.estates.client.NexusClients;
+import com.nexus.estates.client.Proxy;
 import com.nexus.estates.dto.payment.*;
 import com.nexus.estates.entity.Booking;
 import com.nexus.estates.common.enums.BookingStatus;
 import com.nexus.estates.exception.PaymentNotFoundException;
 import com.nexus.estates.messaging.BookingEventPublisher;
 import com.nexus.estates.repository.BookingRepository;
-import com.nexus.estates.common.messaging.BookingUpdatedMessage;
 import com.nexus.estates.common.messaging.BookingCancelledMessage;
-import com.nexus.estates.service.interfaces.PaymentGatewayProvider;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -31,7 +31,13 @@ import static org.mockito.Mockito.*;
 class BookingPaymentServiceTest {
 
     @Mock
-    private PaymentGatewayProvider paymentGatewayProvider;
+    private NexusClients.PropertyClient propertyClient;
+
+    @Mock
+    private NexusClients.UserClient userClient;
+
+    @Mock
+    private NexusClients.FinanceClient financeClient;
 
     @Mock
     private BookingRepository bookingRepository;
@@ -39,8 +45,14 @@ class BookingPaymentServiceTest {
     @Mock
     private BookingEventPublisher eventPublisher;
 
-    @InjectMocks
+    private Proxy proxy;
     private BookingPaymentService bookingPaymentService;
+
+    @BeforeEach
+    void setUp() {
+        proxy = new Proxy(propertyClient, userClient, financeClient);
+        bookingPaymentService = new BookingPaymentService(proxy, bookingRepository, eventPublisher);
+    }
 
     @Test
     @DisplayName("Should create payment intent successfully")
@@ -59,18 +71,13 @@ class BookingPaymentServiceTest {
         );
 
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
-        when(paymentGatewayProvider.createPaymentIntent(any(), any(), any(), any())).thenReturn(expectedIntent);
+        when(financeClient.createPaymentIntent(eq(bookingId), any(NexusClients.CreatePaymentIntentRequest.class))).thenReturn(expectedIntent);
 
         PaymentResponse result = bookingPaymentService.createPaymentIntent(bookingId, paymentMethod);
 
         assertThat(result).isNotNull();
         assertThat(result.transactionId()).isEqualTo("pi_123");
-        verify(paymentGatewayProvider).createPaymentIntent(
-            eq(new BigDecimal("300.00")),
-            eq("EUR"),
-            eq(bookingId.toString()),
-            any(Map.class)
-        );
+        verify(financeClient).createPaymentIntent(eq(bookingId), any(NexusClients.CreatePaymentIntentRequest.class));
     }
 
     @Test
@@ -86,7 +93,7 @@ class BookingPaymentServiceTest {
             .isInstanceOf(IllegalStateException.class)
             .hasMessage("Booking is already confirmed and paid");
 
-        verifyNoInteractions(paymentGatewayProvider);
+        verifyNoInteractions(financeClient);
     }
 
     @Test
@@ -102,15 +109,14 @@ class BookingPaymentServiceTest {
             .isInstanceOf(IllegalStateException.class)
             .hasMessage("Cannot process payment for cancelled booking");
 
-        verifyNoInteractions(paymentGatewayProvider);
+        verifyNoInteractions(financeClient);
     }
 
     @Test
     @DisplayName("Should confirm payment successfully")
     void shouldConfirmPaymentSuccessfully() {
         String paymentIntentId = "pi_123";
-        Map<String, Object> metadata = Map.of("bookingId", "1");
-        
+
         PaymentResponse.Success confirmation = new PaymentResponse.Success(
             paymentIntentId,
             paymentIntentId,
@@ -122,20 +128,17 @@ class BookingPaymentServiceTest {
             "auth_code",
             BigDecimal.ZERO,
             new PaymentResponse.PaymentMethodDetails("card", "4242", "visa"),
-            metadata
+            Map.of()
         );
-        
-        Booking booking = createTestBooking(1L, BookingStatus.PENDING_PAYMENT);
 
-        when(paymentGatewayProvider.confirmPaymentIntent(paymentIntentId, metadata)).thenReturn(confirmation);
-        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+        when(financeClient.confirmPayment(eq(1L), any(NexusClients.ConfirmPaymentRequest.class))).thenReturn(confirmation);
 
-        PaymentResponse result = bookingPaymentService.confirmPayment(paymentIntentId, metadata);
+        PaymentResponse result = bookingPaymentService.confirmPayment(1L, paymentIntentId);
 
         assertThat(result).isNotNull();
         assertThat(result).isInstanceOf(PaymentResponse.Success.class);
         assertThat(result.status()).isEqualTo(PaymentStatus.SUCCEEDED);
-        verify(eventPublisher).publishBookingUpdated(any(BookingUpdatedMessage.class));
+        verify(financeClient).confirmPayment(eq(1L), any(NexusClients.ConfirmPaymentRequest.class));
     }
 
     @Test
@@ -160,13 +163,13 @@ class BookingPaymentServiceTest {
         );
 
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
-        when(paymentGatewayProvider.processDirectPayment(any(), any(), any(), any(), any())).thenReturn(expectedResult);
+        when(financeClient.processDirectPayment(eq(bookingId), any(NexusClients.DirectPaymentRequest.class))).thenReturn(expectedResult);
 
         PaymentResponse result = bookingPaymentService.processDirectPayment(bookingId, paymentMethod);
 
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(PaymentStatus.SUCCEEDED);
-        verify(eventPublisher).publishBookingUpdated(any(BookingUpdatedMessage.class));
+        verify(financeClient).processDirectPayment(eq(bookingId), any(NexusClients.DirectPaymentRequest.class));
     }
 
     @Test
@@ -193,7 +196,7 @@ class BookingPaymentServiceTest {
         );
 
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
-        when(paymentGatewayProvider.processRefund(any(), any(), any(), any(), any())).thenReturn(expectedResult);
+        when(financeClient.refund(eq(bookingId), any(NexusClients.RefundRequest.class))).thenReturn(expectedResult);
 
         RefundResult result = bookingPaymentService.processRefund(bookingId, refundAmount, reason);
 
@@ -216,7 +219,7 @@ class BookingPaymentServiceTest {
             .isInstanceOf(IllegalStateException.class)
             .hasMessage("Can only refund confirmed bookings");
 
-        verifyNoInteractions(paymentGatewayProvider);
+        verifyNoInteractions(financeClient);
     }
 
     @Test
@@ -249,7 +252,7 @@ class BookingPaymentServiceTest {
             Map.of()
         );
 
-        when(paymentGatewayProvider.getTransactionDetails(transactionId)).thenReturn(expectedDetails);
+        when(financeClient.getTransactionDetails(transactionId)).thenReturn(expectedDetails);
 
         TransactionInfo result = bookingPaymentService.getTransactionDetails(transactionId);
 
@@ -262,8 +265,8 @@ class BookingPaymentServiceTest {
     void shouldThrowExceptionWhenTransactionNotFound() {
         String transactionId = "tx_not_found";
 
-        when(paymentGatewayProvider.getTransactionDetails(transactionId))
-            .thenThrow(new RuntimeException("Transaction not found"));
+        when(financeClient.getTransactionDetails(transactionId))
+                .thenThrow(new RuntimeException("Transaction not found"));
 
         assertThatThrownBy(() -> bookingPaymentService.getTransactionDetails(transactionId))
             .isInstanceOf(PaymentNotFoundException.class)
@@ -275,7 +278,7 @@ class BookingPaymentServiceTest {
     void shouldGetPaymentStatusSuccessfully() {
         String transactionId = "tx_123";
 
-        when(paymentGatewayProvider.getPaymentStatus(transactionId)).thenReturn(PaymentStatus.SUCCEEDED);
+        when(financeClient.getPaymentStatus(transactionId)).thenReturn(PaymentStatus.SUCCEEDED);
 
         PaymentStatus result = bookingPaymentService.getPaymentStatus(transactionId);
 
@@ -287,7 +290,7 @@ class BookingPaymentServiceTest {
     void shouldCheckIfPaymentMethodIsSupported() {
         PaymentMethod paymentMethod = PaymentMethod.CREDIT_CARD;
 
-        when(paymentGatewayProvider.supportsPaymentMethod(paymentMethod)).thenReturn(true);
+        when(financeClient.supportsPaymentMethod(paymentMethod)).thenReturn(Map.of("paymentMethod", paymentMethod.name(), "supported", true));
 
         boolean result = bookingPaymentService.supportsPaymentMethod(paymentMethod);
 
@@ -312,7 +315,7 @@ class BookingPaymentServiceTest {
             "prod"
         );
 
-        when(paymentGatewayProvider.getProviderInfo()).thenReturn(expectedInfo);
+        when(financeClient.getPaymentProviderInfo()).thenReturn(expectedInfo);
 
         ProviderInfo result = bookingPaymentService.getProviderInfo();
 

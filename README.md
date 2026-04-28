@@ -11,6 +11,14 @@ Este projeto é um **Monorepo** organizado da seguinte forma:
 * **[`/infrastructure`](./infrastructure)**: Configurações de Docker e Kubernetes.
 * **[`/docs`](./docs)**: Documentação técnica detalhada e diagramas.
 
+### Estrutura do Frontend (`/frontend/src`)
+* **`app/`**: Rotas e layouts (Next.js App Router).
+* **`features/`**: Módulos por domínio (ex.: `bookings`, `property`, `profile`) com as suas views e sub-componentes.
+* **`components/`**: Componentes reutilizáveis e layout (ex.: `components/ui/*`, `components/layout/*`).
+* **`services/`**: Camada de comunicação com APIs (Axios/WebClient via Gateway) e lógica de integração.
+* **`types/`**: Tipos/DTOs partilhados (contratos entre UI ↔ services).
+* **`lib/`**: Utilitários e infraestrutura (ex.: axios central, helpers).
+
 ---
 
 ## 🚀 Quick Start (Geral)

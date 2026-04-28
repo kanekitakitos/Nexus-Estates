@@ -1,5 +1,6 @@
 package com.nexus.estates.service;
 
+import com.nexus.estates.service.repository.ImageStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

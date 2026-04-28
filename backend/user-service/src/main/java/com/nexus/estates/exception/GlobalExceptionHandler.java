@@ -78,6 +78,7 @@ public class GlobalExceptionHandler {
             UserNotFoundException.class,
             InvalidCredentialsException.class,
             InvalidTokenException.class,
+            IllegalStateException.class,
             AccessDeniedException.class
     })
     public ResponseEntity<ApiResponse<Object>> handleKnownExceptions(Exception ex, HttpServletRequest request) {
@@ -86,8 +87,18 @@ public class GlobalExceptionHandler {
                 ex instanceof UserNotFoundException ? HttpStatus.NOT_FOUND :
                 ex instanceof InvalidCredentialsException ? HttpStatus.UNAUTHORIZED :
                 ex instanceof InvalidTokenException ? HttpStatus.BAD_REQUEST :
+                ex instanceof IllegalStateException ? HttpStatus.UNAUTHORIZED :
                 ex instanceof AccessDeniedException ? HttpStatus.FORBIDDEN :
                 HttpStatus.INTERNAL_SERVER_ERROR;
         return buildErrorResponse(ex, status, request, null);
+    }
+
+    /**
+     * Tratamento genérico para qualquer outra exceção não capturada.
+     * Garante que o cliente recebe sempre um JSON de erro em vez de uma página HTML.
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Object>> handleAllUncaughtExceptions(Exception ex, HttpServletRequest request) {
+        return buildErrorResponse(ex, HttpStatus.INTERNAL_SERVER_ERROR, request, null);
     }
 }

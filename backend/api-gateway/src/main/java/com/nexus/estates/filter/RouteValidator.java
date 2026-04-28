@@ -31,12 +31,19 @@ public class RouteValidator {
      * </p>
      */
     public static final List<String> openApiEndpoints = List.of(
-            "/api/v1/users/auth/register",
-            "/api/v1/users/auth/login",
-            "/api/v1/properties/search",
+            "/api/users/auth/register",
+            "/api/users/auth/login",
+            "/api/users/auth/password",
+            "/api/users/auth/clerk",
+            "/api/properties/search",
+            "/api/finance/webhooks/stripe",
             "/swagger-ui",
             "/swagger-ui.html",
-            "/v3/api-docs"
+            "/v3/api-docs",
+            "/webjars",
+            "/swagger-resources",
+            "/configuration/ui",
+            "/configuration/security"
     );
 
     /**
@@ -49,5 +56,5 @@ public class RouteValidator {
     public Predicate<ServerHttpRequest> isSecured =
             request -> openApiEndpoints
                     .stream()
-                    .noneMatch(uri -> request.getURI().getPath().contains(uri));
+                    .noneMatch(uri -> request.getURI().getPath().startsWith(uri));
 }

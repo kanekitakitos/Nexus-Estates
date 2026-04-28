@@ -17,7 +17,7 @@ import java.util.Set;
  * @param title       Título da propriedade (Obrigatório, entre 5 e 100 caracteres).
  * @param description Mapa de descrições indexado por idioma (ex: "pt", "en") para suporte JSONB.
  * @param price       Preço da propriedade (Deve ser um valor decimal superior a zero).
- * @param ownerId     ID do proprietário responsável pelo anúncio (Obrigatório).
+ * @param ownerId     ID do proprietário responsável pelo anúncio (Opcional quando resolvido via header X-User-Id no Gateway).
  * @param location    Localização geográfica ou morada da propriedade (Obrigatório).
  * @param amenityIds  Conjunto de IDs das comodidades (Amenities) a associar à propriedade.
  *
@@ -41,14 +41,29 @@ public record CreatePropertyRequest(
         Double price,
 
         @Schema(description = "ID do proprietário do imóvel", example = "123")
-        @NotNull(message = "Owner ID is required")
         Long ownerId,
 
         @Schema(description = "Localização ou morada resumida", example = "Algarve, Portugal")
         @NotBlank(message = "Location is required")
         String location,
 
+        @Schema(description = "Cidade onde o imóvel se localiza", example = "Lagos")
+        @NotBlank(message = "City is required")
+        String city,
+
+        @Schema(description = "Morada completa do imóvel", example = "Rua das Gaivotas, Lote 2")
+        @NotBlank(message = "Address is required")
+        String address,
+
+        @Schema(description = "Número máximo de hóspedes", example = "4")
+        @NotNull(message = "Maximum number of guests is required")
+        @Min(value = 1, message = "Property must accommodate at least 1 guest")
+        Integer maxGuests,
+
         @Schema(description = "Lista de IDs das comodidades associadas", example = "[1, 5, 12]")
-        Set<Long> amenityIds
+        Set<Long> amenityIds,
+
+        @Schema(description = "URL da imagem principal da propriedade", example = "https://res.cloudinary.com/...")
+        String imageUrl
 
 ) {}

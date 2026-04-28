@@ -2,6 +2,7 @@ package com.nexus.estates.service;
 
 import com.nexus.estates.entity.EmailLog;
 import com.nexus.estates.repository.EmailLogRepository;
+import com.nexus.estates.service.notification.EmailService;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
