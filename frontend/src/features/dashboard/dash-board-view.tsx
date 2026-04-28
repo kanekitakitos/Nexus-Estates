@@ -6,11 +6,20 @@ import {BookingProperty} from "@/features/bookings/components/booking-card";
 import {useEffect, useMemo, useState} from "react";
 import {MOCK_BOOKINGS, MOCK_PROPERTIES, MOCK_USER} from "@/features/dashboard/MOCK_DATA"
 import {StatCard} from "@/features/property/components/property-stats";
-import { SquareArrowRightEnter, SquareArrowRightExit, BanknoteArrowUp, BanknoteX } from 'lucide-react';
+import {
+    SquareArrowRightEnter,
+    SquareArrowRightExit,
+    BanknoteArrowUp,
+    BanknoteX,
+    ArrowLeft,
+    ArrowRight
+} from 'lucide-react';
 import {ChartPieLabel} from "@/components/ui/data-display/Charts/PieChart";
 import {ChartLineMultiple, LineChartData} from "@/components/ui/data-display/Charts/ChartLineMultiple";
 import {ChartRadarLegend, RadarChartData} from "@/components/ui/data-display/Charts/ChartRadarLegend";
 import {BarChartData, ChartBarMultiple} from "@/components/ui/data-display/Charts/ChartBarMultiple";
+import {BrutalButton} from "@/components/ui/forms/button";
+import {DropdownMenu, DropdownMenuContent, DropdownMenuLabel} from "@/components/ui/overlay/dropdown-menu";
 
 
 
@@ -22,7 +31,9 @@ export function DashBoardView(){
     const [properties, setProperties] = useState<BookingProperty[]>([])
     const [bookings, setBookings] = useState<BookingResponse[]>([])
 
-    const [viewDate, setViewDate] = useState<Date>(new Date(2026, 1, 3))
+    const [showDropDate, setShowDropDate] = useState<boolean>(false)
+
+    const [viewDate, setViewDate] = useState<Date>(new Date(2026, 1))
     const monthNames = [
         'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
         'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
@@ -31,11 +42,11 @@ export function DashBoardView(){
     useEffect(() => {
         const loadData = async () => {
             // 1. Procura as propriedades primeiro
-            const fetchedProperties = await PropertyService.getAllOwnProperties()
-                .catch(() => MOCK_PROPERTIES);
+            //const fetchedProperties = await PropertyService.getAllOwnProperties()
+              //  .catch(() => MOCK_PROPERTIES);
 
             // 2. Procura os bookings usando o resultado direto da API (não o estado)
-            const fetchedBookings = await getBookingsFromProperties(fetchedProperties);
+           // const fetchedBookings = await getBookingsFromProperties(fetchedProperties);
 
             // 3. Atualiza os estados uma única vez
             setProperties(MOCK_PROPERTIES);
@@ -48,6 +59,9 @@ export function DashBoardView(){
     const calendarItems = useMemo(() => {
         return createCalendarItems(properties, bookings);
     }, [properties, bookings]);
+
+
+
 
     const stats = useMemo(() => {
         const totals = {
@@ -90,8 +104,8 @@ export function DashBoardView(){
             const checkOut = new Date(b.checkOutDate);
 
 
-            if (checkIn > viewDate) totals.checkIn++;
-            if (checkOut > viewDate) totals.checkOut++;
+            if (checkIn.getMonth() == viewDate.getMonth()) totals.checkIn++;
+            if (checkOut.getMonth() == viewDate.getMonth()) totals.checkOut++;
 
             if (checkOut < now) totals.lucrado += b.totalPrice;
             else if (checkIn > now) totals.porLucrar += b.totalPrice;
@@ -106,21 +120,8 @@ export function DashBoardView(){
                 const daysOccupied = (checkOut.getMonth() > viewDate.getMonth()? daysInMonth : checkOut.getDate())
                     - (checkIn.getMonth() < viewDate.getMonth() ? 0 : checkIn.getDate()) + 1
 
-                console.log({
-                    propertie: properties.find((p)=>Number(p.id) == b.propertyId)?.title,
-                    daysOccupied: daysOccupied,
-                    daysInMonth: daysInMonth,
-                    checkOutCalc: (checkOut.getMonth() > viewDate.getMonth()? daysInMonth : checkOut.getDate()),
-                    checkInCalc: (checkIn.getMonth() < viewDate.getMonth() ? 0 : checkIn.getDate()),
-                    dates:{in: checkIn.getDate(), out: checkOut.getDate() },
-                    occupancyPrev: currentBar.occupancy,
-                    occupancyNew: (currentBar.occupancy / 100 * daysInMonth  + daysOccupied) / daysInMonth *100,
-                    checkInDate: checkIn
-                })
 
                 currentBar.occupancy = (currentBar.occupancy / 100 * daysInMonth + daysOccupied) / daysInMonth *100;
-
-
             }
 
 
@@ -178,6 +179,7 @@ export function DashBoardView(){
     }, [bookings, properties, viewDate]);
 
 
+
     return(
         <div className={"flex flex-col mx-10 my-5 gap-5"}>
             <div className={"flex justify-evenly"}>
@@ -229,10 +231,17 @@ export function DashBoardView(){
             </div>
 
             {/* Título e Data */}
-            <div className="mb-4">
-                <div
-                    className="text-xl mb-4 font-black uppercase tracking-wider bg-black text-white px-4 py-3 inline-block">
+            <div className=" flex flex-row items-center mb-4 gap-5">
+                <BrutalButton onClick={() => {
+                    setViewDate(prevDate => new Date(prevDate.getFullYear(), prevDate.getMonth() - 1));
+                }}>
+                    <ArrowLeft size={14}/>
+                </BrutalButton>
 
+                <div
+                    className="text-xl rounded-2xl font-black uppercase tracking-wider bg-black text-white px-4 py-3 inline-block"
+                    onClick={()=>{setShowDropDate(!showDropDate)}}
+                >
                     {new Date().getFullYear() == viewDate.getFullYear() && new Date().getMonth() == viewDate.getMonth()
                         ?<>
                             <h1>TODAY is</h1>
@@ -242,8 +251,15 @@ export function DashBoardView(){
                     }
                     {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
                 </div>
-            </div>
 
+
+
+                <BrutalButton onClick={() => {
+                    setViewDate(prevDate => new Date(prevDate.getFullYear(), prevDate.getMonth() + 1));
+                }}>
+                    <ArrowRight size={14}/>
+                </BrutalButton>
+            </div>
 
             <CalendarTimeline
                 items={calendarItems}
@@ -295,7 +311,7 @@ async function getBookingsFromProperties(properties : BookingProperty[]): Promis
 
 function createCalendarItems(properties : BookingProperty[], bookings : BookingResponse[]) :TimelineItemWithNames[]{
     const calendarItems :TimelineItemWithNames[] = []
-    const colors = ["bg-red-500", "bg-green-500", "bg-blue-500"]
+    const colors = ["bg-red-500", "bg-green-500", "bg-blue-500", "bg-purple-500"]
     let i = 0
     properties.forEach((p)=>{
         const id :number = Number(p.id)
@@ -304,7 +320,7 @@ function createCalendarItems(properties : BookingProperty[], bookings : BookingR
 
             const periods : Period[] = []
             bs_of_p.forEach((b:BookingResponse)=> {
-                const name: string = MOCK_USER.find((u: UserProfile) => u.id === b.userId)?.name
+                const name: string = MOCK_USER.find((u: UserProfile) => u.id === b.userId)?.email
                     ?? "Unknown User";
 
                 periods.push(
