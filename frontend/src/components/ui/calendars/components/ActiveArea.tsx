@@ -1,8 +1,10 @@
 import {Period} from "@/types"
-import {useEffect, useState} from "react";
+import {MouseEventHandler, useEffect, useState} from "react";
 
 
-export function ActiveArea({year, month, period, isStart, isEnd }: {year:number, month:number, period: Period, isStart: boolean, isEnd: boolean }) {
+export function ActiveArea({year, month, period, isStart, isEnd, pading_x=0, onClick }
+                           : {year:number, month:number, period: Period, isStart: boolean, isEnd: boolean, pading_x?:number, onClick?: MouseEventHandler<HTMLDivElement> | undefined }
+) {
     const dayWidth = 56; // w-14
 
     let startPos: number = 0
@@ -22,7 +24,11 @@ export function ActiveArea({year, month, period, isStart, isEnd }: {year:number,
 
     // Ajuste de largura: se não houver vizinho, damos um pequeno gap (como tinhas antes)
     // Se houver vizinho, a largura vai até ao limite exato para o clip-path funcionar
-    const width = duration * dayWidth;
+    let width = duration * dayWidth;
+
+    // aplicar padding
+    startPos += isStart? pading_x : 0
+    width -= isEnd? pading_x * 2 : 0
 
     // Definição do Clip Path (O segredo do corte oblíquo)
     // Se for meio: corta esquerda e direita. Se for ponta: só corta um lado.
