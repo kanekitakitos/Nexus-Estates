@@ -13,7 +13,9 @@
 - [Classe "PasswordResetTokenTest"](#classe-passwordresettokentest)
 - [Classe "ActorContextFilterTest"](#classe-actorcontextfiltertest)
 - [Classe "UserEnversAuditTest"](#classe-userenversauditTest)
-- 
+- [Classe "GuestProfileControllerTest"](#classe-guestprofilecontrollertest)
+- [Classe "GuestProfileServiceTest"](#classe-guestprofileservicetest)
+
 ### Classe "ExternalIntegrationControllerTest"
 - shouldCreateIntegrationAsOwner:
     'Verifica que o POST /api/users/integrations cria integração quando o role é OWNER e devolve ApiResponse com DTO e apiKeyMasked.'
@@ -118,3 +120,28 @@
 - revisionListenerWritesActorIntoRevisionEntity:
   'Verifica que o AuditRevisionListener lê o actor do ActorContext e preenche actorUserId e actorEmail no AuditRevisionEntity.'
 
+### Classe "GuestProfileControllerTest"
+- getGuestProfile_ShouldReturn200_WhenUserIsAdmin:
+  'Verifica que um utilizador com role ADMIN consegue fazer GET /api/users/{id}/profile e recebe 200 OK com os dados do perfil incluindo internalNotes e tags.'
+- getGuestProfile_ShouldReturn200_WhenUserIsManager:
+  'Verifica que um utilizador com role MANAGER consegue fazer GET /api/users/{id}/profile e recebe 200 OK.'
+- getGuestProfile_ShouldReturn403_WhenUserIsGuest:
+  'Verifica que um utilizador com role GUEST recebe 403 Forbidden ao tentar aceder ao GET /api/users/{id}/profile.'
+- updateGuestProfile_ShouldReturn200_WhenAuthorized:
+  'Verifica que um ADMIN consegue fazer PUT /api/users/{id}/profile com payload válido e recebe 200 OK com o perfil actualizado.'
+- patchGuestProfile_ShouldReturn200_WhenAuthorized:
+  'Verifica que um MANAGER consegue fazer PATCH /api/users/{id}/profile e recebe 200 OK.'
+- patchGuestProfile_ShouldReturn403_WhenUnauthorized:
+  'Verifica que um GUEST recebe 403 Forbidden ao tentar fazer PATCH /api/users/{id}/profile.'
+
+### Classe "GuestProfileServiceTest"
+- getProfileByUserId_ShouldReturnProfile_WhenExists:
+  'Verifica que getProfileByUserId devolve GuestProfileResponse com todos os campos correctos quando o perfil existe no repositório.'
+- getProfileByUserId_ShouldThrowException_WhenProfileNotFound:
+  'Verifica que getProfileByUserId lança UserNotFoundException quando não existe perfil para o userId fornecido.'
+- updateGuestProfile_ShouldUpdateExistingProfile:
+  'Verifica que updateGuestProfile actualiza internalNotes e tags de um perfil existente e chama save() no repositório.'
+- updateGuestProfile_ShouldCreateProfile_WhenNotExists:
+  'Verifica comportamento de Upsert: quando o perfil não existe, updateGuestProfile cria um novo perfil associado ao utilizador e persiste-o.'
+- patchGuestProfile_ShouldUpdateOnlyNotes:
+  'Verifica que patchGuestProfile actualiza apenas os campos não nulos — altera internalNotes mas preserva as tags originais quando tags é nulo no request.'
