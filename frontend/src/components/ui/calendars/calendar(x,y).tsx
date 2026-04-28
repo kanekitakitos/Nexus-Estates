@@ -54,30 +54,8 @@ export function CalendarTimeline({ items, year, month, onClickData, onClickActiv
         if (!el) return;
 
         const onWheel = (e: WheelEvent) => {
-            // Apenas interceptamos se for um scroll vertical (deltaY)
-            // Se o utilizador já estiver a fazer scroll horizontal nativo (deltaX), deixamos o browser agir.
-            if (e.deltaY === 0 || e.deltaX !== 0) return;
-
-            const isAtStart = el.scrollLeft <= 0;
-            const isAtEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1; // -1 para margem de erro de pixel
-
-            const scrollingUp = e.deltaY < 0;
-            const scrollingDown = e.deltaY > 0;
-
-            // CONDIÇÕES PARA NÃO CONSUMIR O EVENTO (Deixar a página rolar):
-            // 1. Está no início e quer subir
-            if (isAtStart && scrollingUp) {
-                return; // Sai da função sem preventDefault()
-            }
-
-            // 2. Está no fim e quer descer
-            if (isAtEnd && scrollingDown) {
-                return; // Sai da função sem preventDefault()
-            }
-
-            // CASO CONTRÁRIO: Consumimos o evento e movemos a timeline
-            e.preventDefault();
-            el.scrollLeft += e.deltaY;
+            el.scrollLeft += e.deltaX;
+            return;
         };
 
         el.addEventListener('wheel', onWheel, { passive: false });
@@ -112,14 +90,10 @@ export function CalendarTimeline({ items, year, month, onClickData, onClickActiv
 
                 <div className="flex flex-col gap-5 min-w-max">
 
-                    <BrutalCard className={"p-0 bg-card"}>
+                    <BrutalCard className={"p-0 bg-card overflow-clip"}>
                         {/* Header - Dias do mês */}
                         <div id={"Item Header"}
                              className="flex"
-                             style={{
-                                 clipPath: 'inset(0px round 2rem)', // '2rem' equivale ao 'rounded-4xl' (32px)
-                                 WebkitClipPath: 'inset(0px round 2rem)' // Suporte para Safari
-                             }}
                         >
                             <div
                                 className={`sticky left-0 z-20 w-48 bg-card ${border.r} ${border.color}  p-4`}>
@@ -155,13 +129,9 @@ export function CalendarTimeline({ items, year, month, onClickData, onClickActiv
 
                     {/* Linhas - Items */}
                     {items.map((item, indx) => (
-                        <BrutalCard key={indx} className={"p-0 bg-card"}>
+                        <BrutalCard key={indx} className={"p-0 bg-card overflow-clip"}>
                             <div id={String(item.id)} key={item.id}
                                  className={`flex ${border.color}`}
-                                 style={{
-                                     clipPath: 'inset(0px round 2rem)', // '2rem' equivale ao 'rounded-4xl' (32px)
-                                     WebkitClipPath: 'inset(0px round 2rem)' // Suporte para Safari
-                                 }}
                             >
 
                                 {/* Item lables*/}
