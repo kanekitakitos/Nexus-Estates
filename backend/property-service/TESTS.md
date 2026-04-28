@@ -133,23 +133,14 @@
 
 ### Classe "PropertyServiceTest"
 - shouldCreatePropertyWithSuccess:
-    'Verifica que PropertyService.create persiste a propriedade, associa amenities e cria regra default (PropertyRule).'
+  'Verifica que PropertyService.create persiste a propriedade, associa amenities e cria regra default (PropertyRule).'
+- validateAndQuote_ShouldFail_WhenCheckInDayNotAllowedByOverride:
+  'Verifica que validateAndQuote retorna valid=false quando o check-in cai num dia não permitido pelo RuleOverride (ex: Terça quando só Sábado é permitido).'
+- validateAndQuote_ShouldApplyStrictMinNightsFromOverride:
+  'Verifica que validateAndQuote aplica o minNights mais estrito entre a PropertyRule base e o RuleOverride activo no período.'
+- addRuleOverride_ShouldSaveSuccessfully:
+  'Verifica que addRuleOverride persiste o override com os campos correctos (minNightsOverride, allowedCheckInDays) via RuleOverrideRepository.'
 - shouldCalculatePriceWithoutRules:
-    'Verifica que calculateTotalPrice calcula preço base sem regras (ex.: 3 noites * 100.00 = 300.00).'
-- shouldCalculatePriceWithDateRangeRule2:
-    'Verifica que calculateTotalPrice aplica modificador por data (+50% num dia) e soma corretamente.'
-- shouldPrioritizeChannelRuleOverDateRule1:
-    'Verifica que calculateTotalPrice prioriza regra de canal sobre regra de data quando channel é fornecido.'
-- shouldCalculatePriceWithoutRules0:
-    'Verifica novamente cálculo base sem regras (cenário duplicado no ficheiro).'
-- shouldCalculatePriceWithDateRangeRule:
-    'Verifica aplicação de regra por data (cenário duplicado no ficheiro).'
+  'Verifica que calculateTotalPrice calcula preço base sem regras de sazonalidade (ex: 3 noites * 100.00 = 300.00).'
 - shouldPrioritizeChannelRuleOverDateRule:
-    'Verifica novamente prioridade de regra de canal (cenário duplicado no ficheiro).'
-- validateAndQuote_ShouldFail_WhenCapacityExceeded:
-    'Verifica que validateAndQuote falha quando guestCount excede maxGuests (retorna valid=false e erros).'
-- validateAndQuote_ShouldFail_WhenMinNightsViolated:
-    'Verifica que validateAndQuote falha quando viola minNights da PropertyRule.'
-- validateAndQuote_ShouldSucceed_WhenValid:
-    'Verifica que validateAndQuote devolve valid=true e calcula preço total quando dados são válidos.'
-
+  'Verifica que calculateTotalPrice prioriza regra de canal sobre regra de data quando channel é fornecido.'
