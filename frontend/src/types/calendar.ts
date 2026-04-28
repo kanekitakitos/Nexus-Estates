@@ -1,7 +1,7 @@
-import {OwnProperty} from "@/types/property";
+import {PropertyListItem} from "@/types/property";
 
 export interface TimelineItemWithNames {
-    properti?: OwnProperty
+    properti?: PropertyListItem
     id: number;
     label?: string;
     periods: Period[];
