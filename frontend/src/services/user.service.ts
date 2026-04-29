@@ -51,6 +51,56 @@ export class UserService {
     }
   }
 
+
+  static async getUserId(id :number) :Promise<UserProfile>{
+    try {
+      if (typeof window === "undefined") {
+        throw new Error("getMe requer contexto client-side")
+      }
+
+      const res = await  usersAxios.get(`/${id}`)
+      const raw = res.data as unknown
+
+      if (this.isApiResponse(raw) && raw.success === false) {
+        const err = new Error(typeof raw.message === "string" ? raw.message : "Falha ao carregar perfil.") as Error & {
+          response?: { status?: number; data?: unknown }
+        }
+        err.response = { status: res.status, data: raw }
+        throw err
+      }
+
+      const candidate = this.extractUserProfile(raw)
+
+      if (!candidate) {
+        if (typeof raw === "string") {
+          const err = new Error("Resposta inválida do backend ao carregar perfil.") as Error & {
+            response?: { status?: number; data?: unknown }
+          }
+          err.response = {
+            status: 502,
+            data: {
+              message: raw.toLowerCase().includes("<html")
+                  ? "Resposta HTML recebida do backend."
+                  : "Resposta de texto recebida do backend.",
+            },
+          }
+          throw err
+        }
+        const err = new Error("Resposta inválida do backend ao carregar perfil.") as Error & {
+          response?: { status?: number; data?: unknown }
+        }
+        err.response = { status: 502, data: { message: "Resposta inválida do backend." } }
+        throw err
+      }
+      return candidate
+
+    } catch (e) {
+      this.handleError(e, "carregar perfil")
+      throw e
+    }
+  }
+
+
   private static isAxiosError(error: unknown): error is AxiosError {
     return typeof error === "object" && error !== null && "isAxiosError" in error
   }
