@@ -1,10 +1,9 @@
 "use client"
 import {CalendarTimeline} from "@/components/ui/calendars/calendar(x,y)";
 import {BookingResponse, Page, Period, PropertyListItem, TimelineItemWithNames} from "@/types"
-import {BookingService, PropertyService, UserProfile} from "@/services";
+import {BookingService, PropertyService, UserProfile, UserService} from "@/services";
 import {BookingProperty} from "@/features/bookings/components/booking-card";
 import {useEffect, useMemo, useState} from "react";
-import {MOCK_BOOKINGS, MOCK_PROPERTIES, MOCK_USER} from "@/features/dashboard/MOCK_DATA"
 import {StatCard} from "@/features/property/components/property-stats";
 import {
     SquareArrowRightEnter,
@@ -317,28 +316,6 @@ export default DashBoardView
 //--------------------------------------------------
 //              FUNÇÕES AUXILIARES
 
-async function getBookingsFromProperties(properties : PropertyListItem[]): Promise<BookingResponse[]> {
-    // cria um array de promessas,
-    // cada elemento vai buscar os Bookings de uma Propriedade
-    const promises :Promise<BookingResponse[]>[] = properties.map(property => {
-        const id = Number(property.id)
-
-        if (isNaN(id)) {
-            return Promise.resolve([])
-        }
-        return BookingService.getBookingsByProperty(id)
-            .catch(
-                ()=>{
-                    return  MOCK_BOOKINGS.filter((b)=>id == b.propertyId)
-                }
-            )
-    });
-
-    // esperamos todas as promessas respoderem
-    const result: BookingResponse[][] = await Promise.all(promises)
-    // .flat() junta todos os arrays das promessas num só
-    return  result.flat()
-}
 
 function createCalendarItems(properties : PropertyListItem[], bookings : BookingResponse[]) :TimelineItemWithNames[]{
     const calendarItems :TimelineItemWithNames[] = []
@@ -352,9 +329,19 @@ function createCalendarItems(properties : PropertyListItem[], bookings : Booking
             const bs_of_p :BookingResponse[] = bookings.filter((b) => id == b.propertyId)
 
             const periods : Period[] = []
-            bs_of_p.forEach((b:BookingResponse)=> {
-                const name: string = MOCK_USER.find((u: UserProfile) => u.id === b.userId)?.email
-                    ?? "Unknown User";
+
+            bs_of_p.forEach(async (b:BookingResponse)=> {
+                let name : string
+                try {
+                    if (typeof b.userId != "number")
+                        name = "Unknown User"
+                    else {
+                        const resp: UserProfile = await UserService.getUserId(b.userId);
+                        name = resp.email
+                    }
+                }catch (e){
+                    name = "Unknown User"
+                }
 
                 periods.push(
                     {
