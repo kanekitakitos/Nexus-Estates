@@ -1,5 +1,4 @@
 import { AppShell } from "@/components/layout/app-shell"
-import {DashBoardView} from "@/features/dashboard/dash-board-view";
 
 /**
  * @route ´/dashboard´
@@ -8,7 +7,7 @@ import {DashBoardView} from "@/features/dashboard/dash-board-view";
 export default function Page() {
   return (
     <AppShell>
-        <DashBoardView/>
+        <div></div>
     </AppShell>
   )
 }
