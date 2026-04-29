@@ -4,6 +4,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
+
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Map;
@@ -22,6 +25,7 @@ import java.util.Set;
 @Entity
 @Table(name = "properties")
 @Schema(description = "Entidade principal que representa um imóvel no sistema")
+@Audited
 public class Property {
 
     /**
@@ -119,6 +123,7 @@ public class Property {
             inverseJoinColumns = @JoinColumn(name = "amenity_id")
     )
     @Schema(description = "Lista de comodidades associadas")
+    @NotAudited
     private Set<Amenity> amenities = new HashSet<>();
 
     /**
@@ -127,6 +132,7 @@ public class Property {
      */
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
     @Schema(description = "Regras de sazonalidade associadas a esta propriedade")
+    @NotAudited
     private Set<SeasonalityRule> seasonalityRules = new HashSet<>();
 
     /**
@@ -135,6 +141,7 @@ public class Property {
      */
     @OneToOne(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Schema(description = "Regras operacionais da propriedade")
+    @NotAudited
     private PropertyRule propertyRule;
 
     /**
@@ -142,6 +149,7 @@ public class Property {
      */
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
     @Schema(description = "Sobreposições de regras sazonais para esta propriedade")
+    @NotAudited
     private Set<RuleOverride> ruleOverrides = new HashSet<>();
 
     // Getters e Setters

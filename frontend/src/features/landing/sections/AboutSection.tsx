@@ -1,27 +1,19 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { B, SECTIONS } from "../tokens"
+import { ABOUT_INFO_CARDS, B, SECTIONS, landingTokens } from "../lib/tokens"
 import { Title } from "../ui/Title"
-import { ease, revealTransition } from "../motion"
+import { ease, revealTransition } from "../lib/motion"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Section  = typeof SECTIONS[0]
-type InfoCard = { n: string; title: string; body: string }
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const INFO_CARDS: InfoCard[] = [
-  { n: "01", title: "Missão",     body: "Reduzir a fricção operacional no AL. Centralizamos tudo para o anfitrião focar no que importa." },
-  { n: "02", title: "Tecnologia", body: "Stack moderna, sync em tempo real, API robusta. Construído para anfitriões exigentes." },
-  { n: "03", title: "Suporte",    body: "Equipa dedicada que entende o mercado português. Sempre ao teu lado." },
-]
+type Section  = (typeof SECTIONS)[number]
+type InfoCard = (typeof ABOUT_INFO_CARDS)[number]
 
 const CARD_STYLE = {
-  border:     "2px solid rgba(240,236,217,0.55)",
-  boxShadow:  "6px 6px 0 0 rgba(240,236,217,0.18)",
-  background: "rgba(240,236,217,0.03)",
+  border:     landingTokens.ui.landing.about.infoCardBorder,
+  boxShadow:  landingTokens.ui.landing.about.infoCardShadow,
+  background: landingTokens.ui.landing.about.infoCardBg,
 } as const
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -41,7 +33,8 @@ function CardHeader({ card }: { card: InfoCard }) {
         whileHover={{ x: 3 }}
         transition={{ type: "spring", stiffness: 500, damping: 20 }}
       >
-        {card.title} →
+        {card.title}
+        {landingTokens.copy.landing.about.cardTitleSuffix}
       </motion.span>
     </div>
   )
@@ -81,7 +74,7 @@ function InfoCard({ card, index }: { card: InfoCard; index: number }) {
 function InfoCardList() {
   return (
     <div className="flex flex-col gap-3">
-      {INFO_CARDS.map((card, i) => (
+      {ABOUT_INFO_CARDS.map((card, i) => (
         <InfoCard key={card.n} card={card} index={i} />
       ))}
     </div>
@@ -102,7 +95,9 @@ export function AboutSection({ s }: { s: Section }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        {s.label} — Sobre
+        {s.label}
+        {landingTokens.copy.landing.plans.sectionJoiner}
+        {landingTokens.copy.landing.about.sectionSuffix}
       </motion.span>
 
       <div className="grid md:grid-cols-2 gap-12 items-center relative z-20">

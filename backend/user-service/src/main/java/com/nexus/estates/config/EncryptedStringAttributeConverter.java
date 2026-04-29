@@ -4,6 +4,8 @@ import com.nexus.estates.service.SecretCryptoService;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
+import java.util.Base64;
+
 /**
  * Converter JPA para encriptação transparente de campos String.
  * <p>
@@ -36,6 +38,18 @@ public class EncryptedStringAttributeConverter implements AttributeConverter<Str
      */
     @Override
     public String convertToEntityAttribute(String dbData) {
-        return SecretCryptoService.getInstance().decrypt(dbData);
+        if (dbData == null || dbData.isBlank()) return dbData;
+        try {
+            byte[] decoded = Base64.getDecoder().decode(dbData);
+            if (decoded.length <= 12) return dbData;
+        } catch (IllegalArgumentException ignored) {
+            return dbData;
+        }
+
+        try {
+            return SecretCryptoService.getInstance().decrypt(dbData);
+        } catch (IllegalStateException ignored) {
+            return dbData;
+        }
     }
 }

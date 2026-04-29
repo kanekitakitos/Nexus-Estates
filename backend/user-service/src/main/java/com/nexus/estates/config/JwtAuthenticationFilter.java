@@ -17,7 +17,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -48,11 +47,44 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain ) throws ServletException, IOException {
 
+        final String roleHeader = request.getHeader("X-User-Role"); // Cabeçalho injetado pelo Gateway
+        final String userEmailHeader = request.getHeader("X-User-Email"); // Cabeçalho injetado pelo Gateway
+
+        if (SecurityContextHolder.getContext().getAuthentication() == null
+                && userEmailHeader != null
+                && !userEmailHeader.isBlank()) {
+            var userDetails = userRepository.findByEmail(userEmailHeader).orElse(null);
+            if (userDetails != null) {
+                List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+
+                if (roleHeader != null && !roleHeader.isEmpty()) {
+                    String roleName = roleHeader.toUpperCase();
+                    if (!roleName.startsWith("ROLE_")) {
+                        roleName = "ROLE_" + roleName;
+                    }
+                    authorities.add(new SimpleGrantedAuthority(roleName));
+                } else if (userDetails.getRole() != null) {
+                    String dbRole = userDetails.getRole().name();
+                    if (!dbRole.startsWith("ROLE_")) {
+                        dbRole = "ROLE_" + dbRole;
+                    }
+                    authorities.add(new SimpleGrantedAuthority(dbRole));
+                }
+
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        authorities
+                );
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
+        }
+
         // 1. Tenta apanhar o cabeçalho "Authorization"
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String userEmail;
-        final String roleHeader = request.getHeader("X-User-Role"); // Cabeçalho injetado pelo Gateway
 
         // 2. Verifica se o cabeçalho existe e começa por "Bearer "
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {

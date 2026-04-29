@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { STATUS_CONFIG } from "../../property-constants"
+import { STATUS_CONFIG } from "../../model/property-constants"
 
 interface StatusBadgeProps {
   /** Estado operacional do ativo (AVAILABLE | BOOKED | MAINTENANCE) */

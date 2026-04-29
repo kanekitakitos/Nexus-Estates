@@ -1,14 +1,14 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { B, PLANS, SECTIONS } from "../tokens"
+import { B, PLANS, SECTIONS, landingTokens } from "../lib/tokens"
 import { Title } from "../ui/Title"
-import { ease, revealTransition } from "../motion"
+import { ease, revealTransition } from "../lib/motion"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Section = typeof SECTIONS[0]
-type Plan    = typeof PLANS[0]
+type Section = (typeof SECTIONS)[number]
+type Plan    = (typeof PLANS)[number]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -29,7 +29,7 @@ function PopularBadge() {
         border: `1px solid ${B.black}`,
       }}
     >
-      Mais Popular
+      {landingTokens.copy.landing.plans.popularBadge}
     </motion.div>
   )
 }
@@ -142,7 +142,9 @@ function PlanCTA({ plan }: { plan: Plan }) {
       }}
       data-hover
     >
-      Escolher {plan.name} →
+      {landingTokens.copy.landing.plans.choosePrefix}
+      {plan.name}
+      {landingTokens.copy.landing.plans.chooseSuffix}
     </motion.a>
   )
 }
@@ -154,7 +156,7 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
       className="relative p-5 sm:p-6 flex flex-col group"
       style={{
         background: plan.featured
-          ? `linear-gradient(145deg, ${B.black} 0%, #1a1a1a 100%)`
+          ? `linear-gradient(145deg, ${B.black} 0%, ${B.graphite} 100%)`
           : B.cream,
         border: `2px solid ${B.black}`,
         boxShadow: plan.featured
@@ -167,7 +169,7 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
       whileHover={{
         x: 2,
         y: 2,
-        boxShadow: "0px 0px 0 0 rgba(0,0,0,0)",
+        boxShadow: landingTokens.ui.landing.effects.transparentBoxShadow,
       }}
       data-hover
     >
@@ -193,7 +195,9 @@ export function PlansSection({ s }: { s: Section }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        {s.label} — Planos
+        {s.label}
+        {landingTokens.copy.landing.plans.sectionJoiner}
+        {landingTokens.copy.landing.plans.sectionSuffix}
       </motion.span>
 
       <div className="mb-5 relative z-20">

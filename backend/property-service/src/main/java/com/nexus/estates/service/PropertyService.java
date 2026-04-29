@@ -8,6 +8,7 @@ import com.nexus.estates.common.dto.SeasonalityRuleDTO;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.dto.ExpandedPropertyResponse;
 import com.nexus.estates.dto.UpdatePropertyRequest;
+import com.nexus.estates.audit.ActorContext;
 import com.nexus.estates.entity.Amenity;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.PropertyChangeLog;
@@ -93,41 +94,65 @@ public class PropertyService {
      * @return propriedade persistida
      */
     @Transactional
-    public Property create(CreatePropertyRequest request) {
-        log.info("Iniciando criação de propriedade: {}", request.title());
+    public Property create(CreatePropertyRequest request, String userIdHeader) {
+        Long resolvedOwnerId = request.ownerId();
+        if (resolvedOwnerId == null) {
+            resolvedOwnerId = parseUserIdHeader(userIdHeader);
+        }
+        if (resolvedOwnerId == null) {
+            resolvedOwnerId = ActorContext.get().map(ActorContext.Actor::userId).orElse(null);
+        }
+        if (resolvedOwnerId == null) {
+            throw new IllegalArgumentException("Owner ID is required.");
+        }
+
+        CreatePropertyRequest effectiveRequest = request.ownerId() != null
+                ? request
+                : new CreatePropertyRequest(
+                request.title(),
+                request.description(),
+                request.price(),
+                resolvedOwnerId,
+                request.location(),
+                request.city(),
+                request.address(),
+                request.maxGuests(),
+                request.amenityIds(),
+                request.imageUrl()
+        );
+
+        log.info("Iniciando criação de propriedade: {}", effectiveRequest.title());
 
         Property property = new Property();
 
         // Mapeamento dos campos do DTO para a Entity
-        property.setName(request.title());
+        property.setName(effectiveRequest.title());
         // Conversão de Double (DTO) para BigDecimal (Entity)
-        property.setBasePrice(BigDecimal.valueOf(request.price()));
-        property.setLocation(request.location());
-        property.setCity(request.city());
-        property.setAddress(request.address());
-        property.setMaxGuests(request.maxGuests());
-        property.setImageUrl(request.imageUrl());
+        property.setBasePrice(BigDecimal.valueOf(effectiveRequest.price()));
+        property.setLocation(effectiveRequest.location());
+        property.setCity(effectiveRequest.city());
+        property.setAddress(effectiveRequest.address());
+        property.setMaxGuests(effectiveRequest.maxGuests());
+        property.setImageUrl(effectiveRequest.imageUrl());
 
         // Atribui o mapa de descrições (que será guardado como JSONB no Postgres)
-        property.setDescription(request.description());
+        property.setDescription(effectiveRequest.description());
 
         // Implementação da lógica de associação de amenityIds
-        if (request.amenityIds() != null && !request.amenityIds().isEmpty()) {
-            log.debug("Comodidades detetadas para associação: {}", request.amenityIds());
-            List<Amenity> amenities = amenityRepository.findAllById(request.amenityIds());
+        if (effectiveRequest.amenityIds() != null && !effectiveRequest.amenityIds().isEmpty()) {
+            log.debug("Comodidades detetadas para associação: {}", effectiveRequest.amenityIds());
+            List<Amenity> amenities = amenityRepository.findAllById(effectiveRequest.amenityIds());
             property.setAmenities(new HashSet<>(amenities));
         }
 
         Property savedProperty = repository.save(property);
 
         try {
-            if (request.ownerId() != null) {
-                com.nexus.estates.entity.PropertyPermission perm = new com.nexus.estates.entity.PropertyPermission();
-                perm.setPropertyId(savedProperty.getId());
-                perm.setUserId(request.ownerId());
-                perm.setAccessLevel(com.nexus.estates.entity.AccessLevel.PRIMARY_OWNER);
-                permissionRepository.save(perm);
-            }
+            com.nexus.estates.entity.PropertyPermission perm = new com.nexus.estates.entity.PropertyPermission();
+            perm.setPropertyId(savedProperty.getId());
+            perm.setUserId(resolvedOwnerId);
+            perm.setAccessLevel(com.nexus.estates.entity.AccessLevel.PRIMARY_OWNER);
+            permissionRepository.save(perm);
         } catch (Exception e) {
             log.warn("Falha ao criar permissão do proprietário para a propriedade {}: {}", savedProperty.getId(), e.getMessage());
         }
@@ -145,6 +170,17 @@ public class PropertyService {
         savedProperty.setPropertyRule(defaultRule);
 
         return savedProperty;
+    }
+
+    private Long parseUserIdHeader(String userIdHeader) {
+        if (userIdHeader == null || userIdHeader.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(userIdHeader);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
@@ -302,50 +338,51 @@ public class PropertyService {
 
     @Transactional
     public Property updateProperty(Long id, UpdatePropertyRequest req, Long actorUserId) {
+        Long effectiveActorUserId = resolveActorUserId(actorUserId);
         Property p = findById(id);
         if (req.title() != null) {
             if (req.title().length() < 3) {
                 throw new IllegalArgumentException("O título deve ter pelo menos 3 caracteres.");
             }
-            recordChange(id, actorUserId, "UPDATE", "name", p.getName(), req.title());
+            recordChange(id, effectiveActorUserId, "UPDATE", "name", p.getName(), req.title());
             p.setName(req.title());
         }
         if (req.description() != null) {
-            recordChange(id, actorUserId, "UPDATE", "description", asString(p.getDescription()), asString(req.description()));
+            recordChange(id, effectiveActorUserId, "UPDATE", "description", asString(p.getDescription()), asString(req.description()));
             p.setDescription(req.description());
         }
         if (req.location() != null) {
-            recordChange(id, actorUserId, "UPDATE", "location", p.getLocation(), req.location());
+            recordChange(id, effectiveActorUserId, "UPDATE", "location", p.getLocation(), req.location());
             p.setLocation(req.location());
         }
         if (req.city() != null) {
-            recordChange(id, actorUserId, "UPDATE", "city", p.getCity(), req.city());
+            recordChange(id, effectiveActorUserId, "UPDATE", "city", p.getCity(), req.city());
             p.setCity(req.city());
         }
         if (req.address() != null) {
-            recordChange(id, actorUserId, "UPDATE", "address", p.getAddress(), req.address());
+            recordChange(id, effectiveActorUserId, "UPDATE", "address", p.getAddress(), req.address());
             p.setAddress(req.address());
         }
         if (req.basePrice() != null) {
             if (req.basePrice().scale() > 2 || req.basePrice().compareTo(BigDecimal.ZERO) <= 0) {
                 throw new IllegalArgumentException("O preço base deve ser positivo e com no máximo 2 casas decimais.");
             }
-            recordChange(id, actorUserId, "UPDATE", "basePrice", p.getBasePrice() == null ? null : p.getBasePrice().toPlainString(), req.basePrice().toPlainString());
+            recordChange(id, effectiveActorUserId, "UPDATE", "basePrice", p.getBasePrice() == null ? null : p.getBasePrice().toPlainString(), req.basePrice().toPlainString());
             p.setBasePrice(req.basePrice());
         }
         if (req.maxGuests() != null) {
             if (req.maxGuests() < 1) {
                 throw new IllegalArgumentException("O número máximo de hóspedes deve ser pelo menos 1.");
             }
-            recordChange(id, actorUserId, "UPDATE", "maxGuests", p.getMaxGuests() == null ? null : p.getMaxGuests().toString(), req.maxGuests().toString());
+            recordChange(id, effectiveActorUserId, "UPDATE", "maxGuests", p.getMaxGuests() == null ? null : p.getMaxGuests().toString(), req.maxGuests().toString());
             p.setMaxGuests(req.maxGuests());
         }
         if (req.isActive() != null) {
-            recordChange(id, actorUserId, "UPDATE", "isActive", String.valueOf(p.getIsActive()), String.valueOf(req.isActive()));
+            recordChange(id, effectiveActorUserId, "UPDATE", "isActive", String.valueOf(p.getIsActive()), String.valueOf(req.isActive()));
             p.setIsActive(req.isActive());
         }
         if (req.imageUrl() != null) {
-            recordChange(id, actorUserId, "UPDATE", "imageUrl", p.getImageUrl(), req.imageUrl());
+            recordChange(id, effectiveActorUserId, "UPDATE", "imageUrl", p.getImageUrl(), req.imageUrl());
             p.setImageUrl(req.imageUrl());
         }
         return repository.save(p);
@@ -353,9 +390,10 @@ public class PropertyService {
 
     @Transactional
     public void deleteProperty(Long id, Long actorUserId) {
+        Long effectiveActorUserId = resolveActorUserId(actorUserId);
         Property p = findById(id);
         repository.delete(p);
-        recordChange(id, actorUserId, "DELETE", null, null, null);
+        recordChange(id, effectiveActorUserId, "DELETE", null, null, null);
     }
 
     private void recordChange(Long propertyId, Long userId, String action, String field, String oldV, String newV) {
@@ -368,6 +406,13 @@ public class PropertyService {
         logChange.setNewValue(newV);
         logChange.setChangedAt(OffsetDateTime.now());
         changeLogRepository.save(logChange);
+    }
+
+    private Long resolveActorUserId(Long actorUserId) {
+        if (actorUserId != null) {
+            return actorUserId;
+        }
+        return ActorContext.get().map(ActorContext.Actor::userId).orElse(null);
     }
 
     private String asString(Map<String, String> map) {

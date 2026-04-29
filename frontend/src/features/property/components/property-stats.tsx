@@ -5,15 +5,16 @@ import { motion } from "framer-motion"
 import { LayoutGrid, CheckCircle2, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { OwnProperty } from "@/types"
-import { staggerContainer, statCardVariants } from "../animations"
+import { staggerContainer, statCardVariants } from "../lib/animations"
 import { AnimatedCounter } from "./animated-counter"
+import { propertyCopy, propertyTokens } from "../lib/property-tokens"
 
 // ─── Tipos e Props ─────────────────────────────────────────────────────────
 
 /** Propriedades do dashboard de estatísticas de ativos */
 export interface PropertyStatsProps {
   /** Lista de ativos para agregação de dados */
-  propertys: OwnProperty[]
+  properties?: OwnProperty[]
   /** Classes CSS adicionais para o contentor grid */
   className?: string
 }
@@ -29,7 +30,7 @@ export interface PropertyStatsProps {
  * Nota: Implementação própria para suportar `AnimatedCounter` no valor,
  * uma vez que `BrutalStatCard` aceita apenas `string | number`.
  */
-function StatCard({
+export function StatCard({
   label,
   value,
   color,
@@ -51,9 +52,7 @@ function StatCard({
       variants={statCardVariants}
       custom={index}
       className={cn(
-        "relative group p-6 border-[3px] border-foreground dark:border-zinc-800 rounded-[2rem] overflow-hidden",
-        "shadow-[8px_8px_0_0_#0D0D0D] dark:shadow-[8px_8px_0_0_rgba(24,24,27,1)]",
-        "bg-[#FAFAF5] dark:bg-zinc-950 transition-all duration-300"
+        propertyTokens.ui.stats.cardWrapClass
       )}
     >
       {/* Glow de hover */}
@@ -68,24 +67,24 @@ function StatCard({
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl border-[3px] border-foreground dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-[4px_4px_0_0_#0D0D0D] transition-transform group-hover:-rotate-3">
+            <div className={propertyTokens.ui.stats.iconWrapClass}>
               <Icon className={cn("w-5 h-5", color)} strokeWidth={3} />
             </div>
             <span className="font-mono text-[11px] font-black uppercase tracking-[0.25em] text-muted-foreground whitespace-nowrap">
               {label}
             </span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-foreground/5 dark:bg-white/5 rounded-xl border-2 border-foreground/10 dark:border-white/10">
+          <div className={propertyTokens.ui.stats.dotWrapClass}>
             <div className={cn("w-2 h-2 rounded-full animate-pulse", glowColor)} />
           </div>
         </div>
 
         {/* Valor principal */}
-        <div className="flex items-end justify-between border-b-[3px] border-foreground/5 dark:border-white/5 pb-6">
+        <div className={propertyTokens.ui.stats.valueDividerClass}>
           <div className="flex items-baseline gap-2">
             <span
               className={cn("text-6xl font-black tracking-tighter italic", color)}
-              style={{ WebkitTextStroke: "1px rgba(0,0,0,0.05)" }}
+              style={{ WebkitTextStroke: propertyTokens.ui.stats.valueStroke }}
             >
               <AnimatedCounter value={value} />
             </span>
@@ -107,40 +106,39 @@ function StatCard({
  * Responsabilidade única: Agregar métricas da coleção de ativos e
  * delegar a renderização de cada KPI ao componente interno `StatCard`.
  *
- * @hook useMemo — Agrega statsData apenas quando `propertys` muda.
+ * @hook useMemo — Agrega statsData apenas quando as props de lista mudam.
  */
-export function PropertyStats({ propertys, className }: PropertyStatsProps) {
-  const statsData = useMemo(
-    () => [
+export function PropertyStats({ properties = [], className }: PropertyStatsProps) {
+  const statsData = useMemo(() => {
+    const items = properties
+    return [
       {
-        label: "Total_Ativos",
-        value: propertys.length,
+        label: propertyCopy.stats.totalAssetsLabel,
+        value: items.length,
         color: "text-primary",
         glowColor: "bg-primary",
         icon: LayoutGrid,
-        suffix: "SYS",
+        suffix: propertyCopy.stats.totalAssetsSuffix,
       },
       {
-        label: "Operacional",
-        value: propertys.filter((p) => p.status === "AVAILABLE").length,
+        label: propertyCopy.stats.operationalLabel,
+        value: items.filter((p) => p.status === "AVAILABLE").length,
         color: "text-emerald-500",
         glowColor: "bg-emerald-500",
         icon: CheckCircle2,
-        suffix: "OK",
+        suffix: propertyCopy.stats.operationalSuffix,
       },
       {
-        label: "Indisponível",
-        value: propertys.filter(
-          (p) => p.status === "BOOKED" || p.status === "MAINTENANCE"
-        ).length,
+        label: propertyCopy.stats.unavailableLabel,
+        value: items.filter((p) => p.status === "BOOKED" || p.status === "MAINTENANCE")
+          .length,
         color: "text-rose-500",
         glowColor: "bg-rose-500",
         icon: Clock,
-        suffix: "LIVE",
+        suffix: propertyCopy.stats.unavailableSuffix,
       },
-    ],
-    [propertys]
-  )
+    ]
+  }, [properties])
 
   return (
     <motion.div

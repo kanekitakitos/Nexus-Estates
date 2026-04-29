@@ -119,8 +119,11 @@ public class PropertyController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados de entrada inválidos ou campos obrigatórios em falta")
     })
     @PostMapping
-    public ResponseEntity<ApiResponse<Property>> create(@Valid @RequestBody CreatePropertyRequest request) {
-        Property property = service.create(request);
+    public ResponseEntity<ApiResponse<Property>> create(
+            @Valid @RequestBody CreatePropertyRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        Property property = service.create(request, userIdHeader);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(property, "Propriedade criada com sucesso."));
     }
 
@@ -194,19 +197,7 @@ public class PropertyController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Sucesso ao retornar lista")
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> listAll() {
-        List<Map<String, Object>> properties = repository.findAll().stream().map(p -> {
-            Map<String, Object> m = new java.util.HashMap<>();
-            m.put("id", p.getId());
-            m.put("name", p.getName());
-            m.put("description", p.getDescription());
-            m.put("location", p.getLocation());
-            m.put("city", p.getCity());
-            m.put("address", p.getAddress());
-            m.put("basePrice", p.getBasePrice());
-            m.put("maxGuests", p.getMaxGuests());
-            m.put("isActive", Boolean.TRUE.equals(p.getIsActive()));
-            return m;
-        }).toList();
+        List<Map<String, Object>> properties = repository.findAll().stream().map(this::toSummary).toList();
         return ResponseEntity.ok(ApiResponse.success(properties, "Propriedades listadas com sucesso."));
     }
 
@@ -378,20 +369,37 @@ public class PropertyController {
         Sort.Order order = new Sort.Order(Sort.Direction.fromString(sortParts.length > 1 ? sortParts[1] : "asc"), sortParts[0]);
         Pageable pageable = PageRequest.of(page, size, Sort.by(order));
         Page<Property> result = service.listByUserWithFilters(userId, city, isActive, minPrice, maxPrice, pageable);
-        Page<Map<String, Object>> mapped = result.map(p -> {
-            Map<String, Object> m = new java.util.HashMap<>();
-            m.put("id", p.getId());
-            m.put("name", p.getName());
-            m.put("description", p.getDescription());
-            m.put("location", p.getLocation());
-            m.put("city", p.getCity());
-            m.put("address", p.getAddress());
-            m.put("basePrice", p.getBasePrice());
-            m.put("maxGuests", p.getMaxGuests());
-            m.put("isActive", Boolean.TRUE.equals(p.getIsActive()));
-            return m;
-        });
+        Page<Map<String, Object>> mapped = result.map(this::toSummary);
         return ResponseEntity.ok(ApiResponse.success(mapped, "Propriedades do utilizador listadas."));
+    }
+
+    @Operation(summary = "Listar propriedades do utilizador autenticado", description = "Lista propriedades vinculadas ao utilizador autenticado via header X-User-Id do API Gateway.")
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<Page<Map<String, Object>>>> listMine(
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "name,asc") String sort,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) Boolean isActive,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice
+    ) {
+        if (userIdHeader == null || userIdHeader.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Sessão expirada.", "UNAUTHORIZED"));
+        }
+        Long userId;
+        try {
+            userId = Long.parseLong(userIdHeader);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Sessão expirada.", "UNAUTHORIZED"));
+        }
+        String[] sortParts = sort.split(",");
+        Sort.Order order = new Sort.Order(Sort.Direction.fromString(sortParts.length > 1 ? sortParts[1] : "asc"), sortParts[0]);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(order));
+        Page<Property> result = service.listByUserWithFilters(userId, city, isActive, minPrice, maxPrice, pageable);
+        Page<Map<String, Object>> mapped = result.map(this::toSummary);
+        return ResponseEntity.ok(ApiResponse.success(mapped, "Propriedades do utilizador autenticado listadas."));
     }
 
     @Operation(summary = "Obter propriedade expandida", description = "Retorna uma propriedade com dados expandidos: amenities, regras e sazonalidade.")
@@ -465,4 +473,19 @@ public class PropertyController {
     }
 
     private String safe(String s) { return s == null ? "" : s.replace(";", ","); }
+
+    private Map<String, Object> toSummary(Property p) {
+        Map<String, Object> m = new java.util.HashMap<>();
+        m.put("id", p.getId());
+        m.put("name", p.getName());
+        m.put("description", p.getDescription());
+        m.put("location", p.getLocation());
+        m.put("city", p.getCity());
+        m.put("address", p.getAddress());
+        m.put("basePrice", p.getBasePrice());
+        m.put("maxGuests", p.getMaxGuests());
+        m.put("isActive", Boolean.TRUE.equals(p.getIsActive()));
+        m.put("imageUrl", p.getImageUrl());
+        return m;
+    }
 }

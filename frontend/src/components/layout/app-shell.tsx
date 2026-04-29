@@ -14,8 +14,8 @@ import {
 } from "@/components/ui/layout/sidebar"
 import { BrutalGridBackground } from "@/components/ui/layout/brutal-grid-background"
 import { cn } from "@/lib/utils"
-import ClickSpark from "@/components/ClickSpark"
-import { LogOut, User, LayoutDashboard } from "lucide-react"
+import ClickSpark from "@/components/effects/ClickSpark"
+import { LogOut, LayoutDashboard } from "lucide-react"
 import { AuthService } from "@/services/auth.service"
 
 interface AppShellProps {
@@ -108,10 +108,8 @@ export function AppShell({ children, header, showHeader = true }: AppShellProps)
   const isHome = pathname === "/"
 
   const syncAuth = React.useCallback(() => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token')
-      setIsAuthenticated(!!token)
-    }
+    const session = AuthService.getSession()
+    setIsAuthenticated(session.isAuthenticated)
   }, [])
 
   React.useEffect(() => {
@@ -147,12 +145,7 @@ export function AppShell({ children, header, showHeader = true }: AppShellProps)
 
   React.useEffect(() => {
     syncAuth()
-    window.addEventListener('storage', syncAuth)
-    window.addEventListener('auth-change', syncAuth)
-    return () => {
-      window.removeEventListener('storage', syncAuth)
-      window.removeEventListener('auth-change', syncAuth)
-    }
+    return AuthService.subscribeSession(syncAuth)
   }, [syncAuth])
 
   return (

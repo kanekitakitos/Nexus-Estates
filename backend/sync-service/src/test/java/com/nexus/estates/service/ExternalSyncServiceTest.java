@@ -3,18 +3,23 @@ package com.nexus.estates.service;
 import com.nexus.estates.dto.ExternalApiConfig;
 import com.nexus.estates.service.external.ExternalAuthService;
 import com.nexus.estates.service.external.ExternalSyncService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestClient;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,22 +32,28 @@ import static org.mockito.Mockito.when;
 class ExternalSyncServiceTest {
 
     @Mock
-    private RestClient externalApiRestClient;
+    private WebClient externalApiWebClient;
 
     @Mock
     private ExternalAuthService authService;
 
     @Mock
-    private RestClient.RequestBodyUriSpec requestBodyUriSpec;
+    private WebClient.RequestBodyUriSpec requestBodyUriSpec;
 
     @Mock
-    private RestClient.RequestBodySpec requestBodySpec;
+    @SuppressWarnings("rawtypes")
+    private WebClient.RequestHeadersSpec requestHeadersSpec;
 
     @Mock
-    private RestClient.ResponseSpec responseSpec;
+    private ClientResponse clientResponse;
 
-    @InjectMocks
     private ExternalSyncService externalSyncService;
+
+    @BeforeEach
+    void setup() {
+        externalSyncService = new ExternalSyncService(externalApiWebClient, authService);
+        ReflectionTestUtils.setField(externalSyncService, "requestTimeout", Duration.ofSeconds(5));
+    }
 
     @Test
     @DisplayName("Deve retornar Optional com resposta quando API externa responder com sucesso")
@@ -55,20 +66,25 @@ class ExternalSyncServiceTest {
         String payload = "data";
         String expectedResponse = "success";
 
-        when(externalApiRestClient.post()).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.uri("https://api.com/test")).thenReturn(requestBodySpec);
-        when(requestBodySpec.contentType(any())).thenReturn(requestBodySpec);
+        when(externalApiWebClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri("https://api.com/test")).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.contentType(any())).thenReturn(requestBodyUriSpec);
         
         doAnswer(invocation -> {
             @SuppressWarnings("unchecked")
             Consumer<HttpHeaders> headersConsumer = invocation.getArgument(0);
             headersConsumer.accept(new HttpHeaders());
-            return requestBodySpec;
-        }).when(requestBodySpec).headers(any());
+            return requestBodyUriSpec;
+        }).when(requestBodyUriSpec).headers(any());
 
-        when(requestBodySpec.body(payload)).thenReturn(requestBodySpec);
-        when(requestBodySpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.body(String.class)).thenReturn(expectedResponse);
+        when(requestBodyUriSpec.bodyValue(payload)).thenReturn(requestHeadersSpec);
+        when(clientResponse.statusCode()).thenReturn(HttpStatus.OK);
+        when(clientResponse.bodyToMono(String.class)).thenReturn(Mono.just(expectedResponse));
+        when(requestHeadersSpec.exchangeToMono(any())).thenAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            Function<ClientResponse, Mono<String>> fn = invocation.getArgument(0);
+            return fn.apply(clientResponse);
+        });
 
         Optional<String> result = externalSyncService.post(config, payload, String.class);
 
@@ -86,20 +102,24 @@ class ExternalSyncServiceTest {
         
         String payload = "payload";
 
-        when(externalApiRestClient.post()).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.uri("https://api.com/test")).thenReturn(requestBodySpec);
-        when(requestBodySpec.contentType(any())).thenReturn(requestBodySpec);
+        when(externalApiWebClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri("https://api.com/test")).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.contentType(any())).thenReturn(requestBodyUriSpec);
         
         doAnswer(invocation -> {
             @SuppressWarnings("unchecked")
             Consumer<HttpHeaders> headersConsumer = invocation.getArgument(0);
             headersConsumer.accept(new HttpHeaders());
-            return requestBodySpec;
-        }).when(requestBodySpec).headers(any());
+            return requestBodyUriSpec;
+        }).when(requestBodyUriSpec).headers(any());
 
-        when(requestBodySpec.body(payload)).thenReturn(requestBodySpec);
-        when(requestBodySpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.toBodilessEntity()).thenReturn(ResponseEntity.noContent().build());
+        when(requestBodyUriSpec.bodyValue(payload)).thenReturn(requestHeadersSpec);
+        when(clientResponse.statusCode()).thenReturn(HttpStatus.NO_CONTENT);
+        when(requestHeadersSpec.exchangeToMono(any())).thenAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            Function<ClientResponse, Mono<Boolean>> fn = invocation.getArgument(0);
+            return fn.apply(clientResponse);
+        });
 
         boolean result = externalSyncService.postWithoutResponse(config, payload);
 

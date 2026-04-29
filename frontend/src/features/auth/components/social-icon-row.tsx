@@ -5,7 +5,7 @@ import { useClerkIdentityProvider } from "@/features/auth/strategies/clerk/use-c
 import { Chrome, Facebook, Github, Loader2 } from "lucide-react"
 import { type ReactNode, useState } from "react"
 import { cn } from "@/lib/utils"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ export function ClerkSocialIconRow() {
     console.log(`[SocialIconRow] Iniciar ação para ${provider}`)
     
     if (!idp.isLoaded) {
-      toast.info("A aguardar inicialização do sistema...")
+      notify.info("A aguardar inicialização do sistema...")
       return
     }
 
@@ -61,9 +61,10 @@ export function ClerkSocialIconRow() {
     try {
       // Usamos a estratégia direta do IDP
       await idp.startOAuth(provider, "/clerk/callback")
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Falhou ao iniciar sessão"
       console.error(`[SocialIconRow] Erro ao iniciar OAuth para ${provider}:`, err)
-      toast.error(`Erro: ${err.message || "Falhou ao iniciar sessão"}`)
+      notify.error(`Erro: ${message}`)
       setLoadingProvider(null)
     }
   }

@@ -2,8 +2,14 @@ package com.nexus.estates.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.client.RestClient;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
+import io.netty.channel.ChannelOption;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -23,6 +29,12 @@ import java.util.function.Function;
 @Configuration
 public class ExternalApiClientConfig {
 
+    @Value("${external.api.timeout.connect-ms:2000}")
+    private int connectTimeoutMs;
+
+    @Value("${external.api.timeout.response-ms:5000}")
+    private int responseTimeoutMs;
+
     /**
      * Bean principal do RestClient utilizado pelo sistema de sincronização.
      * <p>
@@ -37,6 +49,17 @@ public class ExternalApiClientConfig {
     @Bean
     public RestClient externalApiRestClient(RestClient.Builder builder) {
         return builder.build();
+    }
+
+    @Bean
+    public WebClient externalApiWebClient() {
+        HttpClient httpClient = HttpClient.create()
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeoutMs)
+                .responseTimeout(Duration.ofMillis(responseTimeoutMs));
+
+        return WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
     }
 
     /**

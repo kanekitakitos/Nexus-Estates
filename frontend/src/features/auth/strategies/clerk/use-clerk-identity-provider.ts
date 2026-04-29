@@ -38,7 +38,7 @@ export function useClerkIdentityProvider(): IdentityProvider {
           redirectUrl: absoluteRedirectUrl,
           redirectUrlComplete: absoluteRedirectUrl,
         })
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(`[ClerkIDP] Erro no authenticateWithRedirect para ${provider}:`, err)
         throw err
       }

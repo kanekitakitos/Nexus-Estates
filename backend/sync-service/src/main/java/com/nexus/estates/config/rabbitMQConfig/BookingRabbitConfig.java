@@ -59,6 +59,24 @@ public class BookingRabbitConfig {
     @Value("${booking.events.routing-key.status-updated.dlq:booking.status.updated.dlq}")
     private String bookingStatusUpdatedDlqRoutingKey;
 
+    @Value("${booking.webhooks.queue.created:booking.webhooks.created.queue}")
+    private String bookingWebhooksCreatedQueueName;
+
+    @Value("${booking.webhooks.queue.created.dlq:booking.webhooks.created.dlq}")
+    private String bookingWebhooksCreatedDlqQueueName;
+
+    @Value("${booking.webhooks.routing-key.created.dlq:booking.webhooks.created.dlq}")
+    private String bookingWebhooksCreatedDlqRoutingKey;
+
+    @Value("${booking.webhooks.queue.status-updated:booking.webhooks.status.updated.queue}")
+    private String bookingWebhooksStatusUpdatedQueueName;
+
+    @Value("${booking.webhooks.queue.status-updated.dlq:booking.webhooks.status.updated.dlq}")
+    private String bookingWebhooksStatusUpdatedDlqQueueName;
+
+    @Value("${booking.webhooks.routing-key.status-updated.dlq:booking.webhooks.status.updated.dlq}")
+    private String bookingWebhooksStatusUpdatedDlqRoutingKey;
+
     @Bean
     /**
      * Exchange principal para eventos de reservas.
@@ -136,6 +154,38 @@ public class BookingRabbitConfig {
     }
 
     @Bean
+    public Queue bookingWebhooksCreatedQueue() {
+        return QueueBuilder
+                .durable(bookingWebhooksCreatedQueueName)
+                .withArgument("x-dead-letter-exchange", bookingDeadLetterExchangeName)
+                .withArgument("x-dead-letter-routing-key", bookingWebhooksCreatedDlqRoutingKey)
+                .build();
+    }
+
+    @Bean
+    public Queue bookingWebhooksCreatedDlqQueue() {
+        return QueueBuilder
+                .durable(bookingWebhooksCreatedDlqQueueName)
+                .build();
+    }
+
+    @Bean
+    public Binding bookingWebhooksCreatedBinding(Queue bookingWebhooksCreatedQueue, TopicExchange bookingExchange) {
+        return BindingBuilder
+                .bind(bookingWebhooksCreatedQueue)
+                .to(bookingExchange)
+                .with(bookingCreatedRoutingKey);
+    }
+
+    @Bean
+    public Binding bookingWebhooksCreatedDlqBinding(Queue bookingWebhooksCreatedDlqQueue, TopicExchange bookingDeadLetterExchange) {
+        return BindingBuilder
+                .bind(bookingWebhooksCreatedDlqQueue)
+                .to(bookingDeadLetterExchange)
+                .with(bookingWebhooksCreatedDlqRoutingKey);
+    }
+
+    @Bean
     /**
      * Fila para eventos de atualização de estado de reservas com DLQ configurada.
      *
@@ -189,6 +239,38 @@ public class BookingRabbitConfig {
                 .bind(bookingStatusUpdatedDlqQueue)
                 .to(bookingDeadLetterExchange)
                 .with(bookingStatusUpdatedDlqRoutingKey);
+    }
+
+    @Bean
+    public Queue bookingWebhooksStatusUpdatedQueue() {
+        return QueueBuilder
+                .durable(bookingWebhooksStatusUpdatedQueueName)
+                .withArgument("x-dead-letter-exchange", bookingDeadLetterExchangeName)
+                .withArgument("x-dead-letter-routing-key", bookingWebhooksStatusUpdatedDlqRoutingKey)
+                .build();
+    }
+
+    @Bean
+    public Queue bookingWebhooksStatusUpdatedDlqQueue() {
+        return QueueBuilder
+                .durable(bookingWebhooksStatusUpdatedDlqQueueName)
+                .build();
+    }
+
+    @Bean
+    public Binding bookingWebhooksStatusUpdatedBinding(Queue bookingWebhooksStatusUpdatedQueue, TopicExchange bookingExchange) {
+        return BindingBuilder
+                .bind(bookingWebhooksStatusUpdatedQueue)
+                .to(bookingExchange)
+                .with(bookingStatusUpdatedRoutingKey);
+    }
+
+    @Bean
+    public Binding bookingWebhooksStatusUpdatedDlqBinding(Queue bookingWebhooksStatusUpdatedDlqQueue, TopicExchange bookingDeadLetterExchange) {
+        return BindingBuilder
+                .bind(bookingWebhooksStatusUpdatedDlqQueue)
+                .to(bookingDeadLetterExchange)
+                .with(bookingWebhooksStatusUpdatedDlqRoutingKey);
     }
 
     @Bean

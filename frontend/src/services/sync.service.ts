@@ -1,9 +1,10 @@
 import { syncAxios } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
-import { toast } from "sonner";
-import type { SyncMessage } from "@/types/sync";
+import { notify } from "@/lib/notify";
+import type { ApiResponse } from "@/lib/axiosAPI"
+import type { SyncMessage, WebhookSubscription, CreateWebhookSubscriptionRequest, CreatedWebhookSubscription } from "@/types/sync";
 
-export type { SyncMessage } from "@/types/sync";
+export type { SyncMessage, WebhookSubscription, CreateWebhookSubscriptionRequest, CreatedWebhookSubscription } from "@/types/sync";
 
 /**
  * Serviço responsável pela comunicação em tempo real e sincronização de dados externos.
@@ -73,6 +74,46 @@ export class SyncService {
         }
     }
 
+    static async listWebhooks(): Promise<WebhookSubscription[]> {
+        try {
+            const response = await syncAxios.get<ApiResponse<WebhookSubscription[]>>(`/webhooks`)
+            return response.data.data
+        } catch (error) {
+            this.handleError(error, "listar webhooks")
+            throw error
+        }
+    }
+
+    static async createWebhook(payload: CreateWebhookSubscriptionRequest): Promise<CreatedWebhookSubscription> {
+        try {
+            const response = await syncAxios.post<ApiResponse<CreatedWebhookSubscription>>(`/webhooks`, payload)
+            notify.success("Webhook criado. Guarde o secret.")
+            return response.data.data
+        } catch (error) {
+            this.handleError(error, "criar webhook")
+            throw error
+        }
+    }
+
+    static async toggleWebhook(id: number): Promise<void> {
+        try {
+            await syncAxios.patch<ApiResponse<void>>(`/webhooks/${id}/toggle`)
+        } catch (error) {
+            this.handleError(error, "atualizar webhook")
+            throw error
+        }
+    }
+
+    static async deleteWebhook(id: number): Promise<void> {
+        try {
+            await syncAxios.delete<ApiResponse<void>>(`/webhooks/${id}`)
+            notify.success("Webhook removido.")
+        } catch (error) {
+            this.handleError(error, "remover webhook")
+            throw error
+        }
+    }
+
     private static isAxiosError(error: unknown): error is AxiosError {
         return typeof error === "object" && error !== null && "isAxiosError" in error;
     }
@@ -83,9 +124,9 @@ export class SyncService {
     private static handleError(error: unknown, action: string): void {
         console.error(`Erro ao ${action}:`, error);
         if (this.isAxiosError(error) && error.response) {
-            toast.error(`Erro ao ${action}. Verifique a sua ligação.`);
+            notify.error(`Erro ao ${action}. Verifique a sua ligação.`);
         } else {
-            toast.error("Erro de conexão com o serviço de tempo real.");
+            notify.error("Erro de conexão com o serviço de tempo real.");
         }
     }
 }

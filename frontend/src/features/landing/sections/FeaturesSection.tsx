@@ -3,14 +3,14 @@
 import { AnimatePresence, motion } from "framer-motion"
 import type { CSSProperties, ReactNode } from "react"
 import { useState } from "react"
-import { B, BENTO_FEATURES, SECTIONS } from "../tokens"
+import { B, BENTO_FEATURES, SECTIONS, landingTokens } from "../lib/tokens"
 import { Title } from "../ui/Title"
-import { ease } from "../motion"
+import { ease } from "../lib/motion"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Section = typeof SECTIONS[0]
-type BentoFeature = typeof BENTO_FEATURES[0]
+type Section = (typeof SECTIONS)[number]
+type BentoFeature = (typeof BENTO_FEATURES)[number]
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -26,7 +26,9 @@ function SectionLabel({ label }: { label: string }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      {label} — Produto
+      {label}
+      {landingTokens.copy.landing.plans.sectionJoiner}
+      {landingTokens.copy.landing.features.sectionSuffix}
     </motion.span>
   )
 }
@@ -51,18 +53,18 @@ function GlassCard({
           "--card-rot": `${rotation}deg`,
         } as CSSProperties
       }
-      className="
+      className={`
         relative w-[190px] h-[220px]
         bg-gradient-to-b from-white/20 to-transparent
         border border-white/10 rounded-[10px]
-        shadow-[0_25px_25px_rgba(0,0,0,0.25)] backdrop-blur-md
+        ${landingTokens.ui.landing.features.glassShadowClass} backdrop-blur-md
         -mx-[55px] transition-all duration-500
         rotate-[var(--card-rot)] group-hover:rotate-0 group-hover:mx-[12px]
         before:content-[attr(data-text)] before:absolute before:bottom-0
         before:flex before:items-center before:justify-center
         before:w-full before:h-[44px] before:bg-white/5 before:text-white
         before:font-mono before:text-[10px] before:uppercase before:tracking-widest
-      "
+      `}
       onClick={() => setOpen(v => !v)}
       role="button"
       tabIndex={0}
@@ -95,7 +97,7 @@ function GlassCard({
               exit={{ opacity: 0, y: -6, filter: "blur(6px)" }}
               transition={{ duration: 0.28, ease: ease.out }}
             >
-              <div className="text-[11px] leading-relaxed" style={{ color: "rgba(240,236,217,0.86)" }}>
+              <div className="text-[11px] leading-relaxed" style={{ color: landingTokens.ui.landing.features.glassBackTextColor }}>
                 {back}
               </div>
             </motion.div>
@@ -148,14 +150,14 @@ function FeaturesShowcase({ desc }: { desc: string }) {
         <div className="flex items-center justify-between">
           <div className="max-w-xl">
             <div className="font-mono text-[10px] uppercase tracking-widest" style={{ color: `${B.cream}8A` }}>
-              Features
+              {landingTokens.copy.landing.features.labelTitle}
             </div>
             <div className="mt-2 text-sm leading-relaxed" style={{ color: `${B.cream}B8` }}>
               {desc}
             </div>
           </div>
           <div className="hidden md:block font-mono text-[10px] uppercase tracking-widest" style={{ color: `${B.cream}52` }}>
-            Hover para expandir
+            {landingTokens.copy.landing.features.hoverHint}
           </div>
         </div>
 

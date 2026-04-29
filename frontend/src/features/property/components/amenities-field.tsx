@@ -3,11 +3,11 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { Check, Loader2, RotateCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useAmenityCatalog, resolveTranslation } from "../hooks"
-import { nexusEyebrowClass, nexusShadowSm, nexusKineticLight } from "../property-tokens"
-import { CATEGORY_CONFIG } from "../property-constants"
-import { BoingText } from "@/components/BoingText"
-import { staggerContainer, itemFadeUp, microPop } from "../animations"
+import { useAmenityCatalog, resolveTranslation } from "../model/hooks"
+import { nexusEyebrowClass, nexusShadowSm, nexusKineticLight, propertyCopy, propertyTokens } from "../lib/property-tokens"
+import { CATEGORY_CONFIG } from "../model/property-constants"
+import { BoingText } from "@/components/effects/BoingText"
+import { staggerContainer, itemFadeUp, microPop } from "../lib/animations"
 
 // ─── Tipos e Props ────────────────────────────────────────────────────────
 
@@ -30,11 +30,11 @@ export interface AmenitiesFieldProps {
  */
 function AmenityHeader({ didChange, onRevert }: { didChange: boolean; onRevert: () => void }) {
   return (
-    <div className="mb-10 flex items-center justify-between border-b-2 border-[#0D0D0D]/10 pb-6 dark:border-white/10">
+    <div className={propertyTokens.ui.amenitiesField.headerWrapClass}>
       <div>
-        <span className={nexusEyebrowClass}>Nexus_Comfort_Matrix // Protocol</span>
-        <h4 className="font-serif text-3xl font-bold italic uppercase leading-none tracking-tighter text-[#0D0D0D] dark:text-white">
-          <BoingText text="Services & Comfort" color="currentColor" activeColor="#F97316" />
+        <span className={nexusEyebrowClass}>{propertyCopy.amenitiesField.protocolEyebrow}</span>
+        <h4 className={propertyTokens.ui.amenitiesField.headerTitleClass}>
+          <BoingText text={propertyCopy.amenitiesField.title} color="currentColor" activeColor={propertyTokens.ui.preview.boingActiveColor} />
         </h4>
       </div>
 
@@ -47,12 +47,12 @@ function AmenityHeader({ didChange, onRevert }: { didChange: boolean; onRevert: 
             onClick={onRevert}
             type="button"
             className={cn(
-              "flex items-center gap-2 rounded-xl bg-[#0D0D0D] px-4 py-2 font-mono text-[10px] font-black uppercase text-white transition-all hover:bg-primary dark:bg-white dark:text-[#0D0D0D] dark:hover:bg-primary",
+              propertyTokens.ui.amenitiesField.revertButtonClass,
               nexusShadowSm
             )}
           >
             <RotateCcw className="h-3 w-3" strokeWidth={3} />
-            Revert_State
+            {propertyCopy.amenitiesField.revert}
           </motion.button>
         )}
       </AnimatePresence>
@@ -83,15 +83,15 @@ function AmenityItem({
       className={cn(
         "group relative flex items-center justify-between gap-3 overflow-hidden rounded-xl border-2 px-4 py-3.5 transition-all duration-300",
         isSelected
-          ? "border-[#0D0D0D] bg-primary text-white shadow-[3px_3px_0_0_#0D0D0D] dark:border-white dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.7)]"
-          : "border-[#0D0D0D]/10 bg-white/50 hover:border-primary/50 hover:bg-white dark:border-white/10 dark:bg-zinc-900/50",
+          ? propertyTokens.ui.amenitiesField.itemSelectedClass
+          : propertyTokens.ui.amenitiesField.itemUnselectedClass,
         nexusKineticLight
       )}
     >
       <span
         className={cn(
           "font-mono text-[10px] font-black uppercase tracking-tight",
-          isSelected ? "text-white" : "text-[#0D0D0D] dark:text-zinc-300"
+          isSelected ? "text-white" : propertyTokens.ui.amenitiesField.itemTextUnselectedClass
         )}
       >
         {resolvedName}
@@ -100,7 +100,7 @@ function AmenityItem({
       <div
         className={cn(
           "flex h-5 w-5 shrink-0 items-center justify-center rounded-lg border-2 transition-all",
-          isSelected ? "border-white bg-white/20" : "border-[#0D0D0D]/20 dark:border-white/20"
+          isSelected ? "border-white bg-white/20" : propertyTokens.ui.amenitiesField.itemCheckUnselectedClass
         )}
       >
         {isSelected && <Check className="h-3 w-3 text-white" strokeWidth={4} />}
@@ -116,11 +116,11 @@ function CategorySection({
   category, items, selectedIds, onToggle 
 }: { 
   category: string; 
-  items: any[]; 
+  items: Array<{ id: number; name: string | { pt?: string; en?: string } }>; 
   selectedIds: number[]; 
   onToggle: (id: number) => void 
 }) {
-  const config = CATEGORY_CONFIG[category as import("../property-constants").AmenityCategory] ?? CATEGORY_CONFIG.General
+  const config = CATEGORY_CONFIG[category as import("../model/property-constants").AmenityCategory] ?? CATEGORY_CONFIG.General
   
   return (
     <div className="group/cat relative">
@@ -128,7 +128,7 @@ function CategorySection({
         <div className="flex items-center gap-4">
           <div
             className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-xl border-2 border-[#0D0D0D] bg-white text-lg shadow-[3px_3px_0_0_#0D0D0D] dark:border-white dark:bg-zinc-800 dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.1)]",
+              propertyTokens.ui.amenitiesField.categoryIconWrapClass,
               config.color
             )}
           >
@@ -136,14 +136,15 @@ function CategorySection({
           </div>
           <div>
             <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-primary">
-              {items.length.toString().padStart(2, "0")}_INDEX //
+              {items.length.toString().padStart(2, propertyCopy.amenitiesField.padChar)}
+              {propertyCopy.amenitiesField.categoryIndexSuffix}
             </span>
-            <h5 className="font-serif text-xl font-bold italic uppercase tracking-tight text-[#0D0D0D] dark:text-zinc-100">
-              <BoingText text={category} color="currentColor" activeColor="#F97316" duration={0.3} stagger={0.02} />
+            <h5 className={propertyTokens.ui.amenitiesField.categoryTitleClass}>
+              <BoingText text={category} color="currentColor" activeColor={propertyTokens.ui.preview.boingActiveColor} duration={0.3} stagger={0.02} />
             </h5>
           </div>
         </div>
-        <div className="h-px flex-1 bg-[#0D0D0D]/10 dark:bg-white/10" />
+        <div className={propertyTokens.ui.amenitiesField.categoryDividerClass} />
       </div>
 
       <motion.div 
@@ -191,7 +192,7 @@ export function AmenitiesField({ selectedIds, savedIds, onUpdateIds, onRevert }:
 
   // Agrupamento Matrix
   const groupedAmenities = amenities.reduce((acc, amenity) => {
-    const cat = amenity.category || "General"
+    const cat = amenity.category || propertyCopy.amenitiesField.defaultCategory
     if (!acc[cat]) acc[cat] = []
     acc[cat].push(amenity)
     return acc
@@ -200,10 +201,11 @@ export function AmenitiesField({ selectedIds, savedIds, onUpdateIds, onRevert }:
   // Loading State (Shimmer/Loader modular)
   if (isLoading)
     return (
-      <div className="flex flex-col items-center justify-center rounded-[2rem] border-2 border-dashed border-[#0D0D0D]/10 bg-[#FAFAF5] p-20 dark:border-white/10 dark:bg-zinc-900/40">
+      <div className={propertyTokens.ui.amenitiesField.loadingWrapClass}>
         <Loader2 className="mb-4 h-10 w-10 animate-spin text-primary" strokeWidth={3} />
-        <span className="animate-pulse font-mono text-[10px] font-black uppercase tracking-widest text-[#8C7B6B]">
-          Initializing_Comfort_DB{" //"}
+        <span className={propertyTokens.ui.amenitiesField.loadingTextClass}>
+          {propertyCopy.amenitiesField.loading}
+          {propertyCopy.amenitiesField.loadingDivider}
         </span>
       </div>
     )
@@ -233,11 +235,13 @@ export function AmenitiesField({ selectedIds, savedIds, onUpdateIds, onRevert }:
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="flex items-center justify-center gap-4 rounded-xl border-2 border-dashed border-primary px-6 py-4 dark:bg-primary/5 bg-primary/5"
+            className={propertyTokens.ui.amenitiesField.syncFooterClass}
           >
             <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
             <span className="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-primary text-center">
-              Protocolo_Sincronização_Pendente{" //"} Aguardando confirmação do operador
+              {propertyCopy.amenitiesField.syncPending}
+              {propertyCopy.amenitiesField.syncPendingDivider}{" "}
+              {propertyCopy.amenitiesField.syncPendingNote}
             </span>
           </motion.div>
         )}

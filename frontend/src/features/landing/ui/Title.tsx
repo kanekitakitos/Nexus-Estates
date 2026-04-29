@@ -1,11 +1,11 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { B } from "../tokens"
-import { titleLineTransition } from "../motion"
+import { B } from "../lib/tokens"
+import { titleLineTransition } from "../lib/motion"
 
 export function Title({ lines, italics, fg, size = "clamp(3.6rem,8vw,7.6rem)", wiggle = false }: {
-  lines: string[]; italics: boolean[]; fg: string; size?: string; wiggle?: boolean
+  lines: readonly string[]; italics: readonly boolean[]; fg: string; size?: string; wiggle?: boolean
 }) {
   return (
       <div className="relative z-20 overflow-hidden">

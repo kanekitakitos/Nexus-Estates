@@ -51,7 +51,9 @@ public class SyncAuthController {
     public ResponseEntity<?> getRealtimeToken(
             @Parameter(description = "ID da reserva", example = "123") @RequestParam String bookingId,
             @Parameter(description = "ID do utilizador autenticado (injetado pelo API Gateway)")
-            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @Parameter(description = "Email do utilizador autenticado (injetado pelo API Gateway)")
+            @RequestHeader(value = "X-User-Email", required = false) String userEmailHeader
     ) {
         if (userIdHeader == null || userIdHeader.isBlank()) {
             return ResponseEntity.status(401).body("Missing X-User-Id header.");
@@ -65,9 +67,9 @@ public class SyncAuthController {
         }
 
         try {
-            // Comunica com o user-service via Proxy para obter detalhes do usuário (ex: email).
-            // Isso valida a existência do usuário e obtém sua identidade oficial para o chat.
-            String userEmail = proxy.userClient().getUserEmail(authenticatedUserId);
+            String userEmail = (userEmailHeader != null && !userEmailHeader.isBlank())
+                    ? userEmailHeader
+                    : proxy.userClient().getUserEmail(authenticatedUserId);
             
             // Define o canal de chat específico para esta reserva
             String channelId = "booking-chat:" + bookingId;

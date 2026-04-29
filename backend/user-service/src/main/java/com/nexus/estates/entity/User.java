@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import org.hibernate.envers.Audited;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Representação persistente de um Utilizador no sistema de Identidade.
@@ -70,6 +71,7 @@ public class User {
      */
     @Column(nullable = false)
     @Schema(description = "Hash da password (não exposto em leituras)", hidden = true)
+    @JsonIgnore
     private String password;
 
     /**
@@ -100,5 +102,6 @@ public class User {
      * </p>
      */
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private java.util.List<ExternalIntegration> integrations;
 }
