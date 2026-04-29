@@ -22,30 +22,42 @@
 - [Classe "WebhookEventListenerTest"](#classe-webhookeventlistenertest)
 
 ### Classe "ExternalApiClientConfigTest"
-- shouldCreateExternalApiRestClient:
-  'Verifica que o bean RestClient para APIs externas é criado (context loads) e não é nulo.'
+- shouldCreateRestClientWithDynamicConfig:
+  'Verifica que a factory cria um RestClient válido quando invocada com URL base e headers personalizados.'
+- shouldCreateRestClientWithDefaultUrl:
+  'Verifica que a factory cria um RestClient válido quando invocada sem parâmetros específicos.'
 
 ### Classe "RabbitMQConfigTest"
-- shouldCreateRabbitBeans:
-  'Verifica que as configurações RabbitMQ (queues/exchanges/bindings) são carregadas e os beans principais existem.'
+- bookingCreatedQueueHasDlqConfigured:
+  'Verifica que a booking.created.queue é durável e tem x-dead-letter-exchange e x-dead-letter-routing-key configurados correctamente.'
+- bookingStatusUpdatedQueueHasDlqConfigured:
+  'Verifica que a booking.status.updated.queue é durável e aponta para a DLQ correcta.'
+- bookingDeadLetterExchangeHasConfiguredName:
+  'Verifica que o bookingDeadLetterExchange usa o nome configurado via @Value.'
 
 ### Classe "DlqAdminControllerTest"
-- shouldReturnDlqMessages:
-  'Verifica que o endpoint de administração de DLQ devolve lista de mensagens (simulada via RabbitTemplate/Receiver).'
+- shouldDrainBookingCreatedDlq:
+  'Verifica que drainBookingCreatedDlq consume mensagens da fila booking.created.dlq até null e devolve lista com todas as mensagens drenadas.'
+- shouldDrainBookingStatusUpdatedDlq:
+  'Verifica que drainBookingStatusUpdatedDlq consume mensagens da fila booking.status.updated.dlq até null e devolve lista com todas as mensagens drenadas.'
 
 ### Classe "IcsAdminControllerTest"
-- shouldParseIcsAndReturnBlocks:
-  'Verifica que o endpoint de parsing ICS devolve 200 OK e lista de SyncBlockDTO a partir de conteúdo .ics válido.'
-- shouldReturnBadRequestOnInvalidIcs:
-  'Verifica que conteúdo .ics inválido resulta em 400 Bad Request.'
+- shouldParseRawIcs:
+  'Verifica que parseRaw devolve 200 OK e lista de SyncBlockDTO quando o conteúdo .ics bruto é válido.'
+- shouldParseMultipartIcs:
+  'Verifica que parseFile devolve 200 OK e lista de SyncBlockDTO quando o ficheiro multipart é válido.'
+- shouldApplyBlocksFromRaw:
+  'Verifica que applyRaw publica CalendarBlockMessage no RabbitMQ para cada bloco parseado e devolve 200 OK.'
+- shouldApplyBlocksFromFile:
+  'Verifica que applyFile publica CalendarBlockMessage no RabbitMQ para cada bloco parseado via ficheiro multipart e devolve 200 OK.'
 
 ### Classe "PropertyEventListenerTest"
 - shouldCallEmailServiceOnMessage:
   'Verifica que, ao receber evento de property criada, o listener chama EmailService.sendEmailFromTemplate com template e dados esperados.'
 
 ### Classe "SyncConsumerTest"
-- shouldConsumeBookingCreatedAndPublishStatusUpdated:
-  'Verifica que ao consumir BookingCreatedMessage, o consumidor chama BookingSyncService e publica BookingStatusUpdatedMessage.'
+- shouldProcessBookingCreatedAndPublishStatusUpdated:
+  'Verifica que ao consumir BookingCreatedMessage, o BookingEventListener chama BookingSyncService.syncBooking e publica BookingStatusUpdatedMessage com o resultado correcto para o exchange configurado.'
 
 ### Classe "BookingSyncServiceTest"
 - shouldReturnConfirmedWhenExternalApproves:
