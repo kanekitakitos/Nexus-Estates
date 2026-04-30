@@ -3,6 +3,7 @@ package com.nexus.estates.service;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.nexus.estates.service.repository.ImageStorageService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +35,7 @@ public class CloudinaryService implements ImageStorageService {
         this(cloudName, apiKey, apiSecret, folderPath, true, "f_auto,q_auto,c_limit,w_1200");
     }
 
+    @Autowired
     public CloudinaryService(
             @Value("${cloudinary.cloud-name}") String cloudName,
             @Value("${cloudinary.api-key}") String apiKey,

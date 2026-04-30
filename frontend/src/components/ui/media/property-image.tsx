@@ -8,6 +8,7 @@ export type PropertyImageProps = {
   alt: string
   width: number
   height: number
+  fill?: boolean
   sizes?: string
   className?: string
   priority?: boolean
@@ -66,10 +67,11 @@ export function PropertyImage({
   alt,
   width,
   height,
+  fill,
   sizes,
   className,
   priority,
-  fallbackSrc = "/ico/icoC.png",
+  fallbackSrc = "/notifications/404Image.png",
 }: PropertyImageProps) {
   const [hasError, setHasError] = useState(false)
 
@@ -86,8 +88,7 @@ export function PropertyImage({
     <Image
       src={resolvedSrc}
       alt={alt}
-      width={width}
-      height={height}
+      {...(fill ? { fill: true } : { width, height })}
       sizes={sizes}
       className={className}
       priority={priority}

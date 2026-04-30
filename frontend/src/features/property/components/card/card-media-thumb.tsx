@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, Star } from "lucide-react"
+import { Star } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { OwnProperty } from "@/types"
@@ -43,32 +43,21 @@ export function CardMediaThumb({ prop, mode, serialId }: CardMediaThumbProps) {
           "m-2 w-full rounded-[1.35rem] border-[3px] md:m-3 md:w-[min(100%,280px)] lg:w-[min(100%,320px)] aspect-[4/3] md:aspect-auto md:min-h-[220px] lg:min-h-[260px] group-hover:scale-[1.01]"
       )}
     >
-      {prop.imageUrl ? (
-        <PropertyImage
-          src={prop.imageUrl}
-          alt={title}
-          width={mode === "inventoryRail" ? 64 : mode === "grid" ? 160 : 960}
-          height={mode === "inventoryRail" ? 64 : mode === "grid" ? 100 : 720}
-          sizes={
-            mode === "inventoryRail"
-              ? "64px"
-              : mode === "grid"
-                ? "160px"
-                : "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          }
-          className="h-full w-full object-cover grayscale-[0.15] transition-all duration-700 group-hover/img:grayscale-0 group-hover/img:scale-[1.04]"
-        />
-      ) : (
-        <div className={propertyTokens.ui.cards.mediaThumbPlaceholderBgClass}>
-          <Home
-            className={cn(
-              propertyTokens.ui.cards.mediaThumbIconColorClass,
-              rail ? "h-6 w-6" : grid ? "h-8 w-8" : "h-14 w-14"
-            )}
-            strokeWidth={1.2}
-          />
-        </div>
-      )}
+      <PropertyImage
+        src={prop.imageUrl}
+        alt={title}
+        width={mode === "inventoryRail" ? 64 : mode === "grid" ? 160 : 960}
+        height={mode === "inventoryRail" ? 64 : mode === "grid" ? 100 : 720}
+        fill
+        sizes={
+          mode === "inventoryRail"
+            ? "64px"
+            : mode === "grid"
+              ? "160px"
+              : "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        }
+        className="h-full w-full object-cover grayscale-[0.15] transition-all duration-700 group-hover/img:grayscale-0 group-hover/img:scale-[1.04]"
+      />
 
       {/* Badge "HOT" — apenas em variantes que não são rail */}
       {!rail && prop.featured && (
