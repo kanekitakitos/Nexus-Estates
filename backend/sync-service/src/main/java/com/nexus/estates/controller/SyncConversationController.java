@@ -27,14 +27,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/sync/conversations")
 @RequiredArgsConstructor
-@Tag(name = "Sync Conversations", description = "Criação e listagem de conversas (inquiries por propriedade).")
+@Tag(name = "Sync Conversations", description = "Resolução e listagem de conversas (inquiries por propriedade).")
 public class SyncConversationController {
 
     private final PropertyInquiryService inquiryService;
 
     @PostMapping("/property/{propertyId}")
-    @Operation(summary = "Criar/obter inquiry", description = "Cria (ou devolve) uma conversa 1:1 entre o utilizador autenticado e a equipa da propriedade.")
-    public ResponseEntity<ApiResponse<ConversationResponse>> createPropertyInquiry(
+    @Operation(summary = "Obter inquiry", description = "Devolve a conversa existente entre o utilizador autenticado e a propriedade (não cria conversa vazia).")
+    public ResponseEntity<ApiResponse<ConversationResponse>> getExistingPropertyInquiry(
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long propertyId
     ) {

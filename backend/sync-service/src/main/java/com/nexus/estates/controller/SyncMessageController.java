@@ -2,6 +2,7 @@ package com.nexus.estates.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexus.estates.client.Proxy;
+import com.nexus.estates.common.dto.ApiResponse;
 import com.nexus.estates.entity.Message;
 import com.nexus.estates.service.chat.AblyWebhookService;
 import com.nexus.estates.service.chat.ChatPlatform;
@@ -96,6 +97,9 @@ public class SyncMessageController {
         if (userId == null) {
             return ResponseEntity.status(401).build();
         }
+        if (request == null || request.content() == null || request.content().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
         var participants = proxy.bookingClient().getBookingParticipants(bookingId, userId);
         if (participants == null || !participants.contains(userId)) {
             return ResponseEntity.status(403).build();
@@ -155,6 +159,9 @@ public class SyncMessageController {
         if (userId == null) {
             return ResponseEntity.status(401).build();
         }
+        if (request == null || request.content() == null || request.content().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
         if (!inquiryService.canAccess(inquiryId, userId)) {
             return ResponseEntity.status(403).build();
         }
@@ -177,6 +184,9 @@ public class SyncMessageController {
         Long userId = parseUserId(userIdHeader);
         if (userId == null) {
             return ResponseEntity.status(401).build();
+        }
+        if (request == null || request.content() == null || request.content().isBlank()) {
+            return ResponseEntity.badRequest().build();
         }
 
         var inquiry = inquiryService.createOrGet(propertyId, userId);
