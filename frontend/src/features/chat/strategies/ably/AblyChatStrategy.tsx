@@ -3,7 +3,7 @@
 import React from "react";
 import * as Ably from "ably";
 import { ChatStrategy } from "../../chat-strategy";
-import { ChatHeader, ChatFooter, ChatMessageList, initials } from "@/features/chat/ui";
+import { ChatHeader, ChatFooter, ChatMessageList } from "@/features/chat/ui";
 import { Input } from "@/components/ui/forms/input";
 import { BookingService, type BookingResponse } from "@/services/booking.service";
 import { SyncService } from "@/services/sync.service";
@@ -115,11 +115,30 @@ const AblyChatList: React.FC<{ onSelectChat: (chatId: string) => void, selectedC
   }, []);
 
   const filtered = React.useMemo(() => {
-    const q = query.trim();
+    const q = query.trim().toLowerCase();
     if (!q) return { bookings, inquiries };
+
+    const matches = (text: string | undefined) => (text ?? "").toLowerCase().includes(q);
+
     return {
-      bookings: bookings.filter((b) => String(b.id).includes(q) || String(b.propertyId).includes(q)),
-      inquiries: inquiries.filter((i) => String(i.inquiryId).includes(q) || String(i.propertyId).includes(q)),
+      bookings: bookings.filter((b) => {
+        const meta = propertyMetaRef.current[Number(b.propertyId)];
+        return (
+          String(b.id).includes(q) ||
+          String(b.propertyId).includes(q) ||
+          matches(meta?.title) ||
+          matches(meta?.location)
+        );
+      }),
+      inquiries: inquiries.filter((i) => {
+        const meta = propertyMetaRef.current[Number(i.propertyId)];
+        return (
+          String(i.inquiryId).includes(q) ||
+          String(i.propertyId).includes(q) ||
+          matches(meta?.title) ||
+          matches(meta?.location)
+        );
+      }),
     };
   }, [bookings, inquiries, query]);
 
@@ -148,15 +167,10 @@ const AblyChatList: React.FC<{ onSelectChat: (chatId: string) => void, selectedC
                 key={id}
                 type="button"
                 onClick={() => onSelectChat(id)}
-                className={`flex w-full items-start gap-3 px-4 py-3 text-left border-b hover:bg-sidebar-accent transition-colors ${
+                className={`flex w-full items-start px-4 py-3 text-left border-b hover:bg-sidebar-accent transition-colors ${
                   selectedChatId === id ? "bg-sidebar-accent" : ""
                 }`}
               >
-                <div className="shrink-0">
-                  <div className="size-9 rounded-full overflow-hidden bg-secondary grid place-items-center">
-                    <span className="text-xs font-medium">{initials(`${chatTokens.copy.ui.list.bookingInitialsPrefix}${b.id}`)}</span>
-                  </div>
-                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex w-full items-center justify-between">
                     <span className="font-medium flex items-center gap-2">
@@ -182,15 +196,10 @@ const AblyChatList: React.FC<{ onSelectChat: (chatId: string) => void, selectedC
                 key={id}
                 type="button"
                 onClick={() => onSelectChat(id)}
-                className={`flex w-full items-start gap-3 px-4 py-3 text-left border-b hover:bg-sidebar-accent transition-colors ${
+                className={`flex w-full items-start px-4 py-3 text-left border-b hover:bg-sidebar-accent transition-colors ${
                   selectedChatId === id ? "bg-sidebar-accent" : ""
                 }`}
               >
-                <div className="shrink-0">
-                  <div className="size-9 rounded-full overflow-hidden bg-secondary grid place-items-center">
-                    <span className="text-xs font-medium">{initials(`I${i.inquiryId}`)}</span>
-                  </div>
-                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex w-full items-center justify-between">
                     <span className="font-medium flex items-center gap-2">

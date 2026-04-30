@@ -3,26 +3,16 @@
 import React from "react";
 import { Button } from "@/components/ui/forms/button";
 import { Input } from "@/components/ui/forms/input";
-import { Avatar as UiAvatar, AvatarImage, AvatarFallback } from "@/components/ui/data-display/avatar";
 import { ArrowLeft } from "lucide-react";
 import { chatTokens } from "@/features/chat/tokens";
-
-export const initials = (name: string) =>
-  name
-    .split(" ")
-    .map((s) => s[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
 export const ChatHeader: React.FC<{
   name: string;
   subtitle?: string;
-  avatarUrl?: string;
   status?: string;
   onBack?: () => void;
   rightSlot?: React.ReactNode;
-}> = ({ name, subtitle, avatarUrl, status, onBack, rightSlot }) => (
+}> = ({ name, subtitle, status, onBack, rightSlot }) => (
   <div className="flex items-center gap-3 px-4 py-3 border-b">
     {onBack && (
       <Button
@@ -34,10 +24,6 @@ export const ChatHeader: React.FC<{
         <ArrowLeft className="size-4" />
       </Button>
     )}
-    <UiAvatar>
-      <AvatarImage src={avatarUrl} alt={name} />
-      <AvatarFallback>{initials(name)}</AvatarFallback>
-    </UiAvatar>
     <div className="flex flex-col min-w-0">
       <span className="text-sm font-medium">{name}</span>
       {subtitle || status ? (
