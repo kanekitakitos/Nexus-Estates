@@ -51,7 +51,7 @@ import type { BookingProperty } from "@/types/booking"
 import { BookingService } from "@/services/booking.service"
 import { AuthService } from "@/services/auth.service"
 import { FinanceService } from "@/services/finance.service"
-import type { PaymentResponse, ProviderInfo } from "@/types/finance"
+import type { PaymentMethod, PaymentResponse, ProviderInfo } from "@/types/finance"
 import { cn } from "@/lib/utils"
 import { propertiesAxios, usersAxios, type ApiResponse } from "@/lib/axiosAPI"
 import type { PropertyQuoteResponse } from "@/types/property"
@@ -267,7 +267,8 @@ function useBookingSubmit(
   checkOut: string,
   property: BookingProperty,
   getAuth: () => { isAuthenticated: boolean; userId: number | null },
-  isGuest: () => boolean
+  isGuest: () => boolean,
+  getPaymentMethod: () => PaymentMethod
 ) {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [bookingId, setBookingId] = React.useState<number | null>(null)
@@ -292,13 +293,13 @@ function useBookingSubmit(
     }
   }, [bookingId])
 
-  const retryPayment = React.useCallback(async () => {
+  const retryPayment = React.useCallback(async (paymentMethod: PaymentMethod) => {
     if (!bookingId || paymentAmount == null || !paymentCurrency) return
     try {
       setPaymentError(null)
       const [info, intent] = await Promise.all([
         FinanceService.getPaymentProviderInfo(),
-        FinanceService.createPaymentIntent({ bookingId, paymentMethod: "CREDIT_CARD" }),
+        FinanceService.createPaymentIntent({ bookingId, paymentMethod }),
       ])
       setProviderInfo(info)
       setPayment(intent)
@@ -326,6 +327,7 @@ function useBookingSubmit(
       try {
         const auth = getAuth()
         const userId = !isGuest() && auth.isAuthenticated ? auth.userId : null
+        const paymentMethod = getPaymentMethod()
 
         const created = await BookingService.createBooking({
           propertyId: Number(property.id),
@@ -356,7 +358,7 @@ function useBookingSubmit(
         try {
           const [info, intent] = await Promise.all([
             FinanceService.getPaymentProviderInfo(),
-            FinanceService.createPaymentIntent({ bookingId: created.id, paymentMethod: "CREDIT_CARD" }),
+            FinanceService.createPaymentIntent({ bookingId: created.id, paymentMethod }),
           ])
           setProviderInfo(info)
           setPayment(intent)
@@ -374,7 +376,7 @@ function useBookingSubmit(
         setIsSubmitting(false)
       }
     },
-    [checkIn, checkOut, getAuth, isGuest, property.id]
+    [checkIn, checkOut, getAuth, getPaymentMethod, isGuest, property.id]
   )
 
   return {
@@ -404,6 +406,7 @@ export function BookingCheckoutForm({
 }: BookingCheckoutParams) {
   const isDesktop = useMediaQuery("(min-width: 768px)")
   const [authSession, setAuthSession] = React.useState(() => readAuthSession())
+  const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>("CREDIT_CARD")
   const [stayRange, setStayRange] = React.useState<DateRange | undefined>(() => {
     const from = parseDate(checkIn)
     const to = parseDate(checkOut)
@@ -559,6 +562,7 @@ export function BookingCheckoutForm({
 
   const getAuth = React.useCallback(() => authSession, [authSession])
   const isGuest = React.useCallback(() => checkoutAsGuest, [checkoutAsGuest])
+  const getPaymentMethod = React.useCallback(() => paymentMethod, [paymentMethod])
 
   const {
     isSubmitting,
@@ -572,7 +576,7 @@ export function BookingCheckoutForm({
     retryPayment,
     submit,
   } =
-    useBookingSubmit(effectiveCheckIn, effectiveCheckOut, property, getAuth, isGuest)
+    useBookingSubmit(effectiveCheckIn, effectiveCheckOut, property, getAuth, isGuest, getPaymentMethod)
 
   const stripeClientSecret = React.useMemo(() => {
     if (!payment || typeof payment !== "object") return null
@@ -1008,13 +1012,36 @@ export function BookingCheckoutForm({
                 locked={!paymentUnlocked}
                 completed={progress.payment}
               >
+                {bookingId && providerInfo?.supportedPaymentMethods?.length ? (
+                  <div className="space-y-2">
+                    <div className={tk.label}>Método de pagamento</div>
+                    <select
+                      value={paymentMethod}
+                      onChange={(e) => {
+                        const next = e.target.value as PaymentMethod
+                        setPaymentMethod(next)
+                        void retryPayment(next)
+                      }}
+                      className="h-11 w-full rounded-md border-2 border-foreground bg-background px-3 text-sm font-mono shadow-[3px_3px_0_0_rgb(0,0,0)] dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.8)] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+                    >
+                      {providerInfo.supportedPaymentMethods
+                        .filter((m) => m === "CREDIT_CARD" || m === "MB_WAY")
+                        .map((m) => (
+                          <option key={m} value={m}>
+                            {m === "CREDIT_CARD" ? "Cartão" : m === "MB_WAY" ? "MB WAY" : m}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                ) : null}
+
                 <PaymentDetails
                   bookingId={bookingId}
                   payment={payment}
                   providerInfo={providerInfo}
                   labelClassName={tk.label}
                   error={paymentError}
-                  onRetry={retryPayment}
+                  onRetry={() => retryPayment(paymentMethod)}
                 />
 
                 {bookingId && providerInfo?.name === "Stripe" && stripeClientSecret && stripePublishableKey ? (
