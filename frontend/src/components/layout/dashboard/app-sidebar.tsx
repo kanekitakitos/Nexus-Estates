@@ -348,7 +348,7 @@ export function AppSidebar({
           {/* Painel 2: Detalhes (inclui lista de chats e janela do chat) */}
           <Sidebar
               collapsible="none"
-              className={`flex-1 transition-opacity duration-100 bg-white/10 dark:bg-black/10 backdrop-blur-md ${state === "collapsed" ? "hidden opacity-0" : "flex opacity-100"}`}
+              className={`!w-[calc(var(--sidebar-width)-var(--sidebar-width-icon)-1px)] flex-none min-w-0 transition-opacity duration-100 bg-white/10 dark:bg-black/10 backdrop-blur-md ${state === "collapsed" ? "hidden opacity-0" : "flex opacity-100"}`}
           >
             <SidebarHeader className="border-b-2 border-foreground/10 p-4 h-[64px] flex items-center gap-3">
               <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
