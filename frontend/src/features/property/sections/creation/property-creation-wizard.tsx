@@ -11,6 +11,7 @@ import { notify } from "@/lib/notify"
 
 import { usePropertyForm } from "../../model/hooks"
 import { OwnProperty, WizardStep } from "@/types"
+import type { BookingProperty } from "@/types/booking"
 import { pageVariants, nexusEntrance } from "../../lib/animations"
 import { BoingText } from "@/components/effects/BoingText"
 import { BrutalField } from "@/components/ui/forms/brutal-field"
@@ -18,9 +19,9 @@ import { BrutalButton } from "@/components/ui/forms/button"
 import { BrutalSurface } from "@/components/ui/layout/brutal-surface"
 import { ImageInput } from "@/components/ui/file-handler/imageInput"
 import { AmenitiesField } from "../../components/amenities-field"
-import { PropertyCardItem } from "../../components/property-card-item"
 import { CollaboratorManager } from "../../components/collaborator-manager"
 import { propertyCopy, propertyTokens } from "../../lib/property-tokens"
+import { BookingCard } from "@/features/bookings/components/booking-card"
 
 // ─── Tipos e Interfaces ───────────────────────────────────────────────────
 
@@ -121,36 +122,6 @@ function buildStepValidationNotice() {
         title: "Faltam campos obrigatórios",
         description: "Preenche os campos assinalados a vermelho para continuar.",
     }
-}
-
-function WizardLivePreview({ property }: { property: OwnProperty }) {
-    const title = resolveStr(property.title) || propertyCopy.cards.fallbackTitle
-    return (
-        <div className="sticky top-6 space-y-4">
-            <div className="rounded-3xl border-2 border-[#0D0D0D]/10 bg-white/80 p-4 backdrop-blur-md dark:border-white/10 dark:bg-zinc-950/60">
-                <div className="flex items-center justify-between">
-                    <span className="font-mono text-[9px] font-black uppercase tracking-[0.35em] text-primary">
-                        Live_Preview
-                    </span>
-                    <span className="font-mono text-[9px] font-black uppercase tracking-[0.35em] text-[#8C7B6B] dark:text-zinc-500">
-                        Draft
-                    </span>
-                </div>
-            </div>
-            <div className="min-w-0">
-                <PropertyCardItem
-                    prop={{
-                        ...property,
-                        title,
-                        description: resolveStr(property.description),
-                        imageUrl: property.imageUrl || property.imageUrl,
-                    }}
-                    onSelect={() => {}}
-                    variant="grid"
-                />
-            </div>
-        </div>
-    )
 }
 
 /**
@@ -409,6 +380,18 @@ function PermissionsStep({
 function PreviewStep({ property }: { property: OwnProperty }) {
     const titleStr = typeof property.title === "string" ? property.title : property.title?.pt || propertyCopy.wizard.previewTitleFallback
     const descStr = typeof property.description === "string" ? property.description : property.description?.pt || ""
+    const bookingCardProperty: BookingProperty = {
+        id: property.id,
+        title: resolveStr(property.title) || propertyCopy.cards.fallbackTitle,
+        description: resolveStr(property.description),
+        location: `${property.city}${propertyCopy.wizard.previewLocationJoiner}${property.location}`,
+        price: Number(property.price) || 0,
+        imageUrl: property.imageUrl || "",
+        status: property.status,
+        rating: property.rating > 0 ? property.rating : undefined,
+        featured: Boolean(property.featured),
+        tags: property.tags || [],
+    }
     return (
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             <div className="min-w-0">
@@ -417,7 +400,9 @@ function PreviewStep({ property }: { property: OwnProperty }) {
                         Preview_Card
                     </span>
                 </div>
-                <PropertyCardItem prop={property} onSelect={() => {}} variant="grid" />
+                <div className="max-w-[520px]">
+                    <BookingCard property={bookingCardProperty} />
+                </div>
             </div>
             <BrutalSurface variant="pro" padding="lg" className="space-y-6 min-w-0">
                 <div>
@@ -572,60 +557,55 @@ export function PropertyCreationWizard({ property: initialData, onClose, onSaved
             <WizardProgress currentStep={step} isEdit={isEdit} onSelectStep={onSelectStep} />
             
             {/* Content Display com Animação de Transição */}
-            <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
-                <div className="min-w-0">
-                    <AnimatePresence mode="wait">
-                        <motion.div key={step} initial="initial" animate="animate" exit="exit" variants={pageVariants} className="flex-1 min-w-0">
-                            {step === 'essence' && (
-                                <div className="space-y-6">
-                                    <EssenceStep
-                                        property={property}
-                                        initial={initialData}
-                                        updateField={updateField}
-                                        invalid={
-                                            validationArmed.essence
-                                                ? {
-                                                      title: Boolean(errors.title),
-                                                      description: Boolean(errors.description),
-                                                      price: Boolean(errors.price),
-                                                      maxGuests: Boolean(errors.maxGuests),
-                                                  }
-                                                : undefined
-                                        }
-                                    />
-                                </div>
-                            )}
-                            {step === 'location' && (
-                                <div className="space-y-6">
-                                    <LocationStep
-                                        property={property}
-                                        initial={initialData}
-                                        updateField={updateField}
-                                        invalid={
-                                            validationArmed.location
-                                                ? {
-                                                      location: Boolean(errors.location),
-                                                      city: Boolean(errors.city),
-                                                      address: Boolean(errors.address),
-                                                  }
-                                                : undefined
-                                        }
-                                    />
-                                </div>
-                            )}
-                            {step === 'amenities' && <AmenitiesStep property={property} initial={initialData} updateField={updateField} />}
-                            {step === 'permissions' && <PermissionsStep property={property} updateField={updateField} />}
-                            {step === 'preview' && (
-                                <div className="space-y-6">
-                                    <PreviewStep property={property} />
-                                </div>
-                            )}
-                        </motion.div>
-                    </AnimatePresence>
-                </div>
-                <div className="hidden lg:block">
-                    <WizardLivePreview property={property} />
-                </div>
+            <div className="mt-6 min-w-0">
+                <AnimatePresence mode="wait">
+                    <motion.div key={step} initial="initial" animate="animate" exit="exit" variants={pageVariants} className="flex-1 min-w-0">
+                        {step === 'essence' && (
+                            <div className="space-y-6">
+                                <EssenceStep
+                                    property={property}
+                                    initial={initialData}
+                                    updateField={updateField}
+                                    invalid={
+                                        validationArmed.essence
+                                            ? {
+                                                  title: Boolean(errors.title),
+                                                  description: Boolean(errors.description),
+                                                  price: Boolean(errors.price),
+                                                  maxGuests: Boolean(errors.maxGuests),
+                                              }
+                                            : undefined
+                                    }
+                                />
+                            </div>
+                        )}
+                        {step === 'location' && (
+                            <div className="space-y-6">
+                                <LocationStep
+                                    property={property}
+                                    initial={initialData}
+                                    updateField={updateField}
+                                    invalid={
+                                        validationArmed.location
+                                            ? {
+                                                  location: Boolean(errors.location),
+                                                  city: Boolean(errors.city),
+                                                  address: Boolean(errors.address),
+                                              }
+                                            : undefined
+                                    }
+                                />
+                            </div>
+                        )}
+                        {step === 'amenities' && <AmenitiesStep property={property} initial={initialData} updateField={updateField} />}
+                        {step === 'permissions' && <PermissionsStep property={property} updateField={updateField} />}
+                        {step === 'preview' && (
+                            <div className="space-y-6">
+                                <PreviewStep property={property} />
+                            </div>
+                        )}
+                    </motion.div>
+                </AnimatePresence>
             </div>
 
             {/* Comandos de Navegação */}
