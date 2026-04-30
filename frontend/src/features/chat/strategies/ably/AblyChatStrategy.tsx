@@ -357,6 +357,9 @@ const AblyChatWindow: React.FC<{ chatId: string; onBack?: () => void }> = ({ cha
           });
 
         await waitConnected();
+        if (ablyClient.connection.state !== "connected") {
+          throw new Error("Connection not connected");
+        }
         await channel.attach();
 
         const history = parsed.kind === "inquiry"
@@ -375,27 +378,31 @@ const AblyChatWindow: React.FC<{ chatId: string; onBack?: () => void }> = ({ cha
           setMessages(mapped);
         }
 
-        channel.subscribe("new-message", (msg) => {
-          const data = msg.data as { id?: string | number; senderId?: string; content?: string; createdAt?: string };
-          const id = data.id ?? `${msg.id ?? Date.now()}`;
-          const senderId = data.senderId ?? "unknown";
-          const isMe = mySenderId && String(senderId) === String(mySenderId);
-          const text = data.content ?? "";
-          const createdAt = data.createdAt ?? new Date().toISOString();
+        try {
+          channel.subscribe("new-message", (msg) => {
+            const data = msg.data as { id?: string | number; senderId?: string; content?: string; createdAt?: string };
+            const id = data.id ?? `${msg.id ?? Date.now()}`;
+            const senderId = data.senderId ?? "unknown";
+            const isMe = mySenderId && String(senderId) === String(mySenderId);
+            const text = data.content ?? "";
+            const createdAt = data.createdAt ?? new Date().toISOString();
 
-          setMessages((prev) => {
-            if (prev.some((m) => String(m.id) === String(id))) return prev;
-            return [
-              ...prev,
-              {
-                id,
-                text,
-                time: new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                from: isMe ? "me" : "them",
-              },
-            ];
+            setMessages((prev) => {
+              if (prev.some((m) => String(m.id) === String(id))) return prev;
+              return [
+                ...prev,
+                {
+                  id,
+                  text,
+                  time: new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                  from: isMe ? "me" : "them",
+                },
+              ];
+            });
           });
-        });
+        } catch (e) {
+          throw new Error("Failed to subscribe");
+        }
 
         setIsReady(true);
       } catch (e) {

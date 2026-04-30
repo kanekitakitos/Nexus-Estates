@@ -2,9 +2,9 @@ import { syncAxios } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/lib/axiosAPI"
-import type { SyncConversation, SyncMessage, WebhookSubscription, CreateWebhookSubscriptionRequest, CreatedWebhookSubscription } from "@/types/sync";
+import type { PropertyMessageResponse, SyncConversation, SyncMessage, WebhookSubscription, CreateWebhookSubscriptionRequest, CreatedWebhookSubscription } from "@/types/sync";
 
-export type { SyncConversation, SyncMessage, WebhookSubscription, CreateWebhookSubscriptionRequest, CreatedWebhookSubscription } from "@/types/sync";
+export type { PropertyMessageResponse, SyncConversation, SyncMessage, WebhookSubscription, CreateWebhookSubscriptionRequest, CreatedWebhookSubscription } from "@/types/sync";
 
 /**
  * Serviço responsável pela comunicação em tempo real e sincronização de dados externos.
@@ -97,16 +97,6 @@ export class SyncService {
         }
     }
 
-    static async createPropertyInquiry(propertyId: number): Promise<SyncConversation> {
-        try {
-            const response = await syncAxios.post<ApiResponse<SyncConversation>>(`/conversations/property/${propertyId}`);
-            return response.data.data;
-        } catch (error) {
-            this.handleError(error, "iniciar conversa");
-            throw error;
-        }
-    }
-
     static async getExistingPropertyInquiry(propertyId: number): Promise<SyncConversation | null> {
         try {
             const response = await syncAxios.post<ApiResponse<SyncConversation>>(`/conversations/property/${propertyId}`);
@@ -116,9 +106,9 @@ export class SyncService {
         }
     }
 
-    static async sendFirstPropertyMessage(propertyId: number, payload: { content: string }): Promise<{ inquiryId: number; chatId: string; message: SyncMessage }> {
+    static async sendFirstPropertyMessage(propertyId: number, payload: { content: string }): Promise<PropertyMessageResponse> {
         try {
-            const response = await syncAxios.post<ApiResponse<{ inquiryId: number; chatId: string; message: SyncMessage }>>(
+            const response = await syncAxios.post<ApiResponse<PropertyMessageResponse>>(
                 `/messages/property/${propertyId}`,
                 payload
             );

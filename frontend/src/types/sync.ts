@@ -18,6 +18,12 @@ export type SyncConversation = {
   chatId: string
 }
 
+export type PropertyMessageResponse = {
+  inquiryId: number
+  chatId: string
+  message: SyncMessage
+}
+
 export type WebhookSubscription = {
   id: number
   targetUrl: string
