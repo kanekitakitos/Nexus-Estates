@@ -91,7 +91,7 @@ export function AppSidebar({
   const [properties, setProperties] = React.useState<OwnProperty[]>([])
   const [isLoadingProperties, setIsLoadingProperties] = React.useState(false)
   // Permite abrir diretamente uma conversa específica (ex.: inquiry) quando o fluxo é iniciado fora do painel "Chat".
-  const [chatLaunchId, setChatLaunchId] = React.useState<string | undefined>(undefined)
+  const [chatLaunch, setChatLaunch] = React.useState<{ chatId?: string; nonce: number }>({ chatId: undefined, nonce: 0 })
 
   // Estado real do utilizador vindo do localStorage
   const [currentUser, setCurrentUser] = React.useState({
@@ -162,7 +162,7 @@ export function AppSidebar({
       const custom = ev as CustomEvent<{ chatId?: string }>
       const nextChatId = custom.detail?.chatId
       setActiveItem("Chat")
-      setChatLaunchId(nextChatId)
+      setChatLaunch((prev) => ({ chatId: nextChatId, nonce: prev.nonce + 1 }))
       setOpen(true)
     }
 
@@ -361,7 +361,7 @@ export function AppSidebar({
               {activeItem === "Chat" ? (
                 <>
                   {/* Painel: Chat */}
-                  <ChatCompactSidebar initialChatId={chatLaunchId} />
+                  <ChatCompactSidebar initialChatId={chatLaunch.chatId} launchNonce={chatLaunch.nonce} />
                 </>
               ) : activeItem === "Properties" ? (
                 <>

@@ -9,7 +9,7 @@ import { useChatStrategy } from "@/features/chat"
  * - Quando `initialChatId` existe, abre diretamente a janela da conversa (usado por flows como "Contactar proprietário").
  * - Caso contrário, mostra a lista de conversas.
  */
-export function ChatCompactSidebar({ initialChatId }: { initialChatId?: string }) {
+export function ChatCompactSidebar({ initialChatId, launchNonce }: { initialChatId?: string; launchNonce?: number }) {
   const chatStrategy = useChatStrategy()
   const ChatList = chatStrategy.ChatList
   const ChatWindow = chatStrategy.ChatWindow
@@ -19,7 +19,7 @@ export function ChatCompactSidebar({ initialChatId }: { initialChatId?: string }
   React.useEffect(() => {
     if (!initialChatId) return
     setSelectedChatId(initialChatId)
-  }, [initialChatId])
+  }, [initialChatId, launchNonce])
 
   return (
     <div className="flex flex-col h-full">
