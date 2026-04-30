@@ -38,9 +38,14 @@ public class SyncConversationController {
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long propertyId
     ) {
-        PropertyInquiry inquiry = inquiryService.createOrGet(propertyId, userId);
+        var existing = inquiryService.findExisting(propertyId, userId);
+        if (existing.isEmpty()) {
+            return ResponseEntity.status(404).body(ApiResponse.error("Conversa não encontrada.", "NOT_FOUND"));
+        }
+
+        PropertyInquiry inquiry = existing.get();
         ConversationResponse response = ConversationResponse.from(inquiry);
-        return ResponseEntity.ok(ApiResponse.success(response, "Conversa criada com sucesso."));
+        return ResponseEntity.ok(ApiResponse.success(response, "Conversa encontrada."));
     }
 
     @GetMapping("/mine")

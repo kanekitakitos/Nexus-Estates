@@ -107,6 +107,28 @@ export class SyncService {
         }
     }
 
+    static async getExistingPropertyInquiry(propertyId: number): Promise<SyncConversation | null> {
+        try {
+            const response = await syncAxios.post<ApiResponse<SyncConversation>>(`/conversations/property/${propertyId}`);
+            return response.data.data;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    static async sendFirstPropertyMessage(propertyId: number, payload: { content: string }): Promise<{ inquiryId: number; chatId: string; message: SyncMessage }> {
+        try {
+            const response = await syncAxios.post<ApiResponse<{ inquiryId: number; chatId: string; message: SyncMessage }>>(
+                `/messages/property/${propertyId}`,
+                payload
+            );
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "enviar mensagem");
+            throw error;
+        }
+    }
+
     static async listMyConversations(): Promise<SyncConversation[]> {
         try {
             const response = await syncAxios.get<ApiResponse<SyncConversation[]>>(`/conversations/mine`);

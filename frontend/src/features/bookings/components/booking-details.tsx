@@ -152,8 +152,9 @@ export function BookingDetails({
     }
 
     try {
-      const convo = await SyncService.createPropertyInquiry(propertyId)
-      window.dispatchEvent(new CustomEvent("open-chat", { detail: { chatId: convo.chatId } }))
+      const existing = await SyncService.getExistingPropertyInquiry(propertyId)
+      const chatId = existing?.chatId ?? `property:${propertyId}`
+      window.dispatchEvent(new CustomEvent("open-chat", { detail: { chatId } }))
     } catch {
       notify.error("Não foi possível iniciar a conversa.")
     }

@@ -168,6 +168,33 @@ public class SyncMessageController {
         return ResponseEntity.ok(savedMessage);
     }
 
+    @PostMapping("/property/{propertyId}")
+    public ResponseEntity<ApiResponse<PropertyMessageResponse>> sendFirstPropertyMessage(
+            @PathVariable Long propertyId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestBody SendMessageRequest request
+    ) {
+        Long userId = parseUserId(userIdHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        var inquiry = inquiryService.createOrGet(propertyId, userId);
+        Message savedMessage = messageService.saveInquiryMessage(inquiry.getId(), String.valueOf(userId), request.content());
+        String channelId = "inquiry-chat:" + inquiry.getId();
+        boolean published = chatPlatform.sendMessage(channelId, "new-message", savedMessage);
+        if (!published) {
+            log.warn("Falha ao publicar mensagem no canal de tempo real para Inquiry ID {}", inquiry.getId());
+        }
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        new PropertyMessageResponse(inquiry.getId(), "inquiry:" + inquiry.getId(), savedMessage),
+                        "Mensagem enviada."
+                )
+        );
+    }
+
     /**
      * Endpoint para receber webhooks do Ably.
      *
@@ -212,6 +239,7 @@ public class SyncMessageController {
      * DTO para recebimento de novas mensagens.
      */
     public record SendMessageRequest(String senderId, String content) {}
+    public record PropertyMessageResponse(Long inquiryId, String chatId, Message message) {}
 
     private Long parseUserId(String userIdHeader) {
         if (userIdHeader == null || userIdHeader.isBlank()) return null;

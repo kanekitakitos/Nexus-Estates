@@ -240,10 +240,12 @@ const AblyChatWindow: React.FC<{ chatId: string; onBack?: () => void }> = ({ cha
   const parsed = React.useMemo(() => {
     const [kind, raw] = chatId.includes(":") ? chatId.split(":", 2) : ["booking", chatId];
     if (kind === "inquiry") return { kind: "inquiry" as const, id: raw };
+    if (kind === "property") return { kind: "property" as const, id: raw };
     return { kind: "booking" as const, id: raw };
   }, [chatId]);
 
   const channelId = React.useMemo(() => {
+    if (parsed.kind === "property") return null;
     return parsed.kind === "inquiry" ? `inquiry-chat:${parsed.id}` : `booking-chat:${parsed.id}`;
   }, [parsed.id, parsed.kind]);
 
@@ -255,6 +257,14 @@ const AblyChatWindow: React.FC<{ chatId: string; onBack?: () => void }> = ({ cha
           const booking = await BookingService.getBookingById(Number(parsed.id));
           const property = await PropertyService.getPropertyById(booking.propertyId);
           const meta = resolvePropertyMeta(property, booking.propertyId);
+          if (!cancelled) setHeaderMeta(meta);
+          return;
+        }
+
+        if (parsed.kind === "property") {
+          const propertyId = Number(parsed.id);
+          const property = await PropertyService.getPropertyById(propertyId);
+          const meta = resolvePropertyMeta(property, propertyId);
           if (!cancelled) setHeaderMeta(meta);
           return;
         }
@@ -285,6 +295,12 @@ const AblyChatWindow: React.FC<{ chatId: string; onBack?: () => void }> = ({ cha
 
     const connect = async () => {
       try {
+        if (parsed.kind === "property") {
+          setIsConnecting(false);
+          setIsReady(true);
+          return;
+        }
+
         setIsConnecting(true);
         setIsReady(false);
 
@@ -309,8 +325,39 @@ const AblyChatWindow: React.FC<{ chatId: string; onBack?: () => void }> = ({ cha
         }
 
         ablyRef.current = ablyClient;
-        const channel = ablyClient.channels.get(channelId);
+        const channel = ablyClient.channels.get(channelId as string);
         channelRef.current = channel;
+
+        const waitConnected = () =>
+          new Promise<void>((resolve, reject) => {
+            if (ablyClient.connection.state === "connected") {
+              resolve();
+              return;
+            }
+            const onConnected = () => {
+              cleanup();
+              resolve();
+            };
+            const onFailed = () => {
+              cleanup();
+              reject(new Error("Connection failed"));
+            };
+            const onClosed = () => {
+              cleanup();
+              reject(new Error("Connection closed"));
+            };
+            const cleanup = () => {
+              ablyClient.connection.off("connected", onConnected);
+              ablyClient.connection.off("failed", onFailed);
+              ablyClient.connection.off("closed", onClosed);
+            };
+            ablyClient.connection.on("connected", onConnected);
+            ablyClient.connection.on("failed", onFailed);
+            ablyClient.connection.on("closed", onClosed);
+          });
+
+        await waitConnected();
+        await channel.attach();
 
         const history = parsed.kind === "inquiry"
           ? await SyncService.getInquiryMessages(parsed.id)
@@ -378,6 +425,13 @@ const AblyChatWindow: React.FC<{ chatId: string; onBack?: () => void }> = ({ cha
     async (text: string) => {
       if (!isReady || !mySenderId) return;
       try {
+        if (parsed.kind === "property") {
+          const propertyId = Number(parsed.id);
+          const created = await SyncService.sendFirstPropertyMessage(propertyId, { content: text });
+          window.dispatchEvent(new CustomEvent("open-chat", { detail: { chatId: created.chatId } }));
+          return;
+        }
+
         const saved = parsed.kind === "inquiry"
           ? await SyncService.sendInquiryMessage(parsed.id, { content: text })
           : await SyncService.sendMessage(parsed.id, { content: text });
@@ -404,7 +458,14 @@ const AblyChatWindow: React.FC<{ chatId: string; onBack?: () => void }> = ({ cha
   return (
     <div className="flex h-full w-full flex-col bg-background">
       <ChatHeader
-        name={headerMeta?.title ?? (parsed.kind === "inquiry" ? `Inquiry ${parsed.id}` : `${chatTokens.copy.ui.list.bookingPrefix}${parsed.id}`)}
+        name={
+          headerMeta?.title ??
+          (parsed.kind === "property"
+            ? `Property ${parsed.id}`
+            : parsed.kind === "inquiry"
+              ? `Inquiry ${parsed.id}`
+              : `${chatTokens.copy.ui.list.bookingPrefix}${parsed.id}`)
+        }
         subtitle={headerMeta?.location || undefined}
         status={isConnecting ? chatTokens.copy.ui.header.statusConnecting : chatTokens.copy.ui.header.statusOnline}
         onBack={onBack}

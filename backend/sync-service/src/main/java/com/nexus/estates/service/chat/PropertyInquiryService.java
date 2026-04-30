@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Serviço de domínio responsável por gerir conversas do tipo PROPERTY_INQUIRY.
@@ -50,6 +51,11 @@ public class PropertyInquiryService {
                 .guestId(guestId)
                 .build();
         return repository.save(inquiry);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<PropertyInquiry> findExisting(Long propertyId, Long guestId) {
+        return repository.findByPropertyIdAndGuestId(propertyId, guestId);
     }
 
     @Transactional(readOnly = true)
