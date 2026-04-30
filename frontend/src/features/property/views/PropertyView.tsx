@@ -9,6 +9,8 @@ import { PropertyCreationWizard } from "../sections/creation/property-creation-w
 import { useView } from "@/providers/view-context"
 import { usePropertyManager } from "../model/hooks"
 import { OwnProperty } from "@/types"
+import { PropertyService } from "@/services/property.service"
+import type { UpdatePropertyRequest } from "@/types/property"
 import { pageVariants } from "../lib/animations"
 import { propertyTokens } from "../lib/property-tokens"
 
@@ -51,6 +53,57 @@ export function PropertyView() {
     refresh,
   })
 
+  const saveDetail = useCallback(async (updated: OwnProperty) => {
+    const initial = selectedProperty
+    const id = Number(updated.id)
+    const title =
+      typeof updated.title === "string"
+        ? updated.title
+        : updated.title?.pt || updated.title?.en || ""
+
+    const description =
+      typeof updated.description === "string"
+        ? { pt: updated.description }
+        : (updated.description as Record<string, string>)
+
+    const isActive = updated.status !== "MAINTENANCE"
+
+    const patch: UpdatePropertyRequest = {}
+    if (!initial || String(initial.title) !== String(updated.title)) patch["title"] = title
+    if (!initial || JSON.stringify(initial.description) !== JSON.stringify(updated.description)) patch["description"] = description
+    if (!initial || initial.location !== updated.location) patch["location"] = updated.location
+    if (!initial || initial.city !== updated.city) patch["city"] = updated.city
+    if (!initial || initial.address !== updated.address) patch["address"] = updated.address
+    if (!initial || Number(initial.price) !== Number(updated.price)) patch["basePrice"] = updated.price
+    if (!initial || Number(initial.maxGuests) !== Number(updated.maxGuests)) patch["maxGuests"] = updated.maxGuests
+    if (!initial || (initial.status !== "MAINTENANCE") !== isActive) patch["isActive"] = isActive
+    if (!initial || String(initial.imageUrl || "") !== String(updated.imageUrl || "")) patch["imageUrl"] = updated.imageUrl || undefined
+
+    const patchKeys = Object.keys(patch)
+    if (patchKeys.length > 0) {
+      await PropertyService.patchProperty(id, patch)
+    }
+
+    const normalizeIds = (arr: number[]) => [...arr].map(Number).filter(Number.isFinite).sort((a, b) => a - b)
+    const initialAmenities = initial ? normalizeIds(initial.amenityIds) : null
+    const updatedAmenities = normalizeIds(updated.amenityIds)
+    const shouldUpdateAmenities = !initialAmenities || JSON.stringify(initialAmenities) !== JSON.stringify(updatedAmenities)
+
+    if (shouldUpdateAmenities) {
+      await PropertyService.updateAmenities(id, updatedAmenities)
+    }
+
+    if (updated.propertyRule) {
+      const initialRule = initial?.propertyRule ?? null
+      const shouldUpdateRules = !initialRule || JSON.stringify(initialRule) !== JSON.stringify(updated.propertyRule)
+      if (shouldUpdateRules) {
+        await PropertyService.updateRules(id, updated.propertyRule)
+      }
+    }
+
+    await refresh()
+  }, [refresh, selectedProperty])
+
   return (
     <div className={propertyTokens.ui.view.pageBgClass}>
       <RubberBackground />
@@ -60,7 +113,7 @@ export function PropertyView() {
           {viewMode === "wizard" ? (
             <PropertyWizardScreen wizardData={wizardData} onSaved={onSaved} onClose={closeWizard} />
           ) : viewMode === "detail" && selectedProperty ? (
-            <PropertyDetailScreen property={selectedProperty} onBack={goBackToList} onSave={refreshDetail} />
+            <PropertyDetailScreen property={selectedProperty} onBack={goBackToList} onSave={saveDetail} />
           ) : (
             <PropertyListScreen
               properties={properties}
@@ -155,7 +208,7 @@ function PropertyDetailScreen({
 }: {
   property: OwnProperty
   onBack: () => void
-  onSave: () => Promise<void>
+  onSave: (updated: OwnProperty) => Promise<void>
 }) {
   return (
     <motion.div key="detail" variants={pageVariants} initial="initial" animate="animate" exit="exit">

@@ -145,13 +145,14 @@ public class PropertyController {
     })
     @PutMapping("/{id}/amenities")
     @PreAuthorize("hasRole('OWNER')")
-    public CompletableFuture<ResponseEntity<ApiResponse<Property>>> updateAmenities(
+    public ResponseEntity<ApiResponse<ExpandedPropertyResponse>> updateAmenities(
             @Parameter(description = "ID da propriedade") @PathVariable Long id,
             @RequestBody Set<Long> amenityIds) {
-        return CompletableFuture.supplyAsync(() -> {
-            Property property = service.updateAmenities(id, amenityIds);
-            return ResponseEntity.ok(ApiResponse.success(property, "Comodidades atualizadas com sucesso."));
-        });
+        service.updateAmenities(id, amenityIds);
+        Property expanded = repository.findExpandedById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Property not found"));
+        ExpandedPropertyResponse response = service.convertToExpandedDto(expanded);
+        return ResponseEntity.ok(ApiResponse.success(response, "Comodidades atualizadas com sucesso."));
     }
 
     /**
