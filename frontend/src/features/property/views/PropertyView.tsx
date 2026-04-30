@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 
 import { PropertyManagementRoot } from "../sections/management/property-management-root"
@@ -144,6 +144,12 @@ function usePropertyFlow({
 
   const viewMode: PropertyInternalView =
     internalView === "wizard" ? "wizard" : selectedPropertyId ? "detail" : "list"
+
+  useEffect(() => {
+    if (!selectedPropertyId) return
+    setInternalView("list")
+    setWizardData(null)
+  }, [selectedPropertyId])
 
   const startCreate = useCallback(() => {
     setWizardData(null)
