@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Save, Eye, LayoutDashboard, Settings, Undo2, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -37,6 +37,7 @@ export type EditMode = 'VIEW' | 'EDIT' | 'RULES'
 export interface PropertyManagementRootProps {
     /** Objeto da propriedade inicial vindo da API */
     property: OwnProperty
+    initialMode?: EditMode
     /** Callback para voltar à lista de propriedades */
     onBack: () => void
     /** Callback para salvar as alterações (recebe o draft atualizado) */
@@ -182,14 +183,20 @@ function EditHeader({
  * @see DetailsSection — Editor de dados (details-section.tsx)
  * @see RulesSection — Editor de regras (rules-section.tsx)
  */
-export function PropertyManagementRoot({ property: initialProperty, onBack, onSave, onDelete }: PropertyManagementRootProps) {
+export function PropertyManagementRoot({ property: initialProperty, initialMode, onBack, onSave, onDelete }: PropertyManagementRootProps) {
     // ─── Estados de Contexto e Dados ────────────────────────────────────
-    const [mode, setMode] = useState<EditMode>('VIEW')
+    const [mode, setMode] = useState<EditMode>(initialMode ?? 'VIEW')
     const [draft, setDraft] = useState<OwnProperty>({ ...initialProperty })
     const [isSaving, setIsSaving] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
     const [pendingChanges, setPendingChanges] = useState(false)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+
+    useEffect(() => {
+        setDraft({ ...initialProperty })
+        setPendingChanges(false)
+        setMode(initialMode ?? 'VIEW')
+    }, [initialMode, initialProperty])
 
     // ─── Handlers Nucleares ─────────────────────────────────────────────
 

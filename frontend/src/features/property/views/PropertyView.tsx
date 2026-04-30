@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 
 import { PropertyManagementRoot } from "../sections/management/property-management-root"
@@ -13,6 +13,7 @@ import { PropertyService } from "@/services/property.service"
 import type { UpdatePropertyRequest } from "@/types/property"
 import { pageVariants } from "../lib/animations"
 import { propertyTokens } from "../lib/property-tokens"
+import type { EditMode } from "../sections/management/property-management-root"
 
 export type PropertyInternalView = "list" | "wizard" | "detail"
 
@@ -38,20 +39,38 @@ export function PropertyView() {
   const { selectedPropertyId, selectPropertyId } = useView()
   const { properties, selectedProperty, isLoading, refresh, deleteProperty } = usePropertyManager(selectedPropertyId)
 
-  const {
-    viewMode,
-    wizardData,
-    startCreate,
-    startEdit,
-    onSaved,
-    closeWizard,
-    goBackToList,
-    refreshDetail,
-  } = usePropertyFlow({
-    selectedPropertyId,
-    selectPropertyId,
-    refresh,
-  })
+  const [isCreating, setIsCreating] = useState(false)
+  const [detailInitialMode, setDetailInitialMode] = useState<EditMode>("VIEW")
+
+  const startCreate = useCallback(() => {
+    setIsCreating(true)
+    selectPropertyId(null)
+  }, [selectPropertyId])
+
+  const closeWizard = useCallback(() => {
+    setIsCreating(false)
+  }, [])
+
+  const onCreatedSaved = useCallback(async () => {
+    await refresh()
+    setIsCreating(false)
+    selectPropertyId(null)
+  }, [refresh, selectPropertyId])
+
+  const goBackToList = useCallback(() => {
+    setDetailInitialMode("VIEW")
+    selectPropertyId(null)
+  }, [selectPropertyId])
+
+  const handleSelect = useCallback((id: string | null) => {
+    if (id) setDetailInitialMode("VIEW")
+    selectPropertyId(id)
+  }, [selectPropertyId])
+
+  const handleEdit = useCallback((p: OwnProperty) => {
+    setDetailInitialMode("EDIT")
+    selectPropertyId(p.id)
+  }, [selectPropertyId])
 
   const saveDetail = useCallback(async (updated: OwnProperty) => {
     const initial = selectedProperty
@@ -110,115 +129,64 @@ export function PropertyView() {
 
       <AnimatePresence mode="wait">
         <main className="relative z-10 w-full max-w-[95%] lg:max-w-[75%] xl:max-w-[70%] mx-auto pb-10">
-          {viewMode === "wizard" ? (
-            <PropertyWizardScreen wizardData={wizardData} onSaved={onSaved} onClose={closeWizard} />
-          ) : viewMode === "detail" && selectedProperty ? (
-            <PropertyDetailScreen property={selectedProperty} onBack={goBackToList} onSave={saveDetail} />
+          {isCreating ? (
+            <PropertyWizardScreen onSaved={onCreatedSaved} onClose={closeWizard} />
+          ) : selectedPropertyId && !selectedProperty ? (
+            <motion.div key="detail-loading" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+              <div className="p-6 text-sm text-muted-foreground font-mono">Loading_Property...</div>
+            </motion.div>
+          ) : selectedPropertyId && selectedProperty ? (
+            <PropertyDetailScreen
+              property={selectedProperty}
+              initialMode={detailInitialMode}
+              onBack={goBackToList}
+              onSave={saveDetail}
+            />
           ) : (
             <PropertyListScreen
               properties={properties}
               isLoading={isLoading}
-              onSelect={selectPropertyId}
+              onSelect={handleSelect}
               onAdd={startCreate}
-              onEdit={startEdit}
+              onEdit={handleEdit}
               onDelete={deleteProperty}
             />
-          )}
+          )
+          }
         </main>
       </AnimatePresence>
     </div>
   )
 }
 
-function usePropertyFlow({
-  selectedPropertyId,
-  selectPropertyId,
-  refresh,
-}: {
-  selectedPropertyId: string | null
-  selectPropertyId: (id: string | null) => void
-  refresh: () => Promise<void>
-}) {
-  const [internalView, setInternalView] = useState<"list" | "wizard">("list")
-  const [wizardData, setWizardData] = useState<OwnProperty | null>(null)
-
-  const viewMode: PropertyInternalView =
-    internalView === "wizard" ? "wizard" : selectedPropertyId ? "detail" : "list"
-
-  useEffect(() => {
-    if (!selectedPropertyId) return
-    setInternalView("list")
-    setWizardData(null)
-  }, [selectedPropertyId])
-
-  const startCreate = useCallback(() => {
-    setWizardData(null)
-    setInternalView("wizard")
-  }, [])
-
-  const startEdit = useCallback((p: OwnProperty) => {
-    setWizardData(p)
-    setInternalView("wizard")
-  }, [])
-
-  const onSaved = useCallback(async () => {
-    await refresh()
-    setInternalView("list")
-    selectPropertyId(null)
-  }, [refresh, selectPropertyId])
-
-  const closeWizard = useCallback(() => {
-    setInternalView("list")
-  }, [])
-
-  const goBackToList = useCallback(() => {
-    selectPropertyId(null)
-  }, [selectPropertyId])
-
-  const refreshDetail = useCallback(async () => {
-    await refresh()
-  }, [refresh])
-
-  return {
-    viewMode,
-    wizardData,
-    startCreate,
-    startEdit,
-    onSaved,
-    closeWizard,
-    goBackToList,
-    refreshDetail,
-  }
-}
-
 function PropertyWizardScreen({
-  wizardData,
   onSaved,
   onClose,
 }: {
-  wizardData: OwnProperty | null
   onSaved: () => Promise<void>
   onClose: () => void
 }) {
   return (
     <motion.div key="wizard" variants={pageVariants} initial="initial" animate="animate" exit="exit">
-      <PropertyCreationWizard property={wizardData} onSaved={onSaved} onClose={onClose} />
+      <PropertyCreationWizard property={null} onSaved={onSaved} onClose={onClose} />
     </motion.div>
   )
 }
 
 function PropertyDetailScreen({
   property,
+  initialMode,
   onBack,
   onSave,
 }: {
   property: OwnProperty
+  initialMode?: EditMode
   onBack: () => void
   onSave: (updated: OwnProperty) => Promise<void>
 }) {
   return (
     <motion.div key="detail" variants={pageVariants} initial="initial" animate="animate" exit="exit">
-      <PropertyManagementRoot property={property} onBack={onBack} onSave={onSave} />
+      <PropertyManagementRoot property={property} initialMode={initialMode} onBack={onBack} onSave={onSave} />
     </motion.div>
   )
 }
