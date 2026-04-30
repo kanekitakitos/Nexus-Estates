@@ -22,7 +22,7 @@ export const AblyChatWindow: React.FC<{ chatId: string; onBack?: () => void }> =
 
   const channelId = React.useMemo(() => {
     return resolveChannelId(parsed);
-  }, [parsed.id, parsed.kind]);
+  }, [parsed]);
 
   const headerMeta = useChatHeaderMeta(parsed);
   const { messages, setMessages, isConnecting, isReady } = useAblyRealtimeChat({ parsed, channelId, mySenderId });
@@ -91,4 +91,3 @@ export const AblyChatWindow: React.FC<{ chatId: string; onBack?: () => void }> =
     </div>
   );
 };
-
