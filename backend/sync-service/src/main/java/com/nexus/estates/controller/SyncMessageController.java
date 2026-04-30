@@ -12,9 +12,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -51,9 +51,14 @@ public class SyncMessageController {
      */
     @Operation(summary = "Listar mensagens", description = "Retorna o histórico de mensagens associado a uma reserva.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Histórico retornado com sucesso",
-                    content = @Content(schema = @Schema(implementation = Message.class))),
-            @ApiResponse(responseCode = "500", description = "Erro interno", content = @Content)
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Histórico retornado com sucesso",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = Message.class)))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Não autenticado", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Erro interno", content = @Content())
     })
     @GetMapping("/{bookingId}")
     public ResponseEntity<List<Message>> getMessages(
@@ -82,10 +87,15 @@ public class SyncMessageController {
      */
     @Operation(summary = "Enviar mensagem", description = "Persiste a mensagem e publica no canal de tempo real.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Mensagem enviada com sucesso",
-                    content = @Content(schema = @Schema(implementation = Message.class))),
-            @ApiResponse(responseCode = "400", description = "Payload inválido", content = @Content),
-            @ApiResponse(responseCode = "500", description = "Erro interno", content = @Content)
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Mensagem enviada com sucesso",
+                    content = @Content(schema = @Schema(implementation = Message.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Payload inválido", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Não autenticado", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Erro interno", content = @Content())
     })
     @PostMapping("/{bookingId}")
     public ResponseEntity<Message> sendMessage(
@@ -214,10 +224,10 @@ public class SyncMessageController {
      */
     @Operation(summary = "Webhook Ably", description = "Valida assinatura HMAC e processa mensagens recebidas.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Webhook aceite e processamento iniciado", content = @Content),
-            @ApiResponse(responseCode = "400", description = "Payload inválido", content = @Content),
-            @ApiResponse(responseCode = "401", description = "Assinatura inválida", content = @Content),
-            @ApiResponse(responseCode = "500", description = "Erro interno", content = @Content)
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Webhook aceite e processamento iniciado", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Payload inválido", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Assinatura inválida", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Erro interno", content = @Content())
     })
     @PostMapping("/webhook")
     public ResponseEntity<String> handleWebhook(
