@@ -64,7 +64,7 @@ const menuItems = [
     title: "Chat",
     url: "#",
     icon: MessageSquare,
-    roles: ["ADMIN", "OWNER", "STAFF"],
+    roles: ["ADMIN", "GUEST", "OWNER", "STAFF"],
   },
 ]
 
@@ -90,6 +90,8 @@ export function AppSidebar({
   const [isLoadingBookings, setIsLoadingBookings] = React.useState(false)
   const [properties, setProperties] = React.useState<OwnProperty[]>([])
   const [isLoadingProperties, setIsLoadingProperties] = React.useState(false)
+  // Permite abrir diretamente uma conversa específica (ex.: inquiry) quando o fluxo é iniciado fora do painel "Chat".
+  const [chatLaunchId, setChatLaunchId] = React.useState<string | undefined>(undefined)
 
   // Estado real do utilizador vindo do localStorage
   const [currentUser, setCurrentUser] = React.useState({
@@ -148,6 +150,25 @@ export function AppSidebar({
       window.removeEventListener('auth-change', syncUserSession)
     }
   }, [syncUserSession])
+
+  React.useEffect(() => {
+    /**
+     * Evento global: utilizado para flows cross-feature (ex.: BookingDetails → "Contactar proprietário").
+     *
+     * Payload esperado:
+     * - detail.chatId (ex.: "inquiry:123" ou "booking:456")
+     */
+    const onOpenChat = (ev: Event) => {
+      const custom = ev as CustomEvent<{ chatId?: string }>
+      const nextChatId = custom.detail?.chatId
+      setActiveItem("Chat")
+      setChatLaunchId(nextChatId)
+      setOpen(true)
+    }
+
+    window.addEventListener("open-chat", onOpenChat as EventListener)
+    return () => window.removeEventListener("open-chat", onOpenChat as EventListener)
+  }, [setOpen])
 
   React.useEffect(() => {
     const load = async () => {
@@ -340,7 +361,7 @@ export function AppSidebar({
               {activeItem === "Chat" ? (
                 <>
                   {/* Painel: Chat */}
-                  <ChatCompactSidebar />
+                  <ChatCompactSidebar initialChatId={chatLaunchId} />
                 </>
               ) : activeItem === "Properties" ? (
                 <>

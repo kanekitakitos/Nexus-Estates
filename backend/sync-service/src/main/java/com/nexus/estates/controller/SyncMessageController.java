@@ -1,10 +1,12 @@
 package com.nexus.estates.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nexus.estates.client.Proxy;
 import com.nexus.estates.entity.Message;
 import com.nexus.estates.service.chat.AblyWebhookService;
 import com.nexus.estates.service.chat.ChatPlatform;
 import com.nexus.estates.service.chat.MessageService;
+import com.nexus.estates.service.chat.PropertyInquiryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,6 +39,8 @@ public class SyncMessageController {
     private final ChatPlatform chatPlatform;
     private final AblyWebhookService webhookService;
     private final ObjectMapper objectMapper;
+    private final Proxy proxy;
+    private final PropertyInquiryService inquiryService;
 
     /**
      * Recupera o histórico completo de mensagens de uma reserva específica.
@@ -51,7 +55,18 @@ public class SyncMessageController {
             @ApiResponse(responseCode = "500", description = "Erro interno", content = @Content)
     })
     @GetMapping("/{bookingId}")
-    public ResponseEntity<List<Message>> getMessages(@PathVariable Long bookingId) {
+    public ResponseEntity<List<Message>> getMessages(
+            @PathVariable Long bookingId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        Long userId = parseUserId(userIdHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        var participants = proxy.bookingClient().getBookingParticipants(bookingId, userId);
+        if (participants == null || !participants.contains(userId)) {
+            return ResponseEntity.status(403).build();
+        }
         log.info("Solicitação de histórico de mensagens para Booking ID: {}", bookingId);
         List<Message> messages = messageService.getMessagesByBookingId(bookingId);
         return ResponseEntity.ok(messages);
@@ -61,7 +76,7 @@ public class SyncMessageController {
      * Envia uma nova mensagem para o chat de uma reserva.
      *
      * @param bookingId O ID da reserva.
-     * @param request   O corpo da requisição contendo o remetente e o conteúdo.
+     * @param request   O corpo da requisição contendo o conteúdo.
      * @return A mensagem persistida.
      */
     @Operation(summary = "Enviar mensagem", description = "Persiste a mensagem e publica no canal de tempo real.")
@@ -74,12 +89,22 @@ public class SyncMessageController {
     @PostMapping("/{bookingId}")
     public ResponseEntity<Message> sendMessage(
             @PathVariable Long bookingId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
             @RequestBody SendMessageRequest request
     ) {
+        Long userId = parseUserId(userIdHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        var participants = proxy.bookingClient().getBookingParticipants(bookingId, userId);
+        if (participants == null || !participants.contains(userId)) {
+            return ResponseEntity.status(403).build();
+        }
+
         log.info("Recebendo nova mensagem para Booking ID {}: {}", bookingId, request.content());
 
         // 1. Persistir localmente
-        Message savedMessage = messageService.saveMessage(bookingId, request.senderId(), request.content());
+        Message savedMessage = messageService.saveBookingMessage(bookingId, String.valueOf(userId), request.content());
 
         // 2. Publicar no canal de tempo real
         String channelId = "booking-chat:" + bookingId;
@@ -89,6 +114,57 @@ public class SyncMessageController {
             log.warn("Falha ao publicar mensagem no canal de tempo real para Booking ID {}", bookingId);
         }
 
+        return ResponseEntity.ok(savedMessage);
+    }
+
+    /**
+     * Recupera o histórico completo de mensagens de uma inquiry (conversa por propriedade).
+     */
+    @GetMapping("/inquiry/{inquiryId}")
+    public ResponseEntity<List<Message>> getInquiryMessages(
+            @PathVariable Long inquiryId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        Long userId = parseUserId(userIdHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        if (!inquiryService.canAccess(inquiryId, userId)) {
+            return ResponseEntity.status(403).build();
+        }
+        List<Message> messages = messageService.getMessagesByInquiryId(inquiryId);
+        return ResponseEntity.ok(messages);
+    }
+
+    /**
+     * Envia uma nova mensagem para uma inquiry (conversa por propriedade).
+     *
+     * <p>Regra crítica de consistência:</p>
+     * <ul>
+     *   <li>Guarda primeiro na base de dados.</li>
+     *   <li>Publica depois no canal realtime (Ably).</li>
+     * </ul>
+     */
+    @PostMapping("/inquiry/{inquiryId}")
+    public ResponseEntity<Message> sendInquiryMessage(
+            @PathVariable Long inquiryId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestBody SendMessageRequest request
+    ) {
+        Long userId = parseUserId(userIdHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        if (!inquiryService.canAccess(inquiryId, userId)) {
+            return ResponseEntity.status(403).build();
+        }
+
+        Message savedMessage = messageService.saveInquiryMessage(inquiryId, String.valueOf(userId), request.content());
+        String channelId = "inquiry-chat:" + inquiryId;
+        boolean published = chatPlatform.sendMessage(channelId, "new-message", savedMessage);
+        if (!published) {
+            log.warn("Falha ao publicar mensagem no canal de tempo real para Inquiry ID {}", inquiryId);
+        }
         return ResponseEntity.ok(savedMessage);
     }
 
@@ -136,4 +212,13 @@ public class SyncMessageController {
      * DTO para recebimento de novas mensagens.
      */
     public record SendMessageRequest(String senderId, String content) {}
+
+    private Long parseUserId(String userIdHeader) {
+        if (userIdHeader == null || userIdHeader.isBlank()) return null;
+        try {
+            return Long.parseLong(userIdHeader);
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

@@ -9,9 +9,11 @@ import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.dto.ExpandedPropertyResponse;
 import com.nexus.estates.dto.UpdatePropertyRequest;
 import com.nexus.estates.audit.ActorContext;
+import com.nexus.estates.entity.AccessLevel;
 import com.nexus.estates.entity.Amenity;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.PropertyChangeLog;
+import com.nexus.estates.entity.PropertyPermission;
 import com.nexus.estates.entity.PropertyRule;
 import com.nexus.estates.entity.RuleOverride;
 import com.nexus.estates.entity.SeasonalityRule;
@@ -322,6 +324,35 @@ public class PropertyService {
     public Property findById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new PropertyNotFoundException(id));
+    }
+
+    /**
+     * Resolve o utilizador com permissões de PRIMARY_OWNER para a propriedade.
+     *
+     * <p>Este método é usado como building block para fluxos que necessitam de identificar
+     * o “dono principal” sem expor emails ou dados pessoais ao frontend.</p>
+     */
+    @Transactional(readOnly = true)
+    public Long getPrimaryOwnerId(Long propertyId) {
+        repository.findById(propertyId).orElseThrow(() -> new PropertyNotFoundException(propertyId));
+        return permissionRepository
+                .findFirstByPropertyIdAndAccessLevel(propertyId, AccessLevel.PRIMARY_OWNER)
+                .map(PropertyPermission::getUserId)
+                .orElseThrow(() -> new IllegalStateException("Primary owner not found for property " + propertyId));
+    }
+
+    /**
+     * Resolve o nível de acesso de um utilizador a uma propriedade.
+     *
+     * @return {@link AccessLevel} quando existe permissão; null caso contrário.
+     */
+    @Transactional(readOnly = true)
+    public AccessLevel getUserAccessLevel(Long propertyId, Long userId) {
+        repository.findById(propertyId).orElseThrow(() -> new PropertyNotFoundException(propertyId));
+        return permissionRepository
+                .findFirstByPropertyIdAndUserId(propertyId, userId)
+                .map(PropertyPermission::getAccessLevel)
+                .orElse(null);
     }
 
     @Transactional(readOnly = true)

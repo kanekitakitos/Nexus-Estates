@@ -2,9 +2,9 @@ import { syncAxios } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/lib/axiosAPI"
-import type { SyncMessage, WebhookSubscription, CreateWebhookSubscriptionRequest, CreatedWebhookSubscription } from "@/types/sync";
+import type { SyncConversation, SyncMessage, WebhookSubscription, CreateWebhookSubscriptionRequest, CreatedWebhookSubscription } from "@/types/sync";
 
-export type { SyncMessage, WebhookSubscription, CreateWebhookSubscriptionRequest, CreatedWebhookSubscription } from "@/types/sync";
+export type { SyncConversation, SyncMessage, WebhookSubscription, CreateWebhookSubscriptionRequest, CreatedWebhookSubscription } from "@/types/sync";
 
 /**
  * Serviço responsável pela comunicação em tempo real e sincronização de dados externos.
@@ -22,14 +22,18 @@ export class SyncService {
      *
      * Endpoint backend:
      * - GET /api/sync/auth/realtime?bookingId={bookingId}
+     * - GET /api/sync/auth/realtime?inquiryId={inquiryId}
      *
      * Auth:
      * - Requer JWT; o API Gateway injeta X-User-Id no backend
      */
-    static async getRealtimeToken(bookingId: string | number): Promise<Record<string, unknown>> {
+    static async getRealtimeToken(params: { bookingId?: string | number; inquiryId?: string | number }): Promise<Record<string, unknown>> {
         try {
             const response = await syncAxios.get<Record<string, unknown>>("/auth/realtime", {
-                params: { bookingId: String(bookingId) },
+                params: {
+                    ...(params.bookingId != null ? { bookingId: String(params.bookingId) } : {}),
+                    ...(params.inquiryId != null ? { inquiryId: String(params.inquiryId) } : {}),
+                },
             });
             return response.data;
         } catch (error) {
@@ -54,6 +58,16 @@ export class SyncService {
         }
     }
 
+    static async getInquiryMessages(inquiryId: string | number): Promise<SyncMessage[]> {
+        try {
+            const response = await syncAxios.get<SyncMessage[]>(`/messages/inquiry/${inquiryId}`);
+            return response.data;
+        } catch (error) {
+            this.handleError(error, "obter histórico do chat");
+            throw error;
+        }
+    }
+
     /**
      * Envia uma mensagem para o chat da reserva.
      *
@@ -61,15 +75,44 @@ export class SyncService {
      * - POST /api/sync/messages/{bookingId}
      *
      * Payload:
-     * - senderId: string (identificador lógico do remetente)
      * - content: string
      */
-    static async sendMessage(bookingId: string | number, payload: { senderId: string; content: string }): Promise<SyncMessage> {
+    static async sendMessage(bookingId: string | number, payload: { content: string }): Promise<SyncMessage> {
         try {
             const response = await syncAxios.post<SyncMessage>(`/messages/${bookingId}`, payload);
             return response.data;
         } catch (error) {
             this.handleError(error, "enviar mensagem");
+            throw error;
+        }
+    }
+
+    static async sendInquiryMessage(inquiryId: string | number, payload: { content: string }): Promise<SyncMessage> {
+        try {
+            const response = await syncAxios.post<SyncMessage>(`/messages/inquiry/${inquiryId}`, payload);
+            return response.data;
+        } catch (error) {
+            this.handleError(error, "enviar mensagem");
+            throw error;
+        }
+    }
+
+    static async createPropertyInquiry(propertyId: number): Promise<SyncConversation> {
+        try {
+            const response = await syncAxios.post<ApiResponse<SyncConversation>>(`/conversations/property/${propertyId}`);
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "iniciar conversa");
+            throw error;
+        }
+    }
+
+    static async listMyConversations(): Promise<SyncConversation[]> {
+        try {
+            const response = await syncAxios.get<ApiResponse<SyncConversation[]>>(`/conversations/mine`);
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "listar conversas");
             throw error;
         }
     }

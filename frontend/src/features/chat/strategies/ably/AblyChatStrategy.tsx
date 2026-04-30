@@ -10,8 +10,47 @@ import { SyncService } from "@/services/sync.service";
 import { AuthService } from "@/services/auth.service";
 import { notify } from "@/lib/notify";
 import { chatTokens } from "@/features/chat/tokens";
+import { PropertyService } from "@/services/property.service";
 
+/**
+ * AblyChatStrategy
+ *
+ * Convenções de chatId suportadas:
+ * - booking:{bookingId}  → canal Ably booking-chat:{bookingId}
+ * - inquiry:{inquiryId}  → canal Ably inquiry-chat:{inquiryId}
+ *
+ * Nota crítica de consistência:
+ * - O frontend não publica diretamente no Ably.
+ * - Envia sempre via sync-service (persistência primeiro, publish depois).
+ */
 // --- 1. Global Provider ---
+
+type PropertyMeta = {
+  title: string;
+  location: string;
+};
+
+function resolvePropertyMeta(p: unknown, fallbackId: number): PropertyMeta {
+  const anyP = p as Record<string, unknown>;
+  const rawName = anyP["name"];
+  const rawTitle = anyP["title"];
+
+  const title =
+    (typeof rawName === "string" && rawName.trim()) ||
+    (typeof rawTitle === "string" && rawTitle.trim()) ||
+    (typeof rawName === "object" && rawName !== null
+      ? String((rawName as Record<string, unknown>)["pt"] || (rawName as Record<string, unknown>)["en"] || "")
+      : "") ||
+    `Property ${fallbackId}`;
+
+  const location =
+    (typeof anyP["address"] === "string" && anyP["address"]) ||
+    (typeof anyP["location"] === "string" && anyP["location"]) ||
+    (typeof anyP["city"] === "string" && anyP["city"]) ||
+    "";
+
+  return { title, location };
+}
 
 const AblyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
@@ -22,7 +61,10 @@ const AblyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 const AblyChatList: React.FC<{ onSelectChat: (chatId: string) => void, selectedChatId?: string }> = ({ onSelectChat, selectedChatId }) => {
   const [query, setQuery] = React.useState("");
   const [bookings, setBookings] = React.useState<BookingResponse[]>([]);
+  const [inquiries, setInquiries] = React.useState<Array<{ chatId: string; inquiryId: number; propertyId: number }>>([]);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [propertyMeta, setPropertyMeta] = React.useState<Record<number, PropertyMeta>>({});
+  const propertyMetaRef = React.useRef<Record<number, PropertyMeta>>({});
 
   React.useEffect(() => {
     const load = async () => {
@@ -30,8 +72,40 @@ const AblyChatList: React.FC<{ onSelectChat: (chatId: string) => void, selectedC
 
       try {
         setIsLoading(true);
-        const data = await BookingService.getMyBookings();
-        setBookings(data);
+        const [b, c] = await Promise.all([
+          BookingService.getMyBookings().catch(() => []),
+          SyncService.listMyConversations().catch(() => []),
+        ]);
+        setBookings(b);
+        setInquiries(c.map((x) => ({ chatId: x.chatId, inquiryId: x.inquiryId, propertyId: x.propertyId })));
+
+        const propertyIds = Array.from(
+          new Set<number>([
+            ...b.map((x) => Number(x.propertyId)).filter((n) => Number.isFinite(n)),
+            ...c.map((x) => Number(x.propertyId)).filter((n) => Number.isFinite(n)),
+          ]),
+        );
+
+        const missing = propertyIds.filter((id) => propertyMetaRef.current[id] == null);
+        if (missing.length > 0) {
+          const pairs = await Promise.all(
+            missing.map(async (id) => {
+              try {
+                const data = await PropertyService.getPropertyById(id);
+                return [id, resolvePropertyMeta(data, id)] as const;
+              } catch {
+                return [id, { title: `Property ${id}`, location: "" }] as const;
+              }
+            }),
+          );
+
+          setPropertyMeta((prev) => {
+            const next = { ...prev };
+            for (const [id, meta] of pairs) next[id] = meta;
+            propertyMetaRef.current = next;
+            return next;
+          });
+        }
       } finally {
         setIsLoading(false);
       }
@@ -42,9 +116,12 @@ const AblyChatList: React.FC<{ onSelectChat: (chatId: string) => void, selectedC
 
   const filtered = React.useMemo(() => {
     const q = query.trim();
-    if (!q) return bookings;
-    return bookings.filter((b) => String(b.id).includes(q) || String(b.propertyId).includes(q));
-  }, [bookings, query]);
+    if (!q) return { bookings, inquiries };
+    return {
+      bookings: bookings.filter((b) => String(b.id).includes(q) || String(b.propertyId).includes(q)),
+      inquiries: inquiries.filter((i) => String(i.inquiryId).includes(q) || String(i.propertyId).includes(q)),
+    };
+  }, [bookings, inquiries, query]);
 
   return (
     <div className="flex flex-col w-full">
@@ -59,44 +136,77 @@ const AblyChatList: React.FC<{ onSelectChat: (chatId: string) => void, selectedC
 
       {isLoading ? (
         <div className="p-4 text-sm text-muted-foreground">{chatTokens.copy.ui.list.loading}</div>
-      ) : filtered.length === 0 ? (
+      ) : filtered.bookings.length === 0 && filtered.inquiries.length === 0 ? (
         <div className="p-4 text-sm text-muted-foreground">{chatTokens.copy.ui.list.empty}</div>
       ) : (
-        filtered.map((b) => (
-          <button
-            key={b.id}
-            type="button"
-            onClick={() => onSelectChat(String(b.id))}
-            className={`flex w-full items-start gap-3 px-4 py-3 text-left border-b hover:bg-sidebar-accent transition-colors ${
-              selectedChatId === String(b.id) ? "bg-sidebar-accent" : ""
-            }`}
-          >
-            <div className="shrink-0">
-              <div className="size-9 rounded-full overflow-hidden bg-secondary grid place-items-center">
-                <span className="text-xs font-medium">{initials(`${chatTokens.copy.ui.list.bookingInitialsPrefix}${b.id}`)}</span>
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex w-full items-center justify-between">
-                <span className="font-medium flex items-center gap-2">
-                  <span className="truncate">
+        <>
+          {filtered.bookings.map((b) => {
+            const id = `booking:${b.id}`;
+            const meta = propertyMeta[Number(b.propertyId)];
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onSelectChat(id)}
+                className={`flex w-full items-start gap-3 px-4 py-3 text-left border-b hover:bg-sidebar-accent transition-colors ${
+                  selectedChatId === id ? "bg-sidebar-accent" : ""
+                }`}
+              >
+                <div className="shrink-0">
+                  <div className="size-9 rounded-full overflow-hidden bg-secondary grid place-items-center">
+                    <span className="text-xs font-medium">{initials(`${chatTokens.copy.ui.list.bookingInitialsPrefix}${b.id}`)}</span>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex w-full items-center justify-between">
+                    <span className="font-medium flex items-center gap-2">
+                      <span className="truncate">{meta?.title ?? `Property ${b.propertyId}`}</span>
+                    </span>
+                    <span className="text-xs text-muted-foreground shrink-0">{b.status}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground line-clamp-1">
+                    {meta?.location ? `${meta.location} · ` : ""}
                     {chatTokens.copy.ui.list.bookingPrefix}
                     {b.id}
                   </span>
-                </span>
-                <span className="text-xs text-muted-foreground shrink-0">{b.status}</span>
-              </div>
-              <span className="text-xs text-muted-foreground line-clamp-1">
-                {chatTokens.copy.ui.list.propertyPrefix}
-                {b.propertyId}
-                {chatTokens.copy.ui.list.lineJoiner}
-                {b.checkInDate}
-                {chatTokens.copy.ui.list.dateArrow}
-                {b.checkOutDate}
-              </span>
-            </div>
-          </button>
-        ))
+                </div>
+              </button>
+            );
+          })}
+
+          {filtered.inquiries.map((i) => {
+            const id = i.chatId || `inquiry:${i.inquiryId}`;
+            const meta = propertyMeta[Number(i.propertyId)];
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onSelectChat(id)}
+                className={`flex w-full items-start gap-3 px-4 py-3 text-left border-b hover:bg-sidebar-accent transition-colors ${
+                  selectedChatId === id ? "bg-sidebar-accent" : ""
+                }`}
+              >
+                <div className="shrink-0">
+                  <div className="size-9 rounded-full overflow-hidden bg-secondary grid place-items-center">
+                    <span className="text-xs font-medium">{initials(`I${i.inquiryId}`)}</span>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex w-full items-center justify-between">
+                    <span className="font-medium flex items-center gap-2">
+                      <span className="truncate">{meta?.title ?? `Property ${i.propertyId}`}</span>
+                    </span>
+                    <span className="text-xs text-muted-foreground shrink-0">PROPERTY</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground line-clamp-1">
+                    {meta?.location ? `${meta.location} · ` : ""}
+                    Inquiry #{i.inquiryId}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </>
       )}
     </div>
   );
@@ -104,10 +214,11 @@ const AblyChatList: React.FC<{ onSelectChat: (chatId: string) => void, selectedC
 
 // --- 3. Chat Window Component ---
 
-const AblyBookingChatWindow: React.FC<{ bookingId: string; onBack?: () => void }> = ({ bookingId, onBack }) => {
+const AblyChatWindow: React.FC<{ chatId: string; onBack?: () => void }> = ({ chatId, onBack }) => {
   const [messages, setMessages] = React.useState<Array<{ id: string | number; text: string; time?: string; from: "me" | "them" }>>([]);
   const [isConnecting, setIsConnecting] = React.useState(true);
   const [isReady, setIsReady] = React.useState(false);
+  const [headerMeta, setHeaderMeta] = React.useState<{ title: string; location: string } | null>(null);
 
   const ablyRef = React.useRef<Ably.Realtime | null>(null);
   const channelRef = React.useRef<Ably.RealtimeChannel | null>(null);
@@ -117,7 +228,48 @@ const AblyBookingChatWindow: React.FC<{ bookingId: string; onBack?: () => void }
     return session.userId || session.email || null;
   }, []);
 
-  const channelId = React.useMemo(() => `booking-chat:${bookingId}`, [bookingId]);
+  const parsed = React.useMemo(() => {
+    const [kind, raw] = chatId.includes(":") ? chatId.split(":", 2) : ["booking", chatId];
+    if (kind === "inquiry") return { kind: "inquiry" as const, id: raw };
+    return { kind: "booking" as const, id: raw };
+  }, [chatId]);
+
+  const channelId = React.useMemo(() => {
+    return parsed.kind === "inquiry" ? `inquiry-chat:${parsed.id}` : `booking-chat:${parsed.id}`;
+  }, [parsed.id, parsed.kind]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const loadMeta = async () => {
+      try {
+        if (parsed.kind === "booking") {
+          const booking = await BookingService.getBookingById(Number(parsed.id));
+          const property = await PropertyService.getPropertyById(booking.propertyId);
+          const meta = resolvePropertyMeta(property, booking.propertyId);
+          if (!cancelled) setHeaderMeta(meta);
+          return;
+        }
+
+        const conversations = await SyncService.listMyConversations();
+        const inquiryId = Number(parsed.id);
+        const convo = conversations.find((c) => Number(c.inquiryId) === inquiryId);
+        if (!convo) {
+          if (!cancelled) setHeaderMeta({ title: `Inquiry ${parsed.id}`, location: "" });
+          return;
+        }
+        const property = await PropertyService.getPropertyById(convo.propertyId);
+        const meta = resolvePropertyMeta(property, convo.propertyId);
+        if (!cancelled) setHeaderMeta(meta);
+      } catch {
+        if (!cancelled) setHeaderMeta({ title: parsed.kind === "booking" ? `Booking ${parsed.id}` : `Inquiry ${parsed.id}`, location: "" });
+      }
+    };
+
+    void loadMeta();
+    return () => {
+      cancelled = true;
+    };
+  }, [parsed.id, parsed.kind]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -130,7 +282,11 @@ const AblyBookingChatWindow: React.FC<{ bookingId: string; onBack?: () => void }
         const ablyClient = new Ably.Realtime({
           authCallback: async (_params, callback) => {
             try {
-              const tokenDetails = await SyncService.getRealtimeToken(bookingId);
+              const tokenDetails = await SyncService.getRealtimeToken(
+                parsed.kind === "inquiry"
+                  ? { inquiryId: parsed.id }
+                  : { bookingId: parsed.id }
+              );
               callback(null, tokenDetails as unknown as Ably.TokenDetails);
             } catch {
               callback(new Ably.ErrorInfo(chatTokens.copy.errors.realtimeToken, 50000, 500), null);
@@ -147,7 +303,9 @@ const AblyBookingChatWindow: React.FC<{ bookingId: string; onBack?: () => void }
         const channel = ablyClient.channels.get(channelId);
         channelRef.current = channel;
 
-        const history = await SyncService.getBookingMessages(bookingId);
+        const history = parsed.kind === "inquiry"
+          ? await SyncService.getInquiryMessages(parsed.id)
+          : await SyncService.getBookingMessages(parsed.id);
         if (!cancelled && history.length > 0) {
           const mapped = history.map((m) => {
             const isMe = mySenderId && String(m.senderId) === String(mySenderId);
@@ -205,45 +363,40 @@ const AblyBookingChatWindow: React.FC<{ bookingId: string; onBack?: () => void }
       } catch {}
       ablyRef.current = null;
     };
-  }, [bookingId, channelId, mySenderId]);
+  }, [channelId, mySenderId, parsed.id, parsed.kind]);
 
   const onSend = React.useCallback(
-    (text: string) => {
-      if (!isReady || !channelRef.current || !mySenderId) return;
+    async (text: string) => {
+      if (!isReady || !mySenderId) return;
+      try {
+        const saved = parsed.kind === "inquiry"
+          ? await SyncService.sendInquiryMessage(parsed.id, { content: text })
+          : await SyncService.sendMessage(parsed.id, { content: text });
 
-      const optimisticId =
-        typeof globalThis.crypto?.randomUUID === "function"
-          ? globalThis.crypto.randomUUID()
-          : `tmp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-      const optimistic = {
-        id: optimisticId,
-        senderId: String(mySenderId),
-        content: text,
-        createdAt: new Date().toISOString(),
-      };
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: optimistic.id,
-          text: optimistic.content,
-          time: new Date(optimistic.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          from: "me",
-        },
-      ]);
-
-      channelRef.current
-        .publish("new-message", optimistic)
-        .catch(() => notify.error(chatTokens.copy.errors.sendMessage));
+        setMessages((prev) => {
+          if (prev.some((m) => String(m.id) === String(saved.id))) return prev;
+          return [
+            ...prev,
+            {
+              id: saved.id,
+              text: saved.content,
+              time: new Date(saved.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              from: "me",
+            },
+          ];
+        });
+      } catch {
+        notify.error(chatTokens.copy.errors.sendMessage);
+      }
     },
-    [isReady, mySenderId]
+    [isReady, mySenderId, parsed.id, parsed.kind]
   );
 
   return (
     <div className="flex h-full w-full flex-col bg-background">
       <ChatHeader
-        name={`${chatTokens.copy.ui.list.bookingPrefix}${bookingId}`}
+        name={headerMeta?.title ?? (parsed.kind === "inquiry" ? `Inquiry ${parsed.id}` : `${chatTokens.copy.ui.list.bookingPrefix}${parsed.id}`)}
+        subtitle={headerMeta?.location || undefined}
         status={isConnecting ? chatTokens.copy.ui.header.statusConnecting : chatTokens.copy.ui.header.statusOnline}
         onBack={onBack}
       />
@@ -269,7 +422,7 @@ const AblyChatStrategy: ChatStrategy = {
   name: "ably",
   Provider: AblyProvider,
   ChatList: AblyChatList,
-  ChatWindow: ({ chatId, onBack }) => <AblyBookingChatWindow bookingId={chatId} onBack={onBack} />,
+  ChatWindow: ({ chatId, onBack }) => <AblyChatWindow chatId={chatId} onBack={onBack} />,
 };
 
 export default AblyChatStrategy;

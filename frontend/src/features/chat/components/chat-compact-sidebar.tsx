@@ -3,12 +3,23 @@
 import * as React from "react"
 import { useChatStrategy } from "@/features/chat"
 
-export function ChatCompactSidebar() {
+/**
+ * Sidebar compacta do chat.
+ *
+ * - Quando `initialChatId` existe, abre diretamente a janela da conversa (usado por flows como "Contactar proprietário").
+ * - Caso contrário, mostra a lista de conversas.
+ */
+export function ChatCompactSidebar({ initialChatId }: { initialChatId?: string }) {
   const chatStrategy = useChatStrategy()
   const ChatList = chatStrategy.ChatList
   const ChatWindow = chatStrategy.ChatWindow
 
   const [selectedChatId, setSelectedChatId] = React.useState<string | undefined>(undefined)
+
+  React.useEffect(() => {
+    if (!initialChatId) return
+    setSelectedChatId(initialChatId)
+  }, [initialChatId])
 
   return (
     <div className="flex flex-col h-full">
@@ -30,4 +41,3 @@ export function ChatCompactSidebar() {
     </div>
   )
 }
-

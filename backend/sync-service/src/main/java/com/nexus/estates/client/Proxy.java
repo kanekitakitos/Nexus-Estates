@@ -15,5 +15,6 @@ import org.springframework.stereotype.Component;
 @Component
 public record Proxy(
         NexusClients.UserClient userClient,
-        NexusClients.BookingClient bookingClient
+        NexusClients.BookingClient bookingClient,
+        NexusClients.PropertyClient propertyClient
 ) {}

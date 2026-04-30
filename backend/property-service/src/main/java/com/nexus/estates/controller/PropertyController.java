@@ -220,6 +220,60 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(property, "Propriedade encontrada."));
     }
 
+    @Operation(summary = "Obter proprietário principal", description = "Retorna o userId do PRIMARY_OWNER da propriedade.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Proprietário recuperado com sucesso"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não existe"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Proprietário não encontrado")
+    })
+    @GetMapping("/{id}/primary-owner")
+    public ResponseEntity<ApiResponse<Long>> getPrimaryOwner(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        if (userIdHeader != null && !userIdHeader.isBlank()) {
+            try {
+                Long requesterId = Long.parseLong(userIdHeader);
+                var level = service.getUserAccessLevel(id, requesterId);
+                if (level == null) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Acesso negado.", "FORBIDDEN"));
+                }
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Acesso negado.", "FORBIDDEN"));
+            }
+        }
+        Long ownerId = service.getPrimaryOwnerId(id);
+        return ResponseEntity.ok(ApiResponse.success(ownerId, "Proprietário principal encontrado."));
+    }
+
+    @Operation(summary = "Obter nível de acesso", description = "Retorna o access_level do utilizador para uma propriedade (PRIMARY_OWNER, MANAGER, STAFF).")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Nível de acesso encontrado"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Sem permissões ou propriedade não existe")
+    })
+    @GetMapping("/{id}/access-level/{userId}")
+    public ResponseEntity<ApiResponse<String>> getAccessLevel(
+            @PathVariable Long id,
+            @PathVariable Long userId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        if (userIdHeader != null && !userIdHeader.isBlank()) {
+            try {
+                Long requesterId = Long.parseLong(userIdHeader);
+                if (!requesterId.equals(userId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Acesso negado.", "FORBIDDEN"));
+                }
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Acesso negado.", "FORBIDDEN"));
+            }
+        }
+        var level = service.getUserAccessLevel(id, userId);
+        if (level == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("Permissão não encontrada.", "NOT_FOUND"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(level.name(), "Nível de acesso encontrado."));
+    }
+
     /**
      * Obtém as regras operacionais de uma propriedade.
      *

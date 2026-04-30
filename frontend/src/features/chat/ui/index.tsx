@@ -17,11 +17,12 @@ export const initials = (name: string) =>
 
 export const ChatHeader: React.FC<{
   name: string;
+  subtitle?: string;
   avatarUrl?: string;
   status?: string;
   onBack?: () => void;
   rightSlot?: React.ReactNode;
-}> = ({ name, avatarUrl, status, onBack, rightSlot }) => (
+}> = ({ name, subtitle, avatarUrl, status, onBack, rightSlot }) => (
   <div className="flex items-center gap-3 px-4 py-3 border-b">
     {onBack && (
       <Button
@@ -37,9 +38,14 @@ export const ChatHeader: React.FC<{
       <AvatarImage src={avatarUrl} alt={name} />
       <AvatarFallback>{initials(name)}</AvatarFallback>
     </UiAvatar>
-    <div className="flex flex-col">
+    <div className="flex flex-col min-w-0">
       <span className="text-sm font-medium">{name}</span>
-      {status ? <span className="text-xs text-muted-foreground">{status}</span> : null}
+      {subtitle || status ? (
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          {subtitle ? <span className="text-xs text-muted-foreground truncate">{subtitle}</span> : <span />}
+          {status ? <span className="text-[10px] text-muted-foreground shrink-0">{status}</span> : null}
+        </div>
+      ) : null}
     </div>
     <div className="ml-auto">{rightSlot}</div>
   </div>

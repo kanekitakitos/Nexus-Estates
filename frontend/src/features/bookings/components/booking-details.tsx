@@ -37,6 +37,8 @@ import type { BookingProperty } from "@/types/booking"
 import { cn } from "@/lib/utils"
 import { DateRangeCalendar } from "./date-range-calendar"
 import { notify } from "@/lib/notify"
+import { SyncService } from "@/services/sync.service"
+import { AuthService } from "@/services/auth.service"
 import { format, differenceInCalendarDays } from "date-fns"
 import {
   AnimatePresence, motion,
@@ -128,6 +130,35 @@ export function BookingDetails({
     }
   }, [booking, handleConfirmDates, scrollToCalendar])
 
+  /**
+   * Inicia uma conversa do tipo PROPERTY_INQUIRY sem expor emails.
+   *
+   * Fluxo:
+   * - Frontend envia apenas propertyId
+   * - sync-service cria/resolve a inquiry e devolve chatId ("inquiry:{id}")
+   * - Dispara evento global para abrir a sidebar no separador Chat e pré-selecionar a conversa
+   */
+  const handleContactOwner = useCallback(async () => {
+    const session = AuthService.getSession()
+    if (!session.isAuthenticated) {
+      notify.error("Precisas de fazer login para iniciar uma conversa.")
+      return
+    }
+
+    const propertyId = Number(property.id)
+    if (Number.isNaN(propertyId)) {
+      notify.error("ID de propriedade inválido.")
+      return
+    }
+
+    try {
+      const convo = await SyncService.createPropertyInquiry(propertyId)
+      window.dispatchEvent(new CustomEvent("open-chat", { detail: { chatId: convo.chatId } }))
+    } catch {
+      notify.error("Não foi possível iniciar a conversa.")
+    }
+  }, [property.id])
+
   return (
     // relative aqui para que o botão absolute interno (se usado) não escape
     <div className="relative min-h-screen overflow-x-hidden bg-background pb-24 lg:pb-0">
@@ -188,7 +219,7 @@ export function BookingDetails({
                     onConfirmBooking={({ range }) => {
                       if (range.from && range.to) handleConfirmDates(range.from, range.to)
                     }}
-                    onContactOwner={() => notify.info("Chat ainda não disponível.")}
+                    onContactOwner={() => void handleContactOwner()}
                   />
                 </div>
               </div>
@@ -204,7 +235,7 @@ export function BookingDetails({
                 nights={nights}
                 total={total}
                 onBookNow={handleBookNow}
-                onContactOwner={() => notify.info("Chat ainda não disponível.")}
+                onContactOwner={() => void handleContactOwner()}
               />
             </div>
           </aside>

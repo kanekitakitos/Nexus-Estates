@@ -23,6 +23,9 @@ public class WebClientConfig {
     @Value("${booking.service.url:http://localhost:8081}")
     private String bookingServiceUrl;
 
+    @Value("${property.service.url:http://localhost:8082}")
+    private String propertyServiceUrl;
+
     @Bean
     public NexusClients.UserClient userClient(RestClient.Builder builder) {
         return createClient(NexusClients.UserClient.class, builder, userServiceUrl);
@@ -31,6 +34,11 @@ public class WebClientConfig {
     @Bean
     public NexusClients.BookingClient bookingClient(RestClient.Builder builder) {
         return createClient(NexusClients.BookingClient.class, builder, bookingServiceUrl);
+    }
+
+    @Bean
+    public NexusClients.PropertyClient propertyClient(RestClient.Builder builder) {
+        return createClient(NexusClients.PropertyClient.class, builder, propertyServiceUrl);
     }
 
     private <T> T createClient(Class<T> clientClass, RestClient.Builder builder, String baseUrl) {
