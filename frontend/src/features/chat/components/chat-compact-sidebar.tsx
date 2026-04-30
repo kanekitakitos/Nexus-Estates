@@ -22,10 +22,10 @@ export function ChatCompactSidebar({ initialChatId, launchNonce }: { initialChat
   }, [initialChatId, launchNonce])
 
   return (
-    <div className="flex min-h-0 flex-col h-full overflow-x-hidden">
+    <div className="flex min-h-0 w-full min-w-0 flex-col h-full overflow-hidden">
       {/* Painel: Lista/Janela do Chat */}
       {!selectedChatId ? (
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden animate-slide-in-left">
+        <div className="flex-1 min-h-0 w-full min-w-0 overflow-y-auto overflow-x-hidden animate-slide-in-left">
           {/* Painel: Lista de Conversas */}
           <ChatList
             onSelectChat={setSelectedChatId}
@@ -33,7 +33,7 @@ export function ChatCompactSidebar({ initialChatId, launchNonce }: { initialChat
           />
         </div>
       ) : (
-        <div key={selectedChatId} className="flex-1 min-h-0 overflow-hidden overflow-x-hidden animate-slide-in-right">
+        <div key={selectedChatId} className="flex-1 min-h-0 w-full min-w-0 overflow-hidden animate-slide-in-right">
           {/* Painel: Janela da Conversa */}
           <ChatWindow chatId={selectedChatId} onBack={() => setSelectedChatId(undefined)} />
         </div>

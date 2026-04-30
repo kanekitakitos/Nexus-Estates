@@ -14,7 +14,7 @@ export const ChatListItemButton: React.FC<{
     <button
       type="button"
       onClick={() => onSelect(id)}
-      className={`flex w-full items-start px-4 py-3 text-left border-b hover:bg-sidebar-accent transition-colors ${
+      className={`flex items-start px-4 py-3 text-left border-b hover:bg-sidebar-accent transition-colors ${
         selected ? "bg-sidebar-accent" : ""
       }`}
     >

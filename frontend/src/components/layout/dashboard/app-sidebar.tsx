@@ -357,7 +357,7 @@ export function AppSidebar({
               </div>
             </SidebarHeader>
 
-            <SidebarContent className="p-0">
+            <SidebarContent className="p-0 min-w-0 overflow-x-hidden">
               {activeItem === "Chat" ? (
                 <>
                   {/* Painel: Chat */}
