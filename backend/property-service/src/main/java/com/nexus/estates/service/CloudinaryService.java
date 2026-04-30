@@ -26,6 +26,15 @@ public class CloudinaryService implements ImageStorageService {
     private final String fetchTransform;
 
     public CloudinaryService(
+            String cloudName,
+            String apiKey,
+            String apiSecret,
+            String folderPath
+    ) {
+        this(cloudName, apiKey, apiSecret, folderPath, true, "f_auto,q_auto,c_limit,w_1200");
+    }
+
+    public CloudinaryService(
             @Value("${cloudinary.cloud-name}") String cloudName,
             @Value("${cloudinary.api-key}") String apiKey,
             @Value("${cloudinary.api-secret}") String apiSecret,
