@@ -122,10 +122,13 @@ public class SyncMessageController {
 
         // 2. Publicar no canal de tempo real
         String channelId = "booking-chat:" + bookingId;
-        boolean published = chatPlatform.sendMessage(channelId, "new-message", savedMessage);
-
-        if (!published) {
-            log.warn("Falha ao publicar mensagem no canal de tempo real para Booking ID {}", bookingId);
+        try {
+            boolean published = chatPlatform.sendMessage(channelId, "new-message", savedMessage);
+            if (!published) {
+                log.warn("Falha ao publicar mensagem no canal de tempo real para Booking ID {}", bookingId);
+            }
+        } catch (Exception e) {
+            log.warn("Erro ao publicar mensagem no canal de tempo real para Booking ID {}: {}", bookingId, e.getMessage());
         }
 
         return ResponseEntity.ok(savedMessage);
@@ -143,8 +146,12 @@ public class SyncMessageController {
         if (userId == null) {
             return ResponseEntity.status(401).build();
         }
-        if (!inquiryService.canAccess(inquiryId, userId)) {
-            return ResponseEntity.status(403).build();
+        try {
+            if (!inquiryService.canAccess(inquiryId, userId)) {
+                return ResponseEntity.status(403).build();
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).build();
         }
         List<Message> messages = messageService.getMessagesByInquiryId(inquiryId);
         return ResponseEntity.ok(messages);
@@ -172,15 +179,23 @@ public class SyncMessageController {
         if (request == null || request.content() == null || request.content().isBlank()) {
             return ResponseEntity.badRequest().build();
         }
-        if (!inquiryService.canAccess(inquiryId, userId)) {
-            return ResponseEntity.status(403).build();
+        try {
+            if (!inquiryService.canAccess(inquiryId, userId)) {
+                return ResponseEntity.status(403).build();
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).build();
         }
 
         Message savedMessage = messageService.saveInquiryMessage(inquiryId, String.valueOf(userId), request.content());
         String channelId = "inquiry-chat:" + inquiryId;
-        boolean published = chatPlatform.sendMessage(channelId, "new-message", savedMessage);
-        if (!published) {
-            log.warn("Falha ao publicar mensagem no canal de tempo real para Inquiry ID {}", inquiryId);
+        try {
+            boolean published = chatPlatform.sendMessage(channelId, "new-message", savedMessage);
+            if (!published) {
+                log.warn("Falha ao publicar mensagem no canal de tempo real para Inquiry ID {}", inquiryId);
+            }
+        } catch (Exception e) {
+            log.warn("Erro ao publicar mensagem no canal de tempo real para Inquiry ID {}: {}", inquiryId, e.getMessage());
         }
         return ResponseEntity.ok(savedMessage);
     }
@@ -202,9 +217,13 @@ public class SyncMessageController {
         var inquiry = inquiryService.createOrGet(propertyId, userId);
         Message savedMessage = messageService.saveInquiryMessage(inquiry.getId(), String.valueOf(userId), request.content());
         String channelId = "inquiry-chat:" + inquiry.getId();
-        boolean published = chatPlatform.sendMessage(channelId, "new-message", savedMessage);
-        if (!published) {
-            log.warn("Falha ao publicar mensagem no canal de tempo real para Inquiry ID {}", inquiry.getId());
+        try {
+            boolean published = chatPlatform.sendMessage(channelId, "new-message", savedMessage);
+            if (!published) {
+                log.warn("Falha ao publicar mensagem no canal de tempo real para Inquiry ID {}", inquiry.getId());
+            }
+        } catch (Exception e) {
+            log.warn("Erro ao publicar mensagem no canal de tempo real para Inquiry ID {}: {}", inquiry.getId(), e.getMessage());
         }
 
         return ResponseEntity.ok(
