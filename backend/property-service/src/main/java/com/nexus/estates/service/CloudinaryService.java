@@ -6,6 +6,8 @@ import com.nexus.estates.service.repository.ImageStorageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -18,14 +20,22 @@ import java.util.TreeMap;
 public class CloudinaryService implements ImageStorageService {
 
     private final Cloudinary cloudinary;
+    private final String cloudName;
     private final String folderPath;
+    private final boolean fetchEnabled;
+    private final String fetchTransform;
 
     public CloudinaryService(
             @Value("${cloudinary.cloud-name}") String cloudName,
             @Value("${cloudinary.api-key}") String apiKey,
             @Value("${cloudinary.api-secret}") String apiSecret,
-            @Value("${cloudinary.folder:nexus_estates/properties}") String folderPath) {
+            @Value("${cloudinary.folder:nexus_estates/properties}") String folderPath,
+            @Value("${cloudinary.fetch.enabled:true}") boolean fetchEnabled,
+            @Value("${cloudinary.fetch.transform:f_auto,q_auto,c_limit,w_1200}") String fetchTransform) {
+        this.cloudName = cloudName;
         this.folderPath = folderPath;
+        this.fetchEnabled = fetchEnabled;
+        this.fetchTransform = fetchTransform;
 
         this.cloudinary = new Cloudinary(ObjectUtils.asMap(
                 "cloud_name", cloudName,
@@ -62,5 +72,17 @@ public class CloudinaryService implements ImageStorageService {
         params.put("upload_url", uploadUrl);
 
         return params;
+    }
+
+    @Override
+    public String resolveDeliveryUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) return imageUrl;
+        if (!fetchEnabled) return imageUrl;
+        if (cloudName == null || cloudName.isBlank()) return imageUrl;
+        if (imageUrl.contains("res.cloudinary.com/")) return imageUrl;
+        if (!imageUrl.contains("images.unsplash.com/")) return imageUrl;
+
+        String encoded = URLEncoder.encode(imageUrl, StandardCharsets.UTF_8).replace("+", "%20");
+        return "https://res.cloudinary.com/" + cloudName + "/image/fetch/" + fetchTransform + "/" + encoded;
     }
 }

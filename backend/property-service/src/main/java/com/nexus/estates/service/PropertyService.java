@@ -24,6 +24,7 @@ import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.repository.PropertyRuleRepository;
 import com.nexus.estates.repository.RuleOverrideRepository;
 import com.nexus.estates.repository.SeasonalityRuleRepository;
+import com.nexus.estates.service.repository.ImageStorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -64,6 +65,7 @@ public class PropertyService {
     private final PermissionRepository permissionRepository;
     private final PropertyChangeLogRepository changeLogRepository;
     private final RuleOverrideRepository ruleOverrideRepository;
+    private final ImageStorageService imageStorageService;
 
     /**
      * Construtor do serviço.
@@ -74,7 +76,8 @@ public class PropertyService {
                            PropertyRuleRepository propertyRuleRepository,
                            PermissionRepository permissionRepository,
                            PropertyChangeLogRepository changeLogRepository,
-                           RuleOverrideRepository ruleOverrideRepository) {
+                           RuleOverrideRepository ruleOverrideRepository,
+                           ImageStorageService imageStorageService) {
         this.repository = repository;
         this.amenityRepository = amenityRepository;
         this.seasonalityRuleRepository = seasonalityRuleRepository;
@@ -82,6 +85,7 @@ public class PropertyService {
         this.permissionRepository = permissionRepository;
         this.changeLogRepository = changeLogRepository;
         this.ruleOverrideRepository = ruleOverrideRepository;
+        this.imageStorageService = imageStorageService;
     }
 
     /**
@@ -574,7 +578,7 @@ public class PropertyService {
         return new ExpandedPropertyResponse(
                 p.getId(), p.getName(), p.getDescription(), p.getLocation(), p.getCity(), p.getAddress(),
                 p.getBasePrice(), p.getMaxGuests(), p.getIsActive(), amenityNames, ruleDto, seasonality,
-                p.getImageUrl()
+                imageStorageService.resolveDeliveryUrl(p.getImageUrl())
         );
     }
 }

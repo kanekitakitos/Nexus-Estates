@@ -485,7 +485,7 @@ public class PropertyController {
         m.put("basePrice", p.getBasePrice());
         m.put("maxGuests", p.getMaxGuests());
         m.put("isActive", Boolean.TRUE.equals(p.getIsActive()));
-        m.put("imageUrl", p.getImageUrl());
+        m.put("imageUrl", imageStorageService.resolveDeliveryUrl(p.getImageUrl()));
         return m;
     }
 }

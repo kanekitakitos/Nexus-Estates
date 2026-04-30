@@ -19,4 +19,8 @@ public interface ImageStorageService {
      * @return Mapa com as credenciais e configurações de upload (ex: assinatura, timestamp, url)
      */
     Map<String, Object> getUploadParameters();
+
+    default String resolveDeliveryUrl(String imageUrl) {
+        return imageUrl;
+    }
 }

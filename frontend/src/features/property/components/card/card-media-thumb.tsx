@@ -7,6 +7,7 @@ import { OwnProperty } from "@/types"
 import { resolveTranslation } from "../../model/hooks"
 import { nexusShadowSm, propertyCopy, propertyTokens } from "../../lib/property-tokens"
 import { PropertyCardDisplayVariant } from "../../model/property-constants"
+import { PropertyImage } from "@/components/ui/media/property-image"
 
 interface CardMediaThumbProps {
   /** Dados brutos do ativo para exibir */
@@ -43,9 +44,18 @@ export function CardMediaThumb({ prop, mode, serialId }: CardMediaThumbProps) {
       )}
     >
       {prop.imageUrl ? (
-        <motion.img
+        <PropertyImage
           src={prop.imageUrl}
           alt={title}
+          width={mode === "inventoryRail" ? 64 : mode === "grid" ? 160 : 960}
+          height={mode === "inventoryRail" ? 64 : mode === "grid" ? 100 : 720}
+          sizes={
+            mode === "inventoryRail"
+              ? "64px"
+              : mode === "grid"
+                ? "160px"
+                : "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          }
           className="h-full w-full object-cover grayscale-[0.15] transition-all duration-700 group-hover/img:grayscale-0 group-hover/img:scale-[1.04]"
         />
       ) : (
