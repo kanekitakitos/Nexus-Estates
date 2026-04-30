@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 
 import { PropertyManagementRoot } from "../sections/management/property-management-root"
@@ -41,6 +41,17 @@ export function PropertyView() {
 
   const [isCreating, setIsCreating] = useState(false)
   const [detailInitialMode, setDetailInitialMode] = useState<EditMode>("VIEW")
+
+  useEffect(() => {
+    const onManage = () => {
+      setIsCreating(false)
+      setDetailInitialMode("VIEW")
+      selectPropertyId(null)
+    }
+
+    window.addEventListener("properties-manage", onManage as EventListener)
+    return () => window.removeEventListener("properties-manage", onManage as EventListener)
+  }, [selectPropertyId])
 
   const startCreate = useCallback(() => {
     setIsCreating(true)

@@ -371,6 +371,7 @@ export function AppSidebar({
                     isLoading={isLoadingProperties}
                     properties={properties}
                     onManage={() => {
+                      window.dispatchEvent(new CustomEvent("properties-manage"))
                       setView("properties")
                       selectPropertyId(null)
                       if (pathname !== "/properties") router.push("/properties")
