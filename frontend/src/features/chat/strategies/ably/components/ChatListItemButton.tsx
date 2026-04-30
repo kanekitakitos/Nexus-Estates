@@ -25,9 +25,8 @@ export const ChatListItemButton: React.FC<{
           </span>
           <span className="text-xs text-muted-foreground shrink-0">{rightLabel}</span>
         </div>
-        <span className="text-xs text-muted-foreground line-clamp-1">{subtitle}</span>
+        <span className="text-xs text-muted-foreground block truncate">{subtitle}</span>
       </div>
     </button>
   );
 };
-
