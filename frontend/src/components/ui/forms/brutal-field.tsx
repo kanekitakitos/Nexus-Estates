@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
 import { RotateCcw } from "lucide-react"
@@ -8,6 +9,7 @@ import { RotateCcw } from "lucide-react"
 
 /** Propriedades do campo de entrada Brutalist */
 export interface BrutalFieldProps {
+    id?: string
     /** Etiqueta descritiva do campo */
     label: string
     /** Valor atual em memória */
@@ -39,9 +41,12 @@ export interface BrutalFieldProps {
 /**
  * FieldLabel - Etiqueta superior com tipografia técnica.
  */
-function FieldLabel({ label }: { label: string }) {
+function FieldLabel({ label, htmlFor }: { label: string; htmlFor: string }) {
     return (
-        <label className="block font-mono text-[9px] font-black uppercase tracking-[0.4em] text-[#0D0D0D]/65 dark:text-zinc-400 px-1 mb-1">
+        <label
+            htmlFor={htmlFor}
+            className="block font-mono text-[9px] font-black uppercase tracking-[0.4em] text-[#0D0D0D]/65 dark:text-zinc-400 px-1 mb-1"
+        >
             {label}
         </label>
     )
@@ -96,6 +101,7 @@ function ChangeIndicator() {
  * dinâmicas.
  */
 export function BrutalField({
+    id,
     label,
     value,
     savedValue,
@@ -113,6 +119,8 @@ export function BrutalField({
     /** Determina se o valor local diverge da persistência */
     const isDirty = value !== savedValue
     const displayValue = value ?? ""
+    const autoId = React.useId()
+    const fieldId = id ?? autoId
 
     const defaultPlaceholder = placeholder || `DIGITAR ${label.toUpperCase()}...`
 
@@ -134,24 +142,31 @@ export function BrutalField({
         stateClasses
     )
 
+    const clampText = (next: string) => {
+        if (!maxLength || maxLength <= 0) return next
+        return next.slice(0, maxLength)
+    }
+
     return (
         <div className={cn("group flex flex-col", className)}>
-            <FieldLabel label={label} />
+            <FieldLabel label={label} htmlFor={fieldId} />
 
             <div className="relative flex gap-3 items-start">
                 <div className="relative flex-1">
                     {multiline ? (
                         <textarea
+                            id={fieldId}
                             rows={rows}
                             value={displayValue}
                             disabled={disabled}
-                            onChange={(e) => onChange(e.target.value)}
+                            onChange={(e) => onChange(clampText(e.target.value))}
                             className={fieldClasses}
                             placeholder={defaultPlaceholder}
                             maxLength={maxLength}
                         />
                     ) : (
                         <input
+                            id={fieldId}
                             type={type}
                             value={displayValue}
                             disabled={disabled}
@@ -159,7 +174,7 @@ export function BrutalField({
                             onChange={(e) => {
                                 const val = type === "number" && e.target.value !== ""
                                     ? Number(e.target.value)
-                                    : e.target.value
+                                    : clampText(e.target.value)
                                 onChange(val)
                             }}
                             className={fieldClasses}

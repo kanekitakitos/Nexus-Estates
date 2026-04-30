@@ -189,16 +189,36 @@ export function BookingDetails({
 
       {/* ── Main content grid */}
       <div className="mx-auto max-w-6xl px-4 md:px-6 lg:px-10 py-8 md:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 lg:gap-12 items-start">
+        <div className="space-y-10">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 lg:gap-12 items-start">
+            <div className="min-w-0">
+              <div className="space-y-8">
+              
+                <PropertyBreadcrumb property={property} />
+                
+                <div className="py-10"  >
+                <PropertyStats property={property} />
+                </div>
+                <PropertyDescription property={property} />
+                <PropertyAmenities property={property} />
+              </div>
+            </div>
 
-          {/* Left — content stack */}
-          <div className="space-y-8 min-w-0">
-            <PropertyBreadcrumb property={property} />
-            <PropertyStats property={property} />
-            <PropertyDescription property={property} />
-            <PropertyAmenities property={property} />
+            <aside className="hidden lg:block">
+              <div className="sticky top-6">
+                <BookingSidebar
+                  property={property}
+                  booking={booking}
+                  nights={nights}
+                  total={total}
+                  onBookNow={handleBookNow}
+                  onContactOwner={() => void handleContactOwner()}
+                />
+              </div>
+            </aside>
+          </div>
 
-            {/* Calendar */}
+          <div className="mx-auto w-full max-w-5xl">
             <RevealSection delay={0.1}>
               <div ref={calendarRef} data-date-range-calendar>
                 <SectionLabel>Disponibilidade</SectionLabel>
@@ -226,20 +246,6 @@ export function BookingDetails({
               </div>
             </RevealSection>
           </div>
-
-          {/* Right — sticky sidebar */}
-          <aside className="hidden lg:block">
-            <div className="sticky top-6">
-              <BookingSidebar
-                property={property}
-                booking={booking}
-                nights={nights}
-                total={total}
-                onBookNow={handleBookNow}
-                onContactOwner={() => void handleContactOwner()}
-              />
-            </div>
-          </aside>
         </div>
       </div>
 
@@ -553,9 +559,11 @@ function PropertyDescription({ property }: { property: RichProperty }) {
   const isLong = property.description.length > DESCRIPTION_COLLAPSE_THRESHOLD
 
   return (
-    <RevealSection delay={0.06}>
-      <BrutalShard rotate="secondary">
-        <SectionLabel>Sobre a propriedade</SectionLabel>
+    <RevealSection delay={0.06} >
+      <BrutalShard  rotate="secondary">
+      
+        <SectionLabel>Sobre a propriedade  </SectionLabel>
+      
         <div className="mt-3 relative">
           <p className={cn(
             "font-mono text-base leading-relaxed text-muted-foreground",

@@ -13,19 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import type { NexusNoticeVariant } from "@/components/ui/feedback/nexus-alert"
-
-const DEFAULT_MASCOT_SRC = "/ico/icoC.png"
-const SUCCESS_MASCOT_SRC = "/notifications/success.png"
-const ALERT_MASCOT_SRC = "/notifications/alert.png"
-
-const DEFAULT_MASCOT_BY_VARIANT: Record<NexusNoticeVariant, string> = {
-  success: SUCCESS_MASCOT_SRC,
-  error: ALERT_MASCOT_SRC,
-  warning: ALERT_MASCOT_SRC,
-  info: DEFAULT_MASCOT_SRC,
-  loading: DEFAULT_MASCOT_SRC,
-}
+import { getNexusNoticeVariantConfig, type NexusNoticeVariant } from "@/components/ui/feedback/nexus-alert"
 
 export function NexusAlertDialog({
   open,
@@ -50,24 +38,26 @@ export function NexusAlertDialog({
   onConfirm: () => void
   mascotSrc?: string
 }) {
-  const finalMascotSrc = mascotSrc ?? DEFAULT_MASCOT_BY_VARIANT[variant]
+  const cfg = getNexusNoticeVariantConfig(variant)
+  const finalMascotSrc = mascotSrc ?? cfg.mascotSrc
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent
         className={cn(
-          "rounded-2xl border-2 border-foreground bg-background shadow-[6px_6px_0_0_rgb(0,0,0)] dark:shadow-[6px_6px_0_0_rgba(255,255,255,0.16)]",
+          "rounded-2xl border-2 bg-background shadow-[6px_6px_0_0_rgb(0,0,0)] dark:shadow-[6px_6px_0_0_rgba(255,255,255,0.16)]",
+          cfg.borderClassName,
           "p-5",
         )}
         size="sm"
       >
         <AlertDialogHeader className="place-items-start text-left gap-3">
           <div className="flex items-start gap-3">
-            <div className="relative size-12 shrink-0 overflow-hidden rounded-2xl border-2 border-foreground/20 bg-primary/10">
+            <div className={cn("relative size-12 shrink-0 overflow-hidden rounded-2xl border-2 border-foreground/20", cfg.accentClassName)}>
               <Image src={finalMascotSrc} alt="Mascote" fill sizes="48px" className="object-cover" />
             </div>
             <div className="min-w-0">
-              <AlertDialogTitle className="font-serif text-lg font-black italic tracking-tight">{title}</AlertDialogTitle>
+              <AlertDialogTitle className={cn("font-serif text-lg font-black italic tracking-tight", cfg.titleClassName)}>{title}</AlertDialogTitle>
               {description ? (
                 <AlertDialogDescription className="mt-1 font-mono text-[11px] leading-relaxed">{description}</AlertDialogDescription>
               ) : null}
