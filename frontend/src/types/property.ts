@@ -153,6 +153,25 @@ export type UpdatePropertyRequest = Partial<{
   amenityIds?: number[];
 }>;
 
+export type PropertyImageUploadParams = {
+  signature: string;
+  timestamp: number;
+  folder: string;
+  api_key: string;
+  cloud_name: string;
+  upload_url: string;
+  upload_preset?: string;
+  expires_at?: number;
+};
+
+export type PropertyImageUploadErrorStage = "params" | "upload";
+
+export type PropertyImageUploadErrorInfo = {
+  stage: PropertyImageUploadErrorStage;
+  status?: number;
+  message: string;
+};
+
 /**
  * Payload “expandido” devolvido pelo backend (agrega sub-recursos).
  *

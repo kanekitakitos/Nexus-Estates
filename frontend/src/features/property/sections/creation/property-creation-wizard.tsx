@@ -1,11 +1,13 @@
 "use client"
 
+import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { 
   Layout, ArrowRight, Save, 
-  Users, Home, MapPin, Sparkles, Image as ImageIcon, AlertTriangle
+  Users, Home, MapPin, Sparkles, Image as ImageIcon
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { notify } from "@/lib/notify"
 
 import { usePropertyForm } from "../../model/hooks"
 import { OwnProperty, WizardStep } from "@/types"
@@ -69,6 +71,8 @@ const STEPS_META: WizardStepMeta[] = [
     { key: "preview", label: propertyCopy.wizard.stepPreviewLabel, n: propertyCopy.wizard.stepPreviewN },
 ]
 
+const TITLE_MAX_LENGTH = 20
+
 // ─── Sub-Componentes de UI ──────────────────────────────────────────────────
 
 function resolveStr(value: unknown): string {
@@ -81,16 +85,6 @@ function resolveStr(value: unknown): string {
     return ""
 }
 
-function FieldError({ message }: { message?: string }) {
-    if (!message) return null
-    return (
-        <div className="mt-2 flex items-start gap-2 rounded-xl border-2 border-rose-600/30 bg-rose-50 px-3 py-2 text-rose-800 dark:border-rose-500/30 dark:bg-rose-950/30 dark:text-rose-200">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <p className="font-mono text-[10px] font-black uppercase tracking-widest leading-relaxed">{message}</p>
-        </div>
-    )
-}
-
 type WizardErrors = Partial<Record<"title" | "description" | "price" | "maxGuests" | "location" | "city" | "address", string>>
 
 function validateStep(step: WizardStep, property: OwnProperty): WizardErrors {
@@ -101,6 +95,7 @@ function validateStep(step: WizardStep, property: OwnProperty): WizardErrors {
     if (step === "essence" || step === "preview") {
         if (!title) errors.title = "Título é obrigatório"
         else if (title.length < 3) errors.title = "Título demasiado curto"
+        else if (title.length > TITLE_MAX_LENGTH) errors.title = `Título demasiado longo (máx. ${TITLE_MAX_LENGTH} caracteres)`
 
         if (!description) errors.description = "Descrição é obrigatória"
         else if (description.length < 10) errors.description = "Descrição demasiado curta"
@@ -119,6 +114,13 @@ function validateStep(step: WizardStep, property: OwnProperty): WizardErrors {
     }
 
     return errors
+}
+
+function buildStepValidationNotice() {
+    return {
+        title: "Faltam campos obrigatórios",
+        description: "Preenche os campos assinalados a vermelho para continuar.",
+    }
 }
 
 function WizardLivePreview({ property }: { property: OwnProperty }) {
@@ -167,47 +169,50 @@ function WizardProgress({ currentStep, isEdit, onSelectStep }: { currentStep: Wi
     const currentIdx = STEPS_META.findIndex((s) => s.key === currentStep)
     return (
         <div className={cn(propertyTokens.ui.wizard.progressWrapClass, "pt-5")}>
-            <div className="flex items-start gap-4">
+            <div className="flex items-start gap-4 min-w-0">
                 <div className={propertyTokens.ui.wizard.progressIconWrapClass}>
                     <Layout className="h-6 w-6" strokeWidth={2} />
                 </div>
-                <div>
+                <div className="min-w-0">
                     <p className={propertyTokens.ui.wizard.progressProtocolClass}>
                         {isEdit ? propertyCopy.wizard.editProtocol : propertyCopy.wizard.createProtocol}
                     </p>
                     <h2 className={propertyTokens.ui.wizard.progressTitleClass}>
-                        <BoingText text={STEPS_META.find((s) => s.key === currentStep)?.label || ""} color="currentColor" activeColor={propertyTokens.ui.preview.boingActiveColor} />
+                        <BoingText
+                            text={STEPS_META.find((s) => s.key === currentStep)?.label || ""}
+                            color="currentColor"
+                            activeColor={propertyTokens.ui.preview.boingActiveColor}
+                        />
                     </h2>
                 </div>
             </div>
-            <ol className="mt-4 flex flex-wrap items-center gap-2">
-                {STEPS_META.map((s, idx) => (
-                    <li key={s.key} className="flex items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={() => onSelectStep?.(s.key)}
-                            className={cn(
-                                "group flex items-center gap-2 rounded-full border px-3 py-1.5 transition-all",
-                                currentStep === s.key
-                                    ? "border-primary bg-primary/15 text-primary"
-                                    : idx < currentIdx
-                                      ? "border-emerald-600/40 bg-emerald-50 text-emerald-800 hover:border-emerald-700/60 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
-                                      : propertyTokens.ui.wizard.progressPendingStepClass
-                            )}
-                        >
-                            <span className="flex h-7 w-7 items-center justify-center rounded-full border border-current/20 text-xs font-black font-mono">
-                                {s.n}
-                            </span>
-                            <span className="font-mono text-[9px] font-black uppercase tracking-widest opacity-70 group-hover:opacity-100">
-                                {s.label}
-                            </span>
-                        </button>
-                        {idx < STEPS_META.length - 1 && (
-                            <span className={propertyTokens.ui.wizard.progressConnectorClass} aria-hidden />
-                        )}
-                    </li>
-                ))}
-            </ol>
+            <div className="w-full md:w-auto md:self-center">
+                <ol className="flex max-w-full items-center justify-start gap-2 overflow-x-auto pb-2 md:justify-end">
+                    {STEPS_META.map((s, idx) => (
+                        <li key={s.key} className="shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => onSelectStep?.(s.key)}
+                                className={cn(
+                                    "group flex items-center gap-2 rounded-full border px-3 py-1.5 transition-all whitespace-nowrap",
+                                    currentStep === s.key
+                                        ? "border-primary bg-primary/15 text-primary"
+                                        : idx < currentIdx
+                                          ? "border-emerald-600/40 bg-emerald-50 text-emerald-800 hover:border-emerald-700/60 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                          : propertyTokens.ui.wizard.progressPendingStepClass
+                                )}
+                            >
+                                <span className="flex h-7 w-7 items-center justify-center rounded-full border border-current/20 text-xs font-black font-mono">
+                                    {s.n}
+                                </span>
+                                <span className="font-mono text-[9px] font-black uppercase tracking-widest opacity-70 group-hover:opacity-100">
+                                    {s.label}
+                                </span>
+                            </button>
+                        </li>
+                    ))}
+                </ol>
+            </div>
         </div>
     )
 }
@@ -223,9 +228,12 @@ function WizardProgress({ currentStep, isEdit, onSelectStep }: { currentStep: Wi
  * @param updateField - Callback genérico de atualização de campo
  */
 function EssenceStep({ 
-  property, initial, updateField 
+  property, initial, updateField, invalid
 }: { 
-  property: OwnProperty; initial: OwnProperty | null; updateField: <K extends keyof OwnProperty>(f: K, v: OwnProperty[K]) => void 
+  property: OwnProperty
+  initial: OwnProperty | null
+  updateField: <K extends keyof OwnProperty>(f: K, v: OwnProperty[K]) => void
+  invalid?: Partial<Record<"title" | "description" | "price" | "maxGuests", boolean>>
 }) {
     const getVal = (v: OwnProperty['title'] | OwnProperty['description']) => typeof v === 'string' ? v : v?.pt || ""
     return (
@@ -238,6 +246,8 @@ function EssenceStep({
                         savedValue={initial ? getVal(initial.title) : ""}
                         onChange={(v) => updateField('title', v as string)}
                         onRevert={() => updateField('title', initial?.title || "")}
+                        invalid={Boolean(invalid?.title)}
+                        maxLength={TITLE_MAX_LENGTH}
                     />
                 </div>
                 <div className="min-w-0 lg:col-span-2">
@@ -249,6 +259,7 @@ function EssenceStep({
                         onRevert={() => updateField('description', initial?.description || "")}
                         multiline
                         rows={5}
+                        invalid={Boolean(invalid?.description)}
                     />
                 </div>
                 <BrutalField
@@ -258,6 +269,7 @@ function EssenceStep({
                     savedValue={initial?.price || 0}
                     onChange={(v) => updateField('price', Number(v))}
                     onRevert={() => updateField('price', initial?.price || 0)}
+                    invalid={Boolean(invalid?.price)}
                 />
                 <BrutalField
                     label={propertyCopy.wizard.previewLabelCapacity}
@@ -266,6 +278,7 @@ function EssenceStep({
                     savedValue={initial?.maxGuests || 1}
                     onChange={(v) => updateField('maxGuests', Number(v))}
                     onRevert={() => updateField('maxGuests', initial?.maxGuests || 1)}
+                    invalid={Boolean(invalid?.maxGuests)}
                 />
             </div>
 
@@ -313,16 +326,19 @@ function EssenceStep({
  * @param updateField - Callback genérico de atualização de campo
  */
 function LocationStep({ 
-  property, initial, updateField 
+  property, initial, updateField, invalid
 }: { 
-  property: OwnProperty; initial: OwnProperty | null; updateField: <K extends keyof OwnProperty>(f: K, v: OwnProperty[K]) => void 
+  property: OwnProperty
+  initial: OwnProperty | null
+  updateField: <K extends keyof OwnProperty>(f: K, v: OwnProperty[K]) => void
+  invalid?: Partial<Record<"location" | "city" | "address", boolean>>
 }) {
     return (
         <div className="grid gap-6">
-            <BrutalField label={propertyCopy.wizard.locationRegionLabel} value={property.location as string} savedValue={initial?.location || ""} onChange={(v) => updateField('location', v as string)} onRevert={() => updateField('location', initial?.location || "")} />
+            <BrutalField label={propertyCopy.wizard.locationRegionLabel} value={property.location as string} savedValue={initial?.location || ""} onChange={(v) => updateField('location', v as string)} onRevert={() => updateField('location', initial?.location || "")} invalid={Boolean(invalid?.location)} />
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <BrutalField label={propertyCopy.wizard.locationCityLabel} value={property.city as string} savedValue={initial?.city || ""} onChange={(v) => updateField('city', v as string)} onRevert={() => updateField('city', initial?.city || "")} />
-                <BrutalField label={propertyCopy.wizard.locationAddressLabel} value={property.address as string} savedValue={initial?.address || ""} onChange={(v) => updateField('address', v as string)} onRevert={() => updateField('address', initial?.address || "")} />
+                <BrutalField label={propertyCopy.wizard.locationCityLabel} value={property.city as string} savedValue={initial?.city || ""} onChange={(v) => updateField('city', v as string)} onRevert={() => updateField('city', initial?.city || "")} invalid={Boolean(invalid?.city)} />
+                <BrutalField label={propertyCopy.wizard.locationAddressLabel} value={property.address as string} savedValue={initial?.address || ""} onChange={(v) => updateField('address', v as string)} onRevert={() => updateField('address', initial?.address || "")} invalid={Boolean(invalid?.address)} />
             </div>
         </div>
     )
@@ -449,9 +465,9 @@ function PreviewStep({ property }: { property: OwnProperty }) {
  * @param onClose - Callback para encerrar o wizard sem guardar
  */
 function WizardFooter({ 
-    step, isSaving, canProceed, onBack, onNext, onSave, onClose 
+    step, isSaving, onBack, onNext, onSave, onClose 
 }: { 
-    step: WizardStep; isSaving: boolean; isEdit: boolean; canProceed: boolean; onBack: () => void; onNext: () => void; onSave: () => void; onClose: () => void 
+    step: WizardStep; isSaving: boolean; isEdit: boolean; onBack: () => void; onNext: () => void; onSave: () => void; onClose: () => void 
 }) {
     return (
         <div className={propertyTokens.ui.wizard.footerWrapClass}>
@@ -469,7 +485,7 @@ function WizardFooter({
                         {isSaving ? propertyCopy.wizard.footerSaving : propertyCopy.wizard.footerSave} <Save size={16} strokeWidth={2} />
                     </BrutalButton>
                 ) : (
-                    <BrutalButton type="button" variant="brutal-wizard-next" onClick={onNext} disabled={!canProceed}>
+                    <BrutalButton type="button" variant="brutal-wizard-next" onClick={onNext}>
                         {propertyCopy.wizard.footerNext} <ArrowRight size={16} strokeWidth={2} />
                     </BrutalButton>
                 )}
@@ -495,14 +511,54 @@ export function PropertyCreationWizard({ property: initialData, onClose, onSaved
     const { property, step, isSaving, isEdit, updateField, goToStep, nextStep, prevStep, handleFinalSave } = usePropertyForm(initialData, onSaved)
     const errors = validateStep(step, property)
     const canProceed = Object.keys(errors).length === 0
+    const [validationArmed, setValidationArmed] = React.useState<Partial<Record<WizardStep, boolean>>>({})
+
+    const armValidation = (stepToArm: WizardStep) => {
+        setValidationArmed((prev) => ({ ...prev, [stepToArm]: true }))
+    }
 
     const onSelectStep = (next: WizardStep) => {
         const currentIdx = STEPS_META.findIndex((s) => s.key === step)
         const nextIdx = STEPS_META.findIndex((s) => s.key === next)
         if (nextIdx <= currentIdx) return goToStep(next)
-        if (!canProceed) return
+        if (!canProceed) {
+            armValidation(step)
+            const notice = buildStepValidationNotice()
+            notify.warning(notice.title, { description: notice.description })
+            return
+        }
         const safeNext = STEPS_META[Math.min(currentIdx + 1, STEPS_META.length - 1)]?.key
         return goToStep(safeNext)
+    }
+
+    const onNext = () => {
+        const nextErrors = validateStep(step, property)
+        if (Object.keys(nextErrors).length > 0) {
+            armValidation(step)
+            const notice = buildStepValidationNotice()
+            notify.warning(notice.title, { description: notice.description })
+            return
+        }
+        nextStep()
+    }
+
+    const onSave = () => {
+        const finalErrors = validateStep("preview", property)
+        if (Object.keys(finalErrors).length > 0) {
+            const notice = buildStepValidationNotice()
+            const essenceErrors = validateStep("essence", property)
+            const locationErrors = validateStep("location", property)
+            if (Object.keys(essenceErrors).length > 0) {
+                armValidation("essence")
+                goToStep("essence")
+            } else if (Object.keys(locationErrors).length > 0) {
+                armValidation("location")
+                goToStep("location")
+            }
+            notify.warning(notice.title, { description: notice.description })
+            return
+        }
+        handleFinalSave()
     }
 
     return (
@@ -522,23 +578,39 @@ export function PropertyCreationWizard({ property: initialData, onClose, onSaved
                         <motion.div key={step} initial="initial" animate="animate" exit="exit" variants={pageVariants} className="flex-1 min-w-0">
                             {step === 'essence' && (
                                 <div className="space-y-6">
-                                    <EssenceStep property={property} initial={initialData} updateField={updateField} />
-                                    <div className="grid gap-3">
-                                        <FieldError message={errors.title} />
-                                        <FieldError message={errors.description} />
-                                        <FieldError message={errors.price} />
-                                        <FieldError message={errors.maxGuests} />
-                                    </div>
+                                    <EssenceStep
+                                        property={property}
+                                        initial={initialData}
+                                        updateField={updateField}
+                                        invalid={
+                                            validationArmed.essence
+                                                ? {
+                                                      title: Boolean(errors.title),
+                                                      description: Boolean(errors.description),
+                                                      price: Boolean(errors.price),
+                                                      maxGuests: Boolean(errors.maxGuests),
+                                                  }
+                                                : undefined
+                                        }
+                                    />
                                 </div>
                             )}
                             {step === 'location' && (
                                 <div className="space-y-6">
-                                    <LocationStep property={property} initial={initialData} updateField={updateField} />
-                                    <div className="grid gap-3">
-                                        <FieldError message={errors.location} />
-                                        <FieldError message={errors.city} />
-                                        <FieldError message={errors.address} />
-                                    </div>
+                                    <LocationStep
+                                        property={property}
+                                        initial={initialData}
+                                        updateField={updateField}
+                                        invalid={
+                                            validationArmed.location
+                                                ? {
+                                                      location: Boolean(errors.location),
+                                                      city: Boolean(errors.city),
+                                                      address: Boolean(errors.address),
+                                                  }
+                                                : undefined
+                                        }
+                                    />
                                 </div>
                             )}
                             {step === 'amenities' && <AmenitiesStep property={property} initial={initialData} updateField={updateField} />}
@@ -546,15 +618,6 @@ export function PropertyCreationWizard({ property: initialData, onClose, onSaved
                             {step === 'preview' && (
                                 <div className="space-y-6">
                                     <PreviewStep property={property} />
-                                    <div className="grid gap-3">
-                                        <FieldError message={validateStep("preview", property).title} />
-                                        <FieldError message={validateStep("preview", property).description} />
-                                        <FieldError message={validateStep("preview", property).price} />
-                                        <FieldError message={validateStep("preview", property).maxGuests} />
-                                        <FieldError message={validateStep("preview", property).location} />
-                                        <FieldError message={validateStep("preview", property).city} />
-                                        <FieldError message={validateStep("preview", property).address} />
-                                    </div>
                                 </div>
                             )}
                         </motion.div>
@@ -567,8 +630,8 @@ export function PropertyCreationWizard({ property: initialData, onClose, onSaved
 
             {/* Comandos de Navegação */}
             <WizardFooter 
-                step={step} isSaving={isSaving} isEdit={isEdit} canProceed={canProceed} 
-                onBack={prevStep} onNext={() => { if (canProceed) nextStep() }} onSave={handleFinalSave} onClose={onClose} 
+                step={step} isSaving={isSaving} isEdit={isEdit} 
+                onBack={prevStep} onNext={onNext} onSave={onSave} onClose={onClose} 
             />
         </motion.div>
     )

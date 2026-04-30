@@ -1,4 +1,5 @@
 import { propertiesAxios, ApiResponse } from "@/lib/axiosAPI";
+import axios from "axios";
 import type { AxiosError } from "axios";
 import type { BookingProperty } from "@/types/booking";
 import { notify } from "@/lib/notify";
@@ -12,6 +13,8 @@ import type {
     SeasonalityRuleDTO,
     UpdatePropertyRequest,
     PropertyListItem,
+    PropertyImageUploadParams,
+    PropertyImageUploadErrorInfo,
 } from "@/types/property";
 
 export type {
@@ -24,6 +27,8 @@ export type {
     SeasonalityRuleDTO,
     UpdatePropertyRequest,
     PropertyListItem,
+    PropertyImageUploadParams,
+    PropertyImageUploadErrorInfo,
 } from "@/types/property";
 
 type PropertyTranslation = {
@@ -64,6 +69,16 @@ type PropertyApiItem = {
  * - propertiesAxios (baseURL: {NEXT_PUBLIC_API_URL}/properties)
  */
 export class PropertyService {
+    static PropertyImageUploadError = class PropertyImageUploadError extends Error {
+        info: PropertyImageUploadErrorInfo
+
+        constructor(info: PropertyImageUploadErrorInfo) {
+            super(info.message)
+            this.info = info
+            this.name = "PropertyImageUploadError"
+        }
+    }
+
     /**
      * Cria uma propriedade.
      *
@@ -154,14 +169,92 @@ export class PropertyService {
         }
     }
 
-    static async getUploadParams(): Promise<Record<string, unknown>> {
+    static async getUploadParams(): Promise<PropertyImageUploadParams> {
+        return this.getImageUploadParams()
+    }
+
+    static async getImageUploadParams(): Promise<PropertyImageUploadParams> {
         try {
-            const response = await propertiesAxios.get<ApiResponse<Record<string, unknown>>>("/upload-params");
-            return response.data.data;
+            const response = await propertiesAxios.get<ApiResponse<PropertyImageUploadParams>>("/upload-params")
+            return response.data.data
         } catch (error) {
-            this.handleError(error, "obter parâmetros de upload");
-            throw error;
+            this.handleError(error, "obter parâmetros de upload")
+            throw error
         }
+    }
+
+    static async uploadPropertyImages(files: File[]): Promise<string[]> {
+        if (!files.length) return []
+
+        let params: PropertyImageUploadParams
+        try {
+            params = await this.getImageUploadParams()
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Falha ao obter parâmetros de upload."
+            throw new this.PropertyImageUploadError({ stage: "params", message })
+        }
+
+        if (!params.signature || !params.upload_url || !params.api_key || !params.timestamp) {
+            throw new this.PropertyImageUploadError({
+                stage: "params",
+                message: "Parâmetros de upload inválidos.",
+            })
+        }
+
+        const uploadedUrls: string[] = []
+
+        for (const file of files) {
+            const formData = new FormData()
+            formData.append("file", file)
+            formData.append("timestamp", String(params.timestamp))
+            formData.append("api_key", params.api_key)
+            formData.append("signature", params.signature)
+            formData.append("folder", params.folder)
+            if (params.upload_preset) formData.append("upload_preset", params.upload_preset)
+
+            try {
+                const response = await axios.post(params.upload_url, formData)
+                const secureUrl = (response.data as any)?.secure_url
+                if (typeof secureUrl === "string" && secureUrl.trim()) {
+                    uploadedUrls.push(secureUrl)
+                } else {
+                    throw new this.PropertyImageUploadError({
+                        stage: "upload",
+                        message: "Upload falhou: resposta inválida do Cloudinary.",
+                    })
+                }
+            } catch (error) {
+                if (error instanceof this.PropertyImageUploadError) throw error
+
+                if (axios.isAxiosError(error)) {
+                    const status = error.response?.status
+                    const data = error.response?.data as any
+                    const cloudinaryMsg =
+                        typeof data === "object" ? (data?.error?.message as string | undefined) : undefined
+                    const rawMsg =
+                        (typeof data === "string" ? data : undefined) ||
+                        cloudinaryMsg ||
+                        error.message ||
+                        "Falha no upload."
+
+                    const suffix =
+                        status === 401
+                            ? " (normalmente credenciais/assinatura inválidas ou upload preset obrigatório)."
+                            : ""
+
+                    throw new this.PropertyImageUploadError({
+                        stage: "upload",
+                        status,
+                        message: `HTTP ${status ?? "?"}: ${rawMsg}${suffix}`,
+                    })
+                }
+
+                const message = error instanceof Error ? error.message : "Falha no upload."
+                throw new this.PropertyImageUploadError({ stage: "upload", message })
+            }
+        }
+
+        return uploadedUrls
     }
 
     /**

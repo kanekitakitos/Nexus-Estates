@@ -103,7 +103,20 @@ public class PropertyController {
     @PreAuthorize("hasRole('OWNER')")
     public CompletableFuture<ResponseEntity<ApiResponse<Map<String, Object>>>> getUploadParams() {
         return CompletableFuture.supplyAsync(() ->
-                ResponseEntity.ok(ApiResponse.success(imageStorageService.getUploadParameters(), "Parâmetros de upload gerados."))
+                {
+                    try {
+                        return ResponseEntity.ok(ApiResponse.success(imageStorageService.getUploadParameters(), "Parâmetros de upload gerados."));
+                    } catch (Exception ex) {
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(ApiResponse.error(
+                                        500,
+                                        "Internal Server Error",
+                                        ex.getMessage(),
+                                        "/api/properties/upload-params",
+                                        null
+                                ));
+                    }
+                }
         );
     }
 

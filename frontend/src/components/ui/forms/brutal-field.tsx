@@ -28,6 +28,8 @@ export interface BrutalFieldProps {
     placeholder?: string
     /** Extensão de estilo via classes Tailwind */
     className?: string
+    invalid?: boolean
+    maxLength?: number
     /** Desativa a interação com o campo */
     disabled?: boolean
 }
@@ -104,6 +106,8 @@ export function BrutalField({
     onRevert,
     placeholder,
     className,
+    invalid = false,
+    maxLength,
     disabled = false
 }: BrutalFieldProps) {
     /** Determina se o valor local diverge da persistência */
@@ -111,6 +115,12 @@ export function BrutalField({
     const displayValue = value ?? ""
 
     const defaultPlaceholder = placeholder || `DIGITAR ${label.toUpperCase()}...`
+
+    const stateClasses = invalid
+        ? "border-rose-500/60 dark:border-rose-500/50 text-foreground dark:text-zinc-100 focus:border-rose-500/70 dark:focus:border-rose-500/70 focus-visible:ring-rose-500/20"
+        : isDirty
+          ? "border-primary text-primary shadow-[4px_4px_0_0_#F97316]"
+          : "border-foreground dark:border-zinc-700 text-foreground dark:text-zinc-100 focus:border-primary dark:focus:border-primary"
 
     /** Estilização centralizada baseada no estado do campo */
     const fieldClasses = cn(
@@ -120,11 +130,8 @@ export function BrutalField({
         "focus:bg-white dark:focus:bg-zinc-950 focus:shadow-[6px_6px_0_0_#0D0D0D] focus:-translate-x-1 focus:-translate-y-1",
         disabled && "opacity-50 cursor-not-allowed grayscale",
         multiline && "resize-none min-h-[120px]",
-        isDirty
-            ? "border-primary text-primary shadow-[4px_4px_0_0_#F97316]"
-            : "border-foreground dark:border-zinc-700 text-foreground dark:text-zinc-100 focus:border-primary dark:focus:border-primary",
-        // Suporte a focus-visible para acessibilidade
-        "focus-visible:ring-2 focus-visible:ring-primary/20"
+        "focus-visible:ring-2 focus-visible:ring-primary/20",
+        stateClasses
     )
 
     return (
@@ -141,6 +148,7 @@ export function BrutalField({
                             onChange={(e) => onChange(e.target.value)}
                             className={fieldClasses}
                             placeholder={defaultPlaceholder}
+                            maxLength={maxLength}
                         />
                     ) : (
                         <input
@@ -156,6 +164,7 @@ export function BrutalField({
                             }}
                             className={fieldClasses}
                             placeholder={defaultPlaceholder}
+                            maxLength={type === "number" ? undefined : maxLength}
                         />
                     )}
                 </div>
