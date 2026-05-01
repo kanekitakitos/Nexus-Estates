@@ -6,6 +6,7 @@ import com.nexus.estates.dto.UpdatePropertyRequest;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.PropertyChangeLog;
 import com.nexus.estates.repository.PropertyRepository;
+import com.nexus.estates.service.PermissionService;
 import com.nexus.estates.service.PropertyRuleService;
 import com.nexus.estates.service.PropertyService;
 import com.nexus.estates.service.SeasonalityRuleService;
@@ -34,6 +35,7 @@ class PropertyControllerNewEndpointsTest {
     private PropertyRepository repository;
     private PropertyRuleService ruleService;
     private SeasonalityRuleService seasonalityRuleService;
+    private PermissionService permissionService;
     private PropertyController controller;
 
     @BeforeEach
@@ -43,7 +45,8 @@ class PropertyControllerNewEndpointsTest {
         repository = mock(PropertyRepository.class);
         ruleService = mock(PropertyRuleService.class);
         seasonalityRuleService = mock(SeasonalityRuleService.class);
-        controller = new PropertyController(propertyService, imageStorageService, repository, ruleService, seasonalityRuleService);
+        permissionService = mock(PermissionService.class);
+        controller = new PropertyController(propertyService, imageStorageService, repository, ruleService, seasonalityRuleService, permissionService);
     }
 
     @Test
@@ -60,7 +63,7 @@ class PropertyControllerNewEndpointsTest {
     @DisplayName("Obter propriedade expandida")
     void getExpanded() {
         when(propertyService.getExpandedById(1L)).thenReturn(new ExpandedPropertyResponse(
-                1L, "Casa", Map.of("pt","desc"), "Lisboa", "Lisboa", "Rua", BigDecimal.TEN, 4, true, List.of(), null, List.of(), null
+                1L, "Casa", Map.of("pt","desc"), "Lisboa", "Lisboa", "Rua", BigDecimal.TEN, 4, true, List.of(), null, List.of(), List.of(), null
         ));
         ResponseEntity<ApiResponse<ExpandedPropertyResponse>> resp = controller.getExpanded(1L);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
@@ -74,7 +77,7 @@ class PropertyControllerNewEndpointsTest {
         when(propertyService.updateProperty(eq(1L), any(UpdatePropertyRequest.class), isNull())).thenReturn(mockProperty);
         
         ExpandedPropertyResponse mockResponse = new ExpandedPropertyResponse(
-                1L, "Casa", Map.of("pt","desc"), "Lisboa", "Lisboa", "Rua", BigDecimal.TEN, 4, true, List.of(), null, List.of(), null
+                1L, "Casa", Map.of("pt","desc"), "Lisboa", "Lisboa", "Rua", BigDecimal.TEN, 4, true, List.of(), null, List.of(), List.of(), null
         );
         when(propertyService.convertToExpandedDto(mockProperty)).thenReturn(mockResponse);
 

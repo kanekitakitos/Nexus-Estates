@@ -13,7 +13,6 @@ export type PropertyRuleDTO = {
   minNights?: number;
   maxNights?: number;
   bookingLeadTimeDays?: number;
-  timezone?: string;
 };
 
 /**
@@ -77,13 +76,30 @@ export type PropertyListItem = {
   basePrice: number;
   maxGuests: number;
   isActive: boolean;
+  imageUrl?: string | null;
 };
 
 export type PropertyStatus = "AVAILABLE" | "BOOKED" | "MAINTENANCE"
 
+export type PropertyAccessLevel = "PRIMARY_OWNER" | "MANAGER" | "STAFF"
+
+export type PropertyPermissionDTO = {
+  userId: number
+  accessLevel: PropertyAccessLevel
+}
+
+export type PropertyPermissionPatchRequest = {
+  accessLevel: PropertyAccessLevel
+}
+
+export type PropertyRulePatchRequest = Partial<Pick<PropertyRuleDTO, "checkInTime" | "checkOutTime" | "minNights" | "maxNights" | "bookingLeadTimeDays">>
+
+export type SeasonalityRulePatchRequest = Partial<Pick<SeasonalityRuleDTO, "startDate" | "endDate" | "priceModifier" | "dayOfWeek" | "channel">>
+
 export interface PropertyPermission {
+  userId: number
   email: string
-  level: string
+  accessLevel: PropertyAccessLevel
 }
 
 export interface OwnProperty {

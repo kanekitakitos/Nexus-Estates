@@ -9,7 +9,7 @@ WITH seed(name, description, location, city, address, base_price, max_guests, is
             95.00,
             2,
             true,
-            'https://images.unsplash.com/photo-1555854816-802f188090e7'
+            'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'
         ),
         (
             'Brandon Test - Parque das Nações T1',
@@ -53,7 +53,7 @@ WITH seed(name, description, location, city, address, base_price, max_guests, is
             175.00,
             4,
             true,
-            'https://images.unsplash.com/photo-1551882547-ff43c69e5c43'
+            'https://images.unsplash.com/photo-1493809842364-78817add7ffb'
         )
 )
 INSERT INTO properties (name, description, location, city, address, base_price, max_guests, is_active, image_url)

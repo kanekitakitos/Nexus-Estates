@@ -10,6 +10,7 @@ import { PreviewSection } from "./preview-section"
 import { RulesSection } from "./rules-section"
 import { DetailsSection } from "./details-section"
 import { PropertyService } from "@/services/property.service"
+import { UserService } from "@/services/user.service"
 import { notify } from "@/lib/notify"
 import { BoingText } from "@/components/effects/BoingText"
 import { pageVariants } from "../../lib/animations"
@@ -186,17 +187,95 @@ function EditHeader({
 export function PropertyManagementRoot({ property: initialProperty, initialMode, onBack, onSave, onDelete }: PropertyManagementRootProps) {
     // ─── Estados de Contexto e Dados ────────────────────────────────────
     const [mode, setMode] = useState<EditMode>(initialMode ?? 'VIEW')
+    const [baseline, setBaseline] = useState<OwnProperty>({ ...initialProperty })
     const [draft, setDraft] = useState<OwnProperty>({ ...initialProperty })
     const [isSaving, setIsSaving] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
-    const [pendingChanges, setPendingChanges] = useState(false)
+    const [dirty, setDirty] = useState({
+        details: false,
+        amenities: false,
+        operationalRules: false,
+        seasonality: false,
+        permissions: false,
+    })
+    const [isConfirming, setIsConfirming] = useState({
+        operationalRules: false,
+        seasonality: false,
+        permissions: false,
+    })
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
     useEffect(() => {
+        setBaseline({ ...initialProperty })
         setDraft({ ...initialProperty })
-        setPendingChanges(false)
+        setDirty({ details: false, amenities: false, operationalRules: false, seasonality: false, permissions: false })
         setMode(initialMode ?? 'VIEW')
     }, [initialMode, initialProperty])
+
+    useEffect(() => {
+        let cancelled = false
+
+        const resolveEmails = async () => {
+            const perms = draft.permissions || []
+            const needs = perms.filter(p => !p.email || p.email.startsWith("user-"))
+            if (needs.length === 0) return
+
+            const resolved = await Promise.all(needs.map(async (p) => {
+                try {
+                    const profile = await UserService.getUserId(Number(p.userId))
+                    return { userId: Number(p.userId), email: profile.email }
+                } catch {
+                    return null
+                }
+            }))
+            const map = new Map(resolved.filter(Boolean).map((r) => [Number((r as any).userId), String((r as any).email)]))
+            if (map.size === 0) return
+
+            const next = perms.map(p => {
+                const email = map.get(Number(p.userId))
+                return email ? { ...p, email } : p
+            })
+
+            if (cancelled) return
+            const changed = JSON.stringify(next) !== JSON.stringify(perms)
+            if (!changed) return
+
+            setDraft(prev => ({ ...prev, permissions: next }))
+            setBaseline(prev => {
+                const basePerms = prev.permissions || []
+                const baseNext = basePerms.map(p => {
+                    const email = map.get(Number(p.userId))
+                    return email ? { ...p, email } : p
+                })
+                return { ...prev, permissions: baseNext }
+            })
+        }
+
+        resolveEmails()
+        return () => { cancelled = true }
+    }, [draft.permissions])
+
+    useEffect(() => {
+        const normalizeIds = (arr: number[]) => [...arr].map(Number).filter(Number.isFinite).sort((a, b) => a - b)
+        const compactPermissions = (arr: OwnProperty["permissions"]) =>
+            (arr || []).map((p) => ({ userId: Number(p.userId), accessLevel: p.accessLevel })).sort((a, b) => a.userId - b.userId)
+
+        const detailsKeys: Array<keyof OwnProperty> = ["title", "description", "location", "city", "address", "maxGuests", "price", "status", "imageUrl", "tags"]
+        const detailsChanged = detailsKeys.some((k) => JSON.stringify(draft[k]) !== JSON.stringify(baseline[k]))
+
+        const amenitiesChanged = JSON.stringify(normalizeIds(draft.amenityIds || [])) !== JSON.stringify(normalizeIds(baseline.amenityIds || []))
+        const operationalChanged = JSON.stringify(draft.propertyRule ?? null) !== JSON.stringify(baseline.propertyRule ?? null)
+        const seasonalityChanged = JSON.stringify(draft.seasonalityRules ?? null) !== JSON.stringify(baseline.seasonalityRules ?? null)
+        const permissionsChanged = JSON.stringify(compactPermissions(draft.permissions)) !== JSON.stringify(compactPermissions(baseline.permissions))
+
+        setDirty({
+            details: detailsChanged,
+            amenities: amenitiesChanged,
+            operationalRules: operationalChanged,
+            seasonality: seasonalityChanged,
+            permissions: permissionsChanged,
+        })
+    }, [draft, baseline])
 
     // ─── Handlers Nucleares ─────────────────────────────────────────────
 
@@ -207,7 +286,6 @@ export function PropertyManagementRoot({ property: initialProperty, initialMode,
      */
     const updateField = <K extends keyof OwnProperty>(field: K, value: OwnProperty[K]) => {
         setDraft(prev => ({ ...prev, [field]: value }))
-        setPendingChanges(true)
     }
 
     /**
@@ -219,7 +297,7 @@ export function PropertyManagementRoot({ property: initialProperty, initialMode,
         setIsSaving(true)
         try {
             await onSave(draft)
-            setPendingChanges(false)
+            setBaseline({ ...draft })
             setMode('VIEW')
             notify.success(propertyCopy.managementRoot.saveOk)
         } catch (error) {
@@ -227,6 +305,137 @@ export function PropertyManagementRoot({ property: initialProperty, initialMode,
             notify.error(propertyCopy.managementRoot.saveFail)
         } finally {
             setIsSaving(false)
+        }
+    }
+
+    const propertyId = typeof draft.id === 'string' ? parseInt(draft.id) : (draft.id as number)
+
+    const confirmOperationalRules = async () => {
+        if (!propertyId) {
+            notify.error(propertyCopy.managementRoot.invalidAssetId)
+            return
+        }
+        setIsConfirming(prev => ({ ...prev, operationalRules: true }))
+        try {
+            const current = draft.propertyRule || {}
+            const base = baseline.propertyRule || {}
+
+            const normalizeTime = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim().slice(0, 5) : "")
+            const normalizeInt = (v: unknown) => (typeof v === "number" ? v : Number(v))
+
+            const currentNormalized = {
+                checkInTime: normalizeTime(current.checkInTime || base.checkInTime || "15:00"),
+                checkOutTime: normalizeTime(current.checkOutTime || base.checkOutTime || "11:00"),
+                minNights: Number.isFinite(normalizeInt(current.minNights)) ? normalizeInt(current.minNights) : (Number(base.minNights) || 1),
+                maxNights: Number.isFinite(normalizeInt(current.maxNights)) ? normalizeInt(current.maxNights) : (Number(base.maxNights) || 30),
+                bookingLeadTimeDays: Number.isFinite(normalizeInt(current.bookingLeadTimeDays)) ? normalizeInt(current.bookingLeadTimeDays) : (Number(base.bookingLeadTimeDays) || 0),
+            }
+
+            const baseNormalized = {
+                checkInTime: normalizeTime(base.checkInTime || "15:00"),
+                checkOutTime: normalizeTime(base.checkOutTime || "11:00"),
+                minNights: Number.isFinite(Number(base.minNights)) ? Number(base.minNights) : 1,
+                maxNights: Number.isFinite(Number(base.maxNights)) ? Number(base.maxNights) : 30,
+                bookingLeadTimeDays: Number.isFinite(Number(base.bookingLeadTimeDays)) ? Number(base.bookingLeadTimeDays) : 0,
+            }
+
+            if (!currentNormalized.checkInTime || !currentNormalized.checkOutTime) {
+                notify.error("Define check-in e check-out antes de confirmar.")
+                return
+            }
+            if (currentNormalized.maxNights < currentNormalized.minNights) {
+                notify.error("O máximo de noites não pode ser inferior ao mínimo.")
+                return
+            }
+            if (currentNormalized.minNights < 1 || currentNormalized.maxNights < 1 || currentNormalized.bookingLeadTimeDays < 0) {
+                notify.error("Valores inválidos nas regras operacionais.")
+                return
+            }
+
+            const patch: Record<string, unknown> = {}
+            if (currentNormalized.checkInTime !== baseNormalized.checkInTime) patch["checkInTime"] = currentNormalized.checkInTime
+            if (currentNormalized.checkOutTime !== baseNormalized.checkOutTime) patch["checkOutTime"] = currentNormalized.checkOutTime
+            if (currentNormalized.minNights !== baseNormalized.minNights) patch["minNights"] = currentNormalized.minNights
+            if (currentNormalized.maxNights !== baseNormalized.maxNights) patch["maxNights"] = currentNormalized.maxNights
+            if (currentNormalized.bookingLeadTimeDays !== baseNormalized.bookingLeadTimeDays) patch["bookingLeadTimeDays"] = currentNormalized.bookingLeadTimeDays
+
+            if (Object.keys(patch).length === 0) {
+                notify.success("Sem alterações nas regras operacionais.")
+                return
+            }
+
+            const updated = await PropertyService.patchRules(propertyId, patch)
+            const nextDraft = { ...draft, propertyRule: updated }
+            setDraft(nextDraft)
+            setBaseline(prev => ({ ...prev, propertyRule: updated }))
+            notify.success("Regras operacionais confirmadas.")
+        } catch (error) {
+            console.error("[PropertyManagementRoot] Confirm Operational Rules Error:", error)
+            notify.error("Não foi possível confirmar as regras operacionais.")
+        } finally {
+            setIsConfirming(prev => ({ ...prev, operationalRules: false }))
+        }
+    }
+
+    const confirmSeasonality = async () => {
+        if (!propertyId) {
+            notify.error(propertyCopy.managementRoot.invalidAssetId)
+            return
+        }
+        setIsConfirming(prev => ({ ...prev, seasonality: true }))
+        try {
+            const invalid = (draft.seasonalityRules || []).some((r) => {
+                if (!r.startDate || !r.endDate) return true
+                const start = new Date(r.startDate)
+                const end = new Date(r.endDate)
+                if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return true
+                if (end.getTime() < start.getTime()) return true
+                if (!Number.isFinite(Number(r.priceModifier)) || Number(r.priceModifier) < 0.01) return true
+                return false
+            })
+            if (invalid) {
+                notify.error("Existem regras de sazonalidade inválidas ou incompletas.")
+                return
+            }
+            const updated = await PropertyService.updateSeasonalityRules(propertyId, draft.seasonalityRules || [])
+            const nextDraft = { ...draft, seasonalityRules: updated }
+            setDraft(nextDraft)
+            setBaseline(prev => ({ ...prev, seasonalityRules: updated }))
+            notify.success("Sazonalidade confirmada.")
+        } catch (error) {
+            console.error("[PropertyManagementRoot] Confirm Seasonality Error:", error)
+            notify.error("Não foi possível confirmar a sazonalidade.")
+        } finally {
+            setIsConfirming(prev => ({ ...prev, seasonality: false }))
+        }
+    }
+
+    const confirmPermissions = async () => {
+        if (!propertyId) {
+            notify.error(propertyCopy.managementRoot.invalidAssetId)
+            return
+        }
+        setIsConfirming(prev => ({ ...prev, permissions: true }))
+        try {
+            const payload = (draft.permissions || []).map(p => ({ userId: Number(p.userId), accessLevel: p.accessLevel }))
+            const primaryOwners = payload.filter(p => p.accessLevel === "PRIMARY_OWNER").length
+            if (primaryOwners !== 1) {
+                notify.error("A propriedade deve ter exatamente 1 PRIMARY_OWNER.")
+                return
+            }
+            const updated = await PropertyService.updatePermissions(propertyId, payload)
+            const updatedPermissions = (draft.permissions || []).map(p => {
+                const match = updated.find(u => Number(u.userId) === Number(p.userId))
+                return match ? { ...p, userId: Number(match.userId), accessLevel: match.accessLevel } : p
+            })
+            setDraft(prev => ({ ...prev, permissions: updatedPermissions }))
+            setBaseline(prev => ({ ...prev, permissions: updatedPermissions }))
+            notify.success("Permissões confirmadas.")
+        } catch (error) {
+            console.error("[PropertyManagementRoot] Confirm Permissions Error:", error)
+            notify.error("Não foi possível confirmar as permissões.")
+        } finally {
+            setIsConfirming(prev => ({ ...prev, permissions: false }))
         }
     }
 
@@ -262,6 +471,7 @@ export function PropertyManagementRoot({ property: initialProperty, initialMode,
     const displayTitle = typeof draft.title === 'string'
         ? draft.title
         : draft.title?.pt || draft.title?.en || propertyCopy.managementRoot.titleFallback
+    const hasChanges = Object.values(dirty).some(Boolean)
 
     // ─── Render ─────────────────────────────────────────────────────────
     return (
@@ -273,9 +483,9 @@ export function PropertyManagementRoot({ property: initialProperty, initialMode,
                 onModeChange={setMode}
                 onBack={onBack}
                 onSave={handleSave}
-                onDiscard={() => { setDraft({ ...initialProperty }); setPendingChanges(false); }}
+                onDiscard={() => { setDraft({ ...baseline }); }}
                 isSaving={isSaving}
-                hasChanges={pendingChanges}
+                hasChanges={hasChanges}
             />
 
             {/* Content Swapper com Animações de Transição */}
@@ -297,8 +507,13 @@ export function PropertyManagementRoot({ property: initialProperty, initialMode,
                         <div className="max-w-5xl mx-auto">
                             <RulesSection
                                 draft={draft}
-                                initial={initialProperty}
+                                initial={baseline}
                                 updateField={updateField}
+                                onConfirmOperationalRules={confirmOperationalRules}
+                                onConfirmSeasonality={confirmSeasonality}
+                                onConfirmPermissions={confirmPermissions}
+                                dirty={dirty}
+                                isConfirming={isConfirming}
                             />
                         </div>
                     ) : (

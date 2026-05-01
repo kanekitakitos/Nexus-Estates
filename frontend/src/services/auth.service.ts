@@ -172,6 +172,11 @@ export class AuthService {
         }, 1000);
     }
 
+    static applySession(auth: AuthResponse): void {
+        if (typeof window === "undefined") return;
+        this.setSession(auth);
+    }
+
     /**
      * Armazena os dados da sessão no localStorage.
      */

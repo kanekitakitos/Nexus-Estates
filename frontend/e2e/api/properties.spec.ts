@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 import type { APIRequestContext } from "@playwright/test"
-import { apiBaseURL, authHeaders, expectStatus, readJson, registerGuest, registerOwner, uniqueSuffix } from "./helpers"
+import { apiBaseURL, authHeaders, expectStatus, readJson, register, registerGuest, registerOwner, uniqueSuffix } from "./helpers"
 
 type ApiResponse<T> = { success: boolean; message?: string; data: T }
 type Property = { id: number; title?: string; name?: string; city?: string; location?: string; address?: string }
@@ -399,5 +399,288 @@ test.describe.serial("API • Propriedades (CRUD + permissões)", () => {
       data: { title: `E2E Forbidden Patch ${suffix}` },
     })
     expect(patchRes.status()).toBe(403)
+
+    const deleteRes = await request.delete(`${apiBaseURL()}/properties/${propertyId}`, { headers: authHeaders(owner) })
+    await expectStatus(deleteRes, 204, "properties:delete(forbidden)")
+  })
+
+  test("OWNER/MANAGER: confirmar regras, sazonalidade e permissões via endpoints dedicados", async ({ request }) => {
+    const { session: owner } = await registerOwner(request)
+    const { session: manager } = await registerOwner(request)
+
+    const suffix = uniqueSuffix()
+    const createRes = await request.post(`${apiBaseURL()}/properties`, {
+      headers: authHeaders(owner),
+      data: buildCreatePropertyPayload(suffix),
+    })
+    await expectStatus(createRes, 201, "properties:create(planB)")
+    const createdJson = await readJson<ApiResponse<Property>>(createRes)
+    expect(createdJson.success).toBeTruthy()
+    const propertyId = createdJson.data.id
+
+    const lookupRes = await request.get(`${apiBaseURL()}/users/lookup?email=${encodeURIComponent(manager.email)}`, {
+      headers: authHeaders(owner),
+    })
+    await expectStatus(lookupRes, 200, "users:lookup")
+    const lookupJson = await readJson<ApiResponse<{ id: number; email: string }>>(lookupRes)
+    expect(lookupJson.success).toBeTruthy()
+    expect(lookupJson.data.id).toBe(manager.id)
+    expect(lookupJson.data.email).toBe(manager.email)
+
+    const putPermsRes = await request.put(`${apiBaseURL()}/properties/${propertyId}/permissions`, {
+      headers: authHeaders(owner),
+      data: [
+        { userId: owner.id, accessLevel: "PRIMARY_OWNER" },
+        { userId: manager.id, accessLevel: "MANAGER" },
+      ],
+    })
+    await expectStatus(putPermsRes, 200, "properties:permissions:put")
+    const putPermsJson = await readJson<ApiResponse<Array<{ userId: number; accessLevel: string }>>>(putPermsRes)
+    expect(putPermsJson.success).toBeTruthy()
+    expect(Array.isArray(putPermsJson.data)).toBeTruthy()
+    expect(putPermsJson.data.some((p) => p.userId === owner.id && p.accessLevel === "PRIMARY_OWNER")).toBeTruthy()
+    expect(putPermsJson.data.some((p) => p.userId === manager.id && p.accessLevel === "MANAGER")).toBeTruthy()
+
+    const patchRulesRes = await request.patch(`${apiBaseURL()}/properties/${propertyId}/rules`, {
+      headers: authHeaders(manager),
+      data: { minNights: 3 },
+    })
+    await expectStatus(patchRulesRes, 200, "properties:rules:patch")
+    const patchRulesJson = await readJson<ApiResponse<{ minNights?: number }>>(patchRulesRes)
+    expect(patchRulesJson.success).toBeTruthy()
+    expect(Number(patchRulesJson.data.minNights)).toBe(3)
+
+    const putRulesRes = await request.put(`${apiBaseURL()}/properties/${propertyId}/rules`, {
+      headers: authHeaders(manager),
+      data: {
+        checkInTime: "14:00",
+        checkOutTime: "10:00",
+        minNights: 2,
+        maxNights: 20,
+        bookingLeadTimeDays: 1,
+      },
+    })
+    await expectStatus(putRulesRes, 200, "properties:rules:put")
+    const putRulesJson = await readJson<ApiResponse<{ minNights?: number; maxNights?: number }>>(putRulesRes)
+    expect(putRulesJson.success).toBeTruthy()
+    expect(Number(putRulesJson.data.minNights)).toBe(2)
+    expect(Number(putRulesJson.data.maxNights)).toBe(20)
+
+    const putSeasonRes = await request.put(`${apiBaseURL()}/properties/${propertyId}/rules/seasonality`, {
+      headers: authHeaders(manager),
+      data: [
+        {
+          id: null,
+          startDate: "2026-06-01",
+          endDate: "2026-06-10",
+          priceModifier: "1.20",
+          dayOfWeek: null,
+          channel: null,
+        },
+      ],
+    })
+    await expectStatus(putSeasonRes, 200, "properties:seasonality:put")
+    const putSeasonJson = await readJson<ApiResponse<Array<{ id: number }>>>(putSeasonRes)
+    expect(putSeasonJson.success).toBeTruthy()
+    expect(Array.isArray(putSeasonJson.data)).toBeTruthy()
+    expect(Number(putSeasonJson.data[0]?.id)).toBeTruthy()
+
+    const getSeasonRes = await request.get(`${apiBaseURL()}/properties/${propertyId}/rules/seasonality`, {
+      headers: authHeaders(manager),
+    })
+    await expectStatus(getSeasonRes, 200, "properties:seasonality:get")
+    const getSeasonJson = await readJson<ApiResponse<Array<{ startDate: string; endDate: string }>>>(getSeasonRes)
+    expect(getSeasonJson.success).toBeTruthy()
+    expect(getSeasonJson.data[0]?.startDate).toBe("2026-06-01")
+    expect(getSeasonJson.data[0]?.endDate).toBe("2026-06-10")
+
+    const expanded = await getExpanded(request, propertyId, authHeaders(manager))
+    expect(expanded.id).toBe(propertyId)
+    expect(Array.isArray(expanded.seasonality)).toBeTruthy()
+
+    const badPermsRes = await request.put(`${apiBaseURL()}/properties/${propertyId}/permissions`, {
+      headers: authHeaders(manager),
+      data: [{ userId: manager.id, accessLevel: "MANAGER" }],
+    })
+    await expectStatus(badPermsRes, 400, "properties:permissions:put(missing owner)")
+
+    const deleteRes = await request.delete(`${apiBaseURL()}/properties/${propertyId}`, { headers: authHeaders(owner) })
+    await expectStatus(deleteRes, 204, "properties:delete(planB)")
+  })
+
+  test("OWNER: /properties/me inclui imageUrl (usado na sidebar)", async ({ request }) => {
+    const { session: owner } = await registerOwner(request)
+    const suffix = uniqueSuffix()
+    const imageUrl = `https://example.com/e2e/sidebar/${suffix}.jpg`
+
+    const createRes = await request.post(`${apiBaseURL()}/properties`, {
+      headers: authHeaders(owner),
+      data: { ...buildCreatePropertyPayload(suffix), imageUrl },
+    })
+    await expectStatus(createRes, 201, "properties:create(me imageUrl)")
+    const createdJson = await readJson<ApiResponse<Property>>(createRes)
+    const propertyId = createdJson.data.id
+
+    const meRes = await request.get(`${apiBaseURL()}/properties/me?page=0&size=50&sort=name,asc`, {
+      headers: authHeaders(owner),
+    })
+    await expectStatus(meRes, 200, "properties:me")
+    const meJson = await readJson<ApiResponse<{ content: Array<{ id: number; imageUrl?: string | null }> }>>(meRes)
+    expect(meJson.success).toBeTruthy()
+    const found = (meJson.data?.content || []).find((p) => Number(p.id) === propertyId)
+    expect(found).toBeTruthy()
+    expect(String(found?.imageUrl)).toBe(imageUrl)
+
+    const deleteRes = await request.delete(`${apiBaseURL()}/properties/${propertyId}`, { headers: authHeaders(owner) })
+    await expectStatus(deleteRes, 204, "properties:delete(me imageUrl)")
+  })
+
+  test("ACL: não permite remover/downgrade do último PRIMARY_OWNER", async ({ request }) => {
+    const { session: owner } = await registerOwner(request)
+    const { session: manager } = await registerOwner(request)
+    const suffix = uniqueSuffix()
+
+    const createRes = await request.post(`${apiBaseURL()}/properties`, {
+      headers: authHeaders(owner),
+      data: buildCreatePropertyPayload(suffix),
+    })
+    await expectStatus(createRes, 201, "properties:create(acl invariant)")
+    const createdJson = await readJson<ApiResponse<Property>>(createRes)
+    const propertyId = createdJson.data.id
+
+    const putPermsRes = await request.put(`${apiBaseURL()}/properties/${propertyId}/permissions`, {
+      headers: authHeaders(owner),
+      data: [
+        { userId: owner.id, accessLevel: "PRIMARY_OWNER" },
+        { userId: manager.id, accessLevel: "MANAGER" },
+      ],
+    })
+    await expectStatus(putPermsRes, 200, "properties:permissions:put(invariant)")
+
+    const patchOwnerRes = await request.patch(`${apiBaseURL()}/properties/${propertyId}/permissions/${owner.id}`, {
+      headers: authHeaders(owner),
+      data: { accessLevel: "STAFF" },
+    })
+    await expectStatus(patchOwnerRes, 400, "properties:permissions:patch(downgrade last owner)")
+
+    const deleteOwnerRes = await request.delete(`${apiBaseURL()}/properties/${propertyId}/permissions/${owner.id}`, {
+      headers: authHeaders(owner),
+    })
+    await expectStatus(deleteOwnerRes, 400, "properties:permissions:delete(last owner)")
+
+    const deleteRes = await request.delete(`${apiBaseURL()}/properties/${propertyId}`, { headers: authHeaders(owner) })
+    await expectStatus(deleteRes, 204, "properties:delete(acl invariant)")
+  })
+
+  test("STAFF: pode listar permissões quando tem acesso, mas não pode gerir (403)", async ({ request }) => {
+    const { session: owner } = await registerOwner(request)
+    const suffix = uniqueSuffix()
+    const staffEmail = `e2e_staff_${suffix}@nexus-estates.local`.toLowerCase()
+    const staffPassword = `E2E_Str0ng_${suffix}`
+    const staff = await register(request, { email: staffEmail, password: staffPassword, phone: "+351910000003", role: "STAFF" })
+
+    const createRes = await request.post(`${apiBaseURL()}/properties`, {
+      headers: authHeaders(owner),
+      data: buildCreatePropertyPayload(suffix),
+    })
+    await expectStatus(createRes, 201, "properties:create(staff)")
+    const createdJson = await readJson<ApiResponse<Property>>(createRes)
+    const propertyId = createdJson.data.id
+
+    const putPermsRes = await request.put(`${apiBaseURL()}/properties/${propertyId}/permissions`, {
+      headers: authHeaders(owner),
+      data: [
+        { userId: owner.id, accessLevel: "PRIMARY_OWNER" },
+        { userId: staff.id, accessLevel: "STAFF" },
+      ],
+    })
+    await expectStatus(putPermsRes, 200, "properties:permissions:put(add staff)")
+
+    const staffListRes = await request.get(`${apiBaseURL()}/properties/${propertyId}/permissions`, {
+      headers: authHeaders(staff),
+    })
+    await expectStatus(staffListRes, 200, "properties:permissions:get(staff)")
+    const staffListJson = await readJson<ApiResponse<Array<{ userId: number; accessLevel: string }>>>(staffListRes)
+    expect(staffListJson.success).toBeTruthy()
+    expect(staffListJson.data.some((p) => p.userId === staff.id)).toBeTruthy()
+
+    const staffPatchRulesRes = await request.patch(`${apiBaseURL()}/properties/${propertyId}/rules`, {
+      headers: authHeaders(staff),
+      data: { minNights: 2 },
+    })
+    expect(staffPatchRulesRes.status()).toBe(403)
+
+    const staffPutSeasonRes = await request.put(`${apiBaseURL()}/properties/${propertyId}/rules/seasonality`, {
+      headers: authHeaders(staff),
+      data: [{ id: null, startDate: "2026-06-01", endDate: "2026-06-02", priceModifier: "1.10", dayOfWeek: null, channel: null }],
+    })
+    expect(staffPutSeasonRes.status()).toBe(403)
+
+    const staffPutPermsRes = await request.put(`${apiBaseURL()}/properties/${propertyId}/permissions`, {
+      headers: authHeaders(staff),
+      data: [{ userId: staff.id, accessLevel: "MANAGER" }],
+    })
+    expect(staffPutPermsRes.status()).toBe(403)
+
+    const deleteRes = await request.delete(`${apiBaseURL()}/properties/${propertyId}`, { headers: authHeaders(owner) })
+    await expectStatus(deleteRes, 204, "properties:delete(staff)")
+  })
+
+  test("Seasonality: validações (endDate < startDate, priceModifier inválido) devolvem 400", async ({ request }) => {
+    const { session: owner } = await registerOwner(request)
+    const suffix = uniqueSuffix()
+
+    const createRes = await request.post(`${apiBaseURL()}/properties`, {
+      headers: authHeaders(owner),
+      data: buildCreatePropertyPayload(suffix),
+    })
+    await expectStatus(createRes, 201, "properties:create(seasonality validations)")
+    const createdJson = await readJson<ApiResponse<Property>>(createRes)
+    const propertyId = createdJson.data.id
+
+    const badRangeRes = await request.put(`${apiBaseURL()}/properties/${propertyId}/rules/seasonality`, {
+      headers: authHeaders(owner),
+      data: [
+        { id: null, startDate: "2026-06-10", endDate: "2026-06-01", priceModifier: "1.10", dayOfWeek: null, channel: null },
+      ],
+    })
+    await expectStatus(badRangeRes, 400, "properties:seasonality:put(bad range)")
+
+    const badModifierRes = await request.post(`${apiBaseURL()}/properties/${propertyId}/rules/seasonality`, {
+      headers: authHeaders(owner),
+      data: { id: null, startDate: "2026-06-01", endDate: "2026-06-02", priceModifier: "0.00", dayOfWeek: null, channel: null },
+    })
+    await expectStatus(badModifierRes, 400, "properties:seasonality:post(bad modifier)")
+
+    const deleteRes = await request.delete(`${apiBaseURL()}/properties/${propertyId}`, { headers: authHeaders(owner) })
+    await expectStatus(deleteRes, 204, "properties:delete(seasonality validations)")
+  })
+
+  test("Rules PATCH: validações (maxNights < minNights, lead negativo) devolvem 400", async ({ request }) => {
+    const { session: owner } = await registerOwner(request)
+    const suffix = uniqueSuffix()
+
+    const createRes = await request.post(`${apiBaseURL()}/properties`, {
+      headers: authHeaders(owner),
+      data: buildCreatePropertyPayload(suffix),
+    })
+    await expectStatus(createRes, 201, "properties:create(rules validations)")
+    const createdJson = await readJson<ApiResponse<Property>>(createRes)
+    const propertyId = createdJson.data.id
+
+    const badRangeRes = await request.patch(`${apiBaseURL()}/properties/${propertyId}/rules`, {
+      headers: authHeaders(owner),
+      data: { minNights: 5, maxNights: 2 },
+    })
+    await expectStatus(badRangeRes, 400, "properties:rules:patch(bad min/max)")
+
+    const badLeadRes = await request.patch(`${apiBaseURL()}/properties/${propertyId}/rules`, {
+      headers: authHeaders(owner),
+      data: { bookingLeadTimeDays: -1 },
+    })
+    await expectStatus(badLeadRes, 400, "properties:rules:patch(bad lead)")
+
+    const deleteRes = await request.delete(`${apiBaseURL()}/properties/${propertyId}`, { headers: authHeaders(owner) })
+    await expectStatus(deleteRes, 204, "properties:delete(rules validations)")
   })
 })

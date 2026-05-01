@@ -34,6 +34,7 @@ import { BookingDetails } from "../components/booking-details"
 import { BookingCheckoutForm } from "../components/booking-checkout-form"
 import { cn } from "@/lib/utils"
 import { PropertyService } from "@/services/property.service"
+import { AuthService } from "@/services/auth.service"
 import { notify } from "@/lib/notify"
 import { bookingsTokens } from "@/features/bookings/tokens"
 import { FinanceService } from "@/services/finance.service"
@@ -105,12 +106,33 @@ const DEFAULT_FILTERS: SearchFilters = {
 function useBookingCatalog() {
   const [properties, setProperties] = useState<BookingProperty[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [excludedPropertyIds, setExcludedPropertyIds] = useState<Set<string>>(new Set())
 
   const load = useCallback(async () => {
     try {
       setIsLoading(true)
-      const data = await PropertyService.getAllProperties()
-      setProperties(data)
+      const session = AuthService.getSession()
+      const isAuthenticated = Boolean(session?.token && session?.userId)
+
+      const [data, mine] = await Promise.all([
+        PropertyService.getAllProperties(),
+        isAuthenticated
+          ? PropertyService.listMine({ page: 0, size: 250, sort: "name,asc" }).catch(() => null)
+          : Promise.resolve(null),
+      ])
+
+      const owned = new Set<string>()
+      if (mine?.content && Array.isArray(mine.content)) {
+        for (const item of mine.content as any[]) {
+          const rawId = item?.id
+          if (typeof rawId === "number" || typeof rawId === "string") {
+            owned.add(String(rawId))
+          }
+        }
+      }
+
+      setExcludedPropertyIds(owned)
+      setProperties(owned.size ? data.filter((p) => !owned.has(p.id)) : data)
     } catch {
       notify.error(bookingsTokens.copy.errors.loadProperties)
     } finally {
@@ -122,10 +144,10 @@ function useBookingCatalog() {
     void load()
   }, [load])
 
-  return { properties, isLoading, reload: load }
+  return { properties, isLoading, reload: load, excludedPropertyIds }
 }
 
-function useBookingFlow(properties: BookingProperty[]) {
+function useBookingFlow(properties: BookingProperty[], excludedPropertyIds: Set<string>) {
   const [selectedProperty, setSelectedProperty] = useState<BookingProperty | null>(null)
   const [checkout, setCheckout] = useState<{ checkIn: string; checkOut: string } | null>(null)
   const [lastViewedPropertyId, setLastViewedPropertyId] = useState<string | null>(null)
@@ -137,6 +159,10 @@ function useBookingFlow(properties: BookingProperty[]) {
   const navigateToDetails = useCallback(
     (id: string) => {
       if (isTransitioning) return
+      if (excludedPropertyIds.has(id)) {
+        notify.error("Não podes reservar a tua própria propriedade.")
+        return
+      }
       const property = properties.find((p) => p.id === id)
       if (!property) return
       setLastViewedPropertyId(id)
@@ -147,7 +173,7 @@ function useBookingFlow(properties: BookingProperty[]) {
       setScreen("details")
       window.scrollTo(0, 0)
     },
-    [isTransitioning, properties]
+    [excludedPropertyIds, isTransitioning, properties]
   )
 
   const navigateBackToList = useCallback(() => {
@@ -173,6 +199,10 @@ function useBookingFlow(properties: BookingProperty[]) {
 
   const openCheckoutForQuickAccess = useCallback((payload: BookingQuickAccessPayload) => {
     if (isTransitioning) return
+    if (excludedPropertyIds.has(payload.propertyId)) {
+      notify.error("Não podes reservar a tua própria propriedade.")
+      return
+    }
     const property = properties.find((p) => p.id === payload.propertyId)
     if (!property) return
     if (property.status !== "AVAILABLE") {
@@ -187,7 +217,7 @@ function useBookingFlow(properties: BookingProperty[]) {
     setIsTransitioning(true)
     setScreen("checkout")
     window.scrollTo(0, 0)
-  }, [isTransitioning, properties])
+  }, [excludedPropertyIds, isTransitioning, properties])
 
   const openResumePayment = useCallback((payload: BookingResumePaymentPayload) => {
     if (isTransitioning) return
@@ -687,7 +717,7 @@ function useBookingSidebarActions({
 }
 
 export function BookingView() {
-  const { properties, isLoading } = useBookingCatalog()
+  const { properties, isLoading, excludedPropertyIds } = useBookingCatalog()
   const firstPageSize = 31
   const pageSize = 32
 
@@ -705,7 +735,7 @@ export function BookingView() {
     openResumePayment,
     navigateBackToDetails,
     onExitComplete,
-  } = useBookingFlow(properties)
+  } = useBookingFlow(properties, excludedPropertyIds)
 
   const {
     filters,

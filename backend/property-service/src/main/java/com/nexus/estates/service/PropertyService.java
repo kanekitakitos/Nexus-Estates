@@ -7,6 +7,7 @@ import com.nexus.estates.common.dto.RuleOverrideDTO;
 import com.nexus.estates.common.dto.SeasonalityRuleDTO;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.dto.ExpandedPropertyResponse;
+import com.nexus.estates.dto.PropertyPermissionDTO;
 import com.nexus.estates.dto.UpdatePropertyRequest;
 import com.nexus.estates.audit.ActorContext;
 import com.nexus.estates.entity.AccessLevel;
@@ -30,6 +31,7 @@ import com.nexus.estates.service.repository.ImageStorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -187,6 +189,34 @@ public class PropertyService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /**
+     * Garante que o utilizador autenticado tem acesso de escrita/gestão ao ativo.
+     *
+     * <p>Regra:</p>
+     * <ul>
+     *   <li>PRIMARY_OWNER e MANAGER podem gerir regras, sazonalidade e permissões.</li>
+     *   <li>STAFF não pode efetuar alterações (apenas leitura quando aplicável).</li>
+     * </ul>
+     *
+     * @param propertyId ID da propriedade
+     * @param userIdHeader header X-User-Id injetado pelo API Gateway
+     * @return nível de acesso do utilizador (PRIMARY_OWNER ou MANAGER)
+     * @throws AccessDeniedException se o utilizador não tiver permissão
+     * @throws PropertyNotFoundException se a propriedade não existir
+     */
+    @Transactional(readOnly = true)
+    public AccessLevel requireManageAccess(Long propertyId, String userIdHeader) {
+        Long userId = parseUserIdHeader(userIdHeader);
+        if (userId == null) {
+            throw new AccessDeniedException("Sessão expirada.");
+        }
+        AccessLevel level = getUserAccessLevel(propertyId, userId);
+        if (level == null || level == AccessLevel.STAFF) {
+            throw new AccessDeniedException("Acesso negado.");
+        }
+        return level;
     }
 
     /**
@@ -606,9 +636,14 @@ public class PropertyService {
                         r.getId(), r.getStartDate(), r.getEndDate(), r.getPriceModifier(), r.getDayOfWeek(), r.getChannel()
                 )).toList();
 
+        List<PropertyPermissionDTO> permissions = permissionRepository.findByPropertyId(p.getId()).stream()
+                .map(perm -> new PropertyPermissionDTO(perm.getUserId(), perm.getAccessLevel()))
+                .toList();
+
         return new ExpandedPropertyResponse(
                 p.getId(), p.getName(), p.getDescription(), p.getLocation(), p.getCity(), p.getAddress(),
                 p.getBasePrice(), p.getMaxGuests(), p.getIsActive(), amenityNames, ruleDto, seasonality,
+                permissions,
                 imageStorageService.resolveDeliveryUrl(p.getImageUrl())
         );
     }

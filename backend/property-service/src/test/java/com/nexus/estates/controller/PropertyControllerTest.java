@@ -4,6 +4,7 @@ import com.nexus.estates.common.dto.ApiResponse;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.repository.PropertyRepository;
+import com.nexus.estates.service.PermissionService;
 import com.nexus.estates.service.PropertyService;
 import com.nexus.estates.service.PropertyRuleService;
 import com.nexus.estates.service.SeasonalityRuleService;
@@ -30,6 +31,7 @@ class PropertyControllerTest {
     private PropertyRepository repository;
     private PropertyRuleService ruleService;
     private SeasonalityRuleService seasonalityRuleService;
+    private PermissionService permissionService;
     private PropertyController controller;
 
     @BeforeEach
@@ -39,8 +41,9 @@ class PropertyControllerTest {
         repository = mock(PropertyRepository.class);
         ruleService = mock(PropertyRuleService.class);
         seasonalityRuleService = mock(SeasonalityRuleService.class);
+        permissionService = mock(PermissionService.class);
         
-        controller = new PropertyController(propertyService, imageStorageService, repository, ruleService, seasonalityRuleService);
+        controller = new PropertyController(propertyService, imageStorageService, repository, ruleService, seasonalityRuleService, permissionService);
     }
 
     @Test

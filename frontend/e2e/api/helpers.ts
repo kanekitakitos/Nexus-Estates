@@ -83,7 +83,7 @@ export async function readJson<T = unknown>(res: APIResponse): Promise<T> {
 }
 
 export function apiBaseURL(): string {
-  return process.env.E2E_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+  return process.env.E2E_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080/api"
 }
 
 export function authHeaders(session: Session): Record<string, string> {

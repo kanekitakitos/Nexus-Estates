@@ -7,9 +7,14 @@ import type {
     CreatePropertyRequest,
     ExpandedPropertyResponse,
     Page,
+    PropertyAccessLevel,
+    PropertyPermissionDTO,
+    PropertyPermissionPatchRequest,
     PropertyQuoteRequest,
     PropertyQuoteResponse,
+    PropertyRulePatchRequest,
     PropertyRuleDTO,
+    SeasonalityRulePatchRequest,
     SeasonalityRuleDTO,
     UpdatePropertyRequest,
     PropertyListItem,
@@ -21,9 +26,14 @@ export type {
     CreatePropertyRequest,
     ExpandedPropertyResponse,
     Page,
+    PropertyAccessLevel,
+    PropertyPermissionDTO,
+    PropertyPermissionPatchRequest,
     PropertyQuoteRequest,
     PropertyQuoteResponse,
+    PropertyRulePatchRequest,
     PropertyRuleDTO,
+    SeasonalityRulePatchRequest,
     SeasonalityRuleDTO,
     UpdatePropertyRequest,
     PropertyListItem,
@@ -331,11 +341,28 @@ export class PropertyService {
      * - PUT /api/properties/{id}/rules
      *
      * Auth:
-     * - Requer role OWNER no backend
+     * - Requer acesso de gestão ao ativo (PRIMARY_OWNER/MANAGER)
      */
     static async updateRules(id: number, dto: PropertyRuleDTO): Promise<PropertyRuleDTO> {
         try {
             const response = await propertiesAxios.put<ApiResponse<PropertyRuleDTO>>(`/${id}/rules`, dto);
+            notify.success("Regras atualizadas.");
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "atualizar regras da propriedade");
+            throw error;
+        }
+    }
+
+    /**
+     * Atualiza parcialmente regras operacionais.
+     *
+     * Endpoint backend:
+     * - PATCH /api/properties/{id}/rules
+     */
+    static async patchRules(id: number, patch: PropertyRulePatchRequest): Promise<PropertyRuleDTO> {
+        try {
+            const response = await propertiesAxios.patch<ApiResponse<PropertyRuleDTO>>(`/${id}/rules`, patch);
             notify.success("Regras atualizadas.");
             return response.data.data;
         } catch (error) {
@@ -356,6 +383,142 @@ export class PropertyService {
             return response.data.data;
         } catch (error) {
             this.handleError(error, "obter regras de sazonalidade");
+            throw error;
+        }
+    }
+
+    /**
+     * Substitui a lista completa de regras de sazonalidade.
+     *
+     * Endpoint backend:
+     * - PUT /api/properties/{id}/rules/seasonality
+     */
+    static async updateSeasonalityRules(id: number, rules: SeasonalityRuleDTO[]): Promise<SeasonalityRuleDTO[]> {
+        try {
+            const response = await propertiesAxios.put<ApiResponse<SeasonalityRuleDTO[]>>(`/${id}/rules/seasonality`, rules);
+            notify.success("Sazonalidade atualizada.");
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "atualizar sazonalidade");
+            throw error;
+        }
+    }
+
+    /**
+     * Cria uma regra de sazonalidade individual.
+     *
+     * Endpoint backend:
+     * - POST /api/properties/{id}/rules/seasonality
+     */
+    static async createSeasonalityRule(id: number, rule: SeasonalityRuleDTO): Promise<SeasonalityRuleDTO> {
+        try {
+            const response = await propertiesAxios.post<ApiResponse<SeasonalityRuleDTO>>(`/${id}/rules/seasonality`, rule);
+            notify.success("Regra de sazonalidade criada.");
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "criar regra de sazonalidade");
+            throw error;
+        }
+    }
+
+    /**
+     * Atualiza parcialmente uma regra de sazonalidade.
+     *
+     * Endpoint backend:
+     * - PATCH /api/properties/{id}/rules/seasonality/{ruleId}
+     */
+    static async patchSeasonalityRule(id: number, ruleId: number, patch: SeasonalityRulePatchRequest): Promise<SeasonalityRuleDTO> {
+        try {
+            const response = await propertiesAxios.patch<ApiResponse<SeasonalityRuleDTO>>(`/${id}/rules/seasonality/${ruleId}`, patch);
+            notify.success("Regra de sazonalidade atualizada.");
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "atualizar regra de sazonalidade");
+            throw error;
+        }
+    }
+
+    /**
+     * Remove uma regra de sazonalidade.
+     *
+     * Endpoint backend:
+     * - DELETE /api/properties/{id}/rules/seasonality/{ruleId}
+     */
+    static async deleteSeasonalityRule(id: number, ruleId: number): Promise<void> {
+        try {
+            await propertiesAxios.delete<void>(`/${id}/rules/seasonality/${ruleId}`);
+            notify.success("Regra de sazonalidade removida.");
+        } catch (error) {
+            this.handleError(error, "remover regra de sazonalidade");
+            throw error;
+        }
+    }
+
+    /**
+     * Lista permissões (ACL) de uma propriedade.
+     *
+     * Endpoint backend:
+     * - GET /api/properties/{id}/permissions
+     */
+    static async getPermissions(id: number): Promise<PropertyPermissionDTO[]> {
+        try {
+            const response = await propertiesAxios.get<ApiResponse<PropertyPermissionDTO[]>>(`/${id}/permissions`);
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "obter permissões");
+            throw error;
+        }
+    }
+
+    /**
+     * Substitui a lista completa de permissões (ACL) de uma propriedade.
+     *
+     * Endpoint backend:
+     * - PUT /api/properties/{id}/permissions
+     */
+    static async updatePermissions(
+        id: number,
+        permissions: PropertyPermissionDTO[]
+    ): Promise<PropertyPermissionDTO[]> {
+        try {
+            const response = await propertiesAxios.put<ApiResponse<PropertyPermissionDTO[]>>(`/${id}/permissions`, permissions);
+            notify.success("Permissões atualizadas.");
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "atualizar permissões");
+            throw error;
+        }
+    }
+
+    /**
+     * Atualiza parcialmente a permissão de um utilizador numa propriedade.
+     *
+     * Endpoint backend:
+     * - PATCH /api/properties/{id}/permissions/{userId}
+     */
+    static async patchPermission(id: number, userId: number, patch: PropertyPermissionPatchRequest): Promise<PropertyPermissionDTO> {
+        try {
+            const response = await propertiesAxios.patch<ApiResponse<PropertyPermissionDTO>>(`/${id}/permissions/${userId}`, patch);
+            notify.success("Permissão atualizada.");
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "atualizar permissão");
+            throw error;
+        }
+    }
+
+    /**
+     * Remove a permissão de um utilizador numa propriedade.
+     *
+     * Endpoint backend:
+     * - DELETE /api/properties/{id}/permissions/{userId}
+     */
+    static async deletePermission(id: number, userId: number): Promise<void> {
+        try {
+            await propertiesAxios.delete<void>(`/${id}/permissions/${userId}`);
+            notify.success("Permissão removida.");
+        } catch (error) {
+            this.handleError(error, "remover permissão");
             throw error;
         }
     }

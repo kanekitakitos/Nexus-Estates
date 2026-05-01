@@ -39,4 +39,22 @@ public interface PermissionRepository extends JpaRepository<PropertyPermission, 
      * Resolve a permissão (por nível) de uma propriedade, útil para obter o PRIMARY_OWNER.
      */
     Optional<PropertyPermission> findFirstByPropertyIdAndAccessLevel(Long propertyId, AccessLevel accessLevel);
+
+    /**
+     * Remove todas as permissões associadas a uma propriedade.
+     *
+     * <p>Útil para operações de substituição total (PUT) em que a lista de permissões
+     * enviada pelo cliente deve tornar-se a “fonte de verdade”.</p>
+     *
+     * @param propertyId ID da propriedade
+     */
+    void deleteByPropertyId(Long propertyId);
+
+    /**
+     * Remove a permissão de um utilizador numa propriedade.
+     *
+     * @param propertyId ID da propriedade
+     * @param userId ID do utilizador
+     */
+    void deleteByPropertyIdAndUserId(Long propertyId, Long userId);
 }

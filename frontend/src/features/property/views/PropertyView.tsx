@@ -127,7 +127,39 @@ export function PropertyView() {
       const initialRule = initial?.propertyRule ?? null
       const shouldUpdateRules = !initialRule || JSON.stringify(initialRule) !== JSON.stringify(updated.propertyRule)
       if (shouldUpdateRules) {
-        await PropertyService.updateRules(id, updated.propertyRule)
+        const patchRules: Record<string, unknown> = {}
+        const keys = ["checkInTime", "checkOutTime", "minNights", "maxNights", "bookingLeadTimeDays"] as const
+        for (const k of keys) {
+          const before = initialRule ? (initialRule as any)[k] : undefined
+          const after = (updated.propertyRule as any)[k]
+          if (typeof after === "undefined") continue
+          if (JSON.stringify(before) !== JSON.stringify(after)) {
+            patchRules[k] = after
+          }
+        }
+        if (Object.keys(patchRules).length > 0) {
+          await PropertyService.patchRules(id, patchRules)
+        }
+      }
+    }
+
+    if (updated.seasonalityRules) {
+      const initialSeasonality = initial?.seasonalityRules ?? null
+      const shouldUpdateSeasonality = !initialSeasonality || JSON.stringify(initialSeasonality) !== JSON.stringify(updated.seasonalityRules)
+      if (shouldUpdateSeasonality) {
+        await PropertyService.updateSeasonalityRules(id, updated.seasonalityRules)
+      }
+    }
+
+    if (updated.permissions) {
+      const compact = (arr: typeof updated.permissions) =>
+        (arr || []).map((p) => ({ userId: Number(p.userId), accessLevel: p.accessLevel })).sort((a, b) => a.userId - b.userId)
+
+      const initialPerms = initial?.permissions ? compact(initial.permissions) : null
+      const updatedPerms = compact(updated.permissions)
+      const shouldUpdatePerms = !initialPerms || JSON.stringify(initialPerms) !== JSON.stringify(updatedPerms)
+      if (shouldUpdatePerms) {
+        await PropertyService.updatePermissions(id, updatedPerms)
       }
     }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { Clock, Calendar, Sun, Plus, Trash2, HelpCircle, Sparkles, Globe } from "lucide-react"
+import { Clock, Calendar, Sun, Plus, Trash2, HelpCircle, Sparkles, ShieldCheck, Save } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { OwnProperty, PropertyRuleDTO, SeasonalityRuleDTO } from "@/types"
 import { BrutalField } from "@/components/ui/forms/brutal-field"
@@ -11,6 +11,7 @@ import { proMeta, proPanel, propertyCopy, propertyTokens } from "../../lib/prope
 import { BoingText } from "@/components/effects/BoingText"
 import { motion } from "framer-motion"
 import { staggerContainer, itemFadeUp } from "../../lib/animations"
+import { UserService } from "@/services/user.service"
 
 // ─── Tipos e Props ────────────────────────────────────────────────────────
 
@@ -28,6 +29,24 @@ export interface RulesSectionProps {
     initial: OwnProperty
     /** Callback genérico para atualização de campos no estado pai */
     updateField: <K extends keyof OwnProperty>(f: K, v: OwnProperty[K]) => void
+    /** Confirma (persiste) apenas as regras operacionais */
+    onConfirmOperationalRules: () => Promise<void>
+    /** Confirma (persiste) apenas a sazonalidade */
+    onConfirmSeasonality: () => Promise<void>
+    /** Confirma (persiste) apenas permissões/colaboradores */
+    onConfirmPermissions: () => Promise<void>
+    dirty: {
+        operationalRules: boolean
+        seasonality: boolean
+        permissions: boolean
+        details: boolean
+        amenities: boolean
+    }
+    isConfirming: {
+        operationalRules: boolean
+        seasonality: boolean
+        permissions: boolean
+    }
 }
 
 // ─── Sub-Componentes Utilitários ───────────────────────────────────────────
@@ -106,11 +125,14 @@ function RulesHeaderSection() {
  * @param onRuleChange - Callback para atualização de uma regra específica
  */
 function OperationalRulesCard({ 
-    rules, initRules, onRuleChange 
+    rules, initRules, onRuleChange, onConfirm, isDirty, isConfirming
 }: { 
     rules: PropertyRuleDTO; 
     initRules: PropertyRuleDTO; 
-    onRuleChange: <K extends keyof PropertyRuleDTO>(f: K, v: PropertyRuleDTO[K]) => void 
+    onRuleChange: <K extends keyof PropertyRuleDTO>(f: K, v: PropertyRuleDTO[K]) => void;
+    onConfirm: () => Promise<void>;
+    isDirty: boolean;
+    isConfirming: boolean;
 }) {
     return (
         <BrutalCard
@@ -136,28 +158,23 @@ function OperationalRulesCard({
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pt-8 border-t-2 border-foreground/5 dark:border-white/5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8 border-t-2 border-foreground/5 dark:border-white/5">
                 <BrutalField label={propertyCopy.rules.minNightsLabel} type="number" value={rules.minNights || ""} savedValue={initRules.minNights || ""} onChange={(v) => onRuleChange('minNights', Number(v))} onRevert={() => onRuleChange('minNights', initRules.minNights)} />
                 <BrutalField label={propertyCopy.rules.maxNightsLabel} type="number" value={rules.maxNights || ""} savedValue={initRules.maxNights || ""} onChange={(v) => onRuleChange('maxNights', Number(v))} onRevert={() => onRuleChange('maxNights', initRules.maxNights)} />
                 <BrutalField label={propertyCopy.rules.bookingLeadDaysLabel} type="number" value={rules.bookingLeadTimeDays || ""} savedValue={initRules.bookingLeadTimeDays || ""} onChange={(v) => onRuleChange('bookingLeadTimeDays', Number(v))} onRevert={() => onRuleChange('bookingLeadTimeDays', initRules.bookingLeadTimeDays)} />
-                
-                <div className="relative">
-                    <span className={propertyTokens.ui.rules.timezoneLabelClass}>{propertyCopy.rules.timezoneLabel}</span>
-                    <div className={propertyTokens.ui.rules.timezoneWrapClass}>
-                        <Globe size={14} className="text-primary" />
-                        <select 
-                            value={rules.timezone || propertyCopy.rules.timezoneDefault} 
-                            onChange={(e) => onRuleChange('timezone', e.target.value)}
-                            className="w-full bg-transparent text-xs font-bold uppercase outline-none cursor-pointer"
-                        >
-                            <option value="UTC">{propertyCopy.rules.timezoneOptionUTC}</option>
-                            <option value="Europe/Lisbon">{propertyCopy.rules.timezoneOptionLisbon}</option>
-                            <option value="Europe/Madrid">{propertyCopy.rules.timezoneOptionMadrid}</option>
-                            <option value="America/New_York">{propertyCopy.rules.timezoneOptionNewYork}</option>
-                            <option value="America/Sao_Paulo">{propertyCopy.rules.timezoneOptionSaoPaulo}</option>
-                        </select>
-                    </div>
-                </div>
+            </div>
+
+            <div className="mt-8 flex justify-end">
+                <BrutalButton
+                    type="button"
+                    variant="brutal-wizard-next"
+                    onClick={onConfirm}
+                    disabled={!isDirty || isConfirming}
+                    className="!h-10 !px-4 !text-[10px] !font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                    <Save size={16} strokeWidth={2.5} />
+                    {isConfirming ? "A confirmar..." : "Confirmar"}
+                </BrutalButton>
             </div>
         </BrutalCard>
     )
@@ -176,12 +193,15 @@ function OperationalRulesCard({
  * @param onUpdate - Callback para atualizar um campo de uma janela específica
  */
 function YieldManagementCard({ 
-    seasonRules, onAdd, onRemove, onUpdate 
+    seasonRules, onAdd, onRemove, onUpdate, onConfirm, isDirty, isConfirming
 }: { 
     seasonRules: SeasonalityRuleDTO[]; 
     onAdd: () => void; 
     onRemove: (i: number) => void; 
-    onUpdate: <K extends keyof SeasonalityRuleDTO>(i: number, f: K, v: SeasonalityRuleDTO[K]) => void 
+    onUpdate: <K extends keyof SeasonalityRuleDTO>(i: number, f: K, v: SeasonalityRuleDTO[K]) => void;
+    onConfirm: () => Promise<void>;
+    isDirty: boolean;
+    isConfirming: boolean;
 }) {
     const hasUnfinished = seasonRules.some(r => !r.startDate || !r.endDate)
 
@@ -195,16 +215,27 @@ function YieldManagementCard({
             iconTextColor="text-yellow-500"
             tone="cream"
         >
-            <div className="-mt-4 mb-6 flex justify-end">
-                <BrutalButton 
-                    type="button" 
-                    variant="brutal-wizard-next" 
-                    onClick={onAdd} 
+            <div className="-mt-4 mb-6 flex flex-wrap justify-end gap-3">
+                <BrutalButton
+                    type="button"
+                    variant="brutal-wizard-next"
+                    onClick={onAdd}
                     disabled={hasUnfinished}
                     className="!h-10 !px-4 !text-[10px] !font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                    <Plus size={16} strokeWidth={2.5} /> 
+                    <Plus size={16} strokeWidth={2.5} />
                     {hasUnfinished ? propertyCopy.rules.yieldAddDisabled : propertyCopy.rules.yieldAddEnabled}
+                </BrutalButton>
+
+                <BrutalButton
+                    type="button"
+                    variant="brutal-wizard-next"
+                    onClick={onConfirm}
+                    disabled={!isDirty || hasUnfinished || isConfirming}
+                    className="!h-10 !px-4 !text-[10px] !font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                    <Save size={16} strokeWidth={2.5} />
+                    {isConfirming ? "A confirmar..." : "Confirmar"}
                 </BrutalButton>
             </div>
 
@@ -261,7 +292,11 @@ function YieldManagementCard({
  * @see YieldManagementCard — Gestão de multiplicadores sazonais
  * @see CollaboratorManager — Gestão de permissões e colaboradores
  */
-export function RulesSection({ draft, initial, updateField }: RulesSectionProps) {
+export function RulesSection({ 
+    draft, initial, updateField,
+    onConfirmOperationalRules, onConfirmSeasonality, onConfirmPermissions,
+    dirty, isConfirming
+}: RulesSectionProps) {
     const rules = draft.propertyRule || {}
     const initRules = initial.propertyRule || {}
     const seasonRules = draft.seasonalityRules || []
@@ -299,14 +334,30 @@ export function RulesSection({ draft, initial, updateField }: RulesSectionProps)
     /**
      * Adiciona um novo colaborador à lista de permissões do ativo.
      */
-    const handleAddPermission = (email: string, role: string) => updateField('permissions', [...(draft.permissions || []), { email, level: role }])
+    const handleAddPermission = async (email: string, accessLevel: NonNullable<OwnProperty["permissions"]>[number]["accessLevel"]) => {
+        const current = draft.permissions || []
+        const normalizedEmail = email.trim().toLowerCase()
+        if (current.some(p => p.email.trim().toLowerCase() === normalizedEmail)) {
+            throw new Error(propertyCopy.collaboratorManager.alreadyAdded)
+        }
+
+        const user = await UserService.lookupByEmail(normalizedEmail)
+        if (current.some(p => Number(p.userId) === Number(user.id))) {
+            throw new Error(propertyCopy.collaboratorManager.alreadyAdded)
+        }
+
+        updateField('permissions', [...current, { userId: user.id, email: user.email, accessLevel }])
+    }
 
     /**
      * Remove um colaborador da lista de permissões pelo email.
      */
-    const removePermission = (email: string) => {
-        const p = (draft.permissions || []).filter(item => item.email !== email);
-        updateField('permissions', p);
+    const removePermission = (userId: number) => {
+        const current = draft.permissions || []
+        const target = current.find(p => Number(p.userId) === Number(userId))
+        if (target?.accessLevel === "PRIMARY_OWNER") return
+        const next = current.filter(item => Number(item.userId) !== Number(userId))
+        updateField('permissions', next)
     }
 
     return (
@@ -323,21 +374,59 @@ export function RulesSection({ draft, initial, updateField }: RulesSectionProps)
 
             {/* Configurações Operacionais */}
             <motion.div variants={itemFadeUp}>
-                <OperationalRulesCard rules={rules} initRules={initRules} onRuleChange={handleRuleChange} />
+                <OperationalRulesCard 
+                    rules={rules} 
+                    initRules={initRules} 
+                    onRuleChange={handleRuleChange}
+                    onConfirm={onConfirmOperationalRules}
+                    isDirty={dirty.operationalRules}
+                    isConfirming={isConfirming.operationalRules}
+                />
             </motion.div>
             
             {/* Gestão de Sazonalidade */}
             <motion.div variants={itemFadeUp}>
-                <YieldManagementCard seasonRules={seasonRules} onAdd={addSeasonality} onRemove={removeSeasonality} onUpdate={updateSeasonality} />
+                <YieldManagementCard 
+                    seasonRules={seasonRules} 
+                    onAdd={addSeasonality} 
+                    onRemove={removeSeasonality} 
+                    onUpdate={updateSeasonality}
+                    onConfirm={onConfirmSeasonality}
+                    isDirty={dirty.seasonality}
+                    isConfirming={isConfirming.seasonality}
+                />
             </motion.div>
             
             {/* Gestão de Equipa */}
             <motion.div variants={itemFadeUp}>
-                <CollaboratorManager 
-                    permissions={draft.permissions || []} 
-                    onAdd={handleAddPermission} 
-                    onRemove={removePermission} 
-                />
+                <BrutalCard
+                    id="collaborator-manager"
+                    title={propertyCopy.collaboratorManager.cardTitle}
+                    subtitle={propertyCopy.collaboratorManager.cardSubtitle}
+                    icon={<ShieldCheck size={22} strokeWidth={2} />}
+                    iconBgColor={propertyTokens.ui.collaborator.cardIconBgColor}
+                    iconTextColor={propertyTokens.ui.collaborator.cardIconTextColor}
+                >
+                    <CollaboratorManager
+                        isCard={false}
+                        permissions={draft.permissions || []}
+                        onAdd={handleAddPermission}
+                        onRemove={removePermission}
+                    />
+
+                    <div className="mt-8 flex justify-end">
+                        <BrutalButton
+                            type="button"
+                            variant="brutal-wizard-next"
+                            onClick={onConfirmPermissions}
+                            disabled={!dirty.permissions || isConfirming.permissions}
+                            className="!h-10 !px-4 !text-[10px] !font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            <Save size={16} strokeWidth={2.5} />
+                            {isConfirming.permissions ? "A confirmar..." : "Confirmar"}
+                        </BrutalButton>
+                    </div>
+                </BrutalCard>
             </motion.div>
         </motion.div>
     )

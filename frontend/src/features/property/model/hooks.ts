@@ -40,7 +40,7 @@ export function usePropertyManager(selectedPropertyId: string | null) {
   }, [])
 
   const loadDetail = useCallback((id: string) => {
-    PropertyService.getPropertyById(id)
+    PropertyService.getExpanded(Number(id))
       .then((p) => setSelectedProperty(mapPropertyRecordToOwnProperty(p as unknown as Record<string, unknown>)))
       .catch(console.error)
   }, [])

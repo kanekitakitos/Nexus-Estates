@@ -190,7 +190,6 @@ export function AppSidebar({
               return {
                 ...base,
                 description: "",
-                imageUrl: "",
                 tags: [],
                 amenityIds: [],
               }
@@ -251,7 +250,6 @@ export function AppSidebar({
           return {
             ...base,
             description: "",
-            imageUrl: "",
             tags: [],
             amenityIds: [],
           }

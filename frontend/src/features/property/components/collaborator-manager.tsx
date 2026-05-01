@@ -25,19 +25,17 @@ export interface CollaboratorManagerProps {
     /** Lista de permissões/colaboradores atuais */
     permissions: PropertyPermission[]
     /** Callback para adicionar novo colaborador */
-    onAdd: (email: string, role: string) => void
+    onAdd: (email: string, accessLevel: PropertyPermission["accessLevel"]) => Promise<void>
     /** Callback para remover colaborador existente */
-    onRemove: (email: string) => void
+    onRemove: (userId: number) => void
     /** Se verdadeiro, envolve o conteúdo num BrutalCard */
     isCard?: boolean
 }
 
 /** Definição de papéis/roles disponíveis */
 export const ROLES = [
-    { id: "VIEWER", label: propertyCopy.collaboratorManager.roleViewer },
-    { id: "EDITOR", label: propertyCopy.collaboratorManager.roleEditor },
-    { id: "ADMIN", label: propertyCopy.collaboratorManager.roleAdmin },
-    { id: "OWNER", label: propertyCopy.collaboratorManager.roleOwner }
+    { id: "STAFF" as const, label: propertyCopy.collaboratorManager.roleViewer },
+    { id: "MANAGER" as const, label: propertyCopy.collaboratorManager.roleEditor }
 ]
 
 // ─── Sub-Componentes Internos ──────────────────────────────────────────────
@@ -82,11 +80,11 @@ function RoleSelector({
 function CollaboratorInput({ 
     onInvite, isVerifying 
 }: { 
-    onInvite: (email: string, role: string) => Promise<void>; 
+    onInvite: (email: string, accessLevel: PropertyPermission["accessLevel"]) => Promise<void>;
     isVerifying: boolean 
 }) {
     const [email, setEmail] = useState("")
-    const [role, setRole] = useState("EDITOR")
+    const [role, setRole] = useState<PropertyPermission["accessLevel"]>("MANAGER")
 
     const handleAction = async () => {
         if (!email) return
@@ -127,7 +125,7 @@ function CollaboratorInput({
 function CollaboratorItem({ 
     perm, onRemove 
 }: { 
-    perm: PropertyPermission; onRemove: (email: string) => void 
+    perm: PropertyPermission; onRemove: (userId: number) => void
 }) {
     return (
         <motion.div 
@@ -144,10 +142,10 @@ function CollaboratorItem({
             </div>
             <div className="flex shrink-0 items-center gap-4">
                 <span className={propertyTokens.ui.collaborator.permBadgeClass}>
-                    {perm.level}
+                    {perm.accessLevel}
                 </span>
                 <button
-                    type="button" onClick={() => onRemove(perm.email)}
+                    type="button" onClick={() => onRemove(perm.userId)}
                     className={propertyTokens.ui.collaborator.removeButtonClass}
                 >
                     <X size={16} strokeWidth={2.5} />
@@ -169,7 +167,7 @@ export function CollaboratorManager({ permissions, onAdd, onRemove, isCard = tru
     const [isVerifying, setIsVerifying] = useState(false)
 
     /** Executa o protocolo de convite com verificação de rede mockada */
-    const handleInvite = async (email: string, role: string) => {
+    const handleInvite = async (email: string, accessLevel: PropertyPermission["accessLevel"]) => {
         if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
             notify.error(propertyCopy.collaboratorManager.invalidEmail)
             return
@@ -184,10 +182,11 @@ export function CollaboratorManager({ permissions, onAdd, onRemove, isCard = tru
         try {
             // Nexus Network Protocol: Simulação de verificação
             await new Promise(r => setTimeout(r, 800))
-            onAdd(email, role)
+            await onAdd(email, accessLevel)
             notify.success(`${propertyCopy.collaboratorManager.inviteOkPrefix} ${email} ${propertyCopy.collaboratorManager.inviteOkSuffix}`)
-        } catch {
-            notify.error(propertyCopy.collaboratorManager.networkFail)
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : null
+            notify.error(msg && msg.trim() ? msg : propertyCopy.collaboratorManager.networkFail)
         } finally {
             setIsVerifying(false)
         }

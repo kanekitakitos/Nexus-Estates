@@ -19,6 +19,11 @@ import { ProfilePanel } from "@/features/profile/components/profile-panel"
 import { AuthService } from "@/services/auth.service"
 import { SyncService } from "@/services/sync.service"
 import type { WebhookSubscription } from "@/types/sync"
+import { ChangePasswordForm } from "@/features/profile/components/change-password-form"
+import { SignedIn, SignedOut, UserProfile as ClerkUserProfile } from "@clerk/nextjs"
+import { isClerkConfigured } from "@/features/auth/strategies/use-identity-provider"
+import { useClerkIdentityProvider } from "@/features/auth/strategies/clerk/use-clerk-identity-provider"
+import { Chrome, Facebook, Github } from "lucide-react"
 
 function useIsDarkMode() {
   const [isDark, setIsDark] = useState(false)
@@ -34,6 +39,153 @@ function useIsDarkMode() {
   }, [])
 
   return isDark
+}
+
+function ProfileContactUpdatePanel({ me, onReload }: { me: UserProfile; onReload: () => Promise<void> }) {
+  const [email, setEmail] = useState(me.email ?? "")
+  const [phone, setPhone] = useState(me.phone ?? "")
+  const [isBusy, setIsBusy] = useState(false)
+
+  useEffect(() => {
+    setEmail(me.email ?? "")
+    setPhone(me.phone ?? "")
+  }, [me.email, me.phone])
+
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+  const isValidPhone = (value: string) => /^[+0-9][0-9\s-]{6,20}$/.test(value.trim())
+
+  const canSubmit =
+    (email.trim() === (me.email ?? "").trim() && phone.trim() === (me.phone ?? "").trim()) ? false : true
+
+  const submit = async () => {
+    const normalizedEmail = email.trim().toLowerCase()
+    const normalizedPhone = phone.trim()
+
+    if (normalizedEmail && !isValidEmail(normalizedEmail)) {
+      notify.error(profileTokens.copy.view.contactInvalidEmail)
+      return
+    }
+    if (normalizedPhone && !isValidPhone(normalizedPhone)) {
+      notify.error(profileTokens.copy.view.contactInvalidPhone)
+      return
+    }
+
+    setIsBusy(true)
+    try {
+      const res = await UserService.patchMe({
+        email: normalizedEmail || undefined,
+        phone: normalizedPhone || undefined,
+      })
+      if (res.session) AuthService.applySession(res.session)
+      notify.success(profileTokens.copy.view.contactSaveOk)
+      await onReload()
+    } catch {
+      notify.error(profileTokens.copy.view.contactSaveError)
+    } finally {
+      setIsBusy(false)
+    }
+  }
+
+  return (
+    <ProfilePanel title={profileTokens.copy.view.panelContactTitle} subtitle={profileTokens.copy.view.panelContactSubtitle}>
+      <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">{profileTokens.copy.view.contactEmailLabel}</div>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-12 w-full rounded-2xl border border-(--fg-color)/20 bg-background/50 px-4 text-sm font-mono text-(--fg-color) outline-none focus:ring-2 focus:ring-(--primary-accent)"
+              placeholder="email@exemplo.com"
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/50">{profileTokens.copy.view.contactPhoneLabel}</div>
+            <input
+              value={phone ?? ""}
+              onChange={(e) => setPhone(e.target.value)}
+              className="h-12 w-full rounded-2xl border border-(--fg-color)/20 bg-background/50 px-4 text-sm font-mono text-(--fg-color) outline-none focus:ring-2 focus:ring-(--primary-accent)"
+              placeholder="+351 9xx xxx xxx"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => void submit()}
+            disabled={isBusy || !canSubmit}
+            className="h-12 px-6 rounded-2xl bg-(--primary-accent) text-white font-bold uppercase tracking-widest border border-white/10 disabled:opacity-30"
+          >
+            {profileTokens.copy.view.contactSaveBtn}
+          </button>
+        </div>
+      </div>
+    </ProfilePanel>
+  )
+}
+
+function ClerkLinkedAccountsPanel() {
+  const enabled = isClerkConfigured()
+  const idp = useClerkIdentityProvider()
+  const canStart = enabled && idp.isAvailable
+
+  if (!enabled) {
+    return (
+      <ProfilePanel title={profileTokens.copy.clerk.title} subtitle={profileTokens.copy.clerk.subtitle}>
+        <div className="text-xs font-mono text-(--fg-color)/70">{profileTokens.copy.clerk.notConfigured}</div>
+      </ProfilePanel>
+    )
+  }
+
+  return (
+    <ProfilePanel title={profileTokens.copy.clerk.title} subtitle={profileTokens.copy.clerk.subtitle}>
+      <SignedIn>
+        <div className="rounded-2xl border border-(--fg-color)/10 bg-background/30 p-2">
+          <ClerkUserProfile routing="hash" />
+        </div>
+      </SignedIn>
+      <SignedOut>
+        <div className="space-y-4">
+          <div className="text-xs font-mono text-(--fg-color)/70">{profileTokens.copy.clerk.signedOutHint}</div>
+          <div className="grid gap-3 md:grid-cols-3">
+            <button
+              type="button"
+              disabled={!canStart}
+              onClick={() => void idp.startOAuth("google", "/clerk/callback?next=/profile")}
+              className="h-12 rounded-2xl border border-(--fg-color)/20 bg-background/50 px-4 text-xs font-bold uppercase tracking-widest text-(--fg-color) disabled:opacity-30"
+            >
+              <span className="inline-flex items-center justify-center gap-2">
+                <Chrome className="h-4 w-4" />
+                Google
+              </span>
+            </button>
+            <button
+              type="button"
+              disabled={!canStart}
+              onClick={() => void idp.startOAuth("github", "/clerk/callback?next=/profile")}
+              className="h-12 rounded-2xl border border-(--fg-color)/20 bg-background/50 px-4 text-xs font-bold uppercase tracking-widest text-(--fg-color) disabled:opacity-30"
+            >
+              <span className="inline-flex items-center justify-center gap-2">
+                <Github className="h-4 w-4" />
+                GitHub
+              </span>
+            </button>
+            <button
+              type="button"
+              disabled={!canStart}
+              onClick={() => void idp.startOAuth("facebook", "/clerk/callback?next=/profile")}
+              className="h-12 rounded-2xl border border-(--fg-color)/20 bg-background/50 px-4 text-xs font-bold uppercase tracking-widest text-(--fg-color) disabled:opacity-30"
+            >
+              <span className="inline-flex items-center justify-center gap-2">
+                <Facebook className="h-4 w-4" />
+                Facebook
+              </span>
+            </button>
+          </div>
+        </div>
+      </SignedOut>
+    </ProfilePanel>
+  )
 }
 
 function useProfileData() {
@@ -409,6 +561,8 @@ function ProfileContent({
               </div>
             </div>
           </ProfilePanel>
+
+          <ProfileContactUpdatePanel me={me} onReload={onLoad} />
         </motion.div>
       )}
 
@@ -439,6 +593,16 @@ function ProfileContent({
               </button>
             </div>
           </ProfilePanel>
+
+          <ChangePasswordForm
+            onSubmit={async (payload) => {
+              const session = await UserService.changePassword(payload)
+              if (session) AuthService.applySession(session)
+              await onLoad()
+            }}
+          />
+
+          <ClerkLinkedAccountsPanel />
         </motion.div>
       )}
 
