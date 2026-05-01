@@ -30,6 +30,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -39,6 +40,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -141,11 +144,30 @@ public class PropertyController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados de entrada inválidos ou campos obrigatórios em falta")
     })
     @PostMapping
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<Property>> create(
             @Valid @RequestBody CreatePropertyRequest request,
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
     ) {
-        Property property = service.create(request, userIdHeader);
+        if (userIdHeader == null || userIdHeader.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Sessão expirada.", "UNAUTHORIZED"));
+        }
+
+        CreatePropertyRequest safeRequest = new CreatePropertyRequest(
+                request.title(),
+                request.description(),
+                request.price(),
+                null,
+                request.location(),
+                request.city(),
+                request.address(),
+                request.maxGuests(),
+                request.amenityIds(),
+                request.imageUrl()
+        );
+
+        Property property = service.create(safeRequest, userIdHeader);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(property, "Propriedade criada com sucesso."));
     }
 
@@ -169,7 +191,9 @@ public class PropertyController {
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<ExpandedPropertyResponse>> updateAmenities(
             @Parameter(description = "ID da propriedade") @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
             @RequestBody Set<Long> amenityIds) {
+        service.requireManageAccess(id, userIdHeader);
         service.updateAmenities(id, amenityIds);
         Property expanded = repository.findExpandedById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Property not found"));
@@ -189,7 +213,9 @@ public class PropertyController {
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<Property>> addAmenity(
             @Parameter(description = "ID da propriedade") @PathVariable Long id,
-            @Parameter(description = "ID da comodidade") @PathVariable Long amenityId) {
+            @Parameter(description = "ID da comodidade") @PathVariable Long amenityId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader) {
+        service.requireManageAccess(id, userIdHeader);
         Property property = service.addAmenity(id, amenityId);
         return ResponseEntity.ok(ApiResponse.success(property, "Comodidade adicionada com sucesso."));
     }
@@ -206,7 +232,9 @@ public class PropertyController {
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<Property>> removeAmenity(
             @Parameter(description = "ID da propriedade") @PathVariable Long id,
-            @Parameter(description = "ID da comodidade") @PathVariable Long amenityId) {
+            @Parameter(description = "ID da comodidade") @PathVariable Long amenityId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader) {
+        service.requireManageAccess(id, userIdHeader);
         Property property = service.removeAmenity(id, amenityId);
         return ResponseEntity.ok(ApiResponse.success(property, "Comodidade removida com sucesso."));
     }
@@ -719,9 +747,11 @@ public class PropertyController {
     public ResponseEntity<ApiResponse<ExpandedPropertyResponse>> patch(
             @PathVariable Long id,
             @RequestBody UpdatePropertyRequest request,
-            @RequestHeader(value = "X-Actor-UserId", required = false) Long actorUserId
+            @RequestHeader(value = "X-Actor-UserId", required = false) Long actorUserId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
     )
     {
+        service.requireManageAccess(id, userIdHeader);
         Property updated = service.updateProperty(id, request, actorUserId);
 
         ExpandedPropertyResponse response = service.convertToExpandedDto(updated);
@@ -733,8 +763,10 @@ public class PropertyController {
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<Void> delete(
             @PathVariable Long id,
-            @RequestHeader(value = "X-Actor-UserId", required = false) Long actorUserId
+            @RequestHeader(value = "X-Actor-UserId", required = false) Long actorUserId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
     ) {
+        service.requirePrimaryOwnerAccess(id, userIdHeader);
         service.deleteProperty(id, actorUserId);
         return ResponseEntity.noContent().build();
     }
@@ -749,8 +781,11 @@ public class PropertyController {
     @Operation(summary = "Parâmetros de upload de documentos", description = "Obtém parâmetros temporários para upload seguro de documentos da propriedade.")
     @GetMapping("/{id}/documents/upload-params")
     @PreAuthorize("hasRole('OWNER')")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> documentUploadParams(@PathVariable Long id) {
-        service.findById(id);
+    public ResponseEntity<ApiResponse<Map<String, Object>>> documentUploadParams(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        service.requireManageAccess(id, userIdHeader);
         Map<String, Object> params = imageStorageService.getUploadParameters();
         Map<String, Object> enriched = new java.util.HashMap<>(params);
         enriched.put("context_property_id", id);

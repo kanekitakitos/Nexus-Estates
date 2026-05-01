@@ -219,6 +219,18 @@ public class PropertyService {
         return level;
     }
 
+    @Transactional(readOnly = true)
+    public void requirePrimaryOwnerAccess(Long propertyId, String userIdHeader) {
+        Long userId = parseUserIdHeader(userIdHeader);
+        if (userId == null) {
+            throw new AccessDeniedException("Sessão expirada.");
+        }
+        AccessLevel level = getUserAccessLevel(propertyId, userId);
+        if (level != AccessLevel.PRIMARY_OWNER) {
+            throw new AccessDeniedException("Acesso negado.");
+        }
+    }
+
     /**
      * Adiciona uma sobreposição de regra sazonal.
      *

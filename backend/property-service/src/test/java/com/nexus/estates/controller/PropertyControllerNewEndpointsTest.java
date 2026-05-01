@@ -3,6 +3,7 @@ package com.nexus.estates.controller;
 import com.nexus.estates.common.dto.ApiResponse;
 import com.nexus.estates.dto.ExpandedPropertyResponse;
 import com.nexus.estates.dto.UpdatePropertyRequest;
+import com.nexus.estates.entity.AccessLevel;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.PropertyChangeLog;
 import com.nexus.estates.repository.PropertyRepository;
@@ -74,6 +75,7 @@ class PropertyControllerNewEndpointsTest {
     @DisplayName("Patch de propriedade")
     void patch() {
         Property mockProperty = new Property();
+        when(propertyService.requireManageAccess(eq(1L), eq("1"))).thenReturn(AccessLevel.PRIMARY_OWNER);
         when(propertyService.updateProperty(eq(1L), any(UpdatePropertyRequest.class), isNull())).thenReturn(mockProperty);
         
         ExpandedPropertyResponse mockResponse = new ExpandedPropertyResponse(
@@ -81,19 +83,26 @@ class PropertyControllerNewEndpointsTest {
         );
         when(propertyService.convertToExpandedDto(mockProperty)).thenReturn(mockResponse);
 
-        ResponseEntity<ApiResponse<ExpandedPropertyResponse>> resp = controller.patch(1L, new UpdatePropertyRequest("X", null, null, null, null, null, null, null, null), null);
+        ResponseEntity<ApiResponse<ExpandedPropertyResponse>> resp = controller.patch(
+                1L,
+                new UpdatePropertyRequest("X", null, null, null, null, null, null, null, null),
+                null,
+                "1"
+        );
         
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertNotNull(resp.getBody());
         assertEquals("Propriedade atualizada com sucesso.", resp.getBody().getMessage());
         assertEquals(mockResponse, resp.getBody().getData());
+        verify(propertyService).requireManageAccess(1L, "1");
     }
 
     @Test
     @DisplayName("Eliminar propriedade")
     void delete() {
-        ResponseEntity<Void> resp = controller.delete(1L, null);
+        ResponseEntity<Void> resp = controller.delete(1L, null, "1");
         assertEquals(HttpStatus.NO_CONTENT, resp.getStatusCode());
+        verify(propertyService, times(1)).requirePrimaryOwnerAccess(1L, "1");
         verify(propertyService, times(1)).deleteProperty(1L, null);
     }
 
@@ -109,10 +118,11 @@ class PropertyControllerNewEndpointsTest {
     @Test
     @DisplayName("Parâmetros de upload de documentos")
     void documentUploadParams() {
-        when(propertyService.findById(1L)).thenReturn(new Property());
+        when(propertyService.requireManageAccess(eq(1L), eq("1"))).thenReturn(AccessLevel.PRIMARY_OWNER);
         when(imageStorageService.getUploadParameters()).thenReturn(Map.of("signature","abc"));
-        ResponseEntity<ApiResponse<Map<String, Object>>> resp = controller.documentUploadParams(1L);
+        ResponseEntity<ApiResponse<Map<String, Object>>> resp = controller.documentUploadParams(1L, "1");
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertTrue(resp.getBody().getData().containsKey("context_property_id"));
+        verify(propertyService).requireManageAccess(1L, "1");
     }
 }

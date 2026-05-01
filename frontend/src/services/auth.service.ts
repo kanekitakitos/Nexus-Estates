@@ -74,7 +74,8 @@ export class AuthService {
      */
     static async register(credentials: AuthCredentials): Promise<AuthResponse | null> {
         try {
-            const response = await usersAxios.post<ApiResponse<AuthResponse>>("/auth/register", credentials);
+            const payload: AuthCredentials = { ...credentials, role: credentials.role ?? "OWNER" };
+            const response = await usersAxios.post<ApiResponse<AuthResponse>>("/auth/register", payload);
             
             if (response.status === 200 && response.data.success) {
                 const data = response.data.data;
