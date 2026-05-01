@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { ArrowUpDown } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
 import type { BookingResponse } from "@/services/booking.service"
 import { SidebarFilterBar } from "@/components/ui/data-display/sidebar-filter-bar"
 import { cn } from "@/lib/utils"
@@ -10,6 +11,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenu
 import { bookingsTokens } from "@/features/bookings/tokens"
 
 type UserRole = "ADMIN" | "GUEST" | "OWNER" | "STAFF"
+
+const BOOKING_QUICK_ACCESS_STORAGE_KEY = "booking:quick-access"
+const BOOKING_RESUME_PAYMENT_STORAGE_KEY = "booking:resume-payment"
 
 function normalizeQuery(value: string) {
   return value.trim().toLowerCase()
@@ -20,6 +24,12 @@ function dateAtStartOfDay(dateLike: string | Date) {
   if (Number.isNaN(d.getTime())) return null
   d.setHours(0, 0, 0, 0)
   return d
+}
+
+function hasValidRebookRange(b: BookingResponse) {
+  const from = dateAtStartOfDay(b.checkInDate)
+  const to = dateAtStartOfDay(b.checkOutDate)
+  return Boolean(from && to && from.getTime() < to.getTime())
 }
 
 function bookingHaystack(b: BookingResponse) {
@@ -40,6 +50,8 @@ export function BookingCompactSidebar({
   propertyBookings: BookingResponse[]
 }) {
   const canSeePropertyBookings = role === "OWNER" || role === "ADMIN" || role === "STAFF"
+  const router = useRouter()
+  const pathname = usePathname()
 
   const [scope, setScope] = React.useState<"mine" | "properties">("mine")
   const [query, setQuery] = React.useState("")
@@ -95,6 +107,39 @@ export function BookingCompactSidebar({
     setWhen("all")
   }, [])
 
+  const openQuickAccess = React.useCallback((b: BookingResponse) => {
+    const payload = {
+      propertyId: String(b.propertyId),
+      checkIn: String(b.checkInDate || ""),
+      checkOut: String(b.checkOutDate || ""),
+    }
+    try {
+      sessionStorage.setItem(BOOKING_QUICK_ACCESS_STORAGE_KEY, JSON.stringify(payload))
+    } catch {}
+
+    window.dispatchEvent(new CustomEvent("booking-quick-access", { detail: payload }))
+
+    if (pathname !== "/booking") {
+      router.push("/booking")
+    }
+  }, [pathname, router])
+
+  const openResumePayment = React.useCallback((b: BookingResponse) => {
+    const payload = {
+      bookingId: Number(b.id),
+      propertyId: String(b.propertyId),
+    }
+    try {
+      sessionStorage.setItem(BOOKING_RESUME_PAYMENT_STORAGE_KEY, JSON.stringify(payload))
+    } catch {}
+
+    window.dispatchEvent(new CustomEvent("booking-resume-payment", { detail: payload }))
+
+    if (pathname !== "/booking") {
+      router.push("/booking")
+    }
+  }, [pathname, router])
+
   if (!isAuthenticated) {
     return (
       <div className="p-4">
@@ -129,7 +174,12 @@ export function BookingCompactSidebar({
           onSortChange={setSort}
           onClear={clear}
         />
-        <BookingCards bookings={filtered} />
+        <BookingCards
+          bookings={filtered}
+          canQuickAccess={scope === "mine"}
+          onQuickAccess={openQuickAccess}
+          onResumePayment={openResumePayment}
+        />
       </div>
     </div>
   )
@@ -390,7 +440,17 @@ function BookingSortDropdown({
   )
 }
 
-function BookingCards({ bookings }: { bookings: BookingResponse[] }) {
+function BookingCards({
+  bookings,
+  canQuickAccess,
+  onQuickAccess,
+  onResumePayment,
+}: {
+  bookings: BookingResponse[]
+  canQuickAccess: boolean
+  onQuickAccess: (b: BookingResponse) => void
+  onResumePayment: (b: BookingResponse) => void
+}) {
   if (bookings.length === 0) {
     return (
       <div className="text-muted-foreground text-sm">
@@ -401,22 +461,83 @@ function BookingCards({ bookings }: { bookings: BookingResponse[] }) {
 
   return (
     <div className="space-y-3">
-      {bookings.map((b) => (
-        <div
-          key={b.id}
-          className={bookingsTokens.ui.sidebar.cardClass}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <div className="font-medium">{bookingsTokens.copy.sidebar.bookingLabelPrefix}{b.id}</div>
-            <div className="text-xs text-muted-foreground font-mono uppercase tracking-widest">{b.status}</div>
+      {bookings.map((b) => {
+        const isRebookable =
+          canQuickAccess &&
+          (b.status === "CANCELLED" || b.status === "REFUNDED") &&
+          hasValidRebookRange(b)
+        const isResumable =
+          canQuickAccess &&
+          b.status === "PENDING_PAYMENT" &&
+          typeof b.id === "number" &&
+          b.id > 0
+        if (isRebookable) {
+          return (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => onQuickAccess(b)}
+              className={cn(
+                bookingsTokens.ui.sidebar.cardClass,
+                "w-full text-left hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_rgb(0,0,0)] dark:hover:shadow-[6px_6px_0_0_rgba(255,255,255,0.35)] transition-all cursor-pointer"
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-medium">{bookingsTokens.copy.sidebar.bookingLabelPrefix}{b.id}</div>
+                <div className="text-xs text-muted-foreground font-mono uppercase tracking-widest">{b.status}</div>
+              </div>
+              <div className="mt-2 grid gap-1 text-xs text-muted-foreground font-mono">
+                <div>{bookingsTokens.copy.sidebar.propertyLabel}{b.propertyId}</div>
+                <div>{b.checkInDate} → {b.checkOutDate}</div>
+                <div>{bookingsTokens.copy.sidebar.totalLabel}{b.totalPrice} {b.currency}</div>
+                <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-primary">Repetir rápido</div>
+              </div>
+            </button>
+          )
+        }
+
+        if (isResumable) {
+          return (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => onResumePayment(b)}
+              className={cn(
+                bookingsTokens.ui.sidebar.cardClass,
+                "w-full text-left hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_rgb(0,0,0)] dark:hover:shadow-[6px_6px_0_0_rgba(255,255,255,0.35)] transition-all cursor-pointer"
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-medium">{bookingsTokens.copy.sidebar.bookingLabelPrefix}{b.id}</div>
+                <div className="text-xs text-muted-foreground font-mono uppercase tracking-widest">{b.status}</div>
+              </div>
+              <div className="mt-2 grid gap-1 text-xs text-muted-foreground font-mono">
+                <div>{bookingsTokens.copy.sidebar.propertyLabel}{b.propertyId}</div>
+                <div>{b.checkInDate} → {b.checkOutDate}</div>
+                <div>{bookingsTokens.copy.sidebar.totalLabel}{b.totalPrice} {b.currency}</div>
+                <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-primary">Retomar pagamento</div>
+              </div>
+            </button>
+          )
+        }
+
+        return (
+          <div
+            key={b.id}
+            className={bookingsTokens.ui.sidebar.cardClass}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="font-medium">{bookingsTokens.copy.sidebar.bookingLabelPrefix}{b.id}</div>
+              <div className="text-xs text-muted-foreground font-mono uppercase tracking-widest">{b.status}</div>
+            </div>
+            <div className="mt-2 grid gap-1 text-xs text-muted-foreground font-mono">
+              <div>{bookingsTokens.copy.sidebar.propertyLabel}{b.propertyId}</div>
+              <div>{b.checkInDate} → {b.checkOutDate}</div>
+              <div>{bookingsTokens.copy.sidebar.totalLabel}{b.totalPrice} {b.currency}</div>
+            </div>
           </div>
-          <div className="mt-2 grid gap-1 text-xs text-muted-foreground font-mono">
-            <div>{bookingsTokens.copy.sidebar.propertyLabel}{b.propertyId}</div>
-            <div>{b.checkInDate} → {b.checkOutDate}</div>
-            <div>{bookingsTokens.copy.sidebar.totalLabel}{b.totalPrice} {b.currency}</div>
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
