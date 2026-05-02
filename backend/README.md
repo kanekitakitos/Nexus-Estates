@@ -16,6 +16,49 @@ O projeto é um **Maven Multi-Module Project**.
 | **`finance-service`** | `:8085` | Pagamentos (Stripe), Webhooks assinados e idempotência. | `finance_db` |
 | **`common-library`** | *N/A* | Código partilhado (DTOs, Eventos, Exceções). | *N/A* |
 
+---
+
+## ✅ Pré-requisitos (Backend)
+* **Java 23**
+* **Docker Desktop** (para Postgres/RabbitMQ em DEV) ou para correr tudo em deploy
+
+---
+
+## 🚀 Como correr o Backend (2 modos)
+
+### Modo A — Deploy/Apresentação (backend dentro de Docker)
+
+Este modo é o mais simples para “subir tudo” (inclui frontend e infraestrutura):
+
+```bash
+docker compose -f ../infrastructure/docker-compose.deploy.yml up -d --build
+```
+
+* Gateway: `http://localhost:8080`
+* Swagger via Gateway: `http://localhost:8080/swagger-ui.html`
+
+Notas:
+* Os microserviços comunicam entre si por DNS interno do Docker (`http://<nome-do-serviço>:<porta>`).
+* As variáveis de ambiente já estão preparadas em `../infrastructure/env/*.env` (um ficheiro por serviço).
+
+---
+
+### Modo B — DEV (infra em Docker + serviços Spring Boot localmente)
+
+1. Levantar Postgres + RabbitMQ:
+```bash
+docker compose -f ../infrastructure/docker-compose.yml up -d
+```
+
+2. Executar serviços:
+* IntelliJ (recomendado): abre `./backend` e inicia cada serviço (começa pelo `api-gateway`).
+* Terminal (na pasta `backend`):
+```bash
+mvn -pl api-gateway -am spring-boot:run
+```
+
+Repete o comando trocando o módulo (`booking-service`, `property-service`, etc.) conforme necessário.
+
 ## 💳 Pagamentos (finance-service)
 
 O processamento de pagamentos é isolado no **`finance-service`**, mantendo o `booking-service` focado em domínio de reservas.
@@ -52,7 +95,7 @@ Implementamos o padrão **Saga Coreografada** para garantir a consistência even
 Certifica-te que as bases de dados e o broker estão ativos:
 ```bash
 cd ../infrastructure
-docker-compose up -d
+docker compose -f docker-compose.yml up -d
 ```
 
 ### Passo 2: Executar os Serviços

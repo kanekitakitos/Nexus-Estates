@@ -9,6 +9,49 @@ A interface de utilizador moderna, elegante e reativa do Nexus Estates. Constru�
 * **Estilos:** [Tailwind CSS 4.0](https://tailwindcss.com/)
 * **Runtime & Package Manager:** [Bun](https://bun.sh/) (Obrigatório)
 
+---
+
+## ✅ Pré-requisitos (Frontend)
+* **Bun**
+* (Opcional em DEV) **Docker Desktop** (se quiseres levantar o backend/infra via containers)
+
+---
+
+## 🚀 Como correr o Frontend (2 modos)
+
+### Modo A — Deploy/Apresentação (frontend dentro de Docker)
+
+O modo mais simples para professores: levanta tudo (frontend + gateway + microserviços + BD + RabbitMQ).
+
+```bash
+docker compose -f ../infrastructure/docker-compose.deploy.yml up -d --build
+```
+
+Acessos:
+* UI: `http://localhost:3000`
+* API (via Gateway): `http://localhost:8080/api`
+
+Notas:
+* O `NEXT_PUBLIC_API_URL` é injectado no build do container do frontend via `docker-compose.deploy.yml`.
+
+---
+
+### Modo B — DEV (frontend local + backend/infra à escolha)
+
+1. Instalar dependências:
+```bash
+bun install
+```
+
+2. Correr em modo desenvolvimento:
+```bash
+bun dev
+```
+
+O frontend fica em `http://localhost:3000`.
+
+Se o backend estiver a correr localmente (via IntelliJ) ou via gateway em Docker, aponta sempre para o gateway (`http://localhost:8080`).
+
 ## 📂 Estrutura do Projeto (Feature-First)
 
 Utilizamos uma arquitetura orientada a funcionalidades para facilitar a manutenção e escalabilidade.
