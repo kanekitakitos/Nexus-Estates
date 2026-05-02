@@ -169,466 +169,55 @@ O \texttt{sync-service} aplica Resilience4j em chamadas externas (evita cascatas
   \item Fluxos tipo Saga (coreografada) para consistência eventual entre serviços.
 \end{itemize}
 
-\section{Testes (backend) — detalhado por módulo}
-Os testes unitários e de integração estão organizados por microserviço em \texttt{<module>/src/test/java}. Para facilitar a correção e auditoria, existe também um índice humano em \texttt{<module>/TESTS.md}.
+\section{Testes (backend)}
+Os testes do backend estão por microserviço em \texttt{<module>/src/test/java}. Para ver a lista completa (com nomes de testes), consulta \texttt{<module>/TESTS.md}.
 
 \subsection{api-gateway}
-\textbf{Classe \texttt{AuthenticationFilterTest}}
 \begin{itemize}[nosep]
-  \item \texttt{shouldPassThroughWhenRouteIsNotSecured}: Verifica que pedidos para rotas públicas passam pelo filter sem validar JWT e que a chain é executada.
-  \item \texttt{shouldThrowExceptionWhenAuthHeaderIsMissingForSecuredRoute}: Verifica que rotas seguras sem header Authorization causam RuntimeException.
-  \item \texttt{shouldValidateTokenWhenAuthHeaderIsPresent}: Verifica que, com Bearer token presente, o token é validado e a request segue na chain.
-\end{itemize}
-
-\textbf{Classe \texttt{RouteValidatorTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldReturnTrueForOpenEndpoints}: Verifica que o endpoint de login é considerado público (\texttt{isSecured == false}).
-  \item \texttt{shouldReturnTrueForSecuredEndpoints}: Verifica que um endpoint protegido (ex.: \texttt{/api/bookings}) é considerado seguro (\texttt{isSecured == true}).
-\end{itemize}
-
-\textbf{Classe \texttt{JwtUtilTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldValidateValidToken}: Verifica que um token JWT assinado com a secret configurada é validado sem lançar exceção.
-  \item \texttt{shouldThrowExceptionForInvalidToken}: Verifica que um token inválido lança exceção durante a validação.
+  \item \textbf{Filtros e segurança}: validações do JWT, rotas públicas vs protegidas e regras de segurança do gateway.
+  \item \textbf{Principais classes}: \texttt{AuthenticationFilterTest}, \texttt{RouteValidatorTest}, \texttt{JwtUtilTest}.
 \end{itemize}
 
 \subsection{booking-service}
-\textbf{Classe \texttt{BookingControllerTest}}
 \begin{itemize}[nosep]
-  \item \texttt{shouldCreateBookingSuccessfully}: Verifica que o \texttt{POST /api/bookings} cria uma reserva com sucesso e devolve 201 com id e status \texttt{PENDING\_PAYMENT}.
-  \item \texttt{shouldReturn400BadRequestWhenInputIsInvalid}: Verifica que payload inválido (datas/guestCount/userId) devolve 400 e corpo de erro.
-  \item \texttt{shouldReturn409ConflictWhenDatesOverlap}: Verifica que, quando o \texttt{BookingService} lança \texttt{BookingConflictException}, o controller devolve 409 e a mensagem.
-  \item \texttt{shouldReturnBookingWhenIdExists}: Verifica que \texttt{GET /api/bookings/\{id\}} devolve 200 e os dados quando a reserva existe.
-  \item \texttt{shouldReturnBookingsByProperty}: Verifica que \texttt{GET /api/bookings/property/\{propertyId\}} devolve lista com \texttt{propertyId} correto.
-  \item \texttt{shouldReturnEmptyListForProperty}: Verifica que \texttt{GET /api/bookings/property/\{propertyId\}} devolve lista vazia quando não há reservas.
-  \item \texttt{shouldReturnBookingsByUser}: Verifica que \texttt{GET /api/bookings/user/\{userId\}} devolve lista com \texttt{userId} correto.
-\end{itemize}
-
-\textbf{Classe \texttt{BookingEventPublisherTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldPublishBookingCreatedEvent}: Verifica que o publisher envia \texttt{BookingCreatedMessage} para o exchange e routing key configurados.
-  \item \texttt{shouldHandleStatusUpdatedEventAndUpdateBooking}: Verifica que, ao receber \texttt{BookingStatusUpdatedMessage}, o booking é carregado e guardado após atualização.
-\end{itemize}
-
-\textbf{Classe \texttt{BookingEventPublisherExtendedTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldPublishBookingUpdatedEventSuccessfully}: Verifica que \texttt{publishBookingUpdated} envia \texttt{BookingUpdatedMessage} com routing key \texttt{booking.updated}.
-  \item \texttt{shouldPublishBookingCancelledEventSuccessfully}: Verifica que \texttt{publishBookingCancelled} envia \texttt{BookingCancelledMessage} com routing key \texttt{booking.cancelled}.
-  \item \texttt{shouldHandleStatusUpdatedEventAndUpdateBooking}: Verifica que \texttt{handleStatusUpdated} altera o status do booking e persiste no repositório.
-  \item \texttt{shouldHandleEventWhenBookingNotFound}: Verifica que, se o booking não existir, o evento não tenta guardar alterações (\texttt{never save}).
-  \item \texttt{shouldHandleRabbitTemplateExceptionGracefully}: Verifica que uma falha do \texttt{RabbitTemplate} em \texttt{convertAndSend} é propagada e que o envio foi tentado.
-  \item \texttt{shouldPublishEventWithDifferentRoutingKeys}: Verifica publicação com exchange/routing key diferentes quando configurado.
-\end{itemize}
-
-\textbf{Classe \texttt{CalendarBlockConsumerTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldCreateBlockWhenNoOverlap}: Verifica que \texttt{CalendarBlockMessage} cria bloqueio quando não existe booking sobreposto (\texttt{save} é chamado).
-  \item \texttt{shouldNotCreateBlockWhenOverlap}: Verifica que \texttt{CalendarBlockMessage} não cria bloqueio quando existe booking sobreposto (\texttt{save} não é chamado).
-\end{itemize}
-
-\textbf{Classe \texttt{BookingRepositoryTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldReturnTrueWhenBookingOverlaps}: Verifica que \texttt{existsOverlappingBooking} devolve true para múltiplos cenários de overlap.
-  \item \texttt{shouldReturnFalseWhenNoOverlap}: Verifica que \texttt{existsOverlappingBooking} devolve false quando o intervalo não sobrepõe a reserva existente.
-\end{itemize}
-
-\textbf{Classe \texttt{BookingPaymentServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldCreatePaymentIntentSuccessfully}: Verifica que \texttt{createPaymentIntent} cria intent via \texttt{FinanceClient} e devolve \texttt{PaymentResponse} válido.
-  \item \texttt{shouldThrowExceptionWhenCreatingPaymentIntentForConfirmedBooking}: Verifica que \texttt{createPaymentIntent} falha para booking \texttt{CONFIRMED} e não chama \texttt{FinanceClient}.
-  \item \texttt{shouldThrowExceptionWhenCreatingPaymentIntentForCancelledBooking}: Verifica que \texttt{createPaymentIntent} falha para booking \texttt{CANCELLED} e não chama \texttt{FinanceClient}.
-  \item \texttt{shouldConfirmPaymentSuccessfully}: Verifica que \texttt{confirmPayment} delega ao \texttt{FinanceClient} e devolve status \texttt{SUCCEEDED}.
-  \item \texttt{shouldProcessDirectPaymentSuccessfully}: Verifica que \texttt{processDirectPayment} delega ao \texttt{FinanceClient} e devolve status \texttt{SUCCEEDED}.
-  \item \texttt{shouldProcessRefundSuccessfully}: Verifica que \texttt{processRefund} para booking \texttt{CONFIRMED} cria reembolso via \texttt{FinanceClient} e publica \texttt{BookingCancelledMessage}.
-  \item \texttt{shouldThrowExceptionWhenProcessingRefundForNonConfirmedBooking}: Verifica que \texttt{processRefund} falha quando o booking não está \texttt{CONFIRMED} e não chama \texttt{FinanceClient}.
-  \item \texttt{shouldGetTransactionDetailsSuccessfully}: Verifica que \texttt{getTransactionDetails} devolve \texttt{TransactionInfo} com \texttt{transactionId} esperado.
-  \item \texttt{shouldThrowExceptionWhenTransactionNotFound}: Verifica que \texttt{getTransactionDetails} converte erro do \texttt{FinanceClient} em \texttt{PaymentNotFoundException}.
-  \item \texttt{shouldGetPaymentStatusSuccessfully}: Verifica que \texttt{getPaymentStatus} devolve o status retornado pelo \texttt{FinanceClient}.
-  \item \texttt{shouldCheckIfPaymentMethodIsSupported}: Verifica que \texttt{supportsPaymentMethod} interpreta o mapa de retorno do \texttt{FinanceClient} para boolean.
-  \item \texttt{shouldGetProviderInfoSuccessfully}: Verifica que \texttt{getProviderInfo} devolve \texttt{ProviderInfo} retornado pelo \texttt{FinanceClient}.
-\end{itemize}
-
-\textbf{Classe \texttt{BookingServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{createBooking\_ShouldThrowRuleViolation\_WhenNightsLessThanMin}: Verifica \texttt{RuleViolationException} quando o quote indica mínimo de noites não cumprido.
-  \item \texttt{createBooking\_ShouldThrowRuleViolation\_WhenNightsMoreThanMax}: Verifica \texttt{RuleViolationException} quando o quote indica máximo de noites excedido.
-  \item \texttt{createBooking\_ShouldThrowRuleViolation\_WhenLeadTimeNotMet}: Verifica \texttt{RuleViolationException} quando o quote indica lead time não cumprido.
-  \item \texttt{createBooking\_ShouldSucceed\_WhenRulesAreMet}: Verifica que cria booking, persiste e publica evento quando quote é válido e não há overlap.
-\end{itemize}
-
-\textbf{Classe \texttt{BookingServiceIntegrationTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldCreateBookingInIntegratedFlow}: Verifica fluxo integrado (mocks de Proxy/clients): quote válido, sem overlap, reserva criada e evento publicado.
-\end{itemize}
-
-\textbf{Classe \texttt{PaymentExceptionsTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldCreatePaymentProcessingExceptionWithMessage}: Construção de \texttt{PaymentProcessingException} com mensagem e sem causa.
-  \item \texttt{shouldCreatePaymentProcessingExceptionWithMessageAndCause}: Construção de \texttt{PaymentProcessingException} com mensagem e causa.
-  \item \texttt{shouldCreatePaymentNotFoundExceptionWithMessage}: Construção de \texttt{PaymentNotFoundException} com mensagem e sem causa.
-  \item \texttt{shouldCreatePaymentNotFoundExceptionWithMessageAndCause}: Construção de \texttt{PaymentNotFoundException} com mensagem e causa.
-  \item \texttt{shouldCreateInvalidRefundExceptionWithMessage}: Construção de \texttt{InvalidRefundException} com mensagem e sem causa.
-  \item \texttt{shouldCreateInvalidRefundExceptionWithMessageAndCause}: Construção de \texttt{InvalidRefundException} com mensagem e causa.
-  \item \texttt{shouldCreateInvalidRefundExceptionWithAmountAndReason}: Construção com \texttt{transactionId}, montantes e \texttt{refundReason}.
-  \item \texttt{shouldVerifyExceptionInheritance}: Verifica que as exceções de pagamento herdam de \texttt{RuntimeException}.
-  \item \texttt{shouldVerifyExceptionStackTrace}: Verifica que a stack trace é criada e referencia a classe de teste.
+  \item \textbf{API e validações}: criar reservas, validar payload, conflitos de datas e leituras por utilizador/propriedade.
+  \item \textbf{Domínio}: regras (min/max noites, lead time), overlaps e consistência de estado.
+  \item \textbf{Eventos/RabbitMQ}: publicar e consumir eventos, incluindo bloqueios de calendário.
+  \item \textbf{Pagamentos}: integração com o \texttt{finance-service} via client declarativo.
+  \item \textbf{Principais classes}: \texttt{BookingControllerTest}, \texttt{BookingServiceTest}, \texttt{BookingRepositoryTest}, \texttt{BookingEventPublisherTest}, \texttt{CalendarBlockConsumerTest}, \texttt{BookingPaymentServiceTest}.
 \end{itemize}
 
 \subsection{property-service}
-\textbf{Classe \texttt{AmenityControllerTest}}
 \begin{itemize}[nosep]
-  \item \texttt{shouldCreateAmenityWithSuccess}: \texttt{POST /api/amenities} cria comodidade (CSRF) e devolve 201 com id e \texttt{name.pt}.
-  \item \texttt{shouldReturnBadRequestWhenNameIsNull}: \texttt{POST /api/amenities} devolve 400 quando \texttt{name} é nulo.
-  \item \texttt{shouldListAllAmenities}: \texttt{GET /api/amenities} devolve lista e mantém \texttt{name.pt}.
-  \item \texttt{shouldGetAmenityById}: \texttt{GET /api/amenities/\{id\}} devolve 200 e dados.
-  \item \texttt{shouldUpdateAmenityWithSuccess}: \texttt{PUT /api/amenities/\{id\}} atualiza (CSRF) e devolve 200 com \texttt{name.pt} atualizado.
-  \item \texttt{shouldDeleteAmenityWithNoContent}: \texttt{DELETE /api/amenities/\{id\}} devolve 204 (CSRF).
-\end{itemize}
-
-\textbf{Classe \texttt{PropertyControllerTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldReturnCreatedWhenRequestIsValid}: \texttt{create(CreatePropertyRequest)} devolve 201 e invoca \texttt{PropertyService.create}.
-  \item \texttt{shouldAddAmenityToProperty}: \texttt{addAmenity} devolve 200 e \texttt{ApiResponse.success} após \texttt{PropertyService.addAmenity}.
-  \item \texttt{shouldRemoveAmenityFromProperty}: \texttt{removeAmenity} devolve 200 e \texttt{ApiResponse.success} após \texttt{PropertyService.removeAmenity}.
-  \item \texttt{shouldReturnUploadParameters}: \texttt{getUploadParams} devolve Future com 200 e \texttt{ApiResponse} com parâmetros de upload.
-\end{itemize}
-
-\textbf{Classe \texttt{PropertyControllerNewEndpointsTest}}
-\begin{itemize}[nosep]
-  \item \texttt{listByUser}: \texttt{listByUser} devolve 200 e \texttt{ApiResponse.success} quando \texttt{PropertyService.listByUserWithFilters} retorna Page.
-  \item \texttt{getExpanded}: \texttt{getExpanded} devolve 200 e \texttt{ExpandedPropertyResponse} não nulo.
-  \item \texttt{patch}: \texttt{patch} chama \texttt{PropertyService.updateProperty} e devolve 200.
-  \item \texttt{delete}: \texttt{delete} devolve 204 e invoca \texttt{PropertyService.deleteProperty}.
-  \item \texttt{history}: \texttt{history} devolve 200 e lista de \texttt{PropertyChangeLog}.
-  \item \texttt{documentUploadParams}: devolve 200 e inclui \texttt{context\_property\_id} nos parâmetros.
-\end{itemize}
-
-\textbf{Classe \texttt{AmenityTest}}
-\begin{itemize}[nosep]
-  \item \texttt{testAmenityData}: getters/setters de \texttt{Amenity} para id, name (Map i18n) e category.
-  \item \texttt{testAmenityCategories}: atribuição de diferentes valores do enum \texttt{AmenityCategory}.
-  \item \texttt{testInitialState}: estado inicial (campos nulos) numa \texttt{Amenity} nova.
-\end{itemize}
-
-\textbf{Classe \texttt{PropertyTest}}
-\begin{itemize}[nosep]
-  \item \texttt{testPropertyData}: getters/setters de \texttt{Property} para id, name, description(Map), location, city, address, basePrice, maxGuests e isActive.
-\end{itemize}
-
-\textbf{Classe \texttt{PropertyPermissionTest}}
-\begin{itemize}[nosep]
-  \item \texttt{testPropertyPermissionData}: getters/setters de \texttt{PropertyPermission} para id, propertyId, userId e accessLevel.
-  \item \texttt{testConstructorAndNulls}: estado inicial (campos nulos) numa \texttt{PropertyPermission} nova.
-\end{itemize}
-
-\textbf{Classe \texttt{SeasonalityRuleTest}}
-\begin{itemize}[nosep]
-  \item \texttt{isActiveOn\_ShouldReturnTrue\_WhenDateIsWithinRange}: \texttt{isActiveOn} devolve true para datas dentro do intervalo.
-  \item \texttt{isActiveOn\_ShouldReturnFalse\_WhenDateIsOutsideRange}: \texttt{isActiveOn} devolve false para datas fora do intervalo.
-  \item \texttt{isActiveOn\_ShouldCheckDayOfWeek\_WhenSpecified}: \texttt{isActiveOn} respeita \texttt{DayOfWeek} quando configurado.
-  \item \texttt{matchesChannel\_ShouldReturnTrue\_WhenChannelMatches}: \texttt{matchesChannel} devolve true quando canal coincide (case-insensitive).
-  \item \texttt{matchesChannel\_ShouldReturnTrue\_WhenRuleHasNoChannel}: \texttt{matchesChannel} devolve true quando regra não tem canal.
-  \item \texttt{validateDateRange\_ShouldThrowException\_WhenRangeIsInvalid}: validação lança exceção quando \texttt{endDate} é anterior a \texttt{startDate}.
-\end{itemize}
-
-\textbf{Classe \texttt{AmenityServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldCreateAmenityWithSuccess}: \texttt{AmenityService.create} persiste e mantém traduções (pt/en).
-  \item \texttt{shouldFindAllAmenities}: \texttt{AmenityService.findAll} devolve lista e preserva traduções.
-  \item \texttt{shouldFindAmenityByIdWithSuccess}: \texttt{AmenityService.findById} devolve a entidade quando existe.
-  \item \texttt{shouldThrowAmenityNotFoundExceptionWhenIdDoesNotExist}: \texttt{findById} lança \texttt{AmenityNotFoundException} para ID inexistente.
-\end{itemize}
-
-\textbf{Classe \texttt{CloudinaryServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldGenerateRequiredParameters}: gera signature, timestamp, api\_key e configs (cloud\_name, folder) no mapa de upload.
-  \item \texttt{shouldSetCorrectExpiration}: \texttt{expires\_at - timestamp} é 900 segundos (15 minutos).
-\end{itemize}
-
-\textbf{Classe \texttt{PermissionServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldCreatePermissionWithSuccess}: \texttt{PermissionService.create} persiste e devolve permissão com id.
-  \item \texttt{shouldFindAllPermissions}: \texttt{PermissionService.findAll} devolve lista.
-  \item \texttt{shouldFindPermissionById}: \texttt{PermissionService.findById} devolve permissão quando existe.
-  \item \texttt{shouldThrowExceptionWhenPermissionNotFound}: \texttt{findById} lança RuntimeException quando não existe.
-  \item \texttt{shouldDeletePermission}: \texttt{PermissionService.delete} invoca \texttt{deleteById}.
-\end{itemize}
-
-\textbf{Classe \texttt{PropertyRuleServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{getRules\_ShouldReturnRules\_WhenPropertyExistsAndHasRules}: devolve regras configuradas quando propriedade tem \texttt{PropertyRule}.
-  \item \texttt{getRules\_ShouldReturnDefaultRules\_WhenPropertyExistsButHasNoRules}: devolve defaults quando não há regras.
-  \item \texttt{getRules\_ShouldThrowException\_WhenPropertyDoesNotExist}: lança \texttt{PropertyNotFoundException} quando propriedade não existe.
-  \item \texttt{updateRules\_ShouldUpdateExistingRules}: atualiza regras existentes e persiste via \texttt{PropertyRuleRepository}.
-  \item \texttt{updateRules\_ShouldCreateNewRules\_WhenNoneExist}: cria regras novas quando não existiam e persiste.
-\end{itemize}
-
-\textbf{Classe \texttt{PropertyServiceNewTest}}
-\begin{itemize}[nosep]
-  \item \texttt{updateInvalidPrice}: \texttt{updateProperty} lança \texttt{IllegalArgumentException} quando \texttt{basePrice} é inválido (zero).
-  \item \texttt{validUpdate}: \texttt{updateProperty} altera campos e grava change logs.
-\end{itemize}
-
-\textbf{Classe \texttt{PropertyServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldCreatePropertyWithSuccess}: cria propriedade, associa amenities e cria regra default (\texttt{PropertyRule}).
-  \item \texttt{validateAndQuote\_ShouldFail\_WhenCheckInDayNotAllowedByOverride}: quote inválido quando check-in cai em dia não permitido pelo \texttt{RuleOverride}.
-  \item \texttt{validateAndQuote\_ShouldApplyStrictMinNightsFromOverride}: aplica \texttt{minNights} mais estrito entre base e override ativo.
-  \item \texttt{addRuleOverride\_ShouldSaveSuccessfully}: persiste override via \texttt{RuleOverrideRepository}.
-  \item \texttt{shouldCalculatePriceWithoutRules}: calcula preço base sem sazonalidade (ex.: 3 noites * 100.00).
-  \item \texttt{shouldPrioritizeChannelRuleOverDateRule}: prioriza regra de canal sobre regra de data quando \texttt{channel} é fornecido.
+  \item \textbf{CRUD e endpoints}: propriedades e amenities (criar/listar/editar/apagar), endpoints expandidos e histórico.
+  \item \textbf{Regras e preços}: regras base, sazonalidade e cotações (quote).
+  \item \textbf{Permissões}: ACL por níveis (PRIMARY\_OWNER/MANAGER/STAFF) e validações.
+  \item \textbf{Upload}: parâmetros de upload e integração com Cloudinary.
+  \item \textbf{Auditoria}: ActorContext e Envers.
 \end{itemize}
 
 \subsection{sync-service}
-\textbf{Classe \texttt{ExternalApiClientConfigTest}}
 \begin{itemize}[nosep]
-  \item \texttt{shouldCreateRestClientWithDynamicConfig}: factory cria \texttt{RestClient} válido com URL base e headers personalizados.
-  \item \texttt{shouldCreateRestClientWithDefaultUrl}: factory cria \texttt{RestClient} válido sem parâmetros específicos.
-\end{itemize}
-
-\textbf{Classe \texttt{RabbitMQConfigTest}}
-\begin{itemize}[nosep]
-  \item \texttt{bookingCreatedQueueHasDlqConfigured}: booking.created.queue é durável e tem DLQ configurada.
-  \item \texttt{bookingStatusUpdatedQueueHasDlqConfigured}: booking.status.updated.queue aponta para DLQ correta.
-  \item \texttt{bookingDeadLetterExchangeHasConfiguredName}: dead-letter exchange usa o nome configurado via \texttt{@Value}.
-\end{itemize}
-
-\textbf{Classe \texttt{DlqAdminControllerTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldDrainBookingCreatedDlq}: drena mensagens da \texttt{booking.created.dlq} e devolve lista drenada.
-  \item \texttt{shouldDrainBookingStatusUpdatedDlq}: drena mensagens da \texttt{booking.status.updated.dlq} e devolve lista drenada.
-\end{itemize}
-
-\textbf{Classe \texttt{IcsAdminControllerTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldParseRawIcs}: \texttt{parseRaw} devolve 200 e lista de \texttt{SyncBlockDTO} para ICS válido.
-  \item \texttt{shouldParseMultipartIcs}: \texttt{parseFile} devolve 200 e lista de \texttt{SyncBlockDTO} para multipart válido.
-  \item \texttt{shouldApplyBlocksFromRaw}: \texttt{applyRaw} publica \texttt{CalendarBlockMessage} para cada bloco e devolve 200.
-  \item \texttt{shouldApplyBlocksFromFile}: \texttt{applyFile} publica \texttt{CalendarBlockMessage} para cada bloco via ficheiro e devolve 200.
-\end{itemize}
-
-\textbf{Classe \texttt{PropertyEventListenerTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldCallEmailServiceOnMessage}: ao receber evento de property criada, chama \texttt{EmailService.sendEmailFromTemplate}.
-\end{itemize}
-
-\textbf{Classe \texttt{SyncConsumerTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldProcessBookingCreatedAndPublishStatusUpdated}: consome \texttt{BookingCreatedMessage}, chama \texttt{BookingSyncService.syncBooking} e publica \texttt{BookingStatusUpdatedMessage}.
-\end{itemize}
-
-\textbf{Classe \texttt{BookingSyncServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldReturnConfirmedWhenExternalApproves}: devolve \texttt{CONFIRMED} quando conector externo aprova.
-  \item \texttt{shouldReturnCancelledWhenExternalRejects}: devolve \texttt{CANCELLED} quando rejeita e mantém reason.
-  \item \texttt{shouldReturnCancelledWhenIntegrationFails}: devolve \texttt{CANCELLED} com fallback quando integração falha.
-\end{itemize}
-
-\textbf{Classe \texttt{EmailServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldProcessTemplateAndSendEmailAndLogSuccess}: processa template, envia email e persiste \texttt{EmailLog} com \texttt{SUCCESS}.
-  \item \texttt{shouldLogFailureWhenEmailSendingFails}: captura exceção e persiste \texttt{EmailLog} com \texttt{FAILED}.
-\end{itemize}
-
-\textbf{Classe \texttt{ExternalAuthServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldApplyBearerAuth}: aplica \texttt{Authorization: Bearer <token>} quando \texttt{authType=BEARER}.
-  \item \texttt{shouldApplyBasicAuth}: aplica \texttt{Authorization: Basic <base64>} quando \texttt{authType=BASIC}.
-  \item \texttt{shouldApplyApiKey}: aplica \texttt{X-API-Key} quando \texttt{authType=API\_KEY}.
-  \item \texttt{shouldApplyCustomHeaders}: aplica headers customizados quando fornecidos.
-\end{itemize}
-
-\textbf{Classe \texttt{ExternalSyncServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldReturnOptionalWithResponseOnSuccess}: \texttt{post} retorna Optional presente e chama \texttt{authService.applyAuthentication}.
-  \item \texttt{shouldReturnTrueOnPostWithoutResponseSuccess}: \texttt{postWithoutResponse} retorna true e chama \texttt{authService.applyAuthentication}.
-\end{itemize}
-
-\textbf{Classe \texttt{ExternalSyncServiceIT}}
-\begin{itemize}[nosep]
-  \item \texttt{confirmedWhenExternalApproves}: integração com \texttt{MockWebServer} retorna \texttt{CONFIRMED} quando API externa aprova.
-  \item \texttt{emptyOptionalOnServerError}: retorna Optional.empty em erros HTTP 500 repetidos.
-  \item \texttt{circuitBreakerOpensAfterFailures}: após falhas consecutivas, o CircuitBreaker \texttt{externalApi} entra em estado \texttt{OPEN}.
-\end{itemize}
-
-\textbf{Classe \texttt{IcsCalendarParserServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldParseUtcEvents}: parsing de eventos UTC (sufixo Z) e mapeamento \texttt{startUtc/endUtc}.
-  \item \texttt{shouldConvertTimezonedEventsToUtc}: conversão de eventos com TZID para UTC.
-  \item \texttt{shouldHandleAllDayEventsAsUtcMidnightBounds}: eventos all-day viram limites UTC à meia-noite.
-  \item \texttt{shouldIgnoreEventsMissingDates}: eventos sem DTSTART/DTEND são ignorados.
-  \item \texttt{shouldThrowForInvalidIcs}: conteúdo inválido lança \texttt{IllegalArgumentException}.
-  \item \texttt{shouldHandleFloatingEventsUsingDefaultTimezone}: eventos floating usam timezone por omissão.
-\end{itemize}
-
-\textbf{Classe \texttt{SyncMessageControllerTest}}
-\begin{itemize}[nosep]
-  \item \texttt{handleWebhook\_ShouldReturnOk\_WhenSignatureIsValid}: webhooks do Ably retornam 200 com HMAC válido.
-  \item \texttt{handleWebhook\_ShouldReturnUnauthorized\_WhenSignatureIsInvalid}: rejeita 401 quando assinatura é inválida.
-\end{itemize}
-
-\textbf{Classe \texttt{AblyWebhookServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{processPayload\_ShouldExtractBookingId\_AndDelegateToMessageService}: extrai bookingId e delega ao \texttt{MessageService}.
-  \item \texttt{processPayload\_ShouldIgnore\_WhenChannelIsInvalid}: ignora canais inválidos sem bloquear o fluxo.
-\end{itemize}
-
-\textbf{Classe \texttt{MessageServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{handleNewIncomingMessage\_ShouldSaveAndNotifyRecipient}: persiste e notifica de acordo com preferências do utilizador.
-\end{itemize}
-
-\textbf{Classe \texttt{WebhookSubscriptionControllerTest}}
-\begin{itemize}[nosep]
-  \item \texttt{create\_ShouldReturnCreatedResponse\_WhenValidRequest}: cria subscrição e expõe secret apenas uma vez.
-  \item \texttt{list\_ShouldReturnListOfSubscriptions}: lista sem expor secret e respeita tenancy.
-  \item \texttt{delete\_ShouldReturnSuccess}: elimina delegando para \texttt{WebhookSubscriptionService}.
-\end{itemize}
-
-\textbf{Classe \texttt{WebhookSubscriptionServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{createSubscription\_ShouldSaveEntityAndReturnSecret}: gera secret, converte eventos e persiste.
-  \item \texttt{deleteSubscription\_ShouldDelete\_WhenUserIsOwner}: valida tenancy na eliminação.
-  \item \texttt{toggleSubscription\_ShouldThrowException\_WhenUserIsNotOwner}: lança exceção quando utilizador não é dono.
-\end{itemize}
-
-\textbf{Classe \texttt{WebhookDispatcherServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{dispatch\_ShouldSerializeSignAndSendPayload\_WhenSubscriptionExists}: serializa JSON, assina HMAC-SHA256 e faz POST.
-  \item \texttt{dispatch\_ShouldNotSendAnything\_WhenNoActiveSubscriptionsExist}: não faz chamadas HTTP se não houver webhooks ativos.
-\end{itemize}
-
-\textbf{Classe \texttt{WebhookEventListenerTest}}
-\begin{itemize}[nosep]
-  \item \texttt{onBookingCreated\_ShouldDispatchEvent}: converte mensagem RabbitMQ em despacho \texttt{booking.created}.
-  \item \texttt{onBookingStatusUpdated\_ShouldDispatchEvent}: converte mensagem RabbitMQ em despacho \texttt{booking.status.updated}.
+  \item \textbf{Config e filas}: bindings RabbitMQ + DLQ e testes de configuração.
+  \item \textbf{Integração externa}: cliente HTTP, autenticação externa e resiliência (inclui testes de integração).
+  \item \textbf{Ferramentas admin}: endpoints para DLQ e parsing/apply de ICS.
+  \item \textbf{Webhooks e chat}: validações de assinatura, dispatch de webhooks e persistência/notificações.
 \end{itemize}
 
 \subsection{finance-service}
-\textbf{Classe \texttt{FinancePaymentServiceTest}}
 \begin{itemize}[nosep]
-  \item \texttt{confirmPayment\_whenSuccess\_notifiesBookingAndEnsuresInvoice}: confirma intent, persiste \texttt{Payment}, notifica Booking e garante emissão de \texttt{Invoice}.
-  \item \texttt{createPaymentIntent\_persistsPaymentRecord}: cria intent e persiste \texttt{Payment} com bookingId/provider/paymentIntentId/status.
-\end{itemize}
-
-\textbf{Classe \texttt{StripeWebhookServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{handleStripeWebhook\_whenDuplicateEvent\_doesNotProcessFurther}: idempotência para evento duplicado; não processa nem emite invoice.
-  \item \texttt{handleStripeWebhook\_whenSignatureInvalid\_throwsPaymentProcessingException}: assinatura inválida lança exceção e não persiste \texttt{ProcessedEvent}.
-\end{itemize}
-
-\textbf{Classe \texttt{InvoiceOrchestratorTest}}
-\begin{itemize}[nosep]
-  \item \texttt{ensureInvoiceForPayment\_createsPendingInvoiceWhenMissing\_andIssuesWhenProviderEnabled}: cria invoice PENDING e emite quando provider está ativo.
-  \item \texttt{ensureInvoiceForPayment\_createsPendingInvoiceAndDoesNotIssueWhenProviderNone}: cria invoice PENDING e não emite quando provider é NONE.
+  \item \textbf{Pagamentos}: criação/confirmação e persistência de pagamentos.
+  \item \textbf{Webhooks Stripe}: validação de assinatura e idempotência.
+  \item \textbf{Faturação}: orquestração de invoice e estratégias (mock/moloni/noop).
 \end{itemize}
 
 \subsection{user-service}
-\textbf{Classe \texttt{ExternalIntegrationControllerTest}}
 \begin{itemize}[nosep]
-  \item \texttt{shouldCreateIntegrationAsOwner}: \texttt{POST /api/users/integrations} cria integração para OWNER e devolve \texttt{apiKeyMasked}.
-  \item \texttt{shouldForbidPostAsGuest}: GUEST recebe 403 no \texttt{POST /api/users/integrations}.
-  \item \texttt{shouldListIntegrations}: \texttt{GET /api/users/integrations} devolve lista com \texttt{apiKeyMasked}.
-  \item \texttt{shouldDeleteIntegration}: \texttt{DELETE /api/users/integrations/\{id\}} devolve 200 e \texttt{success=true}.
-\end{itemize}
-
-\textbf{Classe \texttt{PasswordResetControllerTest}}
-\begin{itemize}[nosep]
-  \item \texttt{forgotPassword\_ShouldReturnOk\_WhenEmailIsValid}: POST devolve 200 OK e mensagem genérica (sem enumeração de emails).
-  \item \texttt{resetPassword\_ShouldReturnOk\_WhenTokenIsValid}: reset com token válido devolve 200 OK.
-\end{itemize}
-
-\textbf{Classe \texttt{UserControllerTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldReturnListWhenAdmin}: ADMIN pode listar \texttt{/api/users}.
-  \item \texttt{shouldReturnForbiddenWhenGuestListsUsers}: GUEST recebe 403 ao listar utilizadores.
-  \item \texttt{shouldCreateUserWhenAdmin}: ADMIN cria utilizador e password é codificada.
-  \item \texttt{shouldReturnForbiddenWhenOwnerCreatesUser}: OWNER recebe 403 ao criar utilizador.
-  \item \texttt{shouldReturnUserByIdWhenOwner}: OWNER obtém \texttt{/api/users/\{id\}} com 200 quando existe.
-  \item \texttt{shouldReturnForbiddenWhenGuestRequestsUserById}: GUEST recebe 403 ao pedir \texttt{/api/users/\{id\}}.
-\end{itemize}
-
-\textbf{Classe \texttt{JwtAuthenticationFilterTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldSkipWhenAuthorizationHeaderMissing}: ignora autenticação quando Authorization está ausente e continua a chain.
-  \item \texttt{shouldSetAuthenticationOnValidToken}: com Bearer token válido, define \texttt{Authentication} no \texttt{SecurityContext}.
-  \item \texttt{shouldPrioritizeXUserRoleHeader}: \texttt{X-User-Role} tem prioridade sobre role em base de dados.
-  \item \texttt{shouldContinueChainOnInvalidToken}: token inválido não autentica e continua a chain.
-  \item \texttt{shouldAuthenticateUsingGatewayHeadersWhenAuthorizationMissing}: autentica via headers do Gateway sem chamar \texttt{JwtService} quando Authorization falta.
-\end{itemize}
-
-\textbf{Classe \texttt{EncryptedStringAttributeConverterTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldConvertAndRecover}: encripta ao persistir e desencripta ao ler.
-\end{itemize}
-
-\textbf{Classe \texttt{AuthServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldRegisterWithDefaultOwnerRoleAndReturnToken}: registo cria OWNER por defeito e devolve token.
-  \item \texttt{shouldFailRegisterWhenEmailExists}: falha com \texttt{EmailAlreadyRegisteredException} sem persistir.
-  \item \texttt{shouldLoginSuccessfullyAndReturnToken}: login válido devolve token e dados.
-  \item \texttt{shouldFailLoginWhenWrongPassword}: login inválido falha com \texttt{InvalidCredentialsException}.
-\end{itemize}
-
-\textbf{Classe \texttt{JwtServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldGenerateTokenWithClaims}: token inclui subject e claims (role, userId) extraíveis.
-  \item \texttt{shouldValidateTokenForCorrectEmail}: \texttt{isTokenValid} true quando email corresponde.
-  \item \texttt{shouldFailValidationForWrongEmail}: \texttt{isTokenValid} false para email errado.
-  \item \texttt{shouldFailValidationForExpiredToken}: token expirado invalida.
-\end{itemize}
-
-\textbf{Classe \texttt{PasswordResetServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{initiatePasswordReset\_ShouldGenerateToken\_WhenUserExists}: gera token e apaga tokens antigos.
-  \item \texttt{initiatePasswordReset\_ShouldDoNothing\_WhenUserNotFound}: não grava token quando email não existe.
-  \item \texttt{resetPassword\_ShouldUpdatePassword\_WhenTokenIsValid}: atualiza password, persiste e remove token.
-  \item \texttt{resetPassword\_ShouldThrowException\_WhenTokenIsExpired}: lança \texttt{InvalidTokenException} e elimina token expirado.
-  \item \texttt{resetPassword\_ShouldThrowException\_WhenTokenNotFound}: lança \texttt{InvalidTokenException} quando token não existe.
-\end{itemize}
-
-\textbf{Classe \texttt{SecretCryptoServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{shouldEncryptAndDecryptRoundTrip}: round-trip AES-256-GCM.
-  \item \texttt{shouldFailDecryptOnTampering}: adulteração faz decrypt falhar (integridade GCM).
-\end{itemize}
-
-\textbf{Classe \texttt{PasswordResetTokenTest}}
-\begin{itemize}[nosep]
-  \item \texttt{isExpired\_ShouldReturnTrue\_WhenDateIsInPast}: expirado quando \texttt{expiryDate} está no passado.
-  \item \texttt{isExpired\_ShouldReturnFalse\_WhenDateIsInFuture}: não expirado quando \texttt{expiryDate} está no futuro.
-\end{itemize}
-
-\textbf{Classe \texttt{ActorContextFilterTest}}
-\begin{itemize}[nosep]
-  \item \texttt{setsActorContextFromGatewayHeaders}: usa \texttt{X-User-Id} e \texttt{X-User-Email} do Gateway e limpa no fim.
-  \item \texttt{fallsBackToSecurityContextWhenHeadersMissing}: fallback para principal do \texttt{SecurityContextHolder} e limpa no fim.
-\end{itemize}
-
-\textbf{Classe \texttt{UserEnversAuditTest}}
-\begin{itemize}[nosep]
-  \item \texttt{userEntityIsAudited}: entidade \texttt{User} está anotada com \texttt{@Audited}.
-  \item \texttt{revisionEntityIsConfigured}: \texttt{AuditRevisionEntity} está configurada e a tabela chama-se \texttt{revinfo}.
-  \item \texttt{revisionListenerWritesActorIntoRevisionEntity}: listener escreve actorUserId e actorEmail na revisão.
-\end{itemize}
-
-\textbf{Classe \texttt{GuestProfileControllerTest}}
-\begin{itemize}[nosep]
-  \item \texttt{getGuestProfile\_ShouldReturn200\_WhenUserIsAdmin}: ADMIN consegue GET /profile com campos extra.
-  \item \texttt{getGuestProfile\_ShouldReturn200\_WhenUserIsManager}: MANAGER consegue GET /profile.
-  \item \texttt{getGuestProfile\_ShouldReturn403\_WhenUserIsGuest}: GUEST recebe 403 no GET /profile.
-  \item \texttt{updateGuestProfile\_ShouldReturn200\_WhenAuthorized}: ADMIN faz PUT /profile e recebe 200.
-  \item \texttt{patchGuestProfile\_ShouldReturn200\_WhenAuthorized}: MANAGER faz PATCH /profile e recebe 200.
-  \item \texttt{patchGuestProfile\_ShouldReturn403\_WhenUnauthorized}: GUEST recebe 403 no PATCH /profile.
-\end{itemize}
-
-\textbf{Classe \texttt{GuestProfileServiceTest}}
-\begin{itemize}[nosep]
-  \item \texttt{getProfileByUserId\_ShouldReturnProfile\_WhenExists}: devolve response com campos corretos quando existe.
-  \item \texttt{getProfileByUserId\_ShouldThrowException\_WhenProfileNotFound}: lança \texttt{UserNotFoundException} quando não existe.
-  \item \texttt{updateGuestProfile\_ShouldUpdateExistingProfile}: atualiza perfil existente e chama \texttt{save()}.
-  \item \texttt{updateGuestProfile\_ShouldCreateProfile\_WhenNotExists}: upsert: cria novo perfil quando não existe.
-  \item \texttt{patchGuestProfile\_ShouldUpdateOnlyNotes}: patch atualiza só os campos não nulos e preserva tags quando não fornecidas.
+  \item \textbf{Auth}: registo/login e JWT.
+  \item \textbf{Segurança}: filtro JWT, roles e headers do gateway.
+  \item \textbf{Recuperação de password}: controllers e serviço (tokens, expiração, privacidade).
+  \item \textbf{Integrações}: endpoints para integrações externas.
+  \item \textbf{Auditoria}: ActorContext e Envers.
 \end{itemize}
 
 \subsection{Como correr os testes (backend)}
@@ -642,69 +231,13 @@ mvn -pl booking-service -am test
 \end{verbatim}
 
 \section{Testes (frontend) — integração/E2E (Playwright)}
-Os testes de integração do frontend estão em \texttt{frontend/e2e/api} e validam fluxos via API Gateway (\texttt{http://localhost:8080/api} por defeito). A configuração do Playwright permite trocar o alvo via \texttt{E2E\_API\_BASE\_URL} / \texttt{NEXT\_PUBLIC\_API\_URL}.
+Os testes do frontend estão em \texttt{frontend/e2e/api}. Eles testam os fluxos principais via API Gateway (por defeito \texttt{http://localhost:8080/api}).
 
-\subsection{\texttt{auth.spec.ts} — Autenticação, autorização, perfil e webhooks}
 \begin{itemize}[nosep]
-  \item \texttt{registo + login + /users/me}: regista, faz login e valida \texttt{/users/me} autenticado.
-  \item \texttt{/users/me sem token devolve 401}: valida \texttt{401 Unauthorized}.
-  \item \texttt{login inválido devolve 401}: password errada retorna 401.
-  \item \texttt{registo duplicado devolve 409}: valida conflito por email repetido.
-  \item \texttt{autorização: OWNER pode ler /users/\{id\}; GUEST não (403)}: controlo de acesso por role.
-  \item \texttt{autorização: ADMIN lista /users; OWNER é negado (403)}: listagem restrita.
-  \item \texttt{gateway: /finance e /sync sem token devolvem 401}: valida proteção no gateway.
-  \item \texttt{webhook: Ably sem assinatura devolve 400 (com sessão)}: valida requisito de assinatura.
-  \item \texttt{webhook: Ably assinatura inválida devolve 401}: valida rejeição de assinatura errada.
-  \item \texttt{webhook: Stripe sem assinatura devolve 400 (com sessão)}: valida requisito de header \texttt{Stripe-Signature}.
-  \item \texttt{webhook: Stripe assinatura inválida devolve 400}: valida rejeição de assinatura errada.
-  \item \texttt{forgot password (email inexistente) responde 200 (sem enumeração)}: privacidade (não revela existência de conta).
-  \item \texttt{profile: PATCH /users/me (email+phone) devolve token novo e mantém acesso}: atualiza perfil e valida token renovado.
-  \item \texttt{profile: PATCH /users/me não permite email duplicado (409)}: valida integridade de email.
-  \item \texttt{profile: PATCH /users/me valida email/phone (400)}: validações de input.
-  \item \texttt{profile: alterar password autenticado invalida login com password antiga}: valida mudança de password.
-  \item \texttt{profile: alterar password com currentPassword errado devolve 401}: valida credenciais no change password.
-  \item \texttt{profile: integrações (create/list/delete) não expõem apiKey em claro}: assegura masking de secrets.
-  \item \texttt{profile: integrações exige OWNER/ADMIN (GUEST é 403)}: controlo de acesso nas integrações.
-  \item \texttt{profile: integrações é resistente a IDOR (delete por outro user não remove)}: valida isolamento por utilizador.
-  \item \texttt{profile: webhooks (create/list/toggle/delete) secret só aparece no create}: segredo não é re-exposto.
-  \item \texttt{profile: webhooks list não inclui webhooks de outro utilizador}: isolamento por utilizador.
-  \item \texttt{profile: webhooks não permite IDOR (user A não apaga webhook de user B)}: isolamento na remoção.
-  \item \texttt{profile: webhooks não permite toggle por outro utilizador (404)}: isolamento no toggle.
-\end{itemize}
-
-\subsection{\texttt{properties.spec.ts} — Propriedades, regras, sazonalidade e permissões}
-\begin{itemize}[nosep]
-  \item \texttt{search público funciona sem autenticação}: pesquisa pública sem auth.
-  \item \texttt{OWNER: criar → patch → expanded → history → delete}: CRUD completo com endpoints expandidos e histórico.
-  \item \texttt{OWNER: patch atualiza todos os campos e mantém consistência em leituras}: patch completo e consistência entre endpoints.
-  \item \texttt{OWNER: patch parcial não altera campos omitidos}: invariantes de patch parcial.
-  \item \texttt{OWNER: validações no patch (title/basePrice/maxGuests) devolvem 400}: validações de dados.
-  \item \texttt{quote: devolve valid=true e preço para estadia válida}: validação e cálculo de preço.
-  \item \texttt{quote: devolve valid=false quando guestCount excede maxGuests}: validações por regras.
-  \item \texttt{upload params: sem token 401; GUEST 403; OWNER 200}: controlo de acesso aos parâmetros de upload.
-  \item \texttt{documents upload params: sem token 401; GUEST 403; OWNER 200}: upload params de documentos com contexto de propriedade.
-  \item \texttt{GUEST: patch propriedade devolve 403}: autorização por role.
-  \item \texttt{OWNER/MANAGER: confirmar regras, sazonalidade e permissões via endpoints dedicados}: regras, seasonality e ACL via endpoints.
-  \item \texttt{OWNER: /properties/me inclui imageUrl (usado na sidebar)}: contrato de listagem para UI.
-  \item \texttt{ACL: não permite remover/downgrade do último PRIMARY\_OWNER}: invariantes de ACL.
-  \item \texttt{STAFF: pode listar permissões quando tem acesso, mas não pode gerir (403)}: acesso limitado.
-  \item \texttt{Seasonality: validações (endDate < startDate, priceModifier inválido) devolvem 400}: validações de sazonalidade.
-  \item \texttt{Rules PATCH: validações (maxNights < minNights, lead negativo) devolvem 400}: validações de regras.
-\end{itemize}
-
-\subsection{\texttt{bookings.spec.ts} — Reservas, conflitos e bloqueios}
-\begin{itemize}[nosep]
-  \item \texttt{sem token: /bookings/me devolve 401}: endpoint protegido.
-  \item \texttt{criar booking e bloquear overlap (409)}: cria booking e valida conflito por overlap.
-  \item \texttt{validação: datas inválidas devolvem 400}: validação de datas.
-  \item \texttt{validação: guestCount acima de maxGuests devolve 400 (RuleViolation)}: validação por regra.
-  \item \texttt{blocks: criar bloqueio impede booking overlap (409) e aparece em /byProperty}: bloqueios e leituras por propriedade.
-  \item \texttt{/bookings/me devolve as reservas do utilizador autenticado}: listagem por utilizador autenticado.
-\end{itemize}
-
-\subsection{\texttt{amenities.spec.ts} — Amenities (CRUD)}
-\begin{itemize}[nosep]
-  \item \texttt{criar → obter → atualizar → remover}: CRUD completo de amenities (create/get/update/list/delete).
+  \item \texttt{auth.spec.ts}: registo/login, permissões por role, perfil, integrações e webhooks (inclui casos sem token e casos de segurança como IDOR).
+  \item \texttt{properties.spec.ts}: CRUD de propriedades, validações, regras/sazonalidade, permissões (ACL) e endpoints de upload.
+  \item \texttt{bookings.spec.ts}: criar reservas, validar conflitos de datas/overlaps, bloqueios e listagens do utilizador.
+  \item \texttt{amenities.spec.ts}: CRUD de amenities.
 \end{itemize}
 
 \subsection{Como correr testes do frontend}
