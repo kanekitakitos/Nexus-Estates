@@ -2,10 +2,12 @@ package com.nexus.estates.repository;
 
 import com.nexus.estates.entity.Property;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +32,20 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
                     "LEFT JOIN FETCH p.seasonalityRules " +
                     "WHERE p.id = :id")
     Optional<Property> findExpandedById(@Param("id") Long id);
+
+    /**
+     * Carrega uma propriedade sob lock pessimista de escrita.
+     *
+     * <p>Usado em operações de atualização concorrente (ex.: regras, sazonalidade, permissões),
+     * evitando condições de corrida quando múltiplos utilizadores (PRIMARY_OWNER/MANAGER)
+     * alteram o mesmo ativo em paralelo.</p>
+     *
+     * @param id ID da propriedade
+     * @return propriedade, caso exista
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Property p WHERE p.id = :id")
+    Optional<Property> findByIdForUpdate(@Param("id") Long id);
 
     @Query(
             value = "SELECT p FROM Property p " +

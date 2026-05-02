@@ -1,23 +1,27 @@
 "use client"
 
+import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { 
   Layout, ArrowRight, Save, 
-  Users, Home, MapPin, Sparkles
+  Users, Home, MapPin, Sparkles, Image as ImageIcon
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { notify } from "@/lib/notify"
 
 import { usePropertyForm } from "../../model/hooks"
 import { OwnProperty, WizardStep } from "@/types"
+import type { BookingProperty } from "@/types/booking"
 import { pageVariants, nexusEntrance } from "../../lib/animations"
 import { BoingText } from "@/components/effects/BoingText"
 import { BrutalField } from "@/components/ui/forms/brutal-field"
 import { BrutalButton } from "@/components/ui/forms/button"
 import { BrutalSurface } from "@/components/ui/layout/brutal-surface"
+import { ImageInput } from "@/components/ui/file-handler/imageInput"
 import { AmenitiesField } from "../../components/amenities-field"
-import { PropertyCardItem } from "../../components/property-card-item"
 import { CollaboratorManager } from "../../components/collaborator-manager"
 import { propertyCopy, propertyTokens } from "../../lib/property-tokens"
+import { BookingCard } from "@/features/bookings/components/booking-card"
 
 // ─── Tipos e Interfaces ───────────────────────────────────────────────────
 
@@ -68,7 +72,57 @@ const STEPS_META: WizardStepMeta[] = [
     { key: "preview", label: propertyCopy.wizard.stepPreviewLabel, n: propertyCopy.wizard.stepPreviewN },
 ]
 
+const TITLE_MAX_LENGTH = 20
+
 // ─── Sub-Componentes de UI ──────────────────────────────────────────────────
+
+function resolveStr(value: unknown): string {
+    if (!value) return ""
+    if (typeof value === "string") return value
+    if (typeof value === "object") {
+        const obj = value as Record<string, unknown>
+        return (typeof obj["pt"] === "string" ? (obj["pt"] as string) : "") || (typeof obj["en"] === "string" ? (obj["en"] as string) : "") || ""
+    }
+    return ""
+}
+
+type WizardErrors = Partial<Record<"title" | "description" | "price" | "maxGuests" | "location" | "city" | "address", string>>
+
+function validateStep(step: WizardStep, property: OwnProperty): WizardErrors {
+    const errors: WizardErrors = {}
+    const title = resolveStr(property.title).trim()
+    const description = resolveStr(property.description).trim()
+
+    if (step === "essence" || step === "preview") {
+        if (!title) errors.title = "Título é obrigatório"
+        else if (title.length < 3) errors.title = "Título demasiado curto"
+        else if (title.length > TITLE_MAX_LENGTH) errors.title = `Título demasiado longo (máx. ${TITLE_MAX_LENGTH} caracteres)`
+
+        if (!description) errors.description = "Descrição é obrigatória"
+        else if (description.length < 10) errors.description = "Descrição demasiado curta"
+
+        const price = Number(property.price)
+        if (!Number.isFinite(price) || price <= 0) errors.price = "Valor base inválido"
+
+        const maxGuests = Number(property.maxGuests)
+        if (!Number.isFinite(maxGuests) || maxGuests < 1) errors.maxGuests = "Capacidade inválida"
+    }
+
+    if (step === "location" || step === "preview") {
+        if (!String(property.location || "").trim()) errors.location = "Região é obrigatória"
+        if (!String(property.city || "").trim()) errors.city = "Cidade é obrigatória"
+        if (!String(property.address || "").trim()) errors.address = "Morada é obrigatória"
+    }
+
+    return errors
+}
+
+function buildStepValidationNotice() {
+    return {
+        title: "Faltam campos obrigatórios",
+        description: "Preenche os campos assinalados a vermelho para continuar.",
+    }
+}
 
 /**
  * WizardProgress — Indicador de progresso técnico e visual.
@@ -82,44 +136,54 @@ const STEPS_META: WizardStepMeta[] = [
  * @param currentStep - Chave da etapa ativa (ex: 'essence')
  * @param isEdit - Indica se estamos a editar ou a criar um novo ativo
  */
-function WizardProgress({ currentStep, isEdit }: { currentStep: WizardStep; isEdit: boolean }) {
+function WizardProgress({ currentStep, isEdit, onSelectStep }: { currentStep: WizardStep; isEdit: boolean; onSelectStep?: (step: WizardStep) => void }) {
     const currentIdx = STEPS_META.findIndex((s) => s.key === currentStep)
     return (
-        <div className={propertyTokens.ui.wizard.progressWrapClass}>
-            <div className="flex items-start gap-4">
+        <div className={cn(propertyTokens.ui.wizard.progressWrapClass, "pt-5")}>
+            <div className="flex items-start gap-4 min-w-0">
                 <div className={propertyTokens.ui.wizard.progressIconWrapClass}>
                     <Layout className="h-6 w-6" strokeWidth={2} />
                 </div>
-                <div>
+                <div className="min-w-0">
                     <p className={propertyTokens.ui.wizard.progressProtocolClass}>
                         {isEdit ? propertyCopy.wizard.editProtocol : propertyCopy.wizard.createProtocol}
                     </p>
                     <h2 className={propertyTokens.ui.wizard.progressTitleClass}>
-                        <BoingText text={STEPS_META.find((s) => s.key === currentStep)?.label || ""} color="currentColor" activeColor={propertyTokens.ui.preview.boingActiveColor} />
+                        <BoingText
+                            text={STEPS_META.find((s) => s.key === currentStep)?.label || ""}
+                            color="currentColor"
+                            activeColor={propertyTokens.ui.preview.boingActiveColor}
+                        />
                     </h2>
                 </div>
             </div>
-            <ol className="flex flex-wrap items-center gap-2">
-                {STEPS_META.map((s, idx) => (
-                    <li key={s.key} className="flex items-center gap-2">
-                        <span
-                            className={cn(
-                                "flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold",
-                                currentStep === s.key
-                                    ? "border-primary bg-primary/15 text-primary"
-                                    : idx < currentIdx
-                                      ? "border-emerald-600/40 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
-                                      : propertyTokens.ui.wizard.progressPendingStepClass
-                            )}
-                        >
-                            {s.n}
-                        </span>
-                        {idx < STEPS_META.length - 1 && (
-                            <span className={propertyTokens.ui.wizard.progressConnectorClass} aria-hidden />
-                        )}
-                    </li>
-                ))}
-            </ol>
+            <div className="w-full md:w-auto md:self-center">
+                <ol className="flex max-w-full items-center justify-start gap-2 overflow-x-auto pb-2 md:justify-end">
+                    {STEPS_META.map((s, idx) => (
+                        <li key={s.key} className="shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => onSelectStep?.(s.key)}
+                                className={cn(
+                                    "group flex items-center gap-2 rounded-full border px-3 py-1.5 transition-all whitespace-nowrap",
+                                    currentStep === s.key
+                                        ? "border-primary bg-primary/15 text-primary"
+                                        : idx < currentIdx
+                                          ? "border-emerald-600/40 bg-emerald-50 text-emerald-800 hover:border-emerald-700/60 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                          : propertyTokens.ui.wizard.progressPendingStepClass
+                                )}
+                            >
+                                <span className="flex h-7 w-7 items-center justify-center rounded-full border border-current/20 text-xs font-black font-mono">
+                                    {s.n}
+                                </span>
+                                <span className="font-mono text-[9px] font-black uppercase tracking-widest opacity-70 group-hover:opacity-100">
+                                    {s.label}
+                                </span>
+                            </button>
+                        </li>
+                    ))}
+                </ol>
+            </div>
         </div>
     )
 }
@@ -135,16 +199,89 @@ function WizardProgress({ currentStep, isEdit }: { currentStep: WizardStep; isEd
  * @param updateField - Callback genérico de atualização de campo
  */
 function EssenceStep({ 
-  property, initial, updateField 
+  property, initial, updateField, invalid
 }: { 
-  property: OwnProperty; initial: OwnProperty | null; updateField: <K extends keyof OwnProperty>(f: K, v: OwnProperty[K]) => void 
+  property: OwnProperty
+  initial: OwnProperty | null
+  updateField: <K extends keyof OwnProperty>(f: K, v: OwnProperty[K]) => void
+  invalid?: Partial<Record<"title" | "description" | "price" | "maxGuests", boolean>>
 }) {
     const getVal = (v: OwnProperty['title'] | OwnProperty['description']) => typeof v === 'string' ? v : v?.pt || ""
     return (
         <div className="grid gap-6">
-            <BrutalField label={propertyCopy.wizard.essenceTitleLabel} value={getVal(property.title)} savedValue={initial ? getVal(initial.title) : ""} onChange={(v) => updateField('title', v as string)} onRevert={() => updateField('title', initial?.title || "")} />
-            <BrutalField label={propertyCopy.wizard.essenceDescriptionLabel} value={getVal(property.description)} savedValue={initial ? getVal(initial.description) : ""} onChange={(v) => updateField('description', v as string)} onRevert={() => updateField('description', initial?.description || "")} multiline rows={4} />
-            <BrutalField label={propertyCopy.wizard.essenceBaseValueLabel} type="number" value={property.price as number} savedValue={initial?.price || 0} onChange={(v) => updateField('price', Number(v))} onRevert={() => updateField('price', initial?.price || 0)} />
+            <div className="grid gap-6 lg:grid-cols-2">
+                <div className="min-w-0 lg:col-span-2">
+                    <BrutalField
+                        label={propertyCopy.wizard.essenceTitleLabel}
+                        value={getVal(property.title)}
+                        savedValue={initial ? getVal(initial.title) : ""}
+                        onChange={(v) => updateField('title', v as string)}
+                        onRevert={() => updateField('title', initial?.title || "")}
+                        invalid={Boolean(invalid?.title)}
+                        maxLength={TITLE_MAX_LENGTH}
+                    />
+                </div>
+                <div className="min-w-0 lg:col-span-2">
+                    <BrutalField
+                        label={propertyCopy.wizard.essenceDescriptionLabel}
+                        value={getVal(property.description)}
+                        savedValue={initial ? getVal(initial.description) : ""}
+                        onChange={(v) => updateField('description', v as string)}
+                        onRevert={() => updateField('description', initial?.description || "")}
+                        multiline
+                        rows={5}
+                        invalid={Boolean(invalid?.description)}
+                    />
+                </div>
+                <BrutalField
+                    label={propertyCopy.wizard.essenceBaseValueLabel}
+                    type="number"
+                    value={property.price as number}
+                    savedValue={initial?.price || 0}
+                    onChange={(v) => updateField('price', Number(v))}
+                    onRevert={() => updateField('price', initial?.price || 0)}
+                    invalid={Boolean(invalid?.price)}
+                />
+                <BrutalField
+                    label={propertyCopy.wizard.previewLabelCapacity}
+                    type="number"
+                    value={property.maxGuests as number}
+                    savedValue={initial?.maxGuests || 1}
+                    onChange={(v) => updateField('maxGuests', Number(v))}
+                    onRevert={() => updateField('maxGuests', initial?.maxGuests || 1)}
+                    invalid={Boolean(invalid?.maxGuests)}
+                />
+            </div>
+
+            <BrutalSurface variant="pro" padding="md">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-[#0D0D0D] bg-white shadow-[2px_2px_0_0_#0D0D0D] dark:border-white/10 dark:bg-zinc-950 dark:shadow-none">
+                            <ImageIcon className="h-5 w-5 text-primary" strokeWidth={2.5} />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="font-mono text-[10px] font-black uppercase tracking-[0.35em] text-[#8C7B6B] dark:text-zinc-500">
+                                {propertyCopy.details.mediaTitle}
+                            </p>
+                            <h3 className="truncate font-serif text-lg font-bold italic uppercase tracking-tight text-[#0D0D0D] dark:text-zinc-100">
+                                {propertyCopy.details.mediaSubtitle}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+                <p className={propertyTokens.ui.details.mediaHintClass}>{propertyCopy.details.mediaHint}</p>
+                <div className="mt-4">
+                    <ImageInput
+                        value={property.imageUrl || ""}
+                        onChange={(url) => updateField("imageUrl", url)}
+                        onUploadComplete={(urls) => {
+                            const next = urls?.[0] || ""
+                            if (next) updateField("imageUrl", next)
+                        }}
+                        onRemove={() => updateField("imageUrl", "")}
+                    />
+                </div>
+            </BrutalSurface>
         </div>
     )
 }
@@ -160,16 +297,19 @@ function EssenceStep({
  * @param updateField - Callback genérico de atualização de campo
  */
 function LocationStep({ 
-  property, initial, updateField 
+  property, initial, updateField, invalid
 }: { 
-  property: OwnProperty; initial: OwnProperty | null; updateField: <K extends keyof OwnProperty>(f: K, v: OwnProperty[K]) => void 
+  property: OwnProperty
+  initial: OwnProperty | null
+  updateField: <K extends keyof OwnProperty>(f: K, v: OwnProperty[K]) => void
+  invalid?: Partial<Record<"location" | "city" | "address", boolean>>
 }) {
     return (
         <div className="grid gap-6">
-            <BrutalField label={propertyCopy.wizard.locationRegionLabel} value={property.location as string} savedValue={initial?.location || ""} onChange={(v) => updateField('location', v as string)} onRevert={() => updateField('location', initial?.location || "")} />
-            <div className="grid grid-cols-2 gap-6">
-                <BrutalField label={propertyCopy.wizard.locationCityLabel} value={property.city as string} savedValue={initial?.city || ""} onChange={(v) => updateField('city', v as string)} onRevert={() => updateField('city', initial?.city || "")} />
-                <BrutalField label={propertyCopy.wizard.locationAddressLabel} value={property.address as string} savedValue={initial?.address || ""} onChange={(v) => updateField('address', v as string)} onRevert={() => updateField('address', initial?.address || "")} />
+            <BrutalField label={propertyCopy.wizard.locationRegionLabel} value={property.location as string} savedValue={initial?.location || ""} onChange={(v) => updateField('location', v as string)} onRevert={() => updateField('location', initial?.location || "")} invalid={Boolean(invalid?.location)} />
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <BrutalField label={propertyCopy.wizard.locationCityLabel} value={property.city as string} savedValue={initial?.city || ""} onChange={(v) => updateField('city', v as string)} onRevert={() => updateField('city', initial?.city || "")} invalid={Boolean(invalid?.city)} />
+                <BrutalField label={propertyCopy.wizard.locationAddressLabel} value={property.address as string} savedValue={initial?.address || ""} onChange={(v) => updateField('address', v as string)} onRevert={() => updateField('address', initial?.address || "")} invalid={Boolean(invalid?.address)} />
             </div>
         </div>
     )
@@ -191,7 +331,7 @@ function AmenitiesStep({
   property: OwnProperty; initial: OwnProperty | null; updateField: <K extends keyof OwnProperty>(f: K, v: OwnProperty[K]) => void 
 }) {
     return (
-        <BrutalSurface variant="pro" padding="md">
+        <BrutalSurface variant="pro" padding="lg" className="overflow-hidden">
             <AmenitiesField 
                 selectedIds={property.amenityIds || []} savedIds={initial?.amenityIds || []} 
                 onUpdateIds={(ids) => updateField('amenityIds', ids)} onRevert={() => updateField('amenityIds', initial?.amenityIds || [])} 
@@ -222,8 +362,13 @@ function PermissionsStep({
             <CollaboratorManager 
                 isCard={false}
                 permissions={property.permissions || []} 
-                onAdd={(email, level) => updateField("permissions", [...(property.permissions || []), { email, level }])}
-                onRemove={(email) => updateField("permissions", (property.permissions || []).filter(p => p.email !== email))}
+                onAdd={async (email, accessLevel) => {
+                  updateField("permissions", [
+                    ...(property.permissions || []),
+                    { userId: Date.now(), email, accessLevel },
+                  ])
+                }}
+                onRemove={(userId) => updateField("permissions", (property.permissions || []).filter(p => p.userId !== userId))}
             />
         </div>
     )
@@ -239,12 +384,32 @@ function PermissionsStep({
  */
 function PreviewStep({ property }: { property: OwnProperty }) {
     const titleStr = typeof property.title === "string" ? property.title : property.title?.pt || propertyCopy.wizard.previewTitleFallback
+    const descStr = typeof property.description === "string" ? property.description : property.description?.pt || ""
+    const bookingCardProperty: BookingProperty = {
+        id: property.id,
+        title: resolveStr(property.title) || propertyCopy.cards.fallbackTitle,
+        description: resolveStr(property.description),
+        location: `${property.city}${propertyCopy.wizard.previewLocationJoiner}${property.location}`,
+        price: Number(property.price) || 0,
+        imageUrl: property.imageUrl || "",
+        status: property.status,
+        rating: property.rating > 0 ? property.rating : undefined,
+        featured: Boolean(property.featured),
+        tags: property.tags || [],
+    }
     return (
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             <div className="min-w-0">
-                <PropertyCardItem prop={property} onSelect={() => {}} variant="portfolio" />
+                <div className="mb-4 rounded-3xl border-2 border-[#0D0D0D]/10 bg-white/70 p-4 backdrop-blur-md dark:border-white/10 dark:bg-zinc-950/40">
+                    <span className="font-mono text-[10px] font-black uppercase tracking-[0.35em] text-primary">
+                        Preview_Card
+                    </span>
+                </div>
+                <div className="max-w-[520px]">
+                    <BookingCard property={bookingCardProperty} />
+                </div>
             </div>
-            <BrutalSurface variant="pro" padding="lg" className="space-y-6">
+            <BrutalSurface variant="pro" padding="lg" className="space-y-6 min-w-0">
                 <div>
                     <h3 className={propertyTokens.ui.wizard.previewTitleClass}>{propertyCopy.wizard.previewSummaryTitle}</h3>
                     <p className={propertyTokens.ui.wizard.previewSubtitleClass}>{propertyCopy.wizard.previewSummarySubtitle}</p>
@@ -265,6 +430,12 @@ function PreviewStep({ property }: { property: OwnProperty }) {
                         </li>
                     ))}
                 </ul>
+                <div className="pt-2">
+                    <p className={propertyTokens.ui.wizard.previewLabelClass}>{propertyCopy.wizard.essenceDescriptionLabel}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-[#0D0D0D]/80 dark:text-zinc-200 min-w-0">
+                        {descStr || propertyCopy.preview.descriptionMissing}
+                    </p>
+                </div>
             </BrutalSurface>
         </div>
     )
@@ -327,33 +498,125 @@ function WizardFooter({
  * @see pageVariants — Animações de transição (animations.ts)
  */
 export function PropertyCreationWizard({ property: initialData, onClose, onSaved }: PropertyFormProps) {
-    const { property, step, isSaving, isEdit, updateField, nextStep, prevStep, handleFinalSave } = usePropertyForm(initialData, onSaved)
+    const { property, step, isSaving, isEdit, updateField, goToStep, nextStep, prevStep, handleFinalSave } = usePropertyForm(initialData, onSaved)
+    const errors = validateStep(step, property)
+    const canProceed = Object.keys(errors).length === 0
+    const [validationArmed, setValidationArmed] = React.useState<Partial<Record<WizardStep, boolean>>>({})
+
+    const armValidation = (stepToArm: WizardStep) => {
+        setValidationArmed((prev) => ({ ...prev, [stepToArm]: true }))
+    }
+
+    const onSelectStep = (next: WizardStep) => {
+        const currentIdx = STEPS_META.findIndex((s) => s.key === step)
+        const nextIdx = STEPS_META.findIndex((s) => s.key === next)
+        if (nextIdx <= currentIdx) return goToStep(next)
+        if (!canProceed) {
+            armValidation(step)
+            const notice = buildStepValidationNotice()
+            notify.warning(notice.title, { description: notice.description })
+            return
+        }
+        const safeNext = STEPS_META[Math.min(currentIdx + 1, STEPS_META.length - 1)]?.key
+        return goToStep(safeNext)
+    }
+
+    const onNext = () => {
+        const nextErrors = validateStep(step, property)
+        if (Object.keys(nextErrors).length > 0) {
+            armValidation(step)
+            const notice = buildStepValidationNotice()
+            notify.warning(notice.title, { description: notice.description })
+            return
+        }
+        nextStep()
+    }
+
+    const onSave = () => {
+        const finalErrors = validateStep("preview", property)
+        if (Object.keys(finalErrors).length > 0) {
+            const notice = buildStepValidationNotice()
+            const essenceErrors = validateStep("essence", property)
+            const locationErrors = validateStep("location", property)
+            if (Object.keys(essenceErrors).length > 0) {
+                armValidation("essence")
+                goToStep("essence")
+            } else if (Object.keys(locationErrors).length > 0) {
+                armValidation("location")
+                goToStep("location")
+            }
+            notify.warning(notice.title, { description: notice.description })
+            return
+        }
+        handleFinalSave()
+    }
 
     return (
         <motion.div 
             variants={nexusEntrance}
             initial="initial"
             animate="animate"
-            className="flex flex-col min-h-[80vh]"
+            className="flex flex-col min-h-[80vh] pt-5"
         >
             {/* Indicador de Progresso */}
-            <WizardProgress currentStep={step} isEdit={isEdit} />
+            <WizardProgress currentStep={step} isEdit={isEdit} onSelectStep={onSelectStep} />
             
             {/* Content Display com Animação de Transição */}
-            <AnimatePresence mode="wait">
-                <motion.div key={step} initial="initial" animate="animate" exit="exit" variants={pageVariants} className="flex-1">
-                    {step === 'essence' && <EssenceStep property={property} initial={initialData} updateField={updateField} />}
-                    {step === 'location' && <LocationStep property={property} initial={initialData} updateField={updateField} />}
-                    {step === 'amenities' && <AmenitiesStep property={property} initial={initialData} updateField={updateField} />}
-                    {step === 'permissions' && <PermissionsStep property={property} updateField={updateField} />}
-                    {step === 'preview' && <PreviewStep property={property} />}
-                </motion.div>
-            </AnimatePresence>
+            <div className="mt-6 min-w-0">
+                <AnimatePresence mode="wait">
+                    <motion.div key={step} initial="initial" animate="animate" exit="exit" variants={pageVariants} className="flex-1 min-w-0">
+                        {step === 'essence' && (
+                            <div className="space-y-6">
+                                <EssenceStep
+                                    property={property}
+                                    initial={initialData}
+                                    updateField={updateField}
+                                    invalid={
+                                        validationArmed.essence
+                                            ? {
+                                                  title: Boolean(errors.title),
+                                                  description: Boolean(errors.description),
+                                                  price: Boolean(errors.price),
+                                                  maxGuests: Boolean(errors.maxGuests),
+                                              }
+                                            : undefined
+                                    }
+                                />
+                            </div>
+                        )}
+                        {step === 'location' && (
+                            <div className="space-y-6">
+                                <LocationStep
+                                    property={property}
+                                    initial={initialData}
+                                    updateField={updateField}
+                                    invalid={
+                                        validationArmed.location
+                                            ? {
+                                                  location: Boolean(errors.location),
+                                                  city: Boolean(errors.city),
+                                                  address: Boolean(errors.address),
+                                              }
+                                            : undefined
+                                    }
+                                />
+                            </div>
+                        )}
+                        {step === 'amenities' && <AmenitiesStep property={property} initial={initialData} updateField={updateField} />}
+                        {step === 'permissions' && <PermissionsStep property={property} updateField={updateField} />}
+                        {step === 'preview' && (
+                            <div className="space-y-6">
+                                <PreviewStep property={property} />
+                            </div>
+                        )}
+                    </motion.div>
+                </AnimatePresence>
+            </div>
 
             {/* Comandos de Navegação */}
             <WizardFooter 
                 step={step} isSaving={isSaving} isEdit={isEdit} 
-                onBack={prevStep} onNext={nextStep} onSave={handleFinalSave} onClose={onClose} 
+                onBack={prevStep} onNext={onNext} onSave={onSave} onClose={onClose} 
             />
         </motion.div>
     )

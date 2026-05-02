@@ -20,8 +20,7 @@ import { motion, useReducedMotion } from "framer-motion"
 import { MapPin, ArrowRight, Star, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/forms/button"
-import Image from "next/image"
-import { useState } from "react"
+import { PropertyImage } from "@/components/ui/media/property-image"
 import type { BookingProperty } from "@/types/booking"
 import {
   brutalShadow,
@@ -102,25 +101,20 @@ export function BookingCard({ property, onBook, className }: BookingCardProps) {
 
 /** Secção superior do card: imagem, badge featured, rating, título e localização. */
 function CardImage({ property }: { property: BookingProperty }) {
-  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
-
-  const isUnsplash = property.imageUrl.includes("images.unsplash.com")
-  const hasImageError = failedImageUrl === property.imageUrl
-  const showImage = Boolean(property.imageUrl) && !hasImageError
+  const showImage = Boolean(property.imageUrl)
 
   return (
     <div className="relative h-52 md:h-56 w-full overflow-hidden">
       {showImage ? (
         <div className="absolute inset-0">
-          <Image
+          <PropertyImage
             src={property.imageUrl}
             alt={property.title}
-            fill
+            width={1200}
+            height={700}
             sizes="(max-width: 768px) 100vw, 50vw"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
             priority={false}
-            unoptimized={isUnsplash}
-            onError={() => setFailedImageUrl(property.imageUrl)}
           />
         </div>
       ) : (

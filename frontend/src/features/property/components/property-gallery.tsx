@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Star, Eye, ChevronLeft, ChevronRight, UploadCloud } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ImageInput } from "@/components/ui/file-handler/imageInput"
-import Image from "next/image"
 import { OwnProperty } from "@/types"
 import { PropertyMediaModal } from "./property-media-modal"
 import { propertyCopy, propertyTokens } from "../lib/property-tokens"
+import { PropertyImage } from "@/components/ui/media/property-image"
 
 // ─── Tipos e Props ────────────────────────────────────────────────────────
 
@@ -39,16 +39,23 @@ function GalleryViewer({
     return (
         <div className={propertyTokens.ui.gallery.viewerWrapClass}>
             <AnimatePresence mode="wait">
-                <motion.img
+                <motion.div
                     key={activeIndex} 
-                    src={images[activeIndex] || ""} 
-                    alt={title}
                     initial={{ opacity: 0, scale: 1.1 }} 
                     animate={{ opacity: 1, scale: 1 }} 
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.5 }} 
-                    className="h-full w-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-700"
-                />
+                    className="h-full w-full"
+                >
+                    <PropertyImage
+                        src={images[activeIndex] || ""}
+                        alt={title}
+                        width={1600}
+                        height={900}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 85vw, 1200px"
+                        className="h-full w-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-700"
+                    />
+                </motion.div>
             </AnimatePresence>
 
             {/* Crachá de Destaque */}
@@ -111,16 +118,16 @@ function GalleryThumbs({
                             : "border-foreground/20 dark:border-white/10 hover:border-foreground/40 hover:-translate-y-1"
                     )}
                 >
-                    <Image
+                    <PropertyImage
                         src={src}
                         alt={propertyCopy.gallery.thumbAlt}
-                        fill
+                        width={96}
+                        height={96}
                         sizes="96px"
                         className={cn(
-                            "object-cover transition-all duration-300",
+                            "h-full w-full object-cover transition-all duration-300",
                             activeIndex === i ? "grayscale-0 scale-110" : "grayscale opacity-40"
                         )}
-                        unoptimized
                     />
                 </button>
             ))}

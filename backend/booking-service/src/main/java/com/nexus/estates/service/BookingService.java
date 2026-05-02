@@ -18,7 +18,9 @@ import org.springframework.stereotype.Service;
 import com.nexus.estates.client.Proxy;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Serviço de domínio responsável pela execução da lógica de negócio de Reservas.
@@ -241,6 +243,51 @@ public class BookingService
         return bookingRepository.findByUserId(userId).stream()
                 .map(BookingResponse::new)
                 .toList();
+    }
+
+    /**
+     * Retorna os participantes autorizados de uma conversa associada a uma reserva.
+     *
+     * <p>Regras:</p>
+     * <ul>
+     *   <li>Inclui o hóspede (booking.userId) quando existir.</li>
+     *   <li>Inclui o PRIMARY_OWNER da propriedade.</li>
+     *   <li>Permite que utilizadores com permissões (PRIMARY_OWNER/MANAGER/STAFF) na propriedade acedam ao recurso.</li>
+     * </ul>
+     *
+     * @param bookingId ID da reserva
+     * @param requesterId ID do utilizador a validar (pode ser null para uso interno)
+     * @return conjunto de userIds participantes
+     */
+    public Set<Long> getBookingParticipants(Long bookingId, Long requesterId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));
+
+        Long propertyId = booking.getPropertyId();
+        ApiResponse<Long> ownerResp = api.propertyClient().getPrimaryOwnerId(propertyId);
+        if (ownerResp == null || !ownerResp.isSuccess() || ownerResp.getData() == null) {
+            throw new RuntimeException("Primary owner not found for property " + propertyId);
+        }
+        Long ownerId = ownerResp.getData();
+
+        if (requesterId != null) {
+            boolean isGuest = booking.getUserId() != null && booking.getUserId().equals(requesterId);
+            boolean isOwner = ownerId.equals(requesterId);
+            boolean hasPropertyAccess = false;
+            try {
+                ApiResponse<String> access = api.propertyClient().getAccessLevel(propertyId, requesterId);
+                hasPropertyAccess = access != null && access.isSuccess() && access.getData() != null;
+            } catch (Exception ignored) {}
+
+            if (!isGuest && !isOwner && !hasPropertyAccess) {
+                throw new SecurityException("Access denied");
+            }
+        }
+
+        Set<Long> participants = new HashSet<>();
+        if (booking.getUserId() != null) participants.add(booking.getUserId());
+        participants.add(ownerId);
+        return participants;
     }
 
     /**

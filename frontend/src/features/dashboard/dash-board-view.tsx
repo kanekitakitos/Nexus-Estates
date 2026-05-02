@@ -27,7 +27,7 @@ export function DashBoardView(){
 
 
     const filteredProperties: PropertyListItem[] = useMemo(() => {
-        return focusPropertie ? [focusPropertie] : properties.values().toArray();
+        return focusPropertie ? [focusPropertie] : Array.from(properties.values());
     }, [focusPropertie, properties]);
 
 

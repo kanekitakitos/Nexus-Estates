@@ -37,6 +37,8 @@ import type { BookingProperty } from "@/types/booking"
 import { cn } from "@/lib/utils"
 import { DateRangeCalendar } from "./date-range-calendar"
 import { notify } from "@/lib/notify"
+import { SyncService } from "@/services/sync.service"
+import { AuthService } from "@/services/auth.service"
 import { format, differenceInCalendarDays } from "date-fns"
 import {
   AnimatePresence, motion,
@@ -128,6 +130,36 @@ export function BookingDetails({
     }
   }, [booking, handleConfirmDates, scrollToCalendar])
 
+  /**
+   * Inicia uma conversa do tipo PROPERTY_INQUIRY sem expor emails.
+   *
+   * Fluxo:
+   * - Frontend envia apenas propertyId
+   * - sync-service cria/resolve a inquiry e devolve chatId ("inquiry:{id}")
+   * - Dispara evento global para abrir a sidebar no separador Chat e pré-selecionar a conversa
+   */
+  const handleContactOwner = useCallback(async () => {
+    const session = AuthService.getSession()
+    if (!session.isAuthenticated) {
+      notify.error("Precisas de fazer login para iniciar uma conversa.")
+      return
+    }
+
+    const propertyId = Number(property.id)
+    if (Number.isNaN(propertyId)) {
+      notify.error("ID de propriedade inválido.")
+      return
+    }
+
+    try {
+      const existing = await SyncService.getExistingPropertyInquiry(propertyId)
+      const chatId = existing?.chatId ?? `property:${propertyId}`
+      window.dispatchEvent(new CustomEvent("open-chat", { detail: { chatId } }))
+    } catch {
+      notify.error("Não foi possível iniciar a conversa.")
+    }
+  }, [property.id])
+
   return (
     // relative aqui para que o botão absolute interno (se usado) não escape
     <div className="relative min-h-screen overflow-x-hidden bg-background pb-24 lg:pb-0">
@@ -157,16 +189,36 @@ export function BookingDetails({
 
       {/* ── Main content grid */}
       <div className="mx-auto max-w-6xl px-4 md:px-6 lg:px-10 py-8 md:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 lg:gap-12 items-start">
+        <div className="space-y-10">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 lg:gap-12 items-start">
+            <div className="min-w-0">
+              <div className="space-y-8">
+              
+                <PropertyBreadcrumb property={property} />
+                
+                <div className="py-10"  >
+                <PropertyStats property={property} />
+                </div>
+                <PropertyDescription property={property} />
+                <PropertyAmenities property={property} />
+              </div>
+            </div>
 
-          {/* Left — content stack */}
-          <div className="space-y-8 min-w-0">
-            <PropertyBreadcrumb property={property} />
-            <PropertyStats property={property} />
-            <PropertyDescription property={property} />
-            <PropertyAmenities property={property} />
+            <aside className="hidden lg:block">
+              <div className="sticky top-6">
+                <BookingSidebar
+                  property={property}
+                  booking={booking}
+                  nights={nights}
+                  total={total}
+                  onBookNow={handleBookNow}
+                  onContactOwner={() => void handleContactOwner()}
+                />
+              </div>
+            </aside>
+          </div>
 
-            {/* Calendar */}
+          <div className="mx-auto w-full max-w-5xl">
             <RevealSection delay={0.1}>
               <div ref={calendarRef} data-date-range-calendar>
                 <SectionLabel>Disponibilidade</SectionLabel>
@@ -188,26 +240,12 @@ export function BookingDetails({
                     onConfirmBooking={({ range }) => {
                       if (range.from && range.to) handleConfirmDates(range.from, range.to)
                     }}
-                    onContactOwner={() => notify.info("Chat ainda não disponível.")}
+                    onContactOwner={() => void handleContactOwner()}
                   />
                 </div>
               </div>
             </RevealSection>
           </div>
-
-          {/* Right — sticky sidebar */}
-          <aside className="hidden lg:block">
-            <div className="sticky top-6">
-              <BookingSidebar
-                property={property}
-                booking={booking}
-                nights={nights}
-                total={total}
-                onBookNow={handleBookNow}
-                onContactOwner={() => notify.info("Chat ainda não disponível.")}
-              />
-            </div>
-          </aside>
         </div>
       </div>
 
@@ -521,9 +559,11 @@ function PropertyDescription({ property }: { property: RichProperty }) {
   const isLong = property.description.length > DESCRIPTION_COLLAPSE_THRESHOLD
 
   return (
-    <RevealSection delay={0.06}>
-      <BrutalShard rotate="secondary">
-        <SectionLabel>Sobre a propriedade</SectionLabel>
+    <RevealSection delay={0.06} >
+      <BrutalShard  rotate="secondary">
+      
+        <SectionLabel>Sobre a propriedade  </SectionLabel>
+      
         <div className="mt-3 relative">
           <p className={cn(
             "font-mono text-base leading-relaxed text-muted-foreground",

@@ -1,17 +1,20 @@
 package com.nexus.estates.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nexus.estates.client.Proxy;
+import com.nexus.estates.common.dto.ApiResponse;
 import com.nexus.estates.entity.Message;
 import com.nexus.estates.service.chat.AblyWebhookService;
 import com.nexus.estates.service.chat.ChatPlatform;
 import com.nexus.estates.service.chat.MessageService;
+import com.nexus.estates.service.chat.PropertyInquiryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +40,8 @@ public class SyncMessageController {
     private final ChatPlatform chatPlatform;
     private final AblyWebhookService webhookService;
     private final ObjectMapper objectMapper;
+    private final Proxy proxy;
+    private final PropertyInquiryService inquiryService;
 
     /**
      * Recupera o histórico completo de mensagens de uma reserva específica.
@@ -46,12 +51,28 @@ public class SyncMessageController {
      */
     @Operation(summary = "Listar mensagens", description = "Retorna o histórico de mensagens associado a uma reserva.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Histórico retornado com sucesso",
-                    content = @Content(schema = @Schema(implementation = Message.class))),
-            @ApiResponse(responseCode = "500", description = "Erro interno", content = @Content)
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Histórico retornado com sucesso",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = Message.class)))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Não autenticado", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Erro interno", content = @Content())
     })
     @GetMapping("/{bookingId}")
-    public ResponseEntity<List<Message>> getMessages(@PathVariable Long bookingId) {
+    public ResponseEntity<List<Message>> getMessages(
+            @PathVariable Long bookingId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        Long userId = parseUserId(userIdHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        var participants = proxy.bookingClient().getBookingParticipants(bookingId, userId);
+        if (participants == null || !participants.contains(userId)) {
+            return ResponseEntity.status(403).build();
+        }
         log.info("Solicitação de histórico de mensagens para Booking ID: {}", bookingId);
         List<Message> messages = messageService.getMessagesByBookingId(bookingId);
         return ResponseEntity.ok(messages);
@@ -61,35 +82,156 @@ public class SyncMessageController {
      * Envia uma nova mensagem para o chat de uma reserva.
      *
      * @param bookingId O ID da reserva.
-     * @param request   O corpo da requisição contendo o remetente e o conteúdo.
+     * @param request   O corpo da requisição contendo o conteúdo.
      * @return A mensagem persistida.
      */
     @Operation(summary = "Enviar mensagem", description = "Persiste a mensagem e publica no canal de tempo real.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Mensagem enviada com sucesso",
-                    content = @Content(schema = @Schema(implementation = Message.class))),
-            @ApiResponse(responseCode = "400", description = "Payload inválido", content = @Content),
-            @ApiResponse(responseCode = "500", description = "Erro interno", content = @Content)
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Mensagem enviada com sucesso",
+                    content = @Content(schema = @Schema(implementation = Message.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Payload inválido", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Não autenticado", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Erro interno", content = @Content())
     })
     @PostMapping("/{bookingId}")
     public ResponseEntity<Message> sendMessage(
             @PathVariable Long bookingId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
             @RequestBody SendMessageRequest request
     ) {
+        Long userId = parseUserId(userIdHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        if (request == null || request.content() == null || request.content().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        var participants = proxy.bookingClient().getBookingParticipants(bookingId, userId);
+        if (participants == null || !participants.contains(userId)) {
+            return ResponseEntity.status(403).build();
+        }
+
         log.info("Recebendo nova mensagem para Booking ID {}: {}", bookingId, request.content());
 
         // 1. Persistir localmente
-        Message savedMessage = messageService.saveMessage(bookingId, request.senderId(), request.content());
+        Message savedMessage = messageService.saveBookingMessage(bookingId, String.valueOf(userId), request.content());
 
         // 2. Publicar no canal de tempo real
         String channelId = "booking-chat:" + bookingId;
-        boolean published = chatPlatform.sendMessage(channelId, "new-message", savedMessage);
-
-        if (!published) {
-            log.warn("Falha ao publicar mensagem no canal de tempo real para Booking ID {}", bookingId);
+        try {
+            boolean published = chatPlatform.sendMessage(channelId, "new-message", savedMessage);
+            if (!published) {
+                log.warn("Falha ao publicar mensagem no canal de tempo real para Booking ID {}", bookingId);
+            }
+        } catch (Exception e) {
+            log.warn("Erro ao publicar mensagem no canal de tempo real para Booking ID {}: {}", bookingId, e.getMessage());
         }
 
         return ResponseEntity.ok(savedMessage);
+    }
+
+    /**
+     * Recupera o histórico completo de mensagens de uma inquiry (conversa por propriedade).
+     */
+    @GetMapping("/inquiry/{inquiryId}")
+    public ResponseEntity<List<Message>> getInquiryMessages(
+            @PathVariable Long inquiryId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        Long userId = parseUserId(userIdHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        try {
+            if (!inquiryService.canAccess(inquiryId, userId)) {
+                return ResponseEntity.status(403).build();
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).build();
+        }
+        List<Message> messages = messageService.getMessagesByInquiryId(inquiryId);
+        return ResponseEntity.ok(messages);
+    }
+
+    /**
+     * Envia uma nova mensagem para uma inquiry (conversa por propriedade).
+     *
+     * <p>Regra crítica de consistência:</p>
+     * <ul>
+     *   <li>Guarda primeiro na base de dados.</li>
+     *   <li>Publica depois no canal realtime (Ably).</li>
+     * </ul>
+     */
+    @PostMapping("/inquiry/{inquiryId}")
+    public ResponseEntity<Message> sendInquiryMessage(
+            @PathVariable Long inquiryId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestBody SendMessageRequest request
+    ) {
+        Long userId = parseUserId(userIdHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        if (request == null || request.content() == null || request.content().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            if (!inquiryService.canAccess(inquiryId, userId)) {
+                return ResponseEntity.status(403).build();
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).build();
+        }
+
+        Message savedMessage = messageService.saveInquiryMessage(inquiryId, String.valueOf(userId), request.content());
+        String channelId = "inquiry-chat:" + inquiryId;
+        try {
+            boolean published = chatPlatform.sendMessage(channelId, "new-message", savedMessage);
+            if (!published) {
+                log.warn("Falha ao publicar mensagem no canal de tempo real para Inquiry ID {}", inquiryId);
+            }
+        } catch (Exception e) {
+            log.warn("Erro ao publicar mensagem no canal de tempo real para Inquiry ID {}: {}", inquiryId, e.getMessage());
+        }
+        return ResponseEntity.ok(savedMessage);
+    }
+
+    @PostMapping("/property/{propertyId}")
+    public ResponseEntity<ApiResponse<PropertyMessageResponse>> sendFirstPropertyMessage(
+            @PathVariable Long propertyId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestBody SendMessageRequest request
+    ) {
+        Long userId = parseUserId(userIdHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        if (request == null || request.content() == null || request.content().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        var inquiry = inquiryService.createOrGet(propertyId, userId);
+        Message savedMessage = messageService.saveInquiryMessage(inquiry.getId(), String.valueOf(userId), request.content());
+        String channelId = "inquiry-chat:" + inquiry.getId();
+        try {
+            boolean published = chatPlatform.sendMessage(channelId, "new-message", savedMessage);
+            if (!published) {
+                log.warn("Falha ao publicar mensagem no canal de tempo real para Inquiry ID {}", inquiry.getId());
+            }
+        } catch (Exception e) {
+            log.warn("Erro ao publicar mensagem no canal de tempo real para Inquiry ID {}: {}", inquiry.getId(), e.getMessage());
+        }
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        new PropertyMessageResponse(inquiry.getId(), "inquiry:" + inquiry.getId(), savedMessage),
+                        "Mensagem enviada."
+                )
+        );
     }
 
     /**
@@ -101,10 +243,10 @@ public class SyncMessageController {
      */
     @Operation(summary = "Webhook Ably", description = "Valida assinatura HMAC e processa mensagens recebidas.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Webhook aceite e processamento iniciado", content = @Content),
-            @ApiResponse(responseCode = "400", description = "Payload inválido", content = @Content),
-            @ApiResponse(responseCode = "401", description = "Assinatura inválida", content = @Content),
-            @ApiResponse(responseCode = "500", description = "Erro interno", content = @Content)
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Webhook aceite e processamento iniciado", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Payload inválido", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Assinatura inválida", content = @Content()),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Erro interno", content = @Content())
     })
     @PostMapping("/webhook")
     public ResponseEntity<String> handleWebhook(
@@ -136,4 +278,14 @@ public class SyncMessageController {
      * DTO para recebimento de novas mensagens.
      */
     public record SendMessageRequest(String senderId, String content) {}
+    public record PropertyMessageResponse(Long inquiryId, String chatId, Message message) {}
+
+    private Long parseUserId(String userIdHeader) {
+        if (userIdHeader == null || userIdHeader.isBlank()) return null;
+        try {
+            return Long.parseLong(userIdHeader);
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

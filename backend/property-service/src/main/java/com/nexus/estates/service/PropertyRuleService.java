@@ -1,6 +1,7 @@
 package com.nexus.estates.service;
 
 import com.nexus.estates.common.dto.PropertyRuleDTO;
+import com.nexus.estates.dto.PropertyRulePatchRequest;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.PropertyRule;
 import com.nexus.estates.repository.PropertyRepository;
@@ -80,7 +81,15 @@ public class PropertyRuleService {
      */
     @Transactional
     public PropertyRuleDTO updateRules(Long propertyId, PropertyRuleDTO dto) {
-        Property property = propertyRepository.findById(propertyId)
+        if (dto == null) {
+            throw new IllegalArgumentException("Payload de regras inválido.");
+        }
+        if (dto.checkInTime() == null || dto.checkOutTime() == null || dto.minNights() == null || dto.maxNights() == null || dto.bookingLeadTimeDays() == null) {
+            throw new IllegalArgumentException("Todos os campos de regras são obrigatórios para substituição total (PUT).");
+        }
+        validateConsistency(dto.minNights(), dto.maxNights(), dto.bookingLeadTimeDays());
+
+        Property property = propertyRepository.findByIdForUpdate(propertyId)
                 .orElseThrow(() -> new com.nexus.estates.exception.PropertyNotFoundException(propertyId));
 
         PropertyRule rule = property.getPropertyRule();
@@ -105,5 +114,73 @@ public class PropertyRuleService {
                 savedRule.getMaxNights(),
                 savedRule.getBookingLeadTimeDays()
         );
+    }
+
+    /**
+     * Atualiza parcialmente as regras operacionais de uma propriedade (PATCH).
+     *
+     * <p>Somente os campos não-nulos do payload são aplicados, mantendo os restantes
+     * valores inalterados.</p>
+     *
+     * @param propertyId ID da propriedade
+     * @param patch payload parcial
+     * @return DTO com o estado atualizado das regras
+     */
+    @Transactional
+    public PropertyRuleDTO patchRules(Long propertyId, PropertyRulePatchRequest patch) {
+        if (patch == null) {
+            throw new IllegalArgumentException("Payload de patch inválido.");
+        }
+
+        Property property = propertyRepository.findByIdForUpdate(propertyId)
+                .orElseThrow(() -> new com.nexus.estates.exception.PropertyNotFoundException(propertyId));
+
+        PropertyRule rule = property.getPropertyRule();
+        if (rule == null) {
+            rule = PropertyRule.builder()
+                    .property(property)
+                    .checkInTime(java.time.LocalTime.of(15, 0))
+                    .checkOutTime(java.time.LocalTime.of(11, 0))
+                    .minNights(1)
+                    .maxNights(30)
+                    .bookingLeadTimeDays(0)
+                    .build();
+            property.setPropertyRule(rule);
+        }
+
+        if (patch.checkInTime() != null) rule.setCheckInTime(patch.checkInTime());
+        if (patch.checkOutTime() != null) rule.setCheckOutTime(patch.checkOutTime());
+        if (patch.minNights() != null) rule.setMinNights(patch.minNights());
+        if (patch.maxNights() != null) rule.setMaxNights(patch.maxNights());
+        if (patch.bookingLeadTimeDays() != null) rule.setBookingLeadTimeDays(patch.bookingLeadTimeDays());
+
+        validateConsistency(rule.getMinNights(), rule.getMaxNights(), rule.getBookingLeadTimeDays());
+
+        PropertyRule savedRule = ruleRepository.save(rule);
+        return new PropertyRuleDTO(
+                savedRule.getCheckInTime(),
+                savedRule.getCheckOutTime(),
+                savedRule.getMinNights(),
+                savedRule.getMaxNights(),
+                savedRule.getBookingLeadTimeDays()
+        );
+    }
+
+    private void validateConsistency(Integer minNights, Integer maxNights, Integer bookingLeadTimeDays) {
+        if (minNights == null || maxNights == null || bookingLeadTimeDays == null) {
+            throw new IllegalArgumentException("Campos de regras inválidos.");
+        }
+        if (minNights < 1) {
+            throw new IllegalArgumentException("O número mínimo de noites deve ser >= 1.");
+        }
+        if (maxNights < 1) {
+            throw new IllegalArgumentException("O número máximo de noites deve ser >= 1.");
+        }
+        if (maxNights < minNights) {
+            throw new IllegalArgumentException("O número máximo de noites não pode ser inferior ao mínimo.");
+        }
+        if (bookingLeadTimeDays < 0) {
+            throw new IllegalArgumentException("A antecedência mínima deve ser >= 0.");
+        }
     }
 }

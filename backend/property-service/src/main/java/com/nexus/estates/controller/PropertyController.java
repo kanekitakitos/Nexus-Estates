@@ -5,14 +5,20 @@ import com.nexus.estates.common.dto.PropertyQuoteRequest;
 import com.nexus.estates.common.dto.PropertyQuoteResponse;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.dto.ExpandedPropertyResponse;
+import com.nexus.estates.dto.PropertyPermissionDTO;
+import com.nexus.estates.dto.PropertyPermissionPatchRequest;
+import com.nexus.estates.dto.PropertyRulePatchRequest;
+import com.nexus.estates.dto.SeasonalityRulePatchRequest;
 import com.nexus.estates.dto.UpdatePropertyRequest;
 import com.nexus.estates.common.dto.PropertyRuleDTO;
 import com.nexus.estates.common.dto.RuleOverrideDTO;
 import com.nexus.estates.common.dto.SeasonalityRuleDTO;
+import com.nexus.estates.entity.AccessLevel;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.PropertyChangeLog;
 import com.nexus.estates.entity.RuleOverride;
 import com.nexus.estates.repository.PropertyRepository;
+import com.nexus.estates.service.PermissionService;
 import com.nexus.estates.service.PropertyService;
 import com.nexus.estates.service.repository.ImageStorageService;
 import com.nexus.estates.service.PropertyRuleService;
@@ -24,6 +30,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -33,6 +40,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -60,6 +69,7 @@ public class PropertyController {
     private final PropertyRepository repository;
     private final PropertyRuleService ruleService;
     private final SeasonalityRuleService seasonalityRuleService;
+    private final PermissionService permissionService;
 
     private final ImageStorageService imageStorageService;
 
@@ -77,13 +87,15 @@ public class PropertyController {
             ImageStorageService imageStorageService,
             PropertyRepository repository,
             PropertyRuleService ruleService,
-            SeasonalityRuleService seasonalityRuleService
+            SeasonalityRuleService seasonalityRuleService,
+            PermissionService permissionService
     ) {
         this.service = service;
         this.imageStorageService = imageStorageService;
         this.repository = repository;
         this.ruleService = ruleService;
         this.seasonalityRuleService = seasonalityRuleService;
+        this.permissionService = permissionService;
     }
 
     /**
@@ -103,7 +115,20 @@ public class PropertyController {
     @PreAuthorize("hasRole('OWNER')")
     public CompletableFuture<ResponseEntity<ApiResponse<Map<String, Object>>>> getUploadParams() {
         return CompletableFuture.supplyAsync(() ->
-                ResponseEntity.ok(ApiResponse.success(imageStorageService.getUploadParameters(), "Parâmetros de upload gerados."))
+                {
+                    try {
+                        return ResponseEntity.ok(ApiResponse.success(imageStorageService.getUploadParameters(), "Parâmetros de upload gerados."));
+                    } catch (Exception ex) {
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(ApiResponse.error(
+                                        500,
+                                        "Internal Server Error",
+                                        ex.getMessage(),
+                                        "/api/properties/upload-params",
+                                        null
+                                ));
+                    }
+                }
         );
     }
 
@@ -119,11 +144,30 @@ public class PropertyController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados de entrada inválidos ou campos obrigatórios em falta")
     })
     @PostMapping
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<Property>> create(
             @Valid @RequestBody CreatePropertyRequest request,
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
     ) {
-        Property property = service.create(request, userIdHeader);
+        if (userIdHeader == null || userIdHeader.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Sessão expirada.", "UNAUTHORIZED"));
+        }
+
+        CreatePropertyRequest safeRequest = new CreatePropertyRequest(
+                request.title(),
+                request.description(),
+                request.price(),
+                null,
+                request.location(),
+                request.city(),
+                request.address(),
+                request.maxGuests(),
+                request.amenityIds(),
+                request.imageUrl()
+        );
+
+        Property property = service.create(safeRequest, userIdHeader);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(property, "Propriedade criada com sucesso."));
     }
 
@@ -145,13 +189,16 @@ public class PropertyController {
     })
     @PutMapping("/{id}/amenities")
     @PreAuthorize("hasRole('OWNER')")
-    public CompletableFuture<ResponseEntity<ApiResponse<Property>>> updateAmenities(
+    public ResponseEntity<ApiResponse<ExpandedPropertyResponse>> updateAmenities(
             @Parameter(description = "ID da propriedade") @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
             @RequestBody Set<Long> amenityIds) {
-        return CompletableFuture.supplyAsync(() -> {
-            Property property = service.updateAmenities(id, amenityIds);
-            return ResponseEntity.ok(ApiResponse.success(property, "Comodidades atualizadas com sucesso."));
-        });
+        service.requireManageAccess(id, userIdHeader);
+        service.updateAmenities(id, amenityIds);
+        Property expanded = repository.findExpandedById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Property not found"));
+        ExpandedPropertyResponse response = service.convertToExpandedDto(expanded);
+        return ResponseEntity.ok(ApiResponse.success(response, "Comodidades atualizadas com sucesso."));
     }
 
     /**
@@ -166,7 +213,9 @@ public class PropertyController {
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<Property>> addAmenity(
             @Parameter(description = "ID da propriedade") @PathVariable Long id,
-            @Parameter(description = "ID da comodidade") @PathVariable Long amenityId) {
+            @Parameter(description = "ID da comodidade") @PathVariable Long amenityId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader) {
+        service.requireManageAccess(id, userIdHeader);
         Property property = service.addAmenity(id, amenityId);
         return ResponseEntity.ok(ApiResponse.success(property, "Comodidade adicionada com sucesso."));
     }
@@ -183,7 +232,9 @@ public class PropertyController {
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<Property>> removeAmenity(
             @Parameter(description = "ID da propriedade") @PathVariable Long id,
-            @Parameter(description = "ID da comodidade") @PathVariable Long amenityId) {
+            @Parameter(description = "ID da comodidade") @PathVariable Long amenityId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader) {
+        service.requireManageAccess(id, userIdHeader);
         Property property = service.removeAmenity(id, amenityId);
         return ResponseEntity.ok(ApiResponse.success(property, "Comodidade removida com sucesso."));
     }
@@ -218,6 +269,60 @@ public class PropertyController {
             @PathVariable Long id) {
         Property property = service.findById(id);
         return ResponseEntity.ok(ApiResponse.success(property, "Propriedade encontrada."));
+    }
+
+    @Operation(summary = "Obter proprietário principal", description = "Retorna o userId do PRIMARY_OWNER da propriedade.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Proprietário recuperado com sucesso"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não existe"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Proprietário não encontrado")
+    })
+    @GetMapping("/{id}/primary-owner")
+    public ResponseEntity<ApiResponse<Long>> getPrimaryOwner(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        if (userIdHeader != null && !userIdHeader.isBlank()) {
+            try {
+                Long requesterId = Long.parseLong(userIdHeader);
+                var level = service.getUserAccessLevel(id, requesterId);
+                if (level == null) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Acesso negado.", "FORBIDDEN"));
+                }
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Acesso negado.", "FORBIDDEN"));
+            }
+        }
+        Long ownerId = service.getPrimaryOwnerId(id);
+        return ResponseEntity.ok(ApiResponse.success(ownerId, "Proprietário principal encontrado."));
+    }
+
+    @Operation(summary = "Obter nível de acesso", description = "Retorna o access_level do utilizador para uma propriedade (PRIMARY_OWNER, MANAGER, STAFF).")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Nível de acesso encontrado"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Sem permissões ou propriedade não existe")
+    })
+    @GetMapping("/{id}/access-level/{userId}")
+    public ResponseEntity<ApiResponse<String>> getAccessLevel(
+            @PathVariable Long id,
+            @PathVariable Long userId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        if (userIdHeader != null && !userIdHeader.isBlank()) {
+            try {
+                Long requesterId = Long.parseLong(userIdHeader);
+                if (!requesterId.equals(userId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Acesso negado.", "FORBIDDEN"));
+                }
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Acesso negado.", "FORBIDDEN"));
+            }
+        }
+        var level = service.getUserAccessLevel(id, userId);
+        if (level == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("Permissão não encontrada.", "NOT_FOUND"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(level.name(), "Nível de acesso encontrado."));
     }
 
     /**
@@ -266,6 +371,207 @@ public class PropertyController {
     }
 
     /**
+     * Substitui a lista completa de regras de sazonalidade de uma propriedade.
+     *
+     * <p>Permite ao frontend aplicar alterações de forma atómica, garantindo que
+     * o estado final no servidor reflete a lista enviada.</p>
+     *
+     * <p>Permissões:</p>
+     * <ul>
+     *   <li>PRIMARY_OWNER e MANAGER (no contexto da propriedade) podem atualizar.</li>
+     *   <li>STAFF é recusado.</li>
+     * </ul>
+     */
+    @Operation(summary = "Substituir regras de sazonalidade", description = "Substitui toda a lista de regras de precificação dinâmica (PUT). Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Regras atualizadas com sucesso."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados inválidos."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
+    })
+    @PutMapping("/{id}/rules/seasonality")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<SeasonalityRuleDTO>>> replaceSeasonalityRules(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @Valid @RequestBody List<SeasonalityRuleDTO> rules
+    ) {
+        service.requireManageAccess(id, userIdHeader);
+        List<SeasonalityRuleDTO> updated = seasonalityRuleService.replaceRules(id, rules);
+        return ResponseEntity.ok(ApiResponse.success(updated, "Regras de sazonalidade atualizadas com sucesso."));
+    }
+
+    /**
+     * Cria uma regra de sazonalidade individual.
+     */
+    @Operation(summary = "Criar regra de sazonalidade", description = "Cria uma regra de sazonalidade individual (POST). Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Regra criada com sucesso."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados inválidos."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
+    })
+    @PostMapping("/{id}/rules/seasonality")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<SeasonalityRuleDTO>> createSeasonalityRule(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @Valid @RequestBody SeasonalityRuleDTO rule
+    ) {
+        service.requireManageAccess(id, userIdHeader);
+        SeasonalityRuleDTO created = seasonalityRuleService.createRule(id, rule);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created, "Regra de sazonalidade criada com sucesso."));
+    }
+
+    /**
+     * Atualiza parcialmente uma regra de sazonalidade.
+     */
+    @Operation(summary = "Atualizar regra de sazonalidade (PATCH)", description = "Atualiza parcialmente uma regra de sazonalidade (PATCH). Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Regra atualizada com sucesso."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados inválidos."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
+    })
+    @PatchMapping("/{id}/rules/seasonality/{ruleId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<SeasonalityRuleDTO>> patchSeasonalityRule(
+            @PathVariable Long id,
+            @PathVariable Long ruleId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @Valid @RequestBody SeasonalityRulePatchRequest patch
+    ) {
+        service.requireManageAccess(id, userIdHeader);
+        SeasonalityRuleDTO updated = seasonalityRuleService.patchRule(id, ruleId, patch);
+        return ResponseEntity.ok(ApiResponse.success(updated, "Regra de sazonalidade atualizada com sucesso."));
+    }
+
+    /**
+     * Remove uma regra de sazonalidade.
+     */
+    @Operation(summary = "Remover regra de sazonalidade", description = "Remove uma regra de sazonalidade (DELETE). Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Regra removida com sucesso."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Pedido inválido."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
+    })
+    @DeleteMapping("/{id}/rules/seasonality/{ruleId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> deleteSeasonalityRule(
+            @PathVariable Long id,
+            @PathVariable Long ruleId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        service.requireManageAccess(id, userIdHeader);
+        seasonalityRuleService.deleteRule(id, ruleId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Lista permissões (ACL) de uma propriedade.
+     */
+    @Operation(summary = "Listar permissões da propriedade", description = "Lista permissões (PRIMARY_OWNER/MANAGER/STAFF) de uma propriedade. Requer que o utilizador tenha acesso à propriedade.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Permissões obtidas com sucesso."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Sessão expirada."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
+    })
+    @GetMapping("/{id}/permissions")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<PropertyPermissionDTO>>> listPermissions(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        if (userIdHeader == null || userIdHeader.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Sessão expirada.", "UNAUTHORIZED"));
+        }
+        Long requesterId;
+        try {
+            requesterId = Long.parseLong(userIdHeader);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Sessão expirada.", "UNAUTHORIZED"));
+        }
+        AccessLevel level = service.getUserAccessLevel(id, requesterId);
+        if (level == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Acesso negado.", "FORBIDDEN"));
+        }
+        List<PropertyPermissionDTO> permissions = permissionService.listByProperty(id);
+        return ResponseEntity.ok(ApiResponse.success(permissions, "Permissões obtidas com sucesso."));
+    }
+
+    /**
+     * Substitui a lista completa de permissões de uma propriedade.
+     */
+    @Operation(summary = "Substituir permissões da propriedade", description = "Substitui a lista de permissões (PUT). Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Permissões atualizadas com sucesso."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados inválidos."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Sessão expirada."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
+    })
+    @PutMapping("/{id}/permissions")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<PropertyPermissionDTO>>> replacePermissions(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @Valid @RequestBody List<PropertyPermissionDTO> permissions
+    ) {
+        service.requireManageAccess(id, userIdHeader);
+        List<PropertyPermissionDTO> updated = permissionService.replacePermissions(id, permissions);
+        return ResponseEntity.ok(ApiResponse.success(updated, "Permissões atualizadas com sucesso."));
+    }
+
+    /**
+     * Atualiza parcialmente a permissão de um utilizador numa propriedade.
+     */
+    @Operation(summary = "Atualizar permissão (PATCH)", description = "Atualiza o accessLevel de um utilizador numa propriedade. Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Permissão atualizada com sucesso."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados inválidos."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Sessão expirada."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
+    })
+    @PatchMapping("/{id}/permissions/{userId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<PropertyPermissionDTO>> patchPermission(
+            @PathVariable Long id,
+            @PathVariable Long userId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @Valid @RequestBody PropertyPermissionPatchRequest patch
+    ) {
+        service.requireManageAccess(id, userIdHeader);
+        PropertyPermissionDTO updated = permissionService.patchPermission(id, userId, patch.accessLevel());
+        return ResponseEntity.ok(ApiResponse.success(updated, "Permissão atualizada com sucesso."));
+    }
+
+    /**
+     * Remove a permissão de um utilizador numa propriedade.
+     */
+    @Operation(summary = "Remover permissão", description = "Remove a permissão de um utilizador numa propriedade. Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Permissão removida com sucesso."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Pedido inválido."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Sessão expirada."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
+    })
+    @DeleteMapping("/{id}/permissions/{userId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> removePermission(
+            @PathVariable Long id,
+            @PathVariable Long userId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        service.requireManageAccess(id, userIdHeader);
+        permissionService.removePermission(id, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * Endpoint consolidado para validação de regras e cálculo de preço (cotação).
      *
      * <p>Consolida regras operacionais e sazonalidade de forma a manter o booking-service desacoplado
@@ -294,7 +600,7 @@ public class PropertyController {
      * @param dto Os novos dados das regras.
      * @return As regras atualizadas.
      */
-    @Operation(summary = "Atualizar regras da propriedade", description = "Atualiza as regras operacionais de uma propriedade. Requer a role 'OWNER'.")
+    @Operation(summary = "Atualizar regras da propriedade", description = "Atualiza as regras operacionais de uma propriedade (PUT). Requer acesso de gestão (PRIMARY_OWNER/MANAGER) no contexto da propriedade.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Regras atualizadas com sucesso."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados de entrada inválidos."),
@@ -302,12 +608,38 @@ public class PropertyController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
     })
     @PutMapping("/{id}/rules")
-    @PreAuthorize("hasRole('OWNER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PropertyRuleDTO>> updateRules(
             @Parameter(description = "ID da propriedade") @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
             @Valid @RequestBody PropertyRuleDTO dto) {
+        service.requireManageAccess(id, userIdHeader);
         PropertyRuleDTO updatedRules = ruleService.updateRules(id, dto);
         return ResponseEntity.ok(ApiResponse.success(updatedRules, "Regras da propriedade atualizadas com sucesso."));
+    }
+
+    /**
+     * Atualiza parcialmente as regras operacionais de uma propriedade.
+     *
+     * <p>Aplica apenas os campos presentes no payload, mantendo os restantes valores inalterados.</p>
+     */
+    @Operation(summary = "Atualizar regras da propriedade (PATCH)", description = "Atualiza parcialmente as regras operacionais. Requer acesso de gestão (PRIMARY_OWNER/MANAGER) no contexto da propriedade.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Regras atualizadas com sucesso."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados de entrada inválidos."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
+    })
+    @PatchMapping("/{id}/rules")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<PropertyRuleDTO>> patchRules(
+            @Parameter(description = "ID da propriedade") @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @Valid @RequestBody PropertyRulePatchRequest patch
+    ) {
+        service.requireManageAccess(id, userIdHeader);
+        PropertyRuleDTO updated = ruleService.patchRules(id, patch);
+        return ResponseEntity.ok(ApiResponse.success(updated, "Regras da propriedade atualizadas com sucesso."));
     }
 
     /**
@@ -415,9 +747,11 @@ public class PropertyController {
     public ResponseEntity<ApiResponse<ExpandedPropertyResponse>> patch(
             @PathVariable Long id,
             @RequestBody UpdatePropertyRequest request,
-            @RequestHeader(value = "X-Actor-UserId", required = false) Long actorUserId
+            @RequestHeader(value = "X-Actor-UserId", required = false) Long actorUserId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
     )
     {
+        service.requireManageAccess(id, userIdHeader);
         Property updated = service.updateProperty(id, request, actorUserId);
 
         ExpandedPropertyResponse response = service.convertToExpandedDto(updated);
@@ -429,8 +763,10 @@ public class PropertyController {
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<Void> delete(
             @PathVariable Long id,
-            @RequestHeader(value = "X-Actor-UserId", required = false) Long actorUserId
+            @RequestHeader(value = "X-Actor-UserId", required = false) Long actorUserId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
     ) {
+        service.requirePrimaryOwnerAccess(id, userIdHeader);
         service.deleteProperty(id, actorUserId);
         return ResponseEntity.noContent().build();
     }
@@ -445,8 +781,11 @@ public class PropertyController {
     @Operation(summary = "Parâmetros de upload de documentos", description = "Obtém parâmetros temporários para upload seguro de documentos da propriedade.")
     @GetMapping("/{id}/documents/upload-params")
     @PreAuthorize("hasRole('OWNER')")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> documentUploadParams(@PathVariable Long id) {
-        service.findById(id);
+    public ResponseEntity<ApiResponse<Map<String, Object>>> documentUploadParams(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        service.requireManageAccess(id, userIdHeader);
         Map<String, Object> params = imageStorageService.getUploadParameters();
         Map<String, Object> enriched = new java.util.HashMap<>(params);
         enriched.put("context_property_id", id);
@@ -485,7 +824,7 @@ public class PropertyController {
         m.put("basePrice", p.getBasePrice());
         m.put("maxGuests", p.getMaxGuests());
         m.put("isActive", Boolean.TRUE.equals(p.getIsActive()));
-        m.put("imageUrl", p.getImageUrl());
+        m.put("imageUrl", imageStorageService.resolveDeliveryUrl(p.getImageUrl()));
         return m;
     }
 }

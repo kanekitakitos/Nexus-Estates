@@ -15,6 +15,7 @@ import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.repository.PropertyRuleRepository;
 import com.nexus.estates.repository.RuleOverrideRepository;
 import com.nexus.estates.repository.SeasonalityRuleRepository;
+import com.nexus.estates.service.repository.ImageStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,8 @@ class PropertyServiceTest {
     private PropertyChangeLogRepository changeLogRepository;
     @Mock
     private RuleOverrideRepository ruleOverrideRepository;
+    @Mock
+    private ImageStorageService imageStorageService;
 
     @InjectMocks
     private PropertyService service;

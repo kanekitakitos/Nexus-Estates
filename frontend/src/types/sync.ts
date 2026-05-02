@@ -11,6 +11,19 @@ export interface SyncMessage {
   createdAt: string;
 }
 
+export type SyncConversation = {
+  inquiryId: number
+  propertyId: number
+  guestId: number
+  chatId: string
+}
+
+export type PropertyMessageResponse = {
+  inquiryId: number
+  chatId: string
+  message: SyncMessage
+}
+
 export type WebhookSubscription = {
   id: number
   targetUrl: string

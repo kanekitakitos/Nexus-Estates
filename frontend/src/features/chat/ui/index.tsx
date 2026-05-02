@@ -3,25 +3,16 @@
 import React from "react";
 import { Button } from "@/components/ui/forms/button";
 import { Input } from "@/components/ui/forms/input";
-import { Avatar as UiAvatar, AvatarImage, AvatarFallback } from "@/components/ui/data-display/avatar";
 import { ArrowLeft } from "lucide-react";
 import { chatTokens } from "@/features/chat/tokens";
 
-export const initials = (name: string) =>
-  name
-    .split(" ")
-    .map((s) => s[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
 export const ChatHeader: React.FC<{
   name: string;
-  avatarUrl?: string;
+  subtitle?: string;
   status?: string;
   onBack?: () => void;
   rightSlot?: React.ReactNode;
-}> = ({ name, avatarUrl, status, onBack, rightSlot }) => (
+}> = ({ name, subtitle, status, onBack, rightSlot }) => (
   <div className="flex items-center gap-3 px-4 py-3 border-b">
     {onBack && (
       <Button
@@ -33,13 +24,14 @@ export const ChatHeader: React.FC<{
         <ArrowLeft className="size-4" />
       </Button>
     )}
-    <UiAvatar>
-      <AvatarImage src={avatarUrl} alt={name} />
-      <AvatarFallback>{initials(name)}</AvatarFallback>
-    </UiAvatar>
-    <div className="flex flex-col">
+    <div className="flex flex-col min-w-0">
       <span className="text-sm font-medium">{name}</span>
-      {status ? <span className="text-xs text-muted-foreground">{status}</span> : null}
+      {subtitle || status ? (
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          {subtitle ? <span className="text-xs text-muted-foreground truncate">{subtitle}</span> : <span />}
+          {status ? <span className="text-[10px] text-muted-foreground shrink-0">{status}</span> : null}
+        </div>
+      ) : null}
     </div>
     <div className="ml-auto">{rightSlot}</div>
   </div>

@@ -2,8 +2,10 @@ package com.nexus.estates.controller;
 
 import com.nexus.estates.common.dto.ApiResponse;
 import com.nexus.estates.dto.CreatePropertyRequest;
+import com.nexus.estates.entity.AccessLevel;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.repository.PropertyRepository;
+import com.nexus.estates.service.PermissionService;
 import com.nexus.estates.service.PropertyService;
 import com.nexus.estates.service.PropertyRuleService;
 import com.nexus.estates.service.SeasonalityRuleService;
@@ -21,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class PropertyControllerTest {
@@ -30,6 +33,7 @@ class PropertyControllerTest {
     private PropertyRepository repository;
     private PropertyRuleService ruleService;
     private SeasonalityRuleService seasonalityRuleService;
+    private PermissionService permissionService;
     private PropertyController controller;
 
     @BeforeEach
@@ -39,8 +43,9 @@ class PropertyControllerTest {
         repository = mock(PropertyRepository.class);
         ruleService = mock(PropertyRuleService.class);
         seasonalityRuleService = mock(SeasonalityRuleService.class);
+        permissionService = mock(PermissionService.class);
         
-        controller = new PropertyController(propertyService, imageStorageService, repository, ruleService, seasonalityRuleService);
+        controller = new PropertyController(propertyService, imageStorageService, repository, ruleService, seasonalityRuleService, permissionService);
     }
 
     @Test
@@ -61,10 +66,13 @@ class PropertyControllerTest {
 
         when(propertyService.create(any(CreatePropertyRequest.class), any())).thenReturn(new Property());
 
-        ResponseEntity<ApiResponse<Property>> response = controller.create(request, null);
+        ResponseEntity<ApiResponse<Property>> response = controller.create(request, "1");
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        verify(propertyService, times(1)).create(request, null);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(CreatePropertyRequest.class);
+        verify(propertyService, times(1)).create(captor.capture(), eq("1"));
+        assertNull(captor.getValue().ownerId());
     }
 
     @Test
@@ -72,13 +80,15 @@ class PropertyControllerTest {
     void shouldAddAmenityToProperty() {
         Long propertyId = 1L;
         Long amenityId = 5L;
+        when(propertyService.requireManageAccess(eq(propertyId), any())).thenReturn(AccessLevel.PRIMARY_OWNER);
         when(propertyService.addAmenity(propertyId, amenityId)).thenReturn(new Property());
 
-        ResponseEntity<ApiResponse<Property>> response = controller.addAmenity(propertyId, amenityId);
+        ResponseEntity<ApiResponse<Property>> response = controller.addAmenity(propertyId, amenityId, "1");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().isSuccess());
+        verify(propertyService).requireManageAccess(propertyId, "1");
         verify(propertyService).addAmenity(propertyId, amenityId);
     }
 
@@ -87,13 +97,15 @@ class PropertyControllerTest {
     void shouldRemoveAmenityFromProperty() {
         Long propertyId = 1L;
         Long amenityId = 5L;
+        when(propertyService.requireManageAccess(eq(propertyId), any())).thenReturn(AccessLevel.PRIMARY_OWNER);
         when(propertyService.removeAmenity(propertyId, amenityId)).thenReturn(new Property());
 
-        ResponseEntity<ApiResponse<Property>> response = controller.removeAmenity(propertyId, amenityId);
+        ResponseEntity<ApiResponse<Property>> response = controller.removeAmenity(propertyId, amenityId, "1");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().isSuccess());
+        verify(propertyService).requireManageAccess(propertyId, "1");
         verify(propertyService).removeAmenity(propertyId, amenityId);
     }
 

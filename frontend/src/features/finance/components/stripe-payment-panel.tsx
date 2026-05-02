@@ -28,6 +28,7 @@ function StripePaymentInner({
   const stripe = useStripe()
   const elements = useElements()
   const [isPaying, setIsPaying] = React.useState(false)
+  const paymentElementOptions = React.useMemo(() => ({ layout: "accordion" as const }), [])
 
   const handlePay = async () => {
     if (!stripe || !elements) return
@@ -80,7 +81,7 @@ function StripePaymentInner({
       </div>
 
       <div className={financeTokens.ui.stripePaymentPanel.paymentElementContainerClass}>
-        <PaymentElement />
+        <PaymentElement options={paymentElementOptions} />
       </div>
 
       <Button
@@ -125,13 +126,57 @@ export function StripePaymentPanel({
   onConfirmed: (paymentIntentId: string) => void | Promise<void>
 }) {
   const stripePromise = React.useMemo(() => loadStripe(publishableKey), [publishableKey])
+  const appearance = React.useMemo(
+    () => ({
+      theme: financeTokens.ui.stripePaymentPanel.stripeTheme,
+      variables: {
+        colorPrimary: "#0D0D0D",
+        colorText: "#0D0D0D",
+        colorTextSecondary: "rgba(13, 13, 13, 0.72)",
+        colorBackground: "#FAFAF5",
+        colorDanger: "#E11D48",
+        fontFamily:
+          'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+        borderRadius: "12px",
+      },
+      rules: {
+        ".Label": {
+          fontSize: "10px",
+          fontWeight: "900",
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+        },
+        ".Input": {
+          border: "2px solid rgba(13, 13, 13, 0.22)",
+          boxShadow: "2px 2px 0 0 #0D0D0D",
+        },
+        ".Input:focus": {
+          border: "2px solid #0D0D0D",
+          boxShadow: "3px 3px 0 0 #0D0D0D",
+        },
+        ".Tab": {
+          border: "2px solid rgba(13, 13, 13, 0.18)",
+        },
+        ".Tab--selected": {
+          border: "2px solid #0D0D0D",
+          boxShadow: "2px 2px 0 0 #0D0D0D",
+        },
+        ".Block": {
+          border: "2px solid rgba(13, 13, 13, 0.14)",
+          boxShadow: "2px 2px 0 0 rgba(13, 13, 13, 0.55)",
+        },
+      },
+    }),
+    []
+  )
 
   return (
     <Elements
+      key={clientSecret}
       stripe={stripePromise}
       options={{
         clientSecret,
-        appearance: { theme: financeTokens.ui.stripePaymentPanel.stripeTheme },
+        appearance,
       }}
     >
       <StripePaymentInner bookingId={bookingId} total={total} currency={currency} onConfirmed={onConfirmed} />

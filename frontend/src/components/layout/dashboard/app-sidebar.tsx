@@ -64,7 +64,7 @@ const menuItems = [
     title: "Chat",
     url: "#",
     icon: MessageSquare,
-    roles: ["ADMIN", "OWNER", "STAFF"],
+    roles: ["ADMIN", "GUEST", "OWNER", "STAFF"],
   },
 ]
 
@@ -90,6 +90,8 @@ export function AppSidebar({
   const [isLoadingBookings, setIsLoadingBookings] = React.useState(false)
   const [properties, setProperties] = React.useState<OwnProperty[]>([])
   const [isLoadingProperties, setIsLoadingProperties] = React.useState(false)
+  // Permite abrir diretamente uma conversa específica (ex.: inquiry) quando o fluxo é iniciado fora do painel "Chat".
+  const [chatLaunch, setChatLaunch] = React.useState<{ chatId?: string; nonce: number }>({ chatId: undefined, nonce: 0 })
 
   // Estado real do utilizador vindo do localStorage
   const [currentUser, setCurrentUser] = React.useState({
@@ -150,6 +152,25 @@ export function AppSidebar({
   }, [syncUserSession])
 
   React.useEffect(() => {
+    /**
+     * Evento global: utilizado para flows cross-feature (ex.: BookingDetails → "Contactar proprietário").
+     *
+     * Payload esperado:
+     * - detail.chatId (ex.: "inquiry:123" ou "booking:456")
+     */
+    const onOpenChat = (ev: Event) => {
+      const custom = ev as CustomEvent<{ chatId?: string }>
+      const nextChatId = custom.detail?.chatId
+      setActiveItem("Chat")
+      setChatLaunch((prev) => ({ chatId: nextChatId, nonce: prev.nonce + 1 }))
+      setOpen(true)
+    }
+
+    window.addEventListener("open-chat", onOpenChat as EventListener)
+    return () => window.removeEventListener("open-chat", onOpenChat as EventListener)
+  }, [setOpen])
+
+  React.useEffect(() => {
     const load = async () => {
       if (activeItem !== "Bookings") return
       if (!currentUser.isAuthenticated) return
@@ -169,7 +190,6 @@ export function AppSidebar({
               return {
                 ...base,
                 description: "",
-                imageUrl: "",
                 tags: [],
                 amenityIds: [],
               }
@@ -230,7 +250,6 @@ export function AppSidebar({
           return {
             ...base,
             description: "",
-            imageUrl: "",
             tags: [],
             amenityIds: [],
           }
@@ -327,7 +346,7 @@ export function AppSidebar({
           {/* Painel 2: Detalhes (inclui lista de chats e janela do chat) */}
           <Sidebar
               collapsible="none"
-              className={`flex-1 transition-opacity duration-100 bg-white/10 dark:bg-black/10 backdrop-blur-md ${state === "collapsed" ? "hidden opacity-0" : "flex opacity-100"}`}
+              className={`!w-[calc(var(--sidebar-width)-var(--sidebar-width-icon)-1px)] flex-none min-w-0 transition-opacity duration-100 bg-white/10 dark:bg-black/10 backdrop-blur-md ${state === "collapsed" ? "hidden opacity-0" : "flex opacity-100"}`}
           >
             <SidebarHeader className="border-b-2 border-foreground/10 p-4 h-[64px] flex items-center gap-3">
               <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
@@ -336,11 +355,11 @@ export function AppSidebar({
               </div>
             </SidebarHeader>
 
-            <SidebarContent className="p-0">
+            <SidebarContent className="p-0 min-w-0 overflow-x-hidden">
               {activeItem === "Chat" ? (
                 <>
                   {/* Painel: Chat */}
-                  <ChatCompactSidebar />
+                  <ChatCompactSidebar initialChatId={chatLaunch.chatId} launchNonce={chatLaunch.nonce} />
                 </>
               ) : activeItem === "Properties" ? (
                 <>
@@ -350,6 +369,7 @@ export function AppSidebar({
                     isLoading={isLoadingProperties}
                     properties={properties}
                     onManage={() => {
+                      window.dispatchEvent(new CustomEvent("properties-manage"))
                       setView("properties")
                       selectPropertyId(null)
                       if (pathname !== "/properties") router.push("/properties")

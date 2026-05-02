@@ -34,8 +34,13 @@ import { BookingDetails } from "../components/booking-details"
 import { BookingCheckoutForm } from "../components/booking-checkout-form"
 import { cn } from "@/lib/utils"
 import { PropertyService } from "@/services/property.service"
+import { AuthService } from "@/services/auth.service"
 import { notify } from "@/lib/notify"
 import { bookingsTokens } from "@/features/bookings/tokens"
+import { FinanceService } from "@/services/finance.service"
+import { PaymentDetails } from "@/features/finance/components/payment-details"
+import { StripePaymentPanel } from "@/features/finance/components/stripe-payment-panel"
+import type { PaymentMethod, PaymentResponse, ProviderInfo } from "@/types/finance"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import {
   comicPopVariants, gummyHover, gummyTap,
@@ -59,9 +64,24 @@ import {
 // ─────────────────────────────────────────────
 
 /** Estados de ecrã internos (sem mudar de rota) para manter transições fluídas. */
-type BookingViewScreen = "list" | "details" | "checkout"
+type BookingViewScreen = "list" | "details" | "checkout" | "resume-payment"
 /** Acções de limpeza a executar após `AnimatePresence` completar a saída. */
 type ExitCleanup = "clearSelected" | "clearCheckout" | "clearAll" | null
+
+type BookingQuickAccessPayload = {
+  propertyId: string
+  checkIn: string
+  checkOut: string
+}
+
+const BOOKING_QUICK_ACCESS_STORAGE_KEY = "booking:quick-access"
+
+type BookingResumePaymentPayload = {
+  bookingId: number
+  propertyId?: string
+}
+
+const BOOKING_RESUME_PAYMENT_STORAGE_KEY = "booking:resume-payment"
 
 /** Filtros de pesquisa usados no ecrã de listagem. */
 interface SearchFilters {
@@ -86,12 +106,33 @@ const DEFAULT_FILTERS: SearchFilters = {
 function useBookingCatalog() {
   const [properties, setProperties] = useState<BookingProperty[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [excludedPropertyIds, setExcludedPropertyIds] = useState<Set<string>>(new Set())
 
   const load = useCallback(async () => {
     try {
       setIsLoading(true)
-      const data = await PropertyService.getAllProperties()
-      setProperties(data)
+      const session = AuthService.getSession()
+      const isAuthenticated = Boolean(session?.token && session?.userId)
+
+      const [data, mine] = await Promise.all([
+        PropertyService.getAllProperties(),
+        isAuthenticated
+          ? PropertyService.listMine({ page: 0, size: 250, sort: "name,asc" }).catch(() => null)
+          : Promise.resolve(null),
+      ])
+
+      const owned = new Set<string>()
+      if (mine?.content && Array.isArray(mine.content)) {
+        for (const item of mine.content as any[]) {
+          const rawId = item?.id
+          if (typeof rawId === "number" || typeof rawId === "string") {
+            owned.add(String(rawId))
+          }
+        }
+      }
+
+      setExcludedPropertyIds(owned)
+      setProperties(owned.size ? data.filter((p) => !owned.has(p.id)) : data)
     } catch {
       notify.error(bookingsTokens.copy.errors.loadProperties)
     } finally {
@@ -103,13 +144,14 @@ function useBookingCatalog() {
     void load()
   }, [load])
 
-  return { properties, isLoading, reload: load }
+  return { properties, isLoading, reload: load, excludedPropertyIds }
 }
 
-function useBookingFlow(properties: BookingProperty[]) {
+function useBookingFlow(properties: BookingProperty[], excludedPropertyIds: Set<string>) {
   const [selectedProperty, setSelectedProperty] = useState<BookingProperty | null>(null)
   const [checkout, setCheckout] = useState<{ checkIn: string; checkOut: string } | null>(null)
   const [lastViewedPropertyId, setLastViewedPropertyId] = useState<string | null>(null)
+  const [resumePayment, setResumePayment] = useState<BookingResumePaymentPayload | null>(null)
   const [screen, setScreen] = useState<BookingViewScreen>("list")
   const [exitCleanup, setExitCleanup] = useState<ExitCleanup>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
@@ -117,6 +159,10 @@ function useBookingFlow(properties: BookingProperty[]) {
   const navigateToDetails = useCallback(
     (id: string) => {
       if (isTransitioning) return
+      if (excludedPropertyIds.has(id)) {
+        notify.error("Não podes reservar a tua própria propriedade.")
+        return
+      }
       const property = properties.find((p) => p.id === id)
       if (!property) return
       setLastViewedPropertyId(id)
@@ -127,7 +173,7 @@ function useBookingFlow(properties: BookingProperty[]) {
       setScreen("details")
       window.scrollTo(0, 0)
     },
-    [isTransitioning, properties]
+    [excludedPropertyIds, isTransitioning, properties]
   )
 
   const navigateBackToList = useCallback(() => {
@@ -142,6 +188,7 @@ function useBookingFlow(properties: BookingProperty[]) {
     (payload: { checkIn: string; checkOut: string }) => {
       if (isTransitioning) return
       setCheckout(payload)
+      setResumePayment(null)
       setExitCleanup(null)
       setIsTransitioning(true)
       setScreen("checkout")
@@ -149,6 +196,42 @@ function useBookingFlow(properties: BookingProperty[]) {
     },
     [isTransitioning]
   )
+
+  const openCheckoutForQuickAccess = useCallback((payload: BookingQuickAccessPayload) => {
+    if (isTransitioning) return
+    if (excludedPropertyIds.has(payload.propertyId)) {
+      notify.error("Não podes reservar a tua própria propriedade.")
+      return
+    }
+    const property = properties.find((p) => p.id === payload.propertyId)
+    if (!property) return
+    if (property.status !== "AVAILABLE") {
+      notify.warning("Esta propriedade não está disponível para novas reservas.")
+      return
+    }
+    setLastViewedPropertyId(payload.propertyId)
+    setSelectedProperty(property)
+    setCheckout({ checkIn: payload.checkIn, checkOut: payload.checkOut })
+    setResumePayment(null)
+    setExitCleanup(null)
+    setIsTransitioning(true)
+    setScreen("checkout")
+    window.scrollTo(0, 0)
+  }, [excludedPropertyIds, isTransitioning, properties])
+
+  const openResumePayment = useCallback((payload: BookingResumePaymentPayload) => {
+    if (isTransitioning) return
+    const propertyId = payload.propertyId ?? null
+    const property = propertyId ? properties.find((p) => p.id === propertyId) ?? null : null
+    if (propertyId) setLastViewedPropertyId(propertyId)
+    if (property) setSelectedProperty(property)
+    setCheckout(null)
+    setResumePayment(payload)
+    setExitCleanup(null)
+    setIsTransitioning(true)
+    setScreen("resume-payment")
+    window.scrollTo(0, 0)
+  }, [isTransitioning, properties])
 
   const navigateBackToDetails = useCallback(() => {
     if (screen === "details") return
@@ -168,6 +251,7 @@ function useBookingFlow(properties: BookingProperty[]) {
     if (exitCleanup === "clearAll") {
       setCheckout(null)
       setSelectedProperty(null)
+      setResumePayment(null)
     }
     setExitCleanup(null)
     setIsTransitioning(false)
@@ -177,11 +261,14 @@ function useBookingFlow(properties: BookingProperty[]) {
     screen,
     selectedProperty,
     checkout,
+    resumePayment,
     lastViewedPropertyId,
     isTransitioning,
     navigateToDetails,
     navigateBackToList,
     navigateToCheckout,
+    openCheckoutForQuickAccess,
+    openResumePayment,
     navigateBackToDetails,
     onExitComplete,
   }
@@ -390,8 +477,247 @@ function BookingCheckoutScreen({
   )
 }
 
+function BookingResumePaymentScreen({
+  bookingId,
+  property,
+  onBack,
+}: {
+  bookingId: number
+  property: BookingProperty | null
+  onBack: () => void
+}) {
+  const [payment, setPayment] = useState<PaymentResponse | null>(null)
+  const [providerInfo, setProviderInfo] = useState<ProviderInfo | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CREDIT_CARD")
+  const [reloadNonce, setReloadNonce] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        setError(null)
+        const [info, intent] = await Promise.all([
+          FinanceService.getPaymentProviderInfo(),
+          FinanceService.createPaymentIntent({ bookingId, paymentMethod }),
+        ])
+        if (cancelled) return
+        setProviderInfo(info)
+        setPayment(intent)
+      } catch {
+        if (cancelled) return
+        setProviderInfo(null)
+        setPayment(null)
+        setError("Não foi possível iniciar o pagamento.")
+      }
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [bookingId, paymentMethod, reloadNonce])
+
+  const stripeClientSecret = useMemo(() => {
+    if (!payment || typeof payment !== "object") return null
+    const s = (payment as Record<string, unknown>)["clientSecret"]
+    return typeof s === "string" && s.length > 0 ? s : null
+  }, [payment])
+
+  const stripePublishableKey = useMemo(() => {
+    const caps = providerInfo?.capabilities as Record<string, unknown> | undefined
+    const fromCaps = caps && typeof caps["publishableKey"] === "string" ? (caps["publishableKey"] as string) : ""
+    const fromEnv = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ""
+    return (fromCaps || fromEnv).trim()
+  }, [providerInfo])
+
+  const confirm = useCallback(async (paymentIntentId: string) => {
+    try {
+      await FinanceService.confirmPayment({ bookingId, paymentIntentId, metadata: { bookingId } })
+    } catch {
+      notify.error("Falhou confirmar pagamento.")
+    }
+  }, [bookingId])
+
+  const paymentAmount = useMemo(() => {
+    const v = (payment as Record<string, unknown> | null)?.["amount"]
+    return typeof v === "number" && Number.isFinite(v) ? v : 0
+  }, [payment])
+
+  const paymentCurrency = useMemo(() => {
+    const v = (payment as Record<string, unknown> | null)?.["currency"]
+    return typeof v === "string" && v.length > 0 ? v : "EUR"
+  }, [payment])
+
+  return (
+    <motion.div
+      key="booking-resume-payment"
+      className="p-2 md:p-6 lg:p-10 xl:px-[150px] min-h-screen overflow-x-hidden"
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+    >
+      <div className="mx-auto w-full max-w-5xl">
+        <button
+          type="button"
+          onClick={onBack}
+          className={cn("mb-6 flex items-center gap-1.5 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors")}
+        >
+          ← Voltar
+        </button>
+
+        <div className="rounded-2xl border-2 border-foreground bg-background shadow-[6px_6px_0_0_rgb(0,0,0)] dark:shadow-[6px_6px_0_0_rgba(255,255,255,0.9)] p-5 md:p-6 space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="font-black uppercase tracking-tight">Retomar pagamento</div>
+              <div className="mt-1 text-xs font-mono text-muted-foreground">
+                Reserva #{bookingId}{property ? ` · ${property.title}` : ""}
+              </div>
+            </div>
+          </div>
+
+          {providerInfo?.supportedPaymentMethods?.length ? (
+            <div className="space-y-2">
+              <div className="text-[11px] font-black uppercase tracking-widest">Método de pagamento</div>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                className="h-11 w-full rounded-md border-2 border-foreground bg-background px-3 text-sm font-mono shadow-[3px_3px_0_0_rgb(0,0,0)] dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.8)] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+              >
+                {providerInfo.supportedPaymentMethods
+                  .filter((m) => m === "CREDIT_CARD" || m === "MB_WAY")
+                  .map((m) => (
+                    <option key={m} value={m}>
+                      {m === "CREDIT_CARD" ? "Cartão" : m === "MB_WAY" ? "MB WAY" : m}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          ) : null}
+
+          <PaymentDetails
+            bookingId={bookingId}
+            payment={payment}
+            providerInfo={providerInfo}
+            labelClassName="text-[11px] font-black uppercase tracking-widest"
+            error={error}
+            onRetry={() => setReloadNonce((n) => n + 1)}
+          />
+
+          {providerInfo?.name === "Stripe" && stripeClientSecret && stripePublishableKey ? (
+            <StripePaymentPanel
+              publishableKey={stripePublishableKey}
+              clientSecret={stripeClientSecret}
+              bookingId={bookingId}
+              total={paymentAmount}
+              currency={paymentCurrency}
+              onConfirmed={confirm}
+            />
+          ) : null}
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+function useBookingSidebarActions({
+  properties,
+  openCheckoutForQuickAccess,
+  openResumePayment,
+}: {
+  properties: BookingProperty[]
+  openCheckoutForQuickAccess: (payload: BookingQuickAccessPayload) => void
+  openResumePayment: (payload: BookingResumePaymentPayload) => void
+}) {
+  const [pendingQuickAccess, setPendingQuickAccess] = useState<BookingQuickAccessPayload | null>(null)
+  const [pendingResume, setPendingResume] = useState<BookingResumePaymentPayload | null>(null)
+
+  const applyQuickAccess = useCallback((payload: BookingQuickAccessPayload) => {
+    if (!payload?.propertyId || !payload?.checkIn || !payload?.checkOut) return
+    if (properties.length === 0) {
+      setPendingQuickAccess(payload)
+      return
+    }
+    openCheckoutForQuickAccess(payload)
+  }, [openCheckoutForQuickAccess, properties.length])
+
+  const applyResumePayment = useCallback((payload: BookingResumePaymentPayload) => {
+    if (!payload?.bookingId) return
+    if (properties.length === 0) {
+      setPendingResume(payload)
+      return
+    }
+    openResumePayment(payload)
+  }, [openResumePayment, properties.length])
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(BOOKING_QUICK_ACCESS_STORAGE_KEY)
+      if (raw) {
+        sessionStorage.removeItem(BOOKING_QUICK_ACCESS_STORAGE_KEY)
+        const parsed = JSON.parse(raw) as Partial<BookingQuickAccessPayload> | null
+        if (parsed?.propertyId && parsed?.checkIn && parsed?.checkOut) {
+          applyQuickAccess({
+            propertyId: String(parsed.propertyId),
+            checkIn: String(parsed.checkIn),
+            checkOut: String(parsed.checkOut),
+          })
+        }
+      }
+    } catch {}
+
+    try {
+      const raw = sessionStorage.getItem(BOOKING_RESUME_PAYMENT_STORAGE_KEY)
+      if (raw) {
+        sessionStorage.removeItem(BOOKING_RESUME_PAYMENT_STORAGE_KEY)
+        const parsed = JSON.parse(raw) as Partial<BookingResumePaymentPayload> | null
+        const bookingId = typeof parsed?.bookingId === "number" ? parsed.bookingId : Number(parsed?.bookingId)
+        if (Number.isFinite(bookingId) && bookingId > 0) {
+          applyResumePayment({ bookingId, propertyId: parsed?.propertyId ? String(parsed.propertyId) : undefined })
+        }
+      }
+    } catch {}
+
+    const onQuickAccess = (ev: Event) => {
+      const custom = ev as CustomEvent<Partial<BookingQuickAccessPayload>>
+      const detail = custom.detail
+      if (!detail?.propertyId || !detail?.checkIn || !detail?.checkOut) return
+      applyQuickAccess({
+        propertyId: String(detail.propertyId),
+        checkIn: String(detail.checkIn),
+        checkOut: String(detail.checkOut),
+      })
+    }
+
+    const onResume = (ev: Event) => {
+      const custom = ev as CustomEvent<Partial<BookingResumePaymentPayload>>
+      const detail = custom.detail
+      const bookingId = typeof detail?.bookingId === "number" ? detail.bookingId : Number(detail?.bookingId)
+      if (!Number.isFinite(bookingId) || bookingId <= 0) return
+      applyResumePayment({ bookingId, propertyId: detail?.propertyId ? String(detail.propertyId) : undefined })
+    }
+
+    window.addEventListener("booking-quick-access", onQuickAccess as EventListener)
+    window.addEventListener("booking-resume-payment", onResume as EventListener)
+    return () => {
+      window.removeEventListener("booking-quick-access", onQuickAccess as EventListener)
+      window.removeEventListener("booking-resume-payment", onResume as EventListener)
+    }
+  }, [applyQuickAccess, applyResumePayment])
+
+  useEffect(() => {
+    if (!pendingQuickAccess || properties.length === 0) return
+    openCheckoutForQuickAccess(pendingQuickAccess)
+    setPendingQuickAccess(null)
+  }, [openCheckoutForQuickAccess, pendingQuickAccess, properties.length])
+
+  useEffect(() => {
+    if (!pendingResume || properties.length === 0) return
+    openResumePayment(pendingResume)
+    setPendingResume(null)
+  }, [openResumePayment, pendingResume, properties.length])
+}
+
 export function BookingView() {
-  const { properties, isLoading } = useBookingCatalog()
+  const { properties, isLoading, excludedPropertyIds } = useBookingCatalog()
   const firstPageSize = 31
   const pageSize = 32
 
@@ -399,14 +725,17 @@ export function BookingView() {
     screen,
     selectedProperty,
     checkout,
+    resumePayment,
     lastViewedPropertyId,
     isTransitioning,
     navigateToDetails,
     navigateBackToList,
     navigateToCheckout,
+    openCheckoutForQuickAccess,
+    openResumePayment,
     navigateBackToDetails,
     onExitComplete,
-  } = useBookingFlow(properties)
+  } = useBookingFlow(properties, excludedPropertyIds)
 
   const {
     filters,
@@ -424,6 +753,8 @@ export function BookingView() {
     isTransitioning,
     onNavigateForward: navigateToDetails,
   })
+
+  useBookingSidebarActions({ properties, openCheckoutForQuickAccess, openResumePayment })
 
   return (
     <AnimatePresence
@@ -463,6 +794,14 @@ export function BookingView() {
           checkout={checkout}
           onBack={navigateBackToDetails}
           onSuccess={navigateBackToList}
+        />
+      )}
+
+      {screen === "resume-payment" && resumePayment && (
+        <BookingResumePaymentScreen
+          bookingId={resumePayment.bookingId}
+          property={selectedProperty}
+          onBack={navigateBackToList}
         />
       )}
     </AnimatePresence>

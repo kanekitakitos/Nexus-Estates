@@ -77,7 +77,9 @@ export class BookingService {
 
             if (bookingData.userId != null) {
                 payload.userId = bookingData.userId;
-            } else if (bookingData.guestDetails) {
+            }
+
+            if (bookingData.guestDetails) {
                 payload.guestFullName = bookingData.guestDetails.fullName;
                 payload.guestEmail = bookingData.guestDetails.email;
                 payload.guestPhone = bookingData.guestDetails.phone;

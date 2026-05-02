@@ -40,7 +40,7 @@ export function usePropertyManager(selectedPropertyId: string | null) {
   }, [])
 
   const loadDetail = useCallback((id: string) => {
-    PropertyService.getPropertyById(id)
+    PropertyService.getExpanded(Number(id))
       .then((p) => setSelectedProperty(mapPropertyRecordToOwnProperty(p as unknown as Record<string, unknown>)))
       .catch(console.error)
   }, [])
@@ -128,6 +128,9 @@ export function usePropertyForm(initialData: OwnProperty | null, onSaved: () => 
     isSaving,
     isEdit: !!initialData,
     updateField: <K extends keyof OwnProperty>(f: K, v: OwnProperty[K]) => setProperty(prev => ({ ...prev, [f]: v })),
+    goToStep: (next: WizardStep) => {
+      if (STEPS.includes(next)) setStep(next)
+    },
     nextStep: () => { const idx = STEPS.indexOf(step); if (idx < STEPS.length - 1) setStep(STEPS[idx + 1]) },
     prevStep: () => { const idx = STEPS.indexOf(step); if (idx > 0) setStep(STEPS[idx - 1]) },
     handleFinalSave: async () => {

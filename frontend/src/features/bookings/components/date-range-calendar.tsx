@@ -120,7 +120,8 @@ export function DateRangeCalendar({
           selected={date}
           onSelect={handleSelect}
           numberOfMonths={isDesktop ? 2 : 1}
-          className="w-full max-w-[300px] md:max-w-none"
+          className="max-w-full"
+          classNames={{ month: "w-auto space-y-4" }}
           disabled={(d) => d < TODAY}
         />
       </motion.div>

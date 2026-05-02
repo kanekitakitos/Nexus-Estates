@@ -3,23 +3,12 @@
 import { useState, useRef, useCallback } from 'react';
 import Image from "next/image";
 import { X, Loader2, UploadCloud, Trash2 } from 'lucide-react';
-import axios from "axios";
 import { notify } from "@/lib/notify"
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { PropertyService } from "@/services/property.service";
 
 // ─── Tipos e Props ────────────────────────────────────────────────────────
-
-/** Parâmetros de assinatura para integração com Cloudinary via backend Nexus */
-interface CloudinarySignatureParams {
-    signature: string;
-    timestamp: number;
-    folder: string;
-    api_key: string;
-    cloud_name: string;
-    upload_url: string;
-}
 
 /** Propriedades do Gestor de Média ImageInput */
 export interface ImageInputProps {
@@ -260,27 +249,8 @@ export function ImageInput({
         if (stagedFiles.length === 0) return
         setIsUploading(true)
 
-        const uploadedUrls: string[] = []
-
         try {
-            const params = await PropertyService.getUploadParams() as unknown as CloudinarySignatureParams
-
-            if (!params.signature) {
-                notify.error("Protocolo de segurança inválido.")
-                return
-            }
-
-            for (const file of stagedFiles) {
-                const formData = new FormData()
-                formData.append("file", file)
-                formData.append("timestamp", String(params.timestamp))
-                formData.append("api_key", params.api_key)
-                formData.append("signature", params.signature)
-                formData.append("folder", params.folder)
-
-                const response = await axios.post(params.upload_url, formData)
-                uploadedUrls.push(response.data.secure_url)
-            }
+            const uploadedUrls = await PropertyService.uploadPropertyImages(stagedFiles)
 
             notify.success(`Protocolo ${uploadedUrls.length} finalizado.`)
             clearStage()
@@ -290,7 +260,8 @@ export function ImageInput({
 
         } catch (error) {
             console.error("Cloudinary Sync Err:", error)
-            notify.error("Falha na sincronização Nexus_Cloud.")
+            const message = error instanceof Error ? error.message : "Falha na sincronização Nexus_Cloud."
+            notify.error("Upload falhou", { description: message })
         } finally {
             setIsUploading(false)
         }

@@ -36,20 +36,22 @@ import {
   useForm,
   useFormContext,
   useWatch,
+  type Resolver,
 } from "react-hook-form"
 import type { DateRange } from "react-day-picker"
 import { z } from "zod"
 import { notify } from "@/lib/notify"
-import { Check, ChevronRight, Lock, Loader2, ArrowLeft } from "lucide-react"
+import { Check, ChevronRight, Lock, Loader2, ArrowLeft, ChevronDown } from "lucide-react"
 
 import { Button } from "@/components/ui/forms/button"
 import { Input } from "@/components/ui/forms/input"
 import { BrutalCalendar } from "@/components/ui/calendars/calendar"
+import { NexusAlert } from "@/components/ui/feedback/nexus-alert"
 import type { BookingProperty } from "@/types/booking"
 import { BookingService } from "@/services/booking.service"
 import { AuthService } from "@/services/auth.service"
 import { FinanceService } from "@/services/finance.service"
-import type { PaymentResponse, ProviderInfo } from "@/types/finance"
+import type { PaymentMethod, PaymentResponse, ProviderInfo } from "@/types/finance"
 import { cn } from "@/lib/utils"
 import { propertiesAxios, usersAxios, type ApiResponse } from "@/lib/axiosAPI"
 import type { PropertyQuoteResponse } from "@/types/property"
@@ -241,35 +243,20 @@ function padBase64(s: string) {
 // Validation schema
 // ─────────────────────────────────────────────
 
-const checkoutSchema = z
-  .object({
-    fullName: z.string().trim().min(3, "Mínimo 3 caracteres."),
-    email: z.string().trim().regex(EMAIL_REGEX, "Email inválido."),
-    phone: z
-      .string()
-      .trim()
-      .refine((v) => normalize.phoneError(v) == null, "Telefone inválido."),
-    guestCount: z.number().int().min(1).max(20),
-    nationality: z.string().trim().min(2).max(10),
-    issuingCountry: z.string().trim(),
-    documentNumber: z.string().trim(),
-    passportNumber: z.string().trim(),
-    passportIssueDate: z.string().trim(),
-  })
-  .superRefine((data, ctx) => {
-    const nat = normalize.countryCode(data.nationality)
-    if (nat !== "PT") {
-      if (normalize.countryCode(data.issuingCountry).length !== 2)
-        ctx.addIssue({ code: "custom", path: ["issuingCountry"], message: "Código ISO (2 letras)." })
-      if (!normalize.documentNumber(data.passportNumber))
-        ctx.addIssue({ code: "custom", path: ["passportNumber"], message: "Obrigatório." })
-      if (!parseDate(data.passportIssueDate))
-        ctx.addIssue({ code: "custom", path: ["passportIssueDate"], message: "Data inválida." })
-    } else {
-      if (!normalize.nicIsValid(data.documentNumber))
-        ctx.addIssue({ code: "custom", path: ["documentNumber"], message: "Formato: 12345678 0 XX 1" })
-    }
-  })
+const checkoutBaseSchema = z.object({
+  fullName: z.string().trim().min(3, "Mínimo 3 caracteres."),
+  email: z.string().trim().regex(EMAIL_REGEX, "Email inválido."),
+  phone: z
+    .string()
+    .trim()
+    .refine((v) => normalize.phoneError(v) == null, "Telefone inválido."),
+  guestCount: z.number().int().min(1).max(20),
+  nationality: z.string().trim().min(2).max(10),
+  issuingCountry: z.string().trim(),
+  documentNumber: z.string().trim(),
+  passportNumber: z.string().trim(),
+  passportIssueDate: z.string().trim(),
+})
 
 // ─────────────────────────────────────────────
 // useBookingSubmit
@@ -280,7 +267,8 @@ function useBookingSubmit(
   checkOut: string,
   property: BookingProperty,
   getAuth: () => { isAuthenticated: boolean; userId: number | null },
-  isGuest: () => boolean
+  isGuest: () => boolean,
+  getPaymentMethod: () => PaymentMethod
 ) {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [bookingId, setBookingId] = React.useState<number | null>(null)
@@ -305,13 +293,13 @@ function useBookingSubmit(
     }
   }, [bookingId])
 
-  const retryPayment = React.useCallback(async () => {
+  const retryPayment = React.useCallback(async (paymentMethod: PaymentMethod) => {
     if (!bookingId || paymentAmount == null || !paymentCurrency) return
     try {
       setPaymentError(null)
       const [info, intent] = await Promise.all([
         FinanceService.getPaymentProviderInfo(),
-        FinanceService.createPaymentIntent({ bookingId, paymentMethod: "CREDIT_CARD" }),
+        FinanceService.createPaymentIntent({ bookingId, paymentMethod }),
       ])
       setProviderInfo(info)
       setPayment(intent)
@@ -330,13 +318,16 @@ function useBookingSubmit(
       }
 
       const nat = normalize.countryCode(values.nationality)
-      const foreign = nat !== "PT"
+      const isPt = nat === "PT"
+      const foreign = !isPt
+      const identityRequired = isGuest() || foreign
       const documentType: DocumentType = foreign ? "PASSPORT" : "CC"
 
       setIsSubmitting(true)
       try {
         const auth = getAuth()
         const userId = !isGuest() && auth.isAuthenticated ? auth.userId : null
+        const paymentMethod = getPaymentMethod()
 
         const created = await BookingService.createBooking({
           propertyId: Number(property.id),
@@ -344,18 +335,20 @@ function useBookingSubmit(
           checkInDate: format(from, "yyyy-MM-dd"),
           checkOutDate: format(to, "yyyy-MM-dd"),
           guestCount: values.guestCount,
-          guestDetails: {
-            fullName: values.fullName.trim(),
-            email: values.email.trim(),
-            phone: values.phone.trim(),
-            nationality: nat,
-            issuingCountry: foreign ? normalize.countryCode(values.issuingCountry) : "PT",
-            documentType,
-            documentNumber: foreign
-              ? normalize.documentNumber(values.passportNumber)
-              : normalize.nicRaw(values.documentNumber),
-            documentIssueDate: foreign ? values.passportIssueDate.trim() : undefined,
-          },
+          guestDetails: identityRequired
+            ? {
+                fullName: values.fullName.trim(),
+                email: values.email.trim(),
+                phone: values.phone.trim(),
+                nationality: nat,
+                issuingCountry: foreign ? normalize.countryCode(values.issuingCountry) : "PT",
+                documentType,
+                documentNumber: foreign
+                  ? normalize.documentNumber(values.passportNumber)
+                  : normalize.nicRaw(values.documentNumber),
+                documentIssueDate: foreign ? values.passportIssueDate.trim() : undefined,
+              }
+            : undefined,
         })
 
         setBookingId(created.id)
@@ -365,7 +358,7 @@ function useBookingSubmit(
         try {
           const [info, intent] = await Promise.all([
             FinanceService.getPaymentProviderInfo(),
-            FinanceService.createPaymentIntent({ bookingId: created.id, paymentMethod: "CREDIT_CARD" }),
+            FinanceService.createPaymentIntent({ bookingId: created.id, paymentMethod }),
           ])
           setProviderInfo(info)
           setPayment(intent)
@@ -383,7 +376,7 @@ function useBookingSubmit(
         setIsSubmitting(false)
       }
     },
-    [checkIn, checkOut, getAuth, isGuest, property.id]
+    [checkIn, checkOut, getAuth, getPaymentMethod, isGuest, property.id]
   )
 
   return {
@@ -412,11 +405,8 @@ export function BookingCheckoutForm({
   onSuccess,
 }: BookingCheckoutParams) {
   const isDesktop = useMediaQuery("(min-width: 768px)")
-  const [authSession, setAuthSession] = React.useState({
-    isAuthenticated: false,
-    userId: null as number | null,
-    email: "",
-  })
+  const [authSession, setAuthSession] = React.useState(() => readAuthSession())
+  const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>("CREDIT_CARD")
   const [stayRange, setStayRange] = React.useState<DateRange | undefined>(() => {
     const from = parseDate(checkIn)
     const to = parseDate(checkOut)
@@ -430,17 +420,55 @@ export function BookingCheckoutForm({
   }>({ loading: false, error: null, validationErrors: [] })
   const quoteSeq = React.useRef(0)
 
-  // Progressive unlock state
-  const [identityOpen, setIdentityOpen] = React.useState(false)
-  const [reviewOpen, setReviewOpen] = React.useState(false)
-  const [paymentOpen, setPaymentOpen] = React.useState(false)
+  const checkoutAsGuest = !authSession.isAuthenticated
+
+  const baseResolver = React.useMemo(() => zodResolver(checkoutBaseSchema), [])
+  const checkoutAsGuestRef = React.useRef(checkoutAsGuest)
+  React.useEffect(() => {
+    checkoutAsGuestRef.current = checkoutAsGuest
+  }, [checkoutAsGuest])
+
+  const resolver: Resolver<CheckoutFormValues> = React.useCallback(async (values, context, options) => {
+    const res = await baseResolver(values, context, options)
+    const nat = normalize.countryCode(String(values?.nationality || "PT"))
+    const isPt = nat === "PT"
+    const foreign = !isPt
+    const identityRequired = checkoutAsGuestRef.current || foreign
+
+    if (identityRequired) {
+      if (foreign) {
+        if (normalize.countryCode(String(values?.issuingCountry || "")).length !== 2) {
+          ;(res.errors as Record<string, unknown>)["issuingCountry"] = { type: "manual", message: "Código ISO (2 letras)." }
+        }
+        if (!normalize.documentNumber(String(values?.passportNumber || ""))) {
+          ;(res.errors as Record<string, unknown>)["passportNumber"] = { type: "manual", message: "Obrigatório." }
+        }
+        if (!parseDate(String(values?.passportIssueDate || ""))) {
+          ;(res.errors as Record<string, unknown>)["passportIssueDate"] = { type: "manual", message: "Data inválida." }
+        }
+      } else if (!normalize.nicIsValid(String(values?.documentNumber || ""))) {
+        ;(res.errors as Record<string, unknown>)["documentNumber"] = { type: "manual", message: "Formato: 12345678 0 XX 1" }
+      }
+    }
+
+    return res
+  }, [baseResolver])
+
+  // Progressive unlock + collapse state
+  const [identityUnlocked, setIdentityUnlocked] = React.useState(false)
+  const [reviewUnlocked, setReviewUnlocked] = React.useState(false)
+  const [paymentUnlocked, setPaymentUnlocked] = React.useState(false)
+
+  const [tripCollapsed, setTripCollapsed] = React.useState(false)
+  const [identityCollapsed, setIdentityCollapsed] = React.useState(false)
+  const [reviewCollapsed, setReviewCollapsed] = React.useState(false)
 
   const identityRef = React.useRef<HTMLDivElement>(null)
   const reviewRef = React.useRef<HTMLDivElement>(null)
   const paymentRef = React.useRef<HTMLDivElement>(null)
 
   const form = useForm<CheckoutFormValues>({
-    resolver: zodResolver(checkoutSchema),
+    resolver,
     mode: "onChange",
     defaultValues: {
       fullName: "",
@@ -459,6 +487,7 @@ export function BookingCheckoutForm({
   const nationality = useWatch({ control: form.control, name: "nationality" })
   const guestCount = useWatch({ control: form.control, name: "guestCount" })
   const isForeign = normalize.countryCode(nationality || "PT") !== "PT"
+  const identityRequired = checkoutAsGuest || isForeign
 
   const hasSelectedRange = Boolean(stayRange?.from && stayRange?.to)
 
@@ -532,8 +561,8 @@ export function BookingCheckoutForm({
   const accommodation = Math.max(0, pricingTotal - cleaningFee - touristTax)
 
   const getAuth = React.useCallback(() => authSession, [authSession])
-  const checkoutAsGuest = !authSession.isAuthenticated
   const isGuest = React.useCallback(() => checkoutAsGuest, [checkoutAsGuest])
+  const getPaymentMethod = React.useCallback(() => paymentMethod, [paymentMethod])
 
   const {
     isSubmitting,
@@ -547,7 +576,7 @@ export function BookingCheckoutForm({
     retryPayment,
     submit,
   } =
-    useBookingSubmit(effectiveCheckIn, effectiveCheckOut, property, getAuth, isGuest)
+    useBookingSubmit(effectiveCheckIn, effectiveCheckOut, property, getAuth, isGuest, getPaymentMethod)
 
   const stripeClientSecret = React.useMemo(() => {
     if (!payment || typeof payment !== "object") return null
@@ -607,6 +636,24 @@ export function BookingCheckoutForm({
     }
   }, [nationality, form])
 
+  React.useEffect(() => {
+    if (!identityRequired) {
+      setIdentityUnlocked(false)
+      setIdentityCollapsed(false)
+      return
+    }
+
+    if (tripCollapsed) {
+      setIdentityUnlocked(true)
+    }
+
+    if (reviewUnlocked) {
+      setReviewUnlocked(false)
+      setPaymentUnlocked(false)
+      setReviewCollapsed(false)
+    }
+  }, [identityRequired, reviewUnlocked, tripCollapsed])
+
   const scrollTo = (el: HTMLElement | null) => {
     if (!el) return
     requestAnimationFrame(() => {
@@ -621,7 +668,12 @@ export function BookingCheckoutForm({
       { shouldFocus: true }
     )
     if (!ok) { notify.warning("Revê os campos assinalados."); return }
-    setIdentityOpen(true)
+    setTripCollapsed(true)
+    if (identityRequired) {
+      setIdentityUnlocked(true)
+      return
+    }
+    setReviewUnlocked(true)
   }
 
   const confirmIdentity = async () => {
@@ -630,35 +682,44 @@ export function BookingCheckoutForm({
       : (["documentNumber"] as const)
     const ok = await form.trigger(fields, { shouldFocus: true })
     if (!ok) { notify.warning("Revê os campos assinalados."); return }
-    setReviewOpen(true)
+    setIdentityCollapsed(true)
+    setReviewUnlocked(true)
   }
 
   const handleFinalSubmit = form.handleSubmit(async (values) => {
     const ok = await submit(values)
     if (ok) {
-      setPaymentOpen(true)
+      setReviewCollapsed(true)
+      setPaymentUnlocked(true)
     }
   })
 
   React.useEffect(() => {
-    if (identityOpen) scrollTo(identityRef.current)
-  }, [identityOpen])
+    if (identityUnlocked) scrollTo(identityRef.current)
+  }, [identityUnlocked])
 
   React.useEffect(() => {
-    if (reviewOpen) scrollTo(reviewRef.current)
-  }, [reviewOpen])
+    if (reviewUnlocked) scrollTo(reviewRef.current)
+  }, [reviewUnlocked])
 
   React.useEffect(() => {
-    if (paymentOpen) scrollTo(paymentRef.current)
-  }, [paymentOpen])
+    if (paymentUnlocked) scrollTo(paymentRef.current)
+  }, [paymentUnlocked])
 
   // Sidebar progress
+  const tripCompleted = identityRequired ? identityUnlocked : reviewUnlocked
+  const identityCompleted = identityRequired ? reviewUnlocked : false
   const progress = {
-    trip: identityOpen,
-    identity: reviewOpen,
-    review: paymentOpen,
+    trip: tripCompleted,
+    identity: identityCompleted,
+    review: paymentUnlocked,
     payment: Boolean(bookingId && payment),
   }
+
+  const stepIndexTrip = "01"
+  const stepIndexIdentity = identityRequired ? "02" : null
+  const stepIndexReview = identityRequired ? "03" : "02"
+  const stepIndexPayment = identityRequired ? "04" : "03"
 
   return (
     <FormProvider {...form}>
@@ -681,11 +742,17 @@ export function BookingCheckoutForm({
 
             {/* Section 01 — Dados */}
             <Section
-              index="01"
+              index={stepIndexTrip}
               title="Os teus dados"
               description="Contacto e informação sobre a estadia"
               locked={false}
               completed={progress.trip}
+              collapsible
+              collapsed={tripCollapsed}
+              onCollapsedChange={(collapsed) => {
+                setTripCollapsed(collapsed)
+                if (!collapsed) scrollTo(identityRequired ? identityRef.current : reviewRef.current)
+              }}
             >
               <div className="pb-4 border-b border-foreground/10">
                 <div className={tk.label}>
@@ -727,18 +794,16 @@ export function BookingCheckoutForm({
                   </div>
 
                   {quoteStatus.validationErrors.length > 0 ? (
-                    <div className="rounded-lg border border-foreground/15 bg-foreground/[0.03] p-3 text-xs">
-                      <div className={cn(tk.mono, "uppercase tracking-widest")}>Validação</div>
-                      <div className="mt-1 text-muted-foreground">
-                        {quoteStatus.validationErrors.join(" · ")}
-                      </div>
-                    </div>
+                    <NexusAlert
+                      variant="warning"
+                      title="Validação"
+                      description={quoteStatus.validationErrors.join(" · ")}
+                      className="shadow-none"
+                    />
                   ) : null}
 
                   {quoteStatus.error ? (
-                    <div className="rounded-lg border border-foreground/15 bg-foreground/[0.03] p-3 text-xs text-muted-foreground">
-                      {quoteStatus.error}
-                    </div>
+                    <NexusAlert variant="error" title="Preço" description={quoteStatus.error} className="shadow-none" />
                   ) : null}
 
                   <div className="space-y-2 text-sm">
@@ -823,64 +888,78 @@ export function BookingCheckoutForm({
             </Section>
 
             {/* Section 02 — Identificação */}
-            <div ref={identityRef}>
-              <Section
-                index="02"
-                title="Identificação"
-                description="Documento obrigatório por lei (SEF/IRN)"
-                locked={!identityOpen}
-                completed={progress.identity}
-              >
-                {isForeign ? (
-                  <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {identityRequired ? (
+              <div ref={identityRef}>
+                <Section
+                  index={stepIndexIdentity ?? "02"}
+                  title="Identificação"
+                  description="Documento obrigatório por lei (SEF/IRN)"
+                  locked={!identityUnlocked}
+                  completed={progress.identity}
+                  collapsible
+                  collapsed={identityCollapsed}
+                  onCollapsedChange={(collapsed) => {
+                    setIdentityCollapsed(collapsed)
+                    if (!collapsed) scrollTo(identityRef.current)
+                  }}
+                >
+                  {isForeign ? (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <RHFField
+                          name="issuingCountry"
+                          label="País emitente (ISO2)"
+                          required
+                          transform={normalize.countryCode}
+                          inputProps={{ maxLength: 2, autoComplete: "off", placeholder: "ES" }}
+                        />
+                        <RHFField
+                          name="passportNumber"
+                          label="Nº Passaporte"
+                          required
+                          transform={normalize.documentNumber}
+                          inputProps={{ maxLength: 20, autoComplete: "off", placeholder: "AB123456" }}
+                        />
+                      </div>
                       <RHFField
-                        name="issuingCountry"
-                        label="País emitente (ISO2)"
+                        name="passportIssueDate"
+                        label="Data de emissão"
                         required
-                        transform={normalize.countryCode}
-                        inputProps={{ maxLength: 2, autoComplete: "off", placeholder: "ES" }}
+                        transform={(v) => v}
+                        inputProps={{ type: "date", autoComplete: "off" }}
                       />
-                      <RHFField
-                        name="passportNumber"
-                        label="Nº Passaporte"
-                        required
-                        transform={normalize.documentNumber}
-                        inputProps={{ maxLength: 20, autoComplete: "off", placeholder: "AB123456" }}
-                      />
-                    </div>
+                    </>
+                  ) : (
                     <RHFField
-                      name="passportIssueDate"
-                      label="Data de emissão"
+                      name="documentNumber"
+                      label="NIC (Cartão de Cidadão)"
                       required
-                      transform={(v) => v}
-                      inputProps={{ type: "date", autoComplete: "off" }}
+                      transform={normalize.nic}
+                      inputProps={{ maxLength: 15, autoComplete: "off", placeholder: "12345678 0 XX 1" }}
                     />
-                  </>
-                ) : (
-                  <RHFField
-                    name="documentNumber"
-                    label="NIC (Cartão de Cidadão)"
-                    required
-                    transform={normalize.nic}
-                    inputProps={{ maxLength: 15, autoComplete: "off", placeholder: "12345678 0 XX 1" }}
-                  />
-                )}
+                  )}
 
-                <SectionCTA onClick={confirmIdentity}>
-                  Confirmar identificação
-                </SectionCTA>
-              </Section>
-            </div>
+                  <SectionCTA onClick={confirmIdentity}>
+                    Confirmar identificação
+                  </SectionCTA>
+                </Section>
+              </div>
+            ) : null}
 
             {/* Section 03 — Revisão */}
             <div ref={reviewRef}>
               <Section
-                index="03"
+                index={stepIndexReview}
                 title="Revisão"
                 description="Confirma os dados antes de pagar"
-                locked={!reviewOpen}
+                locked={!reviewUnlocked}
                 completed={progress.review}
+                collapsible
+                collapsed={reviewCollapsed}
+                onCollapsedChange={(collapsed) => {
+                  setReviewCollapsed(collapsed)
+                  if (!collapsed) scrollTo(reviewRef.current)
+                }}
               >
                 <div className="divide-y divide-foreground/10">
                   <ReviewRow label="Nome" value={preview.fullName || "—"} />
@@ -891,9 +970,11 @@ export function BookingCheckoutForm({
                   <ReviewRow
                     label="Documento"
                     value={
-                      isForeign
-                        ? `Passaporte · ${preview.passportNumber || "—"} · ${preview.issuingCountry || "—"}`
-                        : `NIC · ${preview.documentNumber ? normalize.nic(preview.documentNumber) : "—"}`
+                      !identityRequired
+                        ? "Dispensado (Conta PT)"
+                        : isForeign
+                          ? `Passaporte · ${preview.passportNumber || "—"} · ${preview.issuingCountry || "—"}`
+                          : `NIC · ${preview.documentNumber ? normalize.nic(preview.documentNumber) : "—"}`
                     }
                   />
                 </div>
@@ -925,19 +1006,42 @@ export function BookingCheckoutForm({
             {/* Section 04 — Pagamento */}
             <div ref={paymentRef}>
               <Section
-                index="04"
+                index={stepIndexPayment}
                 title="Pagamento"
                 description="Reserva criada e intent iniciado"
-                locked={!paymentOpen}
+                locked={!paymentUnlocked}
                 completed={progress.payment}
               >
+                {bookingId && providerInfo?.supportedPaymentMethods?.length ? (
+                  <div className="space-y-2">
+                    <div className={tk.label}>Método de pagamento</div>
+                    <select
+                      value={paymentMethod}
+                      onChange={(e) => {
+                        const next = e.target.value as PaymentMethod
+                        setPaymentMethod(next)
+                        void retryPayment(next)
+                      }}
+                      className="h-11 w-full rounded-md border-2 border-foreground bg-background px-3 text-sm font-mono shadow-[3px_3px_0_0_rgb(0,0,0)] dark:shadow-[3px_3px_0_0_rgba(255,255,255,0.8)] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+                    >
+                      {providerInfo.supportedPaymentMethods
+                        .filter((m) => m === "CREDIT_CARD" || m === "MB_WAY")
+                        .map((m) => (
+                          <option key={m} value={m}>
+                            {m === "CREDIT_CARD" ? "Cartão" : m === "MB_WAY" ? "MB WAY" : m}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                ) : null}
+
                 <PaymentDetails
                   bookingId={bookingId}
                   payment={payment}
                   providerInfo={providerInfo}
                   labelClassName={tk.label}
                   error={paymentError}
-                  onRetry={retryPayment}
+                  onRetry={() => retryPayment(paymentMethod)}
                 />
 
                 {bookingId && providerInfo?.name === "Stripe" && stripeClientSecret && stripePublishableKey ? (
@@ -1012,10 +1116,12 @@ export function BookingCheckoutForm({
               <div className="space-y-1.5">
                 {(
                   [
-                    { key: "trip", label: "Dados", done: progress.trip, active: !identityOpen, locked: false },
-                    { key: "identity", label: "Identificação", done: progress.identity, active: identityOpen && !reviewOpen, locked: !identityOpen },
-                    { key: "review", label: "Revisão", done: progress.review, active: reviewOpen && !paymentOpen, locked: !reviewOpen },
-                    { key: "payment", label: "Pagamento", done: progress.payment, active: paymentOpen, locked: !paymentOpen },
+                    { key: "trip", label: "Dados", done: progress.trip, active: identityRequired ? !identityUnlocked : !reviewUnlocked, locked: false },
+                    ...(identityRequired
+                      ? [{ key: "identity" as const, label: "Identificação", done: progress.identity, active: identityUnlocked && !reviewUnlocked, locked: !identityUnlocked }]
+                      : []),
+                    { key: "review", label: "Revisão", done: progress.review, active: reviewUnlocked && !paymentUnlocked, locked: !reviewUnlocked },
+                    { key: "payment", label: "Pagamento", done: progress.payment, active: paymentUnlocked, locked: !paymentUnlocked },
                   ] as const
                 ).map(({ key, label, done, active, locked }, i) => (
                   <div
@@ -1067,6 +1173,9 @@ function Section({
   description,
   locked,
   completed,
+  collapsible = false,
+  collapsed = false,
+  onCollapsedChange,
   children,
 }: {
   index: string
@@ -1074,8 +1183,13 @@ function Section({
   description: string
   locked: boolean
   completed: boolean
+  collapsible?: boolean
+  collapsed?: boolean
+  onCollapsedChange?: (collapsed: boolean) => void
   children: React.ReactNode
 }) {
+  const canCollapse = Boolean(collapsible && completed && !locked)
+  const showBody = !locked && !collapsed
   return (
     <motion.div
       animate={{ opacity: locked ? 0.38 : 1 }}
@@ -1083,11 +1197,17 @@ function Section({
       className={cn(
         tk.card,
         "p-5 md:p-6",
-        locked && "pointer-events-none select-none"
+        locked && "select-none"
       )}
     >
       {/* Header row */}
-      <div className="flex items-start gap-4 mb-5">
+      <button
+        type="button"
+        disabled={!canCollapse}
+        onClick={() => onCollapsedChange?.(!collapsed)}
+        className={cn("flex w-full items-start gap-4 mb-5 text-left", canCollapse && "cursor-pointer")}
+        aria-expanded={showBody}
+      >
         <div
           className={cn(
             "h-8 w-8 shrink-0 rounded-full border-2 flex items-center justify-center text-[11px] font-black transition-colors",
@@ -1104,10 +1224,14 @@ function Section({
           </div>
           <div className={cn(tk.mono, "mt-1")}>{description}</div>
         </div>
-        {locked && <Lock className="h-4 w-4 mt-0.5 text-muted-foreground/30 shrink-0" />}
-      </div>
+        {locked ? (
+          <Lock className="h-4 w-4 mt-0.5 text-muted-foreground/30 shrink-0" />
+        ) : canCollapse ? (
+          <ChevronDown className={cn("h-4 w-4 mt-0.5 shrink-0 transition-transform", collapsed && "rotate-[-90deg]")} />
+        ) : null}
+      </button>
 
-      {!locked && <div className="space-y-4">{children}</div>}
+      {showBody ? <div className="space-y-4">{children}</div> : null}
     </motion.div>
   )
 }

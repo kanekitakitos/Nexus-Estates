@@ -4,7 +4,6 @@ import com.nexus.estates.common.dto.PropertyRuleDTO;
 import com.nexus.estates.common.dto.SeasonalityRuleDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -22,5 +21,6 @@ public record ExpandedPropertyResponse(
         List<String> amenities,
         PropertyRuleDTO rules,
         List<SeasonalityRuleDTO> seasonality,
+        List<PropertyPermissionDTO> permissions,
         String imageUrl
 ) {}
