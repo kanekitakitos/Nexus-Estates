@@ -2,12 +2,11 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
       POSTGRES_MULTIPLE_DATABASES: "booking_db,property_db,user_db,sync_db,finance_db"
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
@@ -16,13 +15,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - nexus-net
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+    restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
@@ -31,6 +30,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - nexus-net
 
   user-service:
     build:
@@ -39,16 +40,14 @@ services:
       args:
         SERVICE: user-service
     container_name: user-service
-    environment:
-      SERVER_PORT: "8083"
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/user_db?sslmode=disable"
-      SPRING_DATASOURCE_USERNAME: "admin"
-      SPRING_DATASOURCE_PASSWORD: "password"
+    restart: unless-stopped
+    env_file:
+      - ./env/user-service.env
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "8083:8083"
+    networks:
+      - nexus-net
 
   property-service:
     build:
@@ -57,24 +56,16 @@ services:
       args:
         SERVICE: property-service
     container_name: property-service
+    restart: unless-stopped
     env_file:
-      - ./deploy.env
-    environment:
-      SERVER_PORT: "8082"
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/property_db"
-      SPRING_DATASOURCE_USERNAME: "admin"
-      SPRING_DATASOURCE_PASSWORD: "password"
-      SPRING_RABBITMQ_HOST: "rabbitmq"
-      SPRING_RABBITMQ_PORT: "5672"
-      SPRING_RABBITMQ_USERNAME: "guest"
-      SPRING_RABBITMQ_PASSWORD: "guest"
+      - ./env/property-service.env
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    ports:
-      - "8082:8082"
+    networks:
+      - nexus-net
 
   booking-service:
     build:
@@ -83,18 +74,9 @@ services:
       args:
         SERVICE: booking-service
     container_name: booking-service
-    environment:
-      SERVER_PORT: "8081"
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/booking_db"
-      SPRING_DATASOURCE_USERNAME: "admin"
-      SPRING_DATASOURCE_PASSWORD: "password"
-      SPRING_RABBITMQ_HOST: "rabbitmq"
-      SPRING_RABBITMQ_PORT: "5672"
-      SPRING_RABBITMQ_USERNAME: "guest"
-      SPRING_RABBITMQ_PASSWORD: "guest"
-      PROPERTY_SERVICE_URL: "http://property-service:8082"
-      USER_SERVICE_URL: "http://user-service:8083"
-      FINANCE_SERVICE_URL: "http://finance-service:8085"
+    restart: unless-stopped
+    env_file:
+      - ./env/booking-service.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,8 +86,8 @@ services:
         condition: service_started
       property-service:
         condition: service_started
-    ports:
-      - "8081:8081"
+    networks:
+      - nexus-net
 
   sync-service:
     build:
@@ -114,17 +96,9 @@ services:
       args:
         SERVICE: sync-service
     container_name: sync-service
-    environment:
-      SERVER_PORT: "8084"
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/sync_db"
-      SPRING_DATASOURCE_USERNAME: "admin"
-      SPRING_DATASOURCE_PASSWORD: "password"
-      SPRING_RABBITMQ_HOST: "rabbitmq"
-      SPRING_RABBITMQ_PORT: "5672"
-      SPRING_RABBITMQ_USERNAME: "guest"
-      SPRING_RABBITMQ_PASSWORD: "guest"
-      USER_SERVICE_URL: "http://user-service:8083"
-      BOOKING_SERVICE_URL: "http://booking-service:8081"
+    restart: unless-stopped
+    env_file:
+      - ./env/sync-service.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -134,8 +108,10 @@ services:
         condition: service_started
       booking-service:
         condition: service_started
-    ports:
-      - "8084:8084"
+      property-service:
+        condition: service_started
+    networks:
+      - nexus-net
 
   finance-service:
     build:
@@ -144,19 +120,16 @@ services:
       args:
         SERVICE: finance-service
     container_name: finance-service
-    environment:
-      SERVER_PORT: "8085"
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/finance_db"
-      SPRING_DATASOURCE_USERNAME: "admin"
-      SPRING_DATASOURCE_PASSWORD: "password"
-      BOOKING_SERVICE_URL: "http://booking-service:8081"
+    restart: unless-stopped
+    env_file:
+      - ./env/finance-service.env
     depends_on:
       postgres:
         condition: service_healthy
       booking-service:
         condition: service_started
-    ports:
-      - "8085:8085"
+    networks:
+      - nexus-net
 
   api-gateway:
     build:
@@ -165,13 +138,9 @@ services:
       args:
         SERVICE: api-gateway
     container_name: api-gateway
-    environment:
-      SERVER_PORT: "8080"
-      USER_SERVICE_URL: "http://user-service:8083"
-      PROPERTY_SERVICE_URL: "http://property-service:8082"
-      BOOKING_SERVICE_URL: "http://booking-service:8081"
-      SYNC_SERVICE_URL: "http://sync-service:8084"
-      FINANCE_SERVICE_URL: "http://finance-service:8085"
+    restart: unless-stopped
+    env_file:
+      - ./env/api-gateway.env
     depends_on:
       user-service:
         condition: service_started
@@ -185,6 +154,8 @@ services:
         condition: service_started
     ports:
       - "8080:8080"
+    networks:
+      - nexus-net
 
   frontend:
     build:
@@ -194,6 +165,7 @@ services:
         NEXT_PUBLIC_API_URL: "http://localhost:8080/api"
         NEXT_PUBLIC_IDP: "jwt"
     container_name: frontend
+    restart: unless-stopped
     environment:
       NODE_ENV: "production"
       NEXT_PUBLIC_IDP: "jwt"
@@ -202,6 +174,11 @@ services:
         condition: service_started
     ports:
       - "3000:3000"
+    networks:
+      - nexus-net
 
 volumes:
   postgres_data:
+
+networks:
+  nexus-net:

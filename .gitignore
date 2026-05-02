@@ -7,3 +7,5 @@ tmp/
 .env.*
 *.env
 infrastructure/deploy.env
+!infrastructure/deploy.env
+!infrastructure/env/**/*.env

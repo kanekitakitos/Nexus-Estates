@@ -30,10 +30,16 @@ ARG VERSION=1.0.0
 
 RUN test -n "$SERVICE"
 
+RUN useradd --system --uid 10001 --create-home --home-dir /app --shell /bin/false appuser
+
 COPY --from=build "/workspace/${SERVICE}/target/${SERVICE}-${VERSION}.jar" /app/app.jar
+
+RUN chown appuser:appuser /app/app.jar
 
 ENV SERVER_PORT=8080
 
 EXPOSE 8080
+
+USER appuser
 
 ENTRYPOINT ["java","-jar","/app/app.jar"]

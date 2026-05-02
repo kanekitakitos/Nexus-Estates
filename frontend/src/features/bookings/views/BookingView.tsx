@@ -64,7 +64,7 @@ import {
 // ─────────────────────────────────────────────
 
 /** Estados de ecrã internos (sem mudar de rota) para manter transições fluídas. */
-type BookingViewScreen = "list" | "details" | "checkout"
+type BookingViewScreen = "list" | "details" | "checkout" | "resume-payment"
 /** Acções de limpeza a executar após `AnimatePresence` completar a saída. */
 type ExitCleanup = "clearSelected" | "clearCheckout" | "clearAll" | null
 
@@ -152,7 +152,7 @@ function useBookingFlow(properties: BookingProperty[], excludedPropertyIds: Set<
   const [checkout, setCheckout] = useState<{ checkIn: string; checkOut: string } | null>(null)
   const [lastViewedPropertyId, setLastViewedPropertyId] = useState<string | null>(null)
   const [resumePayment, setResumePayment] = useState<BookingResumePaymentPayload | null>(null)
-  const [screen, setScreen] = useState<BookingViewScreen | "resume-payment">("list")
+  const [screen, setScreen] = useState<BookingViewScreen>("list")
   const [exitCleanup, setExitCleanup] = useState<ExitCleanup>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
 

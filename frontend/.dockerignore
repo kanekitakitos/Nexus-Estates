@@ -1,0 +1,10 @@
+.git
+.idea
+.vscode
+**/*.iml
+**/*.log
+node_modules
+.next
+out
+dist
+coverage

@@ -3,7 +3,7 @@ import {
   PropertyCardVariant,
   LEGACY_VARIANT_MAP,
 } from "../model/property-constants"
-import type { OwnProperty } from "@/types"
+import type { OwnProperty, PropertyPermission } from "@/types"
 
 export function resolvePropertyCardVariant(
   variant: PropertyCardVariant
@@ -104,21 +104,23 @@ export function mapPropertyRecordToOwnProperty(p: Record<string, unknown>): OwnP
   const permissionsRaw = p.permissions as unknown
   const permissions = Array.isArray(permissionsRaw)
     ? permissionsRaw
-        .map((perm) => {
+        .map((perm): PropertyPermission | null => {
           if (!perm || typeof perm !== "object") return null
           const pp = perm as any
           const userId = typeof pp.userId === "number" ? pp.userId : Number(pp.userId)
           const accessLevel = String(pp.accessLevel ?? pp.level ?? "").toUpperCase()
           if (!Number.isFinite(userId) || !accessLevel) return null
+          const normalizedAccessLevel: PropertyPermission["accessLevel"] =
+            accessLevel === "PRIMARY_OWNER" || accessLevel === "MANAGER" || accessLevel === "STAFF"
+              ? (accessLevel as PropertyPermission["accessLevel"])
+              : "STAFF"
           return {
             userId,
             email: typeof pp.email === "string" && pp.email ? pp.email : `user-${userId}`,
-            accessLevel: accessLevel === "PRIMARY_OWNER" || accessLevel === "MANAGER" || accessLevel === "STAFF"
-              ? accessLevel
-              : "STAFF",
+            accessLevel: normalizedAccessLevel,
           }
         })
-        .filter(Boolean)
+        .filter((perm): perm is PropertyPermission => perm !== null)
     : undefined
 
   return {

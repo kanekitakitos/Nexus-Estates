@@ -362,8 +362,13 @@ function PermissionsStep({
             <CollaboratorManager 
                 isCard={false}
                 permissions={property.permissions || []} 
-                onAdd={(email, level) => updateField("permissions", [...(property.permissions || []), { email, level }])}
-                onRemove={(email) => updateField("permissions", (property.permissions || []).filter(p => p.email !== email))}
+                onAdd={async (email, accessLevel) => {
+                  updateField("permissions", [
+                    ...(property.permissions || []),
+                    { userId: Date.now(), email, accessLevel },
+                  ])
+                }}
+                onRemove={(userId) => updateField("permissions", (property.permissions || []).filter(p => p.userId !== userId))}
             />
         </div>
     )

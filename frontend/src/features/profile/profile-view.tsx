@@ -23,7 +23,7 @@ import { ChangePasswordForm } from "@/features/profile/components/change-passwor
 import { SignedIn, SignedOut, UserProfile as ClerkUserProfile } from "@clerk/nextjs"
 import { isClerkConfigured } from "@/features/auth/strategies/use-identity-provider"
 import { useClerkIdentityProvider } from "@/features/auth/strategies/clerk/use-clerk-identity-provider"
-import { Chrome, Facebook, Github } from "lucide-react"
+import { GitBranch, Globe, Users } from "lucide-react"
 
 function useIsDarkMode() {
   const [isDark, setIsDark] = useState(false)
@@ -155,7 +155,7 @@ function ClerkLinkedAccountsPanel() {
               className="h-12 rounded-2xl border border-(--fg-color)/20 bg-background/50 px-4 text-xs font-bold uppercase tracking-widest text-(--fg-color) disabled:opacity-30"
             >
               <span className="inline-flex items-center justify-center gap-2">
-                <Chrome className="h-4 w-4" />
+                <Globe className="h-4 w-4" />
                 Google
               </span>
             </button>
@@ -166,7 +166,7 @@ function ClerkLinkedAccountsPanel() {
               className="h-12 rounded-2xl border border-(--fg-color)/20 bg-background/50 px-4 text-xs font-bold uppercase tracking-widest text-(--fg-color) disabled:opacity-30"
             >
               <span className="inline-flex items-center justify-center gap-2">
-                <Github className="h-4 w-4" />
+                <GitBranch className="h-4 w-4" />
                 GitHub
               </span>
             </button>
@@ -177,7 +177,7 @@ function ClerkLinkedAccountsPanel() {
               className="h-12 rounded-2xl border border-(--fg-color)/20 bg-background/50 px-4 text-xs font-bold uppercase tracking-widest text-(--fg-color) disabled:opacity-30"
             >
               <span className="inline-flex items-center justify-center gap-2">
-                <Facebook className="h-4 w-4" />
+                <Users className="h-4 w-4" />
                 Facebook
               </span>
             </button>

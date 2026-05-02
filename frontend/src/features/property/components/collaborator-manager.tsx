@@ -46,7 +46,7 @@ export const ROLES = [
 function RoleSelector({ 
     value, onChange 
 }: { 
-    value: string; onChange: (v: string) => void 
+    value: PropertyPermission["accessLevel"]; onChange: (v: PropertyPermission["accessLevel"]) => void 
 }) {
     return (
         <DropdownMenu>
@@ -57,7 +57,7 @@ function RoleSelector({
                 </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className={propertyTokens.ui.collaborator.roleContentClass}>
-                <DropdownMenuRadioGroup value={value} onValueChange={onChange}>
+                <DropdownMenuRadioGroup value={value} onValueChange={(v) => onChange(v as PropertyPermission["accessLevel"])}>
                     {ROLES.map((role) => (
                         <DropdownMenuRadioItem 
                             key={role.id} value={role.id}

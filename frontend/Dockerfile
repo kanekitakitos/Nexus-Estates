@@ -27,11 +27,12 @@ FROM node:20-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY --from=build /app/package.json /app/package.json
-COPY --from=build /app/next.config.ts /app/next.config.ts
-COPY --from=build /app/public /app/public
-COPY --from=build /app/.next /app/.next
-COPY --from=build /app/node_modules /app/node_modules
+COPY --from=build --chown=node:node /app/package.json /app/package.json
+COPY --from=build --chown=node:node /app/next.config.ts /app/next.config.ts
+COPY --from=build --chown=node:node /app/public /app/public
+COPY --from=build --chown=node:node /app/.next /app/.next
+COPY --from=build --chown=node:node /app/node_modules /app/node_modules
+USER node
 
 EXPOSE 3000
 

@@ -3,7 +3,7 @@
 import React, { useState } from "react"
 import { ProfilePanel } from "@/features/profile/components/profile-panel"
 import { Button } from "@/components/ui/button"
-import { Github, Mail, AlertCircle, CheckCircle2 } from "lucide-react"
+import { GitBranch, Mail, AlertCircle, CheckCircle2 } from "lucide-react"
 import { motion } from "framer-motion"
 import { profileTokens } from "@/features/profile/tokens"
 
@@ -74,7 +74,7 @@ export function SocialConnectionsPanel({
       case 'github':
         return {
           name: profileTokens.copy.social.githubName,
-          icon: <Github className="w-5 h-5" />,
+          icon: <GitBranch className="w-5 h-5" />,
           color: profileTokens.ui.social.githubBadgeClass,
           hoverColor: profileTokens.ui.social.githubBadgeHoverClass,
           bgColor: profileTokens.ui.social.githubButtonClass,
