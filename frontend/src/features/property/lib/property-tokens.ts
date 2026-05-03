@@ -309,7 +309,7 @@ export const propertyCopy = {
 
 export const propertyPreviewUi = {
   fallbackImageUrl:
-    "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop",
+    "/notifications/404Image.png",
   placeholderImages: ["/placeholder-property.jpg"],
   heroContainerClass:
     "group relative aspect-[16/9] cursor-pointer overflow-hidden rounded-2xl border-2 border-[#0D0D0D] bg-zinc-100 shadow-[8px_8px_0_0_#FF5E1A] dark:border-zinc-300 dark:bg-zinc-900 lg:aspect-[21/9]",

@@ -21,23 +21,76 @@ Este projeto é um **Monorepo** organizado da seguinte forma:
 
 ---
 
-## 🚀 Quick Start (Geral)
+## ✅ Pré-requisitos
 
-Para ter o sistema todo a rodar localmente:
+### Para correr tudo via containers (Deploy / “demo”)
+* **Docker Desktop** (ou Docker Engine) com **Docker Compose v2** (`docker compose`)
 
-1. **Infraestrutura (Bases de Dados & RabbitMQ):**
+### Para desenvolvimento local (DEV)
+* **Docker Desktop** (para Postgres/RabbitMQ)
+* **Java 23** (backend)
+* **Bun** (frontend)
+* (Recomendado) **IntelliJ IDEA** para gerir múltiplos serviços Spring Boot
+
+---
+
+## 🚀 Como correr (2 modos)
+
+### Modo A — Deploy/Apresentação (100% em containers) (Recomendado para professores)
+
+Este modo levanta **Postgres + RabbitMQ + todos os microserviços + frontend** automaticamente.
+
+1. Na raiz do repositório:
    ```bash
-   cd infrastructure
-   docker-compose up -d
+   docker compose -f infrastructure/docker-compose.deploy.yml up -d --build
    ```
 
-2. **Backend (APIs):** Abra a pasta `backend` no IntelliJ e inicie os serviços (começando pelo `api-gateway`).
+2. Acessos:
+   * Frontend: `http://localhost:3000`
+   * API Gateway: `http://localhost:8080`
+   * Swagger UI (via Gateway): `http://localhost:8080/swagger-ui.html`
 
-3. **Frontend (UI):**
+3. Notas importantes:
+   * Só **frontend (3000)** e **api-gateway (8080)** expõem portas para o host.
+   * Os restantes serviços, Postgres e RabbitMQ ficam acessíveis apenas dentro da rede Docker (segurança por defeito).
+   * As variáveis para deploy estão pré-preparadas em `infrastructure/env/*.env` (um ficheiro por serviço) para simplificar o arranque.
+
+Para parar:
+```bash
+docker compose -f infrastructure/docker-compose.deploy.yml down
+```
+
+---
+
+### Modo B — DEV (infra em Docker + apps localmente)
+
+Este modo é ideal para programar: a infraestrutura corre em Docker e tu corres os serviços localmente.
+
+1. Levantar apenas infraestrutura (Postgres + RabbitMQ):
+   ```bash
+   docker compose -f infrastructure/docker-compose.yml up -d
+   ```
+
+2. Backend (Spring Boot):
+   * Opção recomendada: abrir `./backend` no IntelliJ e iniciar os serviços (começa pelo `api-gateway`).
+   * Alternativa (terminal, na pasta `backend`):
+     ```bash
+     mvn -pl api-gateway -am spring-boot:run
+     ```
+     Repete para cada microserviço conforme necessário.
+
+3. Frontend (Next.js + Bun):
    ```bash
    cd frontend
-   bun install && bun dev
+   bun install
+   bun dev
    ```
+
+4. Acessos (DEV):
+   * Frontend: `http://localhost:3000`
+   * Gateway: `http://localhost:8080`
+
+---
 
 ## 🤝 Contribuição
 Por favor leia o nosso Guia de Contribuição antes de submeter código.

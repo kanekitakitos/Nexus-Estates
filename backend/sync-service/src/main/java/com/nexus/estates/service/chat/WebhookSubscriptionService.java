@@ -130,9 +130,8 @@ public class WebhookSubscriptionService {
      *                                  ou ambas destas pré-condições de segurança e negócio.
      */
     private WebhookSubscription getSubscriptionIfOwner(Long userId, Long subscriptionId) {
-        return repository.findById(subscriptionId)
-                .filter(sub -> sub.getUserId() == userId)
-                .orElseThrow(() -> new IllegalArgumentException("Webhook não encontrado ou acesso negado."));
+        return repository.findByIdAndUserId(subscriptionId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("Webhook não encontrado."));
     }
 
 }

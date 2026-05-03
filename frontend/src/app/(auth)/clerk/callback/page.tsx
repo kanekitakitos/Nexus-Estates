@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { AuthService } from "@/services/auth.service"
 import { getIdentityProviderKey, isClerkConfigured } from "@/features/auth/strategies/use-identity-provider"
 import { useClerkIdentityProvider } from "@/features/auth/strategies/clerk/use-clerk-identity-provider"
@@ -28,6 +28,7 @@ export default function ClerkCallbackPage() {
 
 function ClerkCallbackInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const idp = useClerkIdentityProvider()
   const { isLoaded, getToken } = idp
   const [error, setError] = React.useState<string | null>(null)
@@ -50,14 +51,19 @@ function ClerkCallbackInner() {
         await AuthService.clerkExchange(clerkToken)
         
         notify.success("Login social efetuado com sucesso!")
-        router.replace("/")
+        const nextRaw = searchParams.get("next")
+        const safeNext =
+          nextRaw && nextRaw.startsWith("/") && !nextRaw.startsWith("//") && !nextRaw.includes("://")
+            ? nextRaw
+            : "/"
+        router.replace(safeNext)
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Falhou autenticação social."
         setError(message)
       }
     }
     void run()
-  }, [getToken, isLoaded, router])
+  }, [getToken, isLoaded, router, searchParams])
 
   return (
     <div className="rounded-2xl border-2 border-foreground/80 bg-secondary/80 px-4 py-6 shadow-[4px_4px_0px_rgba(0,0,0,1)]">

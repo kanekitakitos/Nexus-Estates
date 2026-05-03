@@ -7,11 +7,14 @@ import com.nexus.estates.common.dto.RuleOverrideDTO;
 import com.nexus.estates.common.dto.SeasonalityRuleDTO;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.dto.ExpandedPropertyResponse;
+import com.nexus.estates.dto.PropertyPermissionDTO;
 import com.nexus.estates.dto.UpdatePropertyRequest;
 import com.nexus.estates.audit.ActorContext;
+import com.nexus.estates.entity.AccessLevel;
 import com.nexus.estates.entity.Amenity;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.PropertyChangeLog;
+import com.nexus.estates.entity.PropertyPermission;
 import com.nexus.estates.entity.PropertyRule;
 import com.nexus.estates.entity.RuleOverride;
 import com.nexus.estates.entity.SeasonalityRule;
@@ -24,9 +27,11 @@ import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.repository.PropertyRuleRepository;
 import com.nexus.estates.repository.RuleOverrideRepository;
 import com.nexus.estates.repository.SeasonalityRuleRepository;
+import com.nexus.estates.service.repository.ImageStorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,6 +69,7 @@ public class PropertyService {
     private final PermissionRepository permissionRepository;
     private final PropertyChangeLogRepository changeLogRepository;
     private final RuleOverrideRepository ruleOverrideRepository;
+    private final ImageStorageService imageStorageService;
 
     /**
      * Construtor do serviço.
@@ -74,7 +80,8 @@ public class PropertyService {
                            PropertyRuleRepository propertyRuleRepository,
                            PermissionRepository permissionRepository,
                            PropertyChangeLogRepository changeLogRepository,
-                           RuleOverrideRepository ruleOverrideRepository) {
+                           RuleOverrideRepository ruleOverrideRepository,
+                           ImageStorageService imageStorageService) {
         this.repository = repository;
         this.amenityRepository = amenityRepository;
         this.seasonalityRuleRepository = seasonalityRuleRepository;
@@ -82,6 +89,7 @@ public class PropertyService {
         this.permissionRepository = permissionRepository;
         this.changeLogRepository = changeLogRepository;
         this.ruleOverrideRepository = ruleOverrideRepository;
+        this.imageStorageService = imageStorageService;
     }
 
     /**
@@ -180,6 +188,46 @@ public class PropertyService {
             return Long.parseLong(userIdHeader);
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    /**
+     * Garante que o utilizador autenticado tem acesso de escrita/gestão ao ativo.
+     *
+     * <p>Regra:</p>
+     * <ul>
+     *   <li>PRIMARY_OWNER e MANAGER podem gerir regras, sazonalidade e permissões.</li>
+     *   <li>STAFF não pode efetuar alterações (apenas leitura quando aplicável).</li>
+     * </ul>
+     *
+     * @param propertyId ID da propriedade
+     * @param userIdHeader header X-User-Id injetado pelo API Gateway
+     * @return nível de acesso do utilizador (PRIMARY_OWNER ou MANAGER)
+     * @throws AccessDeniedException se o utilizador não tiver permissão
+     * @throws PropertyNotFoundException se a propriedade não existir
+     */
+    @Transactional(readOnly = true)
+    public AccessLevel requireManageAccess(Long propertyId, String userIdHeader) {
+        Long userId = parseUserIdHeader(userIdHeader);
+        if (userId == null) {
+            throw new AccessDeniedException("Sessão expirada.");
+        }
+        AccessLevel level = getUserAccessLevel(propertyId, userId);
+        if (level == null || level == AccessLevel.STAFF) {
+            throw new AccessDeniedException("Acesso negado.");
+        }
+        return level;
+    }
+
+    @Transactional(readOnly = true)
+    public void requirePrimaryOwnerAccess(Long propertyId, String userIdHeader) {
+        Long userId = parseUserIdHeader(userIdHeader);
+        if (userId == null) {
+            throw new AccessDeniedException("Sessão expirada.");
+        }
+        AccessLevel level = getUserAccessLevel(propertyId, userId);
+        if (level != AccessLevel.PRIMARY_OWNER) {
+            throw new AccessDeniedException("Acesso negado.");
         }
     }
 
@@ -318,6 +366,35 @@ public class PropertyService {
     public Property findById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new PropertyNotFoundException(id));
+    }
+
+    /**
+     * Resolve o utilizador com permissões de PRIMARY_OWNER para a propriedade.
+     *
+     * <p>Este método é usado como building block para fluxos que necessitam de identificar
+     * o “dono principal” sem expor emails ou dados pessoais ao frontend.</p>
+     */
+    @Transactional(readOnly = true)
+    public Long getPrimaryOwnerId(Long propertyId) {
+        repository.findById(propertyId).orElseThrow(() -> new PropertyNotFoundException(propertyId));
+        return permissionRepository
+                .findFirstByPropertyIdAndAccessLevel(propertyId, AccessLevel.PRIMARY_OWNER)
+                .map(PropertyPermission::getUserId)
+                .orElseThrow(() -> new IllegalStateException("Primary owner not found for property " + propertyId));
+    }
+
+    /**
+     * Resolve o nível de acesso de um utilizador a uma propriedade.
+     *
+     * @return {@link AccessLevel} quando existe permissão; null caso contrário.
+     */
+    @Transactional(readOnly = true)
+    public AccessLevel getUserAccessLevel(Long propertyId, Long userId) {
+        repository.findById(propertyId).orElseThrow(() -> new PropertyNotFoundException(propertyId));
+        return permissionRepository
+                .findFirstByPropertyIdAndUserId(propertyId, userId)
+                .map(PropertyPermission::getAccessLevel)
+                .orElse(null);
     }
 
     @Transactional(readOnly = true)
@@ -571,10 +648,15 @@ public class PropertyService {
                         r.getId(), r.getStartDate(), r.getEndDate(), r.getPriceModifier(), r.getDayOfWeek(), r.getChannel()
                 )).toList();
 
+        List<PropertyPermissionDTO> permissions = permissionRepository.findByPropertyId(p.getId()).stream()
+                .map(perm -> new PropertyPermissionDTO(perm.getUserId(), perm.getAccessLevel()))
+                .toList();
+
         return new ExpandedPropertyResponse(
                 p.getId(), p.getName(), p.getDescription(), p.getLocation(), p.getCity(), p.getAddress(),
                 p.getBasePrice(), p.getMaxGuests(), p.getIsActive(), amenityNames, ruleDto, seasonality,
-                p.getImageUrl()
+                permissions,
+                imageStorageService.resolveDeliveryUrl(p.getImageUrl())
         );
     }
 }

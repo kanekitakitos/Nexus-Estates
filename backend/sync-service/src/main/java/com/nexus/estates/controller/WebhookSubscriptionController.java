@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -50,8 +51,12 @@ public class WebhookSubscriptionController {
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long id) {
 
-        service.toggleSubscription(userId, id);
-        return ResponseEntity.ok(ApiResponse.success(null, "Estado do webhook atualizado."));
+        try {
+            service.toggleSubscription(userId, id);
+            return ResponseEntity.ok(ApiResponse.success(null, "Estado do webhook atualizado."));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(ex.getMessage(), "NOT_FOUND"));
+        }
     }
 
     @DeleteMapping("/{id}")
@@ -60,7 +65,11 @@ public class WebhookSubscriptionController {
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long id) {
 
-        service.deleteSubscription(userId, id);
-        return ResponseEntity.ok(ApiResponse.success(null, "Webhook removido com sucesso."));
+        try {
+            service.deleteSubscription(userId, id);
+            return ResponseEntity.ok(ApiResponse.success(null, "Webhook removido com sucesso."));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(ex.getMessage(), "NOT_FOUND"));
+        }
     }
 }

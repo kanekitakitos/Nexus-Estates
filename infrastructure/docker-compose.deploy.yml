@@ -1,0 +1,184 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_MULTIPLE_DATABASES: "booking_db,property_db,user_db,sync_db,finance_db"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U admin" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - nexus-net
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - nexus-net
+
+  user-service:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: user-service
+    container_name: user-service
+    restart: unless-stopped
+    env_file:
+      - ./env/user-service.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexus-net
+
+  property-service:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: property-service
+    container_name: property-service
+    restart: unless-stopped
+    env_file:
+      - ./env/property-service.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - nexus-net
+
+  booking-service:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: booking-service
+    container_name: booking-service
+    restart: unless-stopped
+    env_file:
+      - ./env/booking-service.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      property-service:
+        condition: service_started
+    networks:
+      - nexus-net
+
+  sync-service:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: sync-service
+    container_name: sync-service
+    restart: unless-stopped
+    env_file:
+      - ./env/sync-service.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      booking-service:
+        condition: service_started
+      property-service:
+        condition: service_started
+    networks:
+      - nexus-net
+
+  finance-service:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: finance-service
+    container_name: finance-service
+    restart: unless-stopped
+    env_file:
+      - ./env/finance-service.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      booking-service:
+        condition: service_started
+    networks:
+      - nexus-net
+
+  api-gateway:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: api-gateway
+    container_name: api-gateway
+    restart: unless-stopped
+    env_file:
+      - ./env/api-gateway.env
+    depends_on:
+      user-service:
+        condition: service_started
+      property-service:
+        condition: service_started
+      booking-service:
+        condition: service_started
+      sync-service:
+        condition: service_started
+      finance-service:
+        condition: service_started
+    ports:
+      - "8080:8080"
+    networks:
+      - nexus-net
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: "http://localhost:8080/api"
+        NEXT_PUBLIC_IDP: "jwt"
+    container_name: frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: "production"
+      NEXT_PUBLIC_IDP: "jwt"
+    depends_on:
+      api-gateway:
+        condition: service_started
+    ports:
+      - "3000:3000"
+    networks:
+      - nexus-net
+
+volumes:
+  postgres_data:
+
+networks:
+  nexus-net:

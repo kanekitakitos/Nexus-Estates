@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import AblyChatStrategy from "./strategies/ably/AblyChatStrategy";
+import AblyChatStrategy from "./strategies/ably";
 export * from "./ui";
 export * from "./chat-strategy";
 

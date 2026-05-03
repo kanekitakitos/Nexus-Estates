@@ -7,7 +7,7 @@ import { Alert } from "@/components/ui/alert"
 
 export type NexusNoticeVariant = "success" | "error" | "warning" | "info" | "loading"
 
-type VariantConfig = {
+export type NexusNoticeVariantConfig = {
   titleClassName: string
   borderClassName: string
   accentClassName: string
@@ -22,7 +22,7 @@ const ALERT_MASCOT_SRC = "/notifications/alert.png"
 
 
 
-const VARIANTS: Record<NexusNoticeVariant, VariantConfig> = {
+export const NEXUS_NOTICE_VARIANTS: Record<NexusNoticeVariant, NexusNoticeVariantConfig> = {
   success: {
     titleClassName: "text-emerald-600",
     borderClassName: "border-emerald-600/40",
@@ -60,6 +60,10 @@ const VARIANTS: Record<NexusNoticeVariant, VariantConfig> = {
   },
 }
 
+export function getNexusNoticeVariantConfig(variant: NexusNoticeVariant) {
+  return NEXUS_NOTICE_VARIANTS[variant]
+}
+
 export function NexusAlert({
   variant,
   title,
@@ -73,7 +77,7 @@ export function NexusAlert({
   className?: string
   mascotSrc?: string
 }) {
-  const cfg = VARIANTS[variant]
+  const cfg = getNexusNoticeVariantConfig(variant)
   const finalMascotSrc = mascotSrc ?? cfg.mascotSrc
 
   return (

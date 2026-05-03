@@ -1,8 +1,8 @@
-# 🏰 Nexus Estates - Backend
+# Nexus Estates - Backend
 
 O motor do sistema Nexus Estates. Construído com uma arquitetura de **Microserviços** robusta, utilizando Java 23 e Spring Boot 3.3.
 
-## 🏗️ Arquitetura & Módulos
+## Arquitetura & Módulos
 
 O projeto é um **Maven Multi-Module Project**.
 
@@ -16,7 +16,90 @@ O projeto é um **Maven Multi-Module Project**.
 | **`finance-service`** | `:8085` | Pagamentos (Stripe), Webhooks assinados e idempotência. | `finance_db` |
 | **`common-library`** | *N/A* | Código partilhado (DTOs, Eventos, Exceções). | *N/A* |
 
-## 💳 Pagamentos (finance-service)
+---
+
+## Pré-requisitos (Backend)
+* **Java 23**
+* **Docker Desktop** (para Postgres/RabbitMQ em DEV) ou para correr tudo em deploy
+
+---
+
+## Como correr o Backend (2 modos)
+
+### Modo A — Deploy/Apresentação (backend dentro de Docker)
+
+Este modo é o mais simples para “subir tudo” (inclui frontend e infraestrutura):
+
+```bash
+docker compose -f ../infrastructure/docker-compose.deploy.yml up -d --build
+```
+
+* Gateway: `http://localhost:8080`
+* Swagger via Gateway: `http://localhost:8080/swagger-ui.html`
+
+Notas:
+* Os microserviços comunicam entre si por DNS interno do Docker (`http://<nome-do-serviço>:<porta>`).
+* As variáveis de ambiente já estão preparadas em `../infrastructure/env/*.env` (um ficheiro por serviço).
+
+---
+
+### Modo B — DEV (infra em Docker + serviços Spring Boot localmente)
+
+1. Levantar Postgres + RabbitMQ:
+```bash
+docker compose -f ../infrastructure/docker-compose.yml up -d
+```
+
+2. Executar serviços:
+* IntelliJ (recomendado): abre `./backend` e inicia cada serviço (começa pelo `api-gateway`).
+* Terminal (na pasta `backend`):
+```bash
+mvn -pl api-gateway -am spring-boot:run
+```
+
+Repete o comando trocando o módulo (`booking-service`, `property-service`, etc.) conforme necessário.
+
+---
+
+## Troubleshooting (Backend)
+
+### Deploy em Docker (Modo A)
+
+**Ver estado e logs**
+```bash
+docker compose -f ../infrastructure/docker-compose.deploy.yml ps
+docker compose -f ../infrastructure/docker-compose.deploy.yml logs -f api-gateway
+```
+
+**Rebuild de um serviço específico**
+```bash
+docker compose -f ../infrastructure/docker-compose.deploy.yml build --no-cache booking-service
+docker compose -f ../infrastructure/docker-compose.deploy.yml up -d booking-service
+```
+
+**Erros típicos**
+* **Chamadas internas a `localhost` falham em containers**: dentro do Docker, `localhost` aponta para o próprio container. A solução é usar os hostnames do Compose (ex.: `http://booking-service:8081`). No deploy isto já fica automático via `../infrastructure/env/*.env`.
+* **Build Maven demora muito / “downloads infinitos”**: é normal no primeiro build. Repetir `up -d --build` costuma resolver por cache. Confirma também a ligação à internet e espaço em disco.
+* **Imagens `<none>` no Docker Desktop**: são “dangling images” (sobras de builds). Podes remover com:
+  ```bash
+  docker image prune
+  ```
+* **Volume “sem nome”**: o Compose cria nomes com prefixo do projeto (ex.: `infrastructure_postgres_data`). É normal.
+* **Build aborta no Windows com exit code negativo**: normalmente é Docker Desktop a terminar o build (RAM/CPU/IO). Aumenta recursos do Docker Desktop e tenta novamente.
+
+### DEV (Modo B)
+
+**Infra (Postgres + RabbitMQ)**
+```bash
+docker compose -f ../infrastructure/docker-compose.yml up -d
+docker compose -f ../infrastructure/docker-compose.yml ps
+```
+
+**Portas e acessos**
+* Em DEV, os serviços Spring Boot expõem portas no host quando corres localmente (IntelliJ/terminal).
+* Em deploy, por defeito só estão expostas as portas do **api-gateway (8080)** e **frontend (3000)**.
+
+## Pagamentos (finance-service)
 
 O processamento de pagamentos é isolado no **`finance-service`**, mantendo o `booking-service` focado em domínio de reservas.
 
@@ -25,7 +108,7 @@ O processamento de pagamentos é isolado no **`finance-service`**, mantendo o `b
 - O webhook valida `Stripe-Signature` e aplica idempotência via tabela `processed_events`
 - Em eventos de pagamento com sucesso, o `finance-service` notifica o `booking-service` via `POST /api/bookings/{bookingId}/payments/succeeded` para confirmar a reserva
 
-## 🔄 Consistência de Dados (Padrão Saga)
+## Consistência de Dados (Padrão Saga)
 
 Implementamos o padrão **Saga Coreografada** para garantir a consistência eventual entre serviços:
 
@@ -52,7 +135,7 @@ Implementamos o padrão **Saga Coreografada** para garantir a consistência even
 Certifica-te que as bases de dados e o broker estão ativos:
 ```bash
 cd ../infrastructure
-docker-compose up -d
+docker compose -f docker-compose.yml up -d
 ```
 
 ### Passo 2: Executar os Serviços

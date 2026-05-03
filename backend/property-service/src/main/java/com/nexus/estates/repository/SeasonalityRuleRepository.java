@@ -31,6 +31,16 @@ public interface SeasonalityRuleRepository extends JpaRepository<SeasonalityRule
     List<SeasonalityRule> findByProperty_IdOrderByStartDateAsc(Long propertyId);
 
     /**
+     * Remove todas as regras de sazonalidade de uma propriedade.
+     *
+     * <p>Usado em operações de substituição total (PUT), mantendo o estado final
+     * alinhado com a lista enviada pelo cliente.</p>
+     *
+     * @param propertyId ID da propriedade
+     */
+    void deleteByProperty_Id(Long propertyId);
+
+    /**
      * Encontra todas as regras de sazonalidade aplicáveis a uma propriedade num determinado intervalo de datas.
      *
      * <p>Esta query implementa a lógica de deteção de sobreposição de intervalos (Interval Overlap).

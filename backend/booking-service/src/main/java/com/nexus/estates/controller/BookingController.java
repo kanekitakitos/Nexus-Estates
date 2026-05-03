@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Controlador REST responsável pela orquestração das operações de reserva.
@@ -260,6 +261,36 @@ public class BookingController {
         try {
             Long userId = Long.parseLong(userIdHeader);
             return ResponseEntity.ok(bookingService.getBookingsByUser(userId));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+    }
+
+    @Operation(
+            summary = "Participantes de uma reserva",
+            description = "Retorna os IDs dos participantes autorizados no chat desta reserva (hóspede + proprietário)."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Participantes retornados com sucesso"),
+            @ApiResponse(responseCode = "401", description = "Sessão expirada ou ausente"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "404", description = "Reserva não encontrada")
+    })
+    @GetMapping("/{bookingId}/participants")
+    public ResponseEntity<Set<Long>> getParticipants(
+            @PathVariable Long bookingId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+    ) {
+        if (userIdHeader == null || userIdHeader.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        try {
+            Long userId = Long.parseLong(userIdHeader);
+            return ResponseEntity.ok(bookingService.getBookingParticipants(bookingId, userId));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }

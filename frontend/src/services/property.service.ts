@@ -1,4 +1,5 @@
 import { propertiesAxios, ApiResponse } from "@/lib/axiosAPI";
+import axios from "axios";
 import type { AxiosError } from "axios";
 import type { BookingProperty } from "@/types/booking";
 import { notify } from "@/lib/notify";
@@ -6,24 +7,38 @@ import type {
     CreatePropertyRequest,
     ExpandedPropertyResponse,
     Page,
+    PropertyAccessLevel,
+    PropertyPermissionDTO,
+    PropertyPermissionPatchRequest,
     PropertyQuoteRequest,
     PropertyQuoteResponse,
+    PropertyRulePatchRequest,
     PropertyRuleDTO,
+    SeasonalityRulePatchRequest,
     SeasonalityRuleDTO,
     UpdatePropertyRequest,
     PropertyListItem,
+    PropertyImageUploadParams,
+    PropertyImageUploadErrorInfo,
 } from "@/types/property";
 
 export type {
     CreatePropertyRequest,
     ExpandedPropertyResponse,
     Page,
+    PropertyAccessLevel,
+    PropertyPermissionDTO,
+    PropertyPermissionPatchRequest,
     PropertyQuoteRequest,
     PropertyQuoteResponse,
+    PropertyRulePatchRequest,
     PropertyRuleDTO,
+    SeasonalityRulePatchRequest,
     SeasonalityRuleDTO,
     UpdatePropertyRequest,
     PropertyListItem,
+    PropertyImageUploadParams,
+    PropertyImageUploadErrorInfo,
 } from "@/types/property";
 
 type PropertyTranslation = {
@@ -64,6 +79,16 @@ type PropertyApiItem = {
  * - propertiesAxios (baseURL: {NEXT_PUBLIC_API_URL}/properties)
  */
 export class PropertyService {
+    static PropertyImageUploadError = class PropertyImageUploadError extends Error {
+        info: PropertyImageUploadErrorInfo
+
+        constructor(info: PropertyImageUploadErrorInfo) {
+            super(info.message)
+            this.info = info
+            this.name = "PropertyImageUploadError"
+        }
+    }
+
     /**
      * Cria uma propriedade.
      *
@@ -154,14 +179,92 @@ export class PropertyService {
         }
     }
 
-    static async getUploadParams(): Promise<Record<string, unknown>> {
+    static async getUploadParams(): Promise<PropertyImageUploadParams> {
+        return this.getImageUploadParams()
+    }
+
+    static async getImageUploadParams(): Promise<PropertyImageUploadParams> {
         try {
-            const response = await propertiesAxios.get<ApiResponse<Record<string, unknown>>>("/upload-params");
-            return response.data.data;
+            const response = await propertiesAxios.get<ApiResponse<PropertyImageUploadParams>>("/upload-params")
+            return response.data.data
         } catch (error) {
-            this.handleError(error, "obter parâmetros de upload");
-            throw error;
+            this.handleError(error, "obter parâmetros de upload")
+            throw error
         }
+    }
+
+    static async uploadPropertyImages(files: File[]): Promise<string[]> {
+        if (!files.length) return []
+
+        let params: PropertyImageUploadParams
+        try {
+            params = await this.getImageUploadParams()
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Falha ao obter parâmetros de upload."
+            throw new this.PropertyImageUploadError({ stage: "params", message })
+        }
+
+        if (!params.signature || !params.upload_url || !params.api_key || !params.timestamp) {
+            throw new this.PropertyImageUploadError({
+                stage: "params",
+                message: "Parâmetros de upload inválidos.",
+            })
+        }
+
+        const uploadedUrls: string[] = []
+
+        for (const file of files) {
+            const formData = new FormData()
+            formData.append("file", file)
+            formData.append("timestamp", String(params.timestamp))
+            formData.append("api_key", params.api_key)
+            formData.append("signature", params.signature)
+            formData.append("folder", params.folder)
+            if (params.upload_preset) formData.append("upload_preset", params.upload_preset)
+
+            try {
+                const response = await axios.post(params.upload_url, formData)
+                const secureUrl = (response.data as any)?.secure_url
+                if (typeof secureUrl === "string" && secureUrl.trim()) {
+                    uploadedUrls.push(secureUrl)
+                } else {
+                    throw new this.PropertyImageUploadError({
+                        stage: "upload",
+                        message: "Upload falhou: resposta inválida do Cloudinary.",
+                    })
+                }
+            } catch (error) {
+                if (error instanceof this.PropertyImageUploadError) throw error
+
+                if (axios.isAxiosError(error)) {
+                    const status = error.response?.status
+                    const data = error.response?.data as any
+                    const cloudinaryMsg =
+                        typeof data === "object" ? (data?.error?.message as string | undefined) : undefined
+                    const rawMsg =
+                        (typeof data === "string" ? data : undefined) ||
+                        cloudinaryMsg ||
+                        error.message ||
+                        "Falha no upload."
+
+                    const suffix =
+                        status === 401
+                            ? " (normalmente credenciais/assinatura inválidas ou upload preset obrigatório)."
+                            : ""
+
+                    throw new this.PropertyImageUploadError({
+                        stage: "upload",
+                        status,
+                        message: `HTTP ${status ?? "?"}: ${rawMsg}${suffix}`,
+                    })
+                }
+
+                const message = error instanceof Error ? error.message : "Falha no upload."
+                throw new this.PropertyImageUploadError({ stage: "upload", message })
+            }
+        }
+
+        return uploadedUrls
     }
 
     /**
@@ -238,11 +341,28 @@ export class PropertyService {
      * - PUT /api/properties/{id}/rules
      *
      * Auth:
-     * - Requer role OWNER no backend
+     * - Requer acesso de gestão ao ativo (PRIMARY_OWNER/MANAGER)
      */
     static async updateRules(id: number, dto: PropertyRuleDTO): Promise<PropertyRuleDTO> {
         try {
             const response = await propertiesAxios.put<ApiResponse<PropertyRuleDTO>>(`/${id}/rules`, dto);
+            notify.success("Regras atualizadas.");
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "atualizar regras da propriedade");
+            throw error;
+        }
+    }
+
+    /**
+     * Atualiza parcialmente regras operacionais.
+     *
+     * Endpoint backend:
+     * - PATCH /api/properties/{id}/rules
+     */
+    static async patchRules(id: number, patch: PropertyRulePatchRequest): Promise<PropertyRuleDTO> {
+        try {
+            const response = await propertiesAxios.patch<ApiResponse<PropertyRuleDTO>>(`/${id}/rules`, patch);
             notify.success("Regras atualizadas.");
             return response.data.data;
         } catch (error) {
@@ -263,6 +383,142 @@ export class PropertyService {
             return response.data.data;
         } catch (error) {
             this.handleError(error, "obter regras de sazonalidade");
+            throw error;
+        }
+    }
+
+    /**
+     * Substitui a lista completa de regras de sazonalidade.
+     *
+     * Endpoint backend:
+     * - PUT /api/properties/{id}/rules/seasonality
+     */
+    static async updateSeasonalityRules(id: number, rules: SeasonalityRuleDTO[]): Promise<SeasonalityRuleDTO[]> {
+        try {
+            const response = await propertiesAxios.put<ApiResponse<SeasonalityRuleDTO[]>>(`/${id}/rules/seasonality`, rules);
+            notify.success("Sazonalidade atualizada.");
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "atualizar sazonalidade");
+            throw error;
+        }
+    }
+
+    /**
+     * Cria uma regra de sazonalidade individual.
+     *
+     * Endpoint backend:
+     * - POST /api/properties/{id}/rules/seasonality
+     */
+    static async createSeasonalityRule(id: number, rule: SeasonalityRuleDTO): Promise<SeasonalityRuleDTO> {
+        try {
+            const response = await propertiesAxios.post<ApiResponse<SeasonalityRuleDTO>>(`/${id}/rules/seasonality`, rule);
+            notify.success("Regra de sazonalidade criada.");
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "criar regra de sazonalidade");
+            throw error;
+        }
+    }
+
+    /**
+     * Atualiza parcialmente uma regra de sazonalidade.
+     *
+     * Endpoint backend:
+     * - PATCH /api/properties/{id}/rules/seasonality/{ruleId}
+     */
+    static async patchSeasonalityRule(id: number, ruleId: number, patch: SeasonalityRulePatchRequest): Promise<SeasonalityRuleDTO> {
+        try {
+            const response = await propertiesAxios.patch<ApiResponse<SeasonalityRuleDTO>>(`/${id}/rules/seasonality/${ruleId}`, patch);
+            notify.success("Regra de sazonalidade atualizada.");
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "atualizar regra de sazonalidade");
+            throw error;
+        }
+    }
+
+    /**
+     * Remove uma regra de sazonalidade.
+     *
+     * Endpoint backend:
+     * - DELETE /api/properties/{id}/rules/seasonality/{ruleId}
+     */
+    static async deleteSeasonalityRule(id: number, ruleId: number): Promise<void> {
+        try {
+            await propertiesAxios.delete<void>(`/${id}/rules/seasonality/${ruleId}`);
+            notify.success("Regra de sazonalidade removida.");
+        } catch (error) {
+            this.handleError(error, "remover regra de sazonalidade");
+            throw error;
+        }
+    }
+
+    /**
+     * Lista permissões (ACL) de uma propriedade.
+     *
+     * Endpoint backend:
+     * - GET /api/properties/{id}/permissions
+     */
+    static async getPermissions(id: number): Promise<PropertyPermissionDTO[]> {
+        try {
+            const response = await propertiesAxios.get<ApiResponse<PropertyPermissionDTO[]>>(`/${id}/permissions`);
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "obter permissões");
+            throw error;
+        }
+    }
+
+    /**
+     * Substitui a lista completa de permissões (ACL) de uma propriedade.
+     *
+     * Endpoint backend:
+     * - PUT /api/properties/{id}/permissions
+     */
+    static async updatePermissions(
+        id: number,
+        permissions: PropertyPermissionDTO[]
+    ): Promise<PropertyPermissionDTO[]> {
+        try {
+            const response = await propertiesAxios.put<ApiResponse<PropertyPermissionDTO[]>>(`/${id}/permissions`, permissions);
+            notify.success("Permissões atualizadas.");
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "atualizar permissões");
+            throw error;
+        }
+    }
+
+    /**
+     * Atualiza parcialmente a permissão de um utilizador numa propriedade.
+     *
+     * Endpoint backend:
+     * - PATCH /api/properties/{id}/permissions/{userId}
+     */
+    static async patchPermission(id: number, userId: number, patch: PropertyPermissionPatchRequest): Promise<PropertyPermissionDTO> {
+        try {
+            const response = await propertiesAxios.patch<ApiResponse<PropertyPermissionDTO>>(`/${id}/permissions/${userId}`, patch);
+            notify.success("Permissão atualizada.");
+            return response.data.data;
+        } catch (error) {
+            this.handleError(error, "atualizar permissão");
+            throw error;
+        }
+    }
+
+    /**
+     * Remove a permissão de um utilizador numa propriedade.
+     *
+     * Endpoint backend:
+     * - DELETE /api/properties/{id}/permissions/{userId}
+     */
+    static async deletePermission(id: number, userId: number): Promise<void> {
+        try {
+            await propertiesAxios.delete<void>(`/${id}/permissions/${userId}`);
+            notify.success("Permissão removida.");
+        } catch (error) {
+            this.handleError(error, "remover permissão");
             throw error;
         }
     }

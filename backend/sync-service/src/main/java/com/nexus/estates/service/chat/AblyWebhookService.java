@@ -2,6 +2,7 @@ package com.nexus.estates.service.chat;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.nexus.estates.common.util.WebhookCryptoUtil;
+import com.nexus.estates.entity.MessageContextType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,8 +28,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AblyWebhookService {
 
-    /** Prefixo padrão dos canais de chat no Ably para identificação de reservas. */
+    /** Prefixo padrão dos canais de chat no Ably para identificação de reservas (BOOKING). */
     private static final String CHANNEL_PREFIX = "booking-chat:";
+    /** Prefixo padrão dos canais de chat no Ably para identificação de inquiries (PROPERTY_INQUIRY). */
+    private static final String INQUIRY_CHANNEL_PREFIX = "inquiry-chat:";
 
     private final MessageService messageService;
 
@@ -70,9 +73,9 @@ public class AblyWebhookService {
 
         payload.messages().forEach(msg -> {
             try {
-                Long bookingId = extractBookingId(payload.channel());
-                if (bookingId != null) {
-                    messageService.handleNewIncomingMessage(bookingId, msg.clientId(), msg.data());
+                ChannelContext ctx = extractContext(payload.channel());
+                if (ctx != null) {
+                    messageService.handleNewIncomingMessage(ctx.contextType(), ctx.contextId(), msg.clientId(), msg.data());
                 }
             } catch (Exception e) {
                 log.error("Erro ao processar mensagem do canal {}: {}", payload.channel(), e.getMessage());
@@ -80,30 +83,29 @@ public class AblyWebhookService {
         });
     }
 
-    /**
-     * Analisa o nome completo de um canal fornecido pelo Ably e extrai o ID da reserva associada.
-     * <p>
-     * O formato esperado para extração bem sucedida baseia-se num prefixo fixo
-     * (definido em {@code CHANNEL_PREFIX}) seguido pelo identificador numérico,
-     * exemplo prático: {@code booking-chat:123}.
-     * </p>
-     *
-     * @param channel A String que designa o canal específico na plataforma Ably.
-     * @return O Identificador numérico extraído da string sob a forma de {@link Long},
-     *         ou {@code null} se o nome do canal for incompatível, em falta ou mal-formado
-     *         (com registo de Warning no log).
-     */
-    private Long extractBookingId(String channel) {
-        if (channel != null && channel.startsWith(CHANNEL_PREFIX)) {
-            try {
-                return Long.parseLong(channel.substring(CHANNEL_PREFIX.length()));
-            } catch (NumberFormatException e) {
-                log.warn("Formato de ID de reserva inválido no canal Ably: {}", channel);
-                return null;
-            }
+    private ChannelContext extractContext(String channel) {
+        if (channel == null || channel.isBlank()) return null;
+        if (channel.startsWith(CHANNEL_PREFIX)) {
+            Long id = extractId(channel, CHANNEL_PREFIX);
+            return id == null ? null : new ChannelContext(MessageContextType.BOOKING, id);
+        }
+        if (channel.startsWith(INQUIRY_CHANNEL_PREFIX)) {
+            Long id = extractId(channel, INQUIRY_CHANNEL_PREFIX);
+            return id == null ? null : new ChannelContext(MessageContextType.PROPERTY_INQUIRY, id);
         }
         return null;
     }
+
+    private Long extractId(String channel, String prefix) {
+        try {
+            return Long.parseLong(channel.substring(prefix.length()));
+        } catch (NumberFormatException e) {
+            log.warn("Formato de ID inválido no canal Ably: {}", channel);
+            return null;
+        }
+    }
+
+    private record ChannelContext(MessageContextType contextType, Long contextId) {}
 
     /**
      * DTO utilizado exclusivamente na conversão (deserialização) de dados originados do Ably.
