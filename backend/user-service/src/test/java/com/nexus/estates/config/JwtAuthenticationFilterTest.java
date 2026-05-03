@@ -73,6 +73,7 @@ class JwtAuthenticationFilterTest {
         when(request.getHeader("Authorization")).thenReturn(null);
         when(request.getHeader("X-User-Email")).thenReturn(null);
         when(request.getHeader("X-User-Role")).thenReturn(null);
+        when(request.getHeader("X-User-Id")).thenReturn(null);
 
         filter.doFilterInternal(request, response, filterChain);
 
@@ -93,6 +94,7 @@ class JwtAuthenticationFilterTest {
         when(request.getHeader("Authorization")).thenReturn("Bearer tok");
         when(request.getHeader("X-User-Email")).thenReturn(null);
         when(request.getHeader("X-User-Role")).thenReturn(null);
+        when(request.getHeader("X-User-Id")).thenReturn(null);
         when(jwtService.extractUsername("tok")).thenReturn("u@example.com");
         User u = User.builder().id(124L).email("u@example.com").password("x").role(UserRole.GUEST).build();
         when(userRepository.findByEmail("u@example.com")).thenReturn(Optional.of(u));
@@ -121,6 +123,7 @@ class JwtAuthenticationFilterTest {
         when(request.getHeader("Authorization")).thenReturn("Bearer tok");
         when(request.getHeader("X-User-Role")).thenReturn("ADMIN");
         when(request.getHeader("X-User-Email")).thenReturn(null);
+        when(request.getHeader("X-User-Id")).thenReturn(null);
 
         when(jwtService.extractUsername("tok")).thenReturn("u@example.com");
         User u = User.builder().id(124L).email("u@example.com").password("x").role(UserRole.GUEST).build();
@@ -149,6 +152,7 @@ class JwtAuthenticationFilterTest {
         when(request.getHeader("Authorization")).thenReturn("Bearer tok");
         when(request.getHeader("X-User-Email")).thenReturn(null);
         when(request.getHeader("X-User-Role")).thenReturn(null);
+        when(request.getHeader("X-User-Id")).thenReturn(null);
         when(jwtService.extractUsername("tok")).thenThrow(new RuntimeException("bad"));
 
         filter.doFilterInternal(request, response, filterChain);
@@ -163,6 +167,7 @@ class JwtAuthenticationFilterTest {
         when(request.getHeader("Authorization")).thenReturn(null);
         when(request.getHeader("X-User-Email")).thenReturn("u@example.com");
         when(request.getHeader("X-User-Role")).thenReturn("ADMIN");
+        when(request.getHeader("X-User-Id")).thenReturn(null);
 
         User u = User.builder().id(124L).email("u@example.com").password("x").role(UserRole.GUEST).build();
         when(userRepository.findByEmail("u@example.com")).thenReturn(Optional.of(u));
