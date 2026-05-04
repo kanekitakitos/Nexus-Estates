@@ -525,17 +525,22 @@ export function PropertyCreationWizard({ property: initialData, onClose, onSaved
         const nextErrors = validateStep(step, property)
         if (Object.keys(nextErrors).length > 0) {
             armValidation(step)
-            const notice = buildStepValidationNotice()
-            notify.warning(notice.title, { description: notice.description })
+            Object.entries(nextErrors).forEach(([key, value]) => {
+                // Verificamos se o valor existe para evitar imprimir undefined
+                if (value) {
+                    notify.warning(key, { description: value })
+                }
+            })
+
             return
         }
+
         nextStep()
     }
 
     const onSave = () => {
         const finalErrors = validateStep("preview", property)
         if (Object.keys(finalErrors).length > 0) {
-            const notice = buildStepValidationNotice()
             const essenceErrors = validateStep("essence", property)
             const locationErrors = validateStep("location", property)
             if (Object.keys(essenceErrors).length > 0) {
@@ -545,7 +550,13 @@ export function PropertyCreationWizard({ property: initialData, onClose, onSaved
                 armValidation("location")
                 goToStep("location")
             }
-            notify.warning(notice.title, { description: notice.description })
+
+            Object.entries(finalErrors).forEach(([key, value]) => {
+                // Verificamos se o valor existe para evitar imprimir undefined
+                if (value) {
+                    notify.warning(key, { description: value })
+                }
+            })
             return
         }
         handleFinalSave()
