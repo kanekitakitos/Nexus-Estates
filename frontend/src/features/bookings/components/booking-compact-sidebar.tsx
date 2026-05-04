@@ -1,5 +1,18 @@
 "use client"
 
+/**
+ * BookingCompactSidebar
+ * * Contexto
+ * - Sidebar lateral para gestão rápida de reservas.
+ * - Alterna entre visão de Hóspede (myBookings) e Proprietário/Staff (propertyBookings).
+ * * Responsabilidades
+ * - Filtragem multi-critério (status, data, pesquisa textual).
+ * - Ordenação cronológica.
+ * - Atalhos de UX: "Repetir reserva" e "Retomar pagamento" via SessionStorage + CustomEvents.
+ * * Integração
+ * - Comunica com a página `/booking` através de eventos globais para injetar dados de fluxo.
+ */
+
 import * as React from "react"
 import Link from "next/link"
 import { ArrowUpDown } from "lucide-react"
@@ -10,15 +23,27 @@ import { cn } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/overlay/dropdown-menu"
 import { bookingsTokens } from "@/features/bookings/tokens"
 
+
+// ─────────────────────────────────────────────
+// Constants & Utils
+// ─────────────────────────────────────────────
+
 type UserRole = "ADMIN" | "GUEST" | "OWNER" | "STAFF"
 
 const BOOKING_QUICK_ACCESS_STORAGE_KEY = "booking:quick-access"
 const BOOKING_RESUME_PAYMENT_STORAGE_KEY = "booking:resume-payment"
 
+/**
+ * Normaliza strings para comparação
+ */
 function normalizeQuery(value: string) {
   return value.trim().toLowerCase()
 }
 
+/**
+ * Define as horas da data como 0h,0min,0s,0ms
+ * @param dateLike - Date para alterar a hora
+ */
 function dateAtStartOfDay(dateLike: string | Date) {
   const d = typeof dateLike === "string" ? new Date(dateLike) : new Date(dateLike)
   if (Number.isNaN(d.getTime())) return null
@@ -26,16 +51,30 @@ function dateAtStartOfDay(dateLike: string | Date) {
   return d
 }
 
+/**
+ * @return Se a reserva tem datas válidas para o fluxo de 'Rebook'
+ */
 function hasValidRebookRange(b: BookingResponse) {
   const from = dateAtStartOfDay(b.checkInDate)
   const to = dateAtStartOfDay(b.checkOutDate)
   return Boolean(from && to && from.getTime() < to.getTime())
 }
 
+/**
+ * Constrói a string de pesquisa que engloba vários campos da reserva
+ */
 function bookingHaystack(b: BookingResponse) {
   return `${bookingsTokens.copy.sidebar.bookingHaystackPrefix}${b.id} ${b.propertyId} ${b.status} ${b.currency} ${b.totalPrice} ${b.checkInDate} ${b.checkOutDate}`.toLowerCase()
 }
 
+// ─────────────────────────────────────────────
+// Main Component
+// ─────────────────────────────────────────────
+
+/**
+ * Componente principal da Sidebar de Reservas.
+ * Gere o estado global dos filtros e a alternância de escopo (Meus vs Propriedades).
+ */
 export function BookingCompactSidebar({
   isAuthenticated,
   role,
@@ -53,12 +92,14 @@ export function BookingCompactSidebar({
   const router = useRouter()
   const pathname = usePathname()
 
+  // Estados e filtros
   const [scope, setScope] = React.useState<"mine" | "properties">("mine")
   const [query, setQuery] = React.useState("")
   const [status, setStatus] = React.useState<"ALL" | BookingResponse["status"]>("ALL")
   const [when, setWhen] = React.useState<"all" | "upcoming" | "past">("all")
   const [sort, setSort] = React.useState<"recentes" | "antigas">("recentes")
 
+  // inicia o scope apartir das permissões do utilizador
   React.useEffect(() => {
     if (!isAuthenticated) {
       setScope("mine")
@@ -67,6 +108,7 @@ export function BookingCompactSidebar({
     if (canSeePropertyBookings) setScope("properties")
     else setScope("mine")
   }, [isAuthenticated, canSeePropertyBookings])
+
 
   const filtered = React.useMemo(() => {
     const scoped = scope === "properties" ? propertyBookings : myBookings
@@ -185,6 +227,13 @@ export function BookingCompactSidebar({
   )
 }
 
+
+// ─────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────
+/**
+ * Selector de contexto: Reservas Pessoais vs Reservas de Propriedades geridas.
+*/
 function BookingScopeToggle({
   scope,
   onChange,
@@ -218,6 +267,9 @@ function BookingScopeToggle({
   )
 }
 
+/**
+ * Container dos filtros (dropdowns e input de pesquisa).
+ */
 function BookingFilterBar({
   query,
   onQueryChange,
@@ -269,6 +321,9 @@ function BookingFilterBar({
   )
 }
 
+/**
+ * Identifica automaticamente reservas que permitem ações rápidas (Rebook/Resume)
+ */
 function BookingStatusDropdown({
   value,
   onChange,
@@ -462,15 +517,19 @@ function BookingCards({
   return (
     <div className="space-y-3">
       {bookings.map((b) => {
+        // Reservas canceladas podem ser repetidas se tiverem datas válidas
         const isRebookable =
           canQuickAccess &&
           (b.status === "CANCELLED" || b.status === "REFUNDED") &&
           hasValidRebookRange(b)
+
+        // Reservas pendentes podem retomar o checkout
         const isResumable =
           canQuickAccess &&
           b.status === "PENDING_PAYMENT" &&
           typeof b.id === "number" &&
           b.id > 0
+
         if (isRebookable) {
           return (
             <button

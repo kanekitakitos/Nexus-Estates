@@ -20,17 +20,32 @@ import {BrutalButton} from "@/components/ui/forms/button";
 
 
 export function DashBoardView(){
+    // ─────────────────────────────────────────────
+    // ESTADO E DATA-HOLDING
+    // ─────────────────────────────────────────────
     const [properties, setProperties] = useState<Map<number, PropertyListItem>>(new Map())
     const [bookings, setBookings] = useState<Map<number, BookingResponse[]>>(new Map())
 
+    // Quando defenenido, a dasboard só mostra dados desta propriedade
     const [focusPropertie, setFocusPropertie] = useState<PropertyListItem | undefined>(undefined);
 
+    // Data (ano e mês) que a dashboard está a analizar
+    const [viewDate, setViewDate] = useState<Date>(new Date())
+    const monthNames = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
 
+    // ─────────────────────────────────────────────
+    // LÓGICA DE FILTRAGEM
+    // ─────────────────────────────────────────────
+
+    // propriedades a serem mostradas/analizadas
     const filteredProperties: PropertyListItem[] = useMemo(() => {
         return focusPropertie ? [focusPropertie] : Array.from(properties.values());
     }, [focusPropertie, properties]);
 
-
+    // bookings a serem mostrados/analizados
     const filteredBookings :BookingResponse[] = useMemo(() => {
         if (focusPropertie)
             return bookings.get(Number(focusPropertie.id)) ?? [];
@@ -38,28 +53,26 @@ export function DashBoardView(){
             return Array.from(bookings.values()).flat();
     }, [focusPropertie, bookings]);
 
-
-    const handlePropertyClick = (item: TimelineItemWithNames) => {
-        if (item.properti != undefined) {
+    /**
+     * Altera o foco para a propriedade indicada na timelineItem
+     */
+    const handlePropertyClick = (timelineItem: TimelineItemWithNames) => {
+        if (timelineItem.properti != undefined) {
             // Se clicar na mesma, remove o foco (toggle)
-            if (focusPropertie?.id === item.properti.id) {
+            if (focusPropertie?.id === timelineItem.properti.id) {
                 setFocusPropertie(undefined);
             } else {
-                setFocusPropertie(properties.get(Number(item.properti.id)));
+                setFocusPropertie(properties.get(Number(timelineItem.properti.id)));
             }
         }
     };
 
-
-    const [viewDate, setViewDate] = useState<Date>(new Date())
-    const monthNames = [
-        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-    ];
-
+    // inicia os dados da dashboard
     useEffect(() => {
         const loadData = async () => {
             const fetchedProperties : Map<number,PropertyListItem> = new Map<number, PropertyListItem>()
+
+            // guarda as propriedades
             await PropertyService.listMine()
                 .then((page :Page<PropertyListItem>) :PropertyListItem[] => page.content)
                 .then((list:PropertyListItem[])=> {
@@ -68,12 +81,12 @@ export function DashBoardView(){
                 })
                 .catch(() => {console.error("FAIL FETCH PROPERTY")})
 
+            // guarda as reservas
             const fetchedBookings :Map<number, BookingResponse[]> = new Map<number, BookingResponse[]>()
             for (const p of fetchedProperties.values()) {
                 const books :BookingResponse[] = await BookingService.getBookingsByProperty(p.id).then((br :BookingResponse[])=>br)
                 fetchedBookings.set(p.id, books)
             }
-
 
             setProperties(fetchedProperties);
             setBookings(fetchedBookings);
@@ -88,6 +101,13 @@ export function DashBoardView(){
     }, [filteredProperties, filteredBookings]);
 
 
+    // ─────────────────────────────────────────────
+    // PROCESSAMENTO DE ESTATÍSTICAS (BI)
+    // ─────────────────────────────────────────────
+
+    /** Transforma as reservas filtradas em dados para Gráficos e StatCards.
+     *  Esta função percorre as reservas uma única vez para popular múltiplos datasets.
+     */
     const stats = useMemo(() => {
         const totals = {
             checkIn: 0,
@@ -101,10 +121,12 @@ export function DashBoardView(){
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
 
+        // Cálculo de potencial para percentagens no Line Chart
         const totalDailyPotentialRevenue = filteredProperties.reduce(
             (acc, p) => acc + p.basePrice, 0
         );
 
+        // Datasets para os gráficos
         const barMap : Map<number, BarChartData> = new Map();
         filteredProperties.forEach(p => {
             barMap.set(Number(p.id), { name: p.name, occupancy:0 ,profit: 0 } as BarChartData);
@@ -123,11 +145,10 @@ export function DashBoardView(){
                 profit: 0
         }));
 
-
+        // preenchimento de dados
         filteredBookings.forEach((b) => {
             const checkIn = new Date(b.checkInDate);
             const checkOut = new Date(b.checkOutDate);
-
 
             const isSameMonth = checkIn.getMonth() === viewDate.getMonth() &&
                 checkIn.getFullYear() === viewDate.getFullYear();
@@ -135,9 +156,11 @@ export function DashBoardView(){
             const isSameMonthOut = checkOut.getMonth() === viewDate.getMonth() &&
                 checkOut.getFullYear() === viewDate.getFullYear();
 
+            // checkIn e checkOut
             if (isSameMonth) totals.checkIn++;
             if (isSameMonthOut) totals.checkOut++;
 
+            // lucro e por lucrar
             if (checkOut < now) totals.lucrado += b.totalPrice;
             else if (checkIn > now) totals.porLucrar += b.totalPrice;
 
@@ -316,7 +339,10 @@ export default DashBoardView
 //--------------------------------------------------
 //              FUNÇÕES AUXILIARES
 
-
+/**
+ * Converte propriedades e reservas no formato "Timeline" aceite pelo calendário.
+ * Associa cores e resolve nomes de utilizadores para exibição nos períodos.
+ */
 function createCalendarItems(properties : PropertyListItem[], bookings : BookingResponse[]) :TimelineItemWithNames[]{
     const calendarItems :TimelineItemWithNames[] = []
     const colors = ["bg-red-500", "bg-green-500", "bg-blue-500", "bg-purple-500"]

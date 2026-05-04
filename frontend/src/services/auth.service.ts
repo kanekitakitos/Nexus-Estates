@@ -133,6 +133,15 @@ export class AuthService {
         }
     }
 
+    /**
+     * Troca um token de autenticação do Clerk por uma sessão válida no nosso backend.
+     * * Se a validação for bem-sucedida, inicializa automaticamente a sessão local
+     * do utilizador e exibe uma notificação de sucesso.
+     *
+     * @param clerkToken - O token JWT gerado pelo Clerk após o login do lado do cliente
+     * @returns Os dados da sessão (`AuthResponse`) em caso de sucesso, ou `null`.
+     * @throws Erro se a comunicação com a API falhar ou o token for inválido.
+     */
     static async clerkExchange(clerkToken: string): Promise<AuthResponse | null> {
         try {
             const response = await usersAxios.post<ApiResponse<AuthResponse>>(
