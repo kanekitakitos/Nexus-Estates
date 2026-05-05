@@ -14,6 +14,9 @@ import java.time.LocalDate;
  * @param checkInDate Data de entrada pretendida.
  * @param checkOutDate Data de saída pretendida.
  * @param guestCount Número de hóspedes.
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
  */
 @Schema(description = "Pedido de validação e cotação de estadia")
 public record PropertyQuoteRequest(

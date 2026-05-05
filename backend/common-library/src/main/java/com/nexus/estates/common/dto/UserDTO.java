@@ -15,6 +15,7 @@ import java.util.UUID;
  * </p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Data
 @Builder
