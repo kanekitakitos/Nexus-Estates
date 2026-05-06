@@ -34,11 +34,7 @@ services:
       - nexus-net
 
   user-service:
-    build:
-      context: ../backend
-      dockerfile: Dockerfile
-      args:
-        SERVICE: user-service
+    image: ghcr.io/kanekitakitos/nexus-estates/user-service:main
     container_name: user-service
     restart: unless-stopped
     env_file:
@@ -50,11 +46,7 @@ services:
       - nexus-net
 
   property-service:
-    build:
-      context: ../backend
-      dockerfile: Dockerfile
-      args:
-        SERVICE: property-service
+    image: ghcr.io/kanekitakitos/nexus-estates/property-service:main
     container_name: property-service
     restart: unless-stopped
     env_file:
@@ -68,11 +60,7 @@ services:
       - nexus-net
 
   booking-service:
-    build:
-      context: ../backend
-      dockerfile: Dockerfile
-      args:
-        SERVICE: booking-service
+    image: ghcr.io/kanekitakitos/nexus-estates/booking-service:main
     container_name: booking-service
     restart: unless-stopped
     env_file:
@@ -90,11 +78,7 @@ services:
       - nexus-net
 
   sync-service:
-    build:
-      context: ../backend
-      dockerfile: Dockerfile
-      args:
-        SERVICE: sync-service
+    image: ghcr.io/kanekitakitos/nexus-estates/sync-service:main
     container_name: sync-service
     restart: unless-stopped
     env_file:
@@ -114,11 +98,7 @@ services:
       - nexus-net
 
   finance-service:
-    build:
-      context: ../backend
-      dockerfile: Dockerfile
-      args:
-        SERVICE: finance-service
+    image: ghcr.io/kanekitakitos/nexus-estates/finance-service:main
     container_name: finance-service
     restart: unless-stopped
     env_file:
@@ -132,11 +112,7 @@ services:
       - nexus-net
 
   api-gateway:
-    build:
-      context: ../backend
-      dockerfile: Dockerfile
-      args:
-        SERVICE: api-gateway
+    image: ghcr.io/kanekitakitos/nexus-estates/api-gateway:main
     container_name: api-gateway
     restart: unless-stopped
     env_file:
@@ -158,12 +134,7 @@ services:
       - nexus-net
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: "http://localhost:8080/api"
-        NEXT_PUBLIC_IDP: "jwt"
+    image: ghcr.io/kanekitakitos/nexus-estates/frontend:main
     container_name: frontend
     restart: unless-stopped
     environment:

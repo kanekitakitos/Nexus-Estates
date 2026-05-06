@@ -21,7 +21,7 @@ import { SyncService } from "@/services/sync.service"
 import type { WebhookSubscription } from "@/types/sync"
 import { ChangePasswordForm } from "@/features/profile/components/change-password-form"
 import { SignedIn, SignedOut, UserProfile as ClerkUserProfile } from "@clerk/nextjs"
-import { isClerkConfigured } from "@/features/auth/strategies/use-identity-provider"
+import { getIdentityProviderKey, isClerkConfigured } from "@/features/auth/strategies/use-identity-provider"
 import { useClerkIdentityProvider } from "@/features/auth/strategies/clerk/use-clerk-identity-provider"
 import { GitBranch, Globe, Users } from "lucide-react"
 
@@ -618,7 +618,7 @@ function ProfileContent({
             }}
           />
 
-          <ClerkLinkedAccountsPanel />
+          {getIdentityProviderKey() === "clerk" && isClerkConfigured() ? <ClerkLinkedAccountsPanel /> : null}
         </motion.div>
       )}
 
