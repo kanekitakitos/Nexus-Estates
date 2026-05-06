@@ -36,13 +36,14 @@ Este projeto é um **Monorepo** organizado da seguinte forma:
 
 ## 🚀 Como correr (2 modos)
 
-### Modo A — Deploy/Apresentação (100% em containers) (Recomendado para professores)
+### Modo A — Deploy/Apresentação (100% em containers)
 
 Este modo levanta **Postgres + RabbitMQ + todos os microserviços + frontend** automaticamente.
 
 1. Na raiz do repositório:
    ```bash
-   docker compose -f infrastructure/docker-compose.deploy.yml up -d --build
+   docker compose -f infrastructure/docker-compose.deploy.yml pull
+   docker compose -f infrastructure/docker-compose.deploy.yml up -d
    ```
 
 2. Acessos:
@@ -54,6 +55,19 @@ Este modo levanta **Postgres + RabbitMQ + todos os microserviços + frontend** a
    * Só **frontend (3000)** e **api-gateway (8080)** expõem portas para o host.
    * Os restantes serviços, Postgres e RabbitMQ ficam acessíveis apenas dentro da rede Docker (segurança por defeito).
    * As variáveis para deploy estão pré-preparadas em `infrastructure/env/*.env` (um ficheiro por serviço) para simplificar o arranque.
+   * As imagens Docker são publicadas no **GHCR** quando existe push para as branches **main** e **Testar_software** (tags `main`/`Testar_software` + `sha`).
+   * O compose de deploy usa por defeito as imagens `:main`. Para usar outra branch/tag, injeta `IMAGE_TAG` (sem editar o ficheiro):
+     ```bash
+     IMAGE_TAG=Testar_software docker compose -f infrastructure/docker-compose.deploy.yml pull
+     IMAGE_TAG=Testar_software docker compose -f infrastructure/docker-compose.deploy.yml up -d
+     ```
+     Em PowerShell:
+     ```powershell
+     $env:IMAGE_TAG="Testar_software"
+     docker compose -f infrastructure/docker-compose.deploy.yml pull
+     docker compose -f infrastructure/docker-compose.deploy.yml up -d
+     ```
+   * Se o GHCR estiver com imagens privadas, vais ter erro `Unauthorized` ao fazer pull. Neste caso, torna os packages públicos (GitHub → Packages → Package settings → Visibility: Public).
 
 Para parar:
 ```bash
