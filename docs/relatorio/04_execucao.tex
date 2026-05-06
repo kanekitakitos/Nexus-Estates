@@ -1,0 +1,71 @@
+\section{Como correr o projeto (Docker -- Deploy/Demonstração)}
+\subsection{Comando único (levanta tudo)}
+Na raiz do repositório:
+\begin{verbatim}
+docker compose -f infrastructure/docker-compose.deploy.yml pull
+docker compose -f infrastructure/docker-compose.deploy.yml up -d
+\end{verbatim}
+
+\subsection{Acessos e Conta de Teste}
+\begin{itemize}[nosep]
+  \item Frontend: \url{http://localhost:3000}
+  \item API Gateway: \url{http://localhost:8080}
+  \item Swagger UI (via Gateway): \url{http://localhost:8080/swagger-ui.html}
+\end{itemize}
+
+\textbf{Conta de Demonstração (com dados preenchidos):}
+\begin{itemize}[nosep]
+  \item \textbf{Email:} \texttt{dev@nexus.com}
+  \item \textbf{Password:} \texttt{12345}
+\end{itemize}
+
+\subsection{Parar e limpar}
+\begin{verbatim}
+docker compose -f infrastructure/docker-compose.deploy.yml down
+\end{verbatim}
+
+\subsection{Como a comunicação funciona (rede interna)}
+O \texttt{docker-compose.deploy.yml} define uma rede privada (isolada) chamada \texttt{nexus-net}. Dentro desta rede:
+\begin{itemize}[nosep]
+  \item O Docker fornece \textbf{DNS interno}: o nome do serviço no Compose (ex.: \texttt{booking-service}) vira hostname.
+  \item Os serviços comunicam por \texttt{http://<service-name>:<port>} sem depender de IPs fixos.
+  \item Postgres e RabbitMQ ficam acessíveis internamente como \texttt{postgres} e \texttt{rabbitmq}.
+\end{itemize}
+
+\textbf{Exposição de portas (segurança por defeito):}
+\begin{itemize}[nosep]
+  \item Apenas \textbf{frontend (3000)} e \textbf{api-gateway (8080)} expõem \texttt{ports} para o host.
+  \item Microserviços internos, Postgres e RabbitMQ não expõem portas para fora (continuam acessíveis dentro da \texttt{nexus-net}).
+\end{itemize}
+
+\subsection{Configuração por variáveis de ambiente (compose standalone)}
+Para simplificar o deploy e permitir correr o compose sem dependências locais, as variáveis de ambiente estão embutidas no próprio \texttt{docker-compose.deploy.yml}. Estas variáveis:
+\begin{itemize}[nosep]
+  \item Definem \texttt{SPRING\_DATASOURCE\_*} apontando para \texttt{postgres}
+  \item Definem \texttt{SPRING\_RABBITMQ\_*} apontando para \texttt{rabbitmq}
+  \item Definem URLs internos (\texttt{*\_SERVICE\_URL}) apontando para \texttt{http://<service-name>:<port>}
+\end{itemize}
+
+Isto garante que os fallbacks \texttt{localhost} presentes em \texttt{application.properties} são substituídos automaticamente em Docker.
+
+\section{Como correr em DEV (infra em Docker + apps localmente)}
+\subsection{Levantar apenas Postgres + RabbitMQ}
+\begin{verbatim}
+docker compose -f infrastructure/docker-compose.yml up -d
+\end{verbatim}
+
+\subsection{Backend local (Spring Boot)}
+\begin{itemize}[nosep]
+  \item Recomendado: abrir \texttt{backend/} no IntelliJ e iniciar serviços (começar pelo \texttt{api-gateway}).
+  \item Alternativa terminal (na pasta \texttt{backend}):
+\end{itemize}
+\begin{verbatim}
+mvn -pl api-gateway -am spring-boot:run
+\end{verbatim}
+
+\subsection{Frontend local (Next.js + Bun)}
+\begin{verbatim}
+cd frontend
+bun install
+bun dev
+\end{verbatim}

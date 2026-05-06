@@ -1,0 +1,43 @@
+\section{Padrões de projeto e práticas (backend)}
+\subsection{Separação por camadas (MVC + Service + Repository)}
+Os microserviços seguem uma organização típica:
+\begin{itemize}[nosep]
+  \item \textbf{controller/}: endpoints REST (camada HTTP)
+  \item \textbf{service/}: regras de negócio e orquestração
+  \item \textbf{repository/}: acesso a dados (Spring Data)
+  \item \textbf{entity/}: modelos JPA
+  \item \textbf{dto/}: contratos (requests/responses)
+  \item \textbf{config/}: configuração Spring (security, rabbit, clients, etc.)
+  \item \textbf{messaging/}: consumers/publishers e integração com RabbitMQ (quando aplicável)
+  \item \textbf{exception/}: exceções e handlers
+  \item \textbf{audit/}: contexto de actor + Envers (em serviços que auditam)
+\end{itemize}
+
+\subsection{Proxy Pattern (HTTP declarativo entre microserviços)}
+O backend usa clientes HTTP declarativos do Spring (gerados em runtime), seguindo o \textbf{Proxy Pattern}:
+\begin{itemize}[nosep]
+  \item Interfaces em \texttt{client/NexusClients.java} definem endpoints.
+  \item \texttt{config/WebClientConfig.java} constrói \texttt{RestClient} com base URL configurável e gera proxies via \texttt{HttpServiceProxyFactory}.
+\end{itemize}
+Isto reduz acoplamento e centraliza os contratos de comunicação.
+
+\subsection{Strategy Pattern (ex.: faturação no finance-service)}
+O \texttt{finance-service} encapsula o comportamento de emissão de faturas em estratégias:
+\begin{itemize}[nosep]
+  \item \texttt{InvoiceProviderStrategy} (interface)
+  \item Implementações: \texttt{MockInvoiceProviderStrategy}, \texttt{MoloniInvoiceProviderStrategy}, \texttt{NoopInvoiceProviderStrategy}
+\end{itemize}
+Assim, o provider pode variar por configuração sem alterar a lógica central (\texttt{InvoiceOrchestrator}).
+
+\subsection{Resiliência (Circuit Breaker + Retry)}
+O \texttt{sync-service} aplica Resilience4j em chamadas externas (evita cascatas e dá degradação controlada):
+\begin{itemize}[nosep]
+  \item Circuit Breaker para reduzir falhas repetidas
+  \item Retry com backoff para erros transitórios
+\end{itemize}
+
+\subsection{Eventos assíncronos e consistência eventual}
+\begin{itemize}[nosep]
+  \item RabbitMQ para publicação/consumo de eventos (ex.: booking created/status updated).
+  \item Fluxos tipo Saga (coreografada) para consistência eventual entre serviços.
+\end{itemize}
