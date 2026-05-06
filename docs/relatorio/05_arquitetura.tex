@@ -1,43 +1,62 @@
-\section{Padrões de projeto e práticas (backend)}
-\subsection{Separação por camadas (MVC + Service + Repository)}
-Os microserviços seguem uma organização típica:
-\begin{itemize}[nosep]
-  \item \textbf{controller/}: endpoints REST (camada HTTP)
-  \item \textbf{service/}: regras de negócio e orquestração
-  \item \textbf{repository/}: acesso a dados (Spring Data)
-  \item \textbf{entity/}: modelos JPA
-  \item \textbf{dto/}: contratos (requests/responses)
-  \item \textbf{config/}: configuração Spring (security, rabbit, clients, etc.)
-  \item \textbf{messaging/}: consumers/publishers e integração com RabbitMQ (quando aplicável)
-  \item \textbf{exception/}: exceções e handlers
-  \item \textbf{audit/}: contexto de actor + Envers (em serviços que auditam)
+\section{Padrões de Projeto e Práticas (Backend)}
+
+\subsection{Separação por Camadas (MVC + Service + Repository)}
+Os microserviços seguem uma organização modular e bem definida para garantir a separação de responsabilidades, facilitando a manutenção e a testabilidade individual. A estrutura de pastas segue o padrão:
+
+\begin{itemize}[itemsep=0.5em]
+  \item \textbf{controller/}: \textit{Endpoints} REST e gestão da camada HTTP.
+  \item \textbf{service/}: Implementação das regras de negócio e orquestração de fluxos.
+  \item \textbf{repository/}: Camada de persistência e acesso a dados via Spring Data.
+  \item \textbf{entity/}: Modelos JPA mapeados para as tabelas da base de dados.
+  \item \textbf{dto/}: Contratos de comunicação (\textit{Request/Response}) para evitar a exposição das entidades.
+  \item \textbf{config/}: Configurações do ecossistema Spring (Security, RabbitMQ, Clientes HTTP).
+  \item \textbf{messaging/}: Lógica de \textit{consumers/publishers} para integração assíncrona.
+  \item \textbf{exception/}: Gestão centralizada de erros e \textit{Global Exception Handlers}.
+  \item \textbf{audit/}: Auditoria de dados utilizando contexto de actor e Hibernate Envers.
 \end{itemize}
 
-\subsection{Proxy Pattern (HTTP declarativo entre microserviços)}
-O backend usa clientes HTTP declarativos do Spring (gerados em runtime), seguindo o \textbf{Proxy Pattern}:
-\begin{itemize}[nosep]
-  \item Interfaces em \texttt{client/NexusClients.java} definem endpoints.
-  \item \texttt{config/WebClientConfig.java} constrói \texttt{RestClient} com base URL configurável e gera proxies via \texttt{HttpServiceProxyFactory}.
-\end{itemize}
-Isto reduz acoplamento e centraliza os contratos de comunicação.
+\medskip
 
-\subsection{Strategy Pattern (ex.: faturação no finance-service)}
-O \texttt{finance-service} encapsula o comportamento de emissão de faturas em estratégias:
-\begin{itemize}[nosep]
-  \item \texttt{InvoiceProviderStrategy} (interface)
-  \item Implementações: \texttt{MockInvoiceProviderStrategy}, \texttt{MoloniInvoiceProviderStrategy}, \texttt{NoopInvoiceProviderStrategy}
+\subsection{Proxy Pattern (HTTP Declarativo entre Microserviços)}
+A comunicação \textit{inter-service} utiliza clientes HTTP declarativos gerados em \textit{runtime}, seguindo o \textbf{Proxy Pattern}. Esta abordagem reduz o acoplamento e centraliza os contratos de comunicação:
+
+\begin{itemize}[itemsep=0.4em]
+  \item As interfaces definidas em \texttt{client/NexusClients.java} descrevem os \textit{endpoints} remotos.
+  \item A classe \texttt{config/WebClientConfig.java} utiliza a \texttt{HttpServiceProxyFactory} para injetar os proxies dinâmicos em cada serviço, permitindo que a comunicação entre microserviços seja tão simples como chamar um método local.
 \end{itemize}
-Assim, o provider pode variar por configuração sem alterar a lógica central (\texttt{InvoiceOrchestrator}).
+
+\medskip
+
+\subsection{Strategy Pattern (Ex.: Faturação no finance-service)}
+No \texttt{finance-service}, a lógica de emissão de faturas foi encapsulada através do \textbf{Strategy Pattern}. Isto permite que o fornecedor de faturação varie conforme o ambiente ou a configuração, sem alterar o \texttt{InvoiceOrchestrator}:
+
+\begin{itemize}[itemsep=0.4em]
+  \item \textbf{InvoiceProviderStrategy}: Interface que define o contrato para a emissão de documentos.
+  \item \textbf{Implementações disponíveis}:
+    \begin{itemize}[label=$\circ$, itemsep=0.2em, topsep=0.2em]
+      \item \texttt{MockInvoiceProviderStrategy} (Para testes e desenvolvimento local)
+      \item \texttt{MoloniInvoiceProviderStrategy} (Integração real via API REST)
+      \item \texttt{NoopInvoiceProviderStrategy} (Operação nula para desativação do serviço)
+    \end{itemize}
+\end{itemize}
+
+\medskip
 
 \subsection{Resiliência (Circuit Breaker + Retry)}
-O \texttt{sync-service} aplica Resilience4j em chamadas externas (evita cascatas e dá degradação controlada):
-\begin{itemize}[nosep]
-  \item Circuit Breaker para reduzir falhas repetidas
-  \item Retry com backoff para erros transitórios
+Para proteger o ecossistema contra falhas em cascata em chamadas externas, o \texttt{sync-service} utiliza a biblioteca \textit{Resilience4j}:
+
+\begin{itemize}[itemsep=0.4em]
+  \item \textbf{Circuit Breaker}: Interrompe o tráfego para um serviço externo se este começar a falhar sistematicamente, permitindo a sua recuperação.
+  \item \textbf{Retry with Backoff}: Efetua tentativas automáticas para erros transitórios, com tempos de espera incrementais.
 \end{itemize}
 
-\subsection{Eventos assíncronos e consistência eventual}
-\begin{itemize}[nosep]
-  \item RabbitMQ para publicação/consumo de eventos (ex.: booking created/status updated).
-  \item Fluxos tipo Saga (coreografada) para consistência eventual entre serviços.
+\medskip
+
+\subsection{Eventos Assíncronos e Consistência Eventual}
+A consistência de dados entre os diversos microserviços é gerida através de eventos, garantindo o desacoplamento temporal:
+
+\begin{itemize}[itemsep=0.4em]
+  \item \textbf{RabbitMQ}: Atua como o \textit{message broker} para publicação e consumo de eventos (ex: \textit{booking created}).
+  \item \textbf{Saga Pattern (Coreografada)}: Fluxos de trabalho distribuídos que asseguram que todos os serviços atingem um estado consistente após uma transação complexa.
+  \item \textbf{Documentação}: A estrutura completa do projeto e os fluxos detalhados podem ser consultados no \href{https://github.com/kanekitakitos/Nexus-Estates/blob/main/README.md}{\texttt{README.md}} da raiz do repositório.
 \end{itemize}

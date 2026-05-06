@@ -1,12 +1,47 @@
 \documentclass[11pt,a4paper]{article}
 
+% --- Configurações de Margens e Idioma ---
 \usepackage[margin=2.2cm]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
+\usepackage[portuguese]{babel}
 \usepackage{hyperref}
 \usepackage{enumitem}
 \usepackage{parskip}
+\usepackage{url}
 
+% --- Pacotes para Código e Design (Estilo Markdown) ---
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, listings, breakable}
+
+% Definição do estilo de bloco de código (GitHub/Markdown Style)
+\newtcblisting{codeblock}{
+    listing only,
+    enhanced,
+    breakable,
+    sharp corners,
+    colback=gray!5,         % Fundo cinza claro
+    colframe=gray!30,       % Borda subtil
+    boxrule=0.5pt,
+    left=10pt,
+    right=10pt,
+    top=10pt,
+    bottom=10pt,
+    listing options={
+        basicstyle=\small\ttfamily,
+        breaklines=true,        
+        keepspaces=true,        % Mantém os espaços que tu digitas
+        columns=flexible,       % Impede que o texto fique "encolhido" ou colado
+        literate={\&}{{\&}}1,   % Escapa o & corretamente
+        showstringspaces=false  % Não mostra símbolos nos espaços vazios
+    },
+    overlay={
+        \node[anchor=north east, text=gray!40, font=\tiny\sffamily] 
+        at (frame.north east) {COPY};
+    }
+}
+
+% --- Configuração de Links ---
 \hypersetup{
   colorlinks=true,
   linkcolor=black,
@@ -16,7 +51,7 @@
 
 \begin{document}
 
-% Capa elegante com metadados
+% --- CAPA ---
 \begin{titlepage}
     \centering
     \vspace*{2cm}
@@ -40,7 +75,6 @@
     
     \vfill
     
-    % Dividir Docentes e Estudantes em duas colunas para um layout limpo
     \begin{minipage}[t]{0.45\textwidth}
         \begin{flushleft}
             \large \textbf{Docentes} \\
@@ -64,11 +98,11 @@
     \vspace{2cm}
 \end{titlepage}
 
-% Índice
+% --- ÍNDICE ---
 \tableofcontents
 \newpage
 
-% Módulos
+% --- MÓDULOS ---
 \input{01_stack}
 \input{02_metodologia}
 \newpage
@@ -81,7 +115,6 @@
 \input{06_testes}
 \newpage
 
-% Adicionar as referências
 \input{07_referencias}
 
 \end{document}
