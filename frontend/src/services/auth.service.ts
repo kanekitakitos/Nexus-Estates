@@ -133,6 +133,15 @@ export class AuthService {
         }
     }
 
+    /**
+     * Troca um token de autenticação do Clerk por uma sessão válida no nosso backend.
+     * * Se a validação for bem-sucedida, inicializa automaticamente a sessão local
+     * do utilizador e exibe uma notificação de sucesso.
+     *
+     * @param clerkToken - O token JWT gerado pelo Clerk após o login do lado do cliente
+     * @returns Os dados da sessão (`AuthResponse`) em caso de sucesso, ou `null`.
+     * @throws Erro se a comunicação com a API falhar ou o token for inválido.
+     */
     static async clerkExchange(clerkToken: string): Promise<AuthResponse | null> {
         try {
             const response = await usersAxios.post<ApiResponse<AuthResponse>>(
@@ -202,7 +211,8 @@ export class AuthService {
     private static handleAuthError(error: unknown, type: 'login' | 'register'): void {
         if (this.isAxiosError(error) && error.response) {
             const status = error.response.status;
-            
+            const data = error.response?.data as any;
+
             if (type === 'login') {
                 switch (status) {
                     case 401: notify.error("Email ou senha incorretos. Tente novamente."); break;
@@ -213,7 +223,22 @@ export class AuthService {
                 }
             } else {
                 switch (status) {
-                    case 400: notify.error("Dados inválidos. Verifique os campos."); break;
+                    case 400:
+                        // está a ir buscar os dados que o backend indica sobre os erros
+                        const vErrors = data?.error?.validationErrors as Record<string, string>;
+
+                        if (vErrors) {
+                            // Transforma o objeto numa string com quebras de linha ou lista
+                            const errorList = Object.values(vErrors).join("\n");
+
+                            notify.error("Existem erros no formulário", {
+                                description: errorList,
+                                duration: 6000
+                            });
+                        } else {
+                            notify.error("Erro de validação desconhecido. Verifique os campos");
+                        }
+                        break;
                     case 409: notify.error("Este email já está registado. Tente fazer login."); break;
                     case 422: notify.error("Dados de registo inconsistentes."); break;
                     default: notify.error("Erro no servidor ao criar conta. Tente mais tarde.");

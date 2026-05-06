@@ -5,12 +5,18 @@ import {
 } from "../model/property-constants"
 import type { OwnProperty, PropertyPermission } from "@/types"
 
+/**
+ * Mapeia variantes de design antigas para as atuais.
+ */
 export function resolvePropertyCardVariant(
   variant: PropertyCardVariant
 ): PropertyCardDisplayVariant {
   return LEGACY_VARIANT_MAP[variant] ?? (variant as PropertyCardDisplayVariant)
 }
 
+/**
+ * Gera um ID de série amigável (01-99) baseado no hash do ID real.
+ */
 export function resolvedSerialId(id: string): string {
   if (!id || typeof id !== "string") return "00"
   const lastPart = id.slice(-2)
@@ -20,6 +26,10 @@ export function resolvedSerialId(id: string): string {
     .padStart(2, "0")
 }
 
+/**
+ * Resolve a descrição da propriedade suportando multi-idioma.
+ * Se 'raw' for um objeto { pt, en }, prioriza PT.
+ */
 export function resolvePropertyDescription(
   raw: unknown,
   fallback = "Protótipo habitacional Nexus — eficiência operacional e compliance integrado."
@@ -34,6 +44,9 @@ export function resolvePropertyDescription(
   return fallback
 }
 
+/**
+ * Função genérica para extrair strings de campos traduzíveis.
+ */
 export function resolveTranslation(value: unknown): string {
   if (!value) return ""
   if (typeof value === "string") return value
@@ -48,7 +61,11 @@ export function resolveTranslation(value: unknown): string {
   return ""
 }
 
-export function mapPropertyRecordToOwnProperty(p: Record<string, unknown>): OwnProperty {
+/**
+ * O mapeador mais crítico do sistema.
+ * Converte um registo 'Record<string, unknown>' da API para a interface 'OwnProperty'.
+ */
+ export function mapPropertyRecordToOwnProperty(p: Record<string, unknown>): OwnProperty {
   const city = String(p.city ?? "")
   const amenities = Array.isArray(p.amenities) ? p.amenities : []
   const amenityIdsRaw = Array.isArray(p.amenityIds)

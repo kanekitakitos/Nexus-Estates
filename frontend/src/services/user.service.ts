@@ -6,7 +6,21 @@ import type { AuthResponse } from "@/types/auth"
 
 export type { UserProfile } from "@/types/user"
 
+/**
+ * Serviço responsável por encapsular a lógica de autenticação e gestão de erros.
+ *
+ * Base path no API Gateway:
+ * - /api/users
+ *
+ * Instância Axios utilizada:
+ * - usersAxios (baseURL: {NEXT_PUBLIC_API_URL}/users)
+ */
 export class UserService {
+
+  /**
+   * Retorna o prefile do utilizador existente.
+   * @throws Erro se o contexto não for client-side ou se a resposta for inválida (ex: HTML/502).
+   */
   static async getMe(): Promise<UserProfile> {
     try {
       if (typeof window === "undefined") {
@@ -52,7 +66,11 @@ export class UserService {
     }
   }
 
-
+  /**
+   * Procura o perfil de um utilizador específico pelo seu ID numérico.
+   * @param id - ID do utilizador no sistema.
+   * @throws Erro
+   */
   static async getUserId(id :number) :Promise<UserProfile>{
     try {
       if (typeof window === "undefined") {
@@ -101,6 +119,10 @@ export class UserService {
     }
   }
 
+  /**
+   * Resolve um ID e Email através de um endereço de email.
+   * @throws Erro
+   */
   static async lookupByEmail(email: string): Promise<Pick<UserProfile, "id" | "email">> {
     try {
       if (typeof window === "undefined") {
@@ -129,6 +151,10 @@ export class UserService {
     }
   }
 
+  /**
+   * Atualiza dados de contacto do perfil atual.
+   * @throws Erro
+   */
   static async patchMe(payload: { email?: string; phone?: string }): Promise<{ profile: UserProfile; session?: AuthResponse }> {
     try {
       if (typeof window === "undefined") {
@@ -168,6 +194,10 @@ export class UserService {
     }
   }
 
+  /**
+   * Altera a password do utilizador.
+   * @throws Erro
+   */
   static async changePassword(payload: { currentPassword: string; newPassword: string }): Promise<AuthResponse | null> {
     try {
       if (typeof window === "undefined") {

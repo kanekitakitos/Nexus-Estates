@@ -9,10 +9,17 @@ import { notify } from "@/lib/notify"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/forms/button"
 
+/**
+ * Página de Callback do Clerk.
+ * Responsável por validar se o Clerk é o provedor de identidade ativo e
+ * decidir se deve renderizar o fluxo de finalização de login.
+ */
 export default function ClerkCallbackPage() {
+  // id do sistema de identidade a ser usado
   const idpKey = getIdentityProviderKey()
   const showClerkFlow = idpKey === "clerk" && isClerkConfigured()
 
+  // caso o clerk não esteja a ser usado ou se não tem configuração
   if (!showClerkFlow) {
     return (
       <div className="rounded-2xl border-2 border-foreground/80 bg-secondary/80 px-4 py-6">
@@ -26,6 +33,10 @@ export default function ClerkCallbackPage() {
   return <ClerkCallbackInner />
 }
 
+/**
+ * Componente interno que gere a lógica do estilo "Handshake" entre o Clerk e o Backend.
+ * Obtém o token JWT do Clerk e troca-o por uma sessão no servidor.
+ */
 function ClerkCallbackInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -34,6 +45,7 @@ function ClerkCallbackInner() {
   const [error, setError] = React.useState<string | null>(null)
   const [status, setStatus] = React.useState<string>("A verificar sessão Clerk...")
 
+  //
   React.useEffect(() => {
     const run = async () => {
       if (!isLoaded) return
@@ -46,11 +58,14 @@ function ClerkCallbackInner() {
           setStatus("A aguardar finalização do Clerk...")
           return
         }
-        
+
+        // Troca o token do Clerk por uma sessão no nosso backend
         setStatus("A sincronizar com servidor...")
         await AuthService.clerkExchange(clerkToken)
-        
+
         notify.success("Login social efetuado com sucesso!")
+
+        // Redirecionamento seguro pós-login
         const nextRaw = searchParams.get("next")
         const safeNext =
           nextRaw && nextRaw.startsWith("/") && !nextRaw.startsWith("//") && !nextRaw.includes("://")

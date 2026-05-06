@@ -25,6 +25,9 @@ import { isClerkConfigured } from "@/features/auth/strategies/use-identity-provi
 import { useClerkIdentityProvider } from "@/features/auth/strategies/clerk/use-clerk-identity-provider"
 import { GitBranch, Globe, Users } from "lucide-react"
 
+/**
+ * Sincroniza o estado de tema do React com as classes do <html>.
+ */
 function useIsDarkMode() {
   const [isDark, setIsDark] = useState(false)
 
@@ -41,6 +44,10 @@ function useIsDarkMode() {
   return isDark
 }
 
+/**
+ * Painel de Contactos: Gere a mutação de dados básicos (email/telefone).
+ * Inclui validação local de Regex e sincronização de sessão se o email mudar.
+ */
 function ProfileContactUpdatePanel({ me, onReload }: { me: UserProfile; onReload: () => Promise<void> }) {
   const [email, setEmail] = useState(me.email ?? "")
   const [phone, setPhone] = useState(me.phone ?? "")
@@ -124,6 +131,10 @@ function ProfileContactUpdatePanel({ me, onReload }: { me: UserProfile; onReload
   )
 }
 
+/**
+ * Painel Clerk: Interface para Identity Provider externo.
+ * Permite vincular contas Google/GitHub/Facebook através do Clerk.
+ */
 function ClerkLinkedAccountsPanel() {
   const enabled = isClerkConfigured()
   const idp = useClerkIdentityProvider()
@@ -188,6 +199,11 @@ function ClerkLinkedAccountsPanel() {
   )
 }
 
+/**
+ * Custom Hook para encapsular todo o Data Fetching do perfil.
+ * Isola a lógica de carregamento paralelo (User, Integrations, Webhooks).
+ * Retorna estados de erro granulares (unauthorized, network, server).
+ */
 function useProfileData() {
   const [me, setMe] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)

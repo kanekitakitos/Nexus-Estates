@@ -48,6 +48,7 @@ export function CalendarTimeline({ items, year, month, onClickData, onClickActiv
 
     const scrollRef = useRef<HTMLDivElement>(null);
 
+    // Define o controlo da roda do rato
     useEffect(() => {
         if (!scroolOnScroolEvent)
             return;
