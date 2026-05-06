@@ -1,0 +1,28 @@
+\section{Stack tecnológica}
+\subsection{Backend}
+\begin{itemize}[nosep]
+  \item Java 23, Spring Boot 3.3.x
+  \item Spring Cloud Gateway (API Gateway)
+  \item Spring Data JPA + PostgreSQL 16 (persistência)
+  \item Flyway (migrações)
+  \item RabbitMQ (AMQP) para eventos assíncronos
+  \item SpringDoc OpenAPI/Swagger UI
+  \item Resilience4j (Circuit Breaker/Retry) no \texttt{sync-service} para integrações externas
+  \item Integrações: Stripe (pagamentos/webhooks), Cloudinary (media), Ably (chat/webhooks)
+\end{itemize}
+
+\subsection{Frontend}
+\begin{itemize}[nosep]
+  \item Next.js (App Router) + TypeScript
+  \item Bun (runtime + package manager)
+  \item Tailwind CSS
+  \item Axios (camada de comunicação com a API via Gateway)
+  \item Playwright (testes E2E/integração)
+\end{itemize}
+
+\subsection{Infraestrutura}
+\begin{itemize}[nosep]
+  \item Docker + Docker Compose (orquestração local/deploy)
+  \item Postgres (container único com múltiplas bases de dados)
+  \item RabbitMQ (broker + management)
+\end{itemize}
