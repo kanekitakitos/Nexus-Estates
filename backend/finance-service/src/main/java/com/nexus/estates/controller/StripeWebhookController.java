@@ -15,6 +15,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+/**
+ * Controlador REST responsável por expor os endpoints de receção de webhooks
+ * <p>
+ *     Atua como o ouvinte público para integrações assíncronas de terceiros (ex: Stripe)
+ *     Delega a validação de assinaturas e o processamento idempotente dos eventos para a camada de serviço
+ * </p>
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
+ */
 @RestController
 @RequestMapping("/api/finance/webhooks")
 @Tag(name = "Finance Webhooks", description = "Receção de webhooks de pagamentos.")
@@ -27,7 +37,10 @@ public class StripeWebhookController {
     }
 
     /**
-     * Recebe webhooks do Stripe, valida assinatura e processa eventos de forma idempotente.
+     * Recebe webhooks do Stripe, valida a assinatura e processa eventos de forma idempotente
+     * @param payload O corpo do pedido HTTP enviado pelo stripe (em formato JSON bruto)
+     * @param signatureHeader O cabeçalho 'Stripe-Signature' usado para garantir que o pedido é autêntico
+     * @return {@link ResponseEntity} com um mapa de sucesso se o webhook for aceite e processado
      */
     @Operation(summary = "Webhook Stripe", description = "Valida a assinatura e processa eventos idempotentes.")
     @ApiResponses({

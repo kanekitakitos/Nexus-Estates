@@ -7,6 +7,16 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
+/**
+ * Provedor de faturação simulado (Mock) para ambientes de Teste e Desenvolvimento
+ * <p>
+ *     Gera números de fatura fictícios e URLs falsos para validar o Comportamento
+ *     do Orquestrador sem fazer chamadas a APIs de faturação reais que custam dinheiro
+ * </p>
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
+ */
 @Service
 public class MockInvoiceProviderStrategy implements InvoiceProviderStrategy {
 

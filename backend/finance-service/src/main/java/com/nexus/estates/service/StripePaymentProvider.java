@@ -17,6 +17,16 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 
+/**
+ * Implementação oficial do Gateway de Pagamentos utilizando a API do Stripe
+ * <p>
+ *     Atua como o cliente técnico do Stripe para o sistema Nexus Estates
+ *     Traduz os modelos internos de pagamento (DTOs) para os objetos do SDK do Stripe
+ *     e gere a conversão de unidades monetárias
+ * </p>
+ * @author Nexus Estates Team
+ * @version 1.0
+ */
 @Service
 public class StripePaymentProvider implements PaymentGatewayProvider {
 
