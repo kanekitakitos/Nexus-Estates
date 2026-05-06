@@ -16,10 +16,13 @@ O projeto segue a metodologia ágil SCRUM. Optámos por não duplicar documenta�
 
 Ao nível de código, utilizamos o Git com uma política de \textit{Pull Requests}, onde o código é revisto antes de ser integrado na \textit{branch} principal.
 
-\subsection{Integração Contínua (CI)}
-Implementámos \textit{pipelines} de CI via GitHub Actions para garantir a estabilidade constante do código. Foram criados dois ficheiros de \textit{workflow} distintos:
+\subsection{Integração Contínua (CI) e Quality Gates}
+Utilizámos o \textit{GitHub Actions} para automatizar a verificação de qualidade a cada \textit{push}. O sistema está estruturado em três eixos principais:
+
 \begin{itemize}[nosep]
-    \item \textbf{Backend CI}: Executa a construção e todos os testes unitários e de integração em Java.
-    \item \textbf{Frontend CI}: Corre o \textit{linter} e os testes E2E/API usando Playwright.
+\item \textbf{Backend:} Executa o \textit{build} e os testes (unitários e de integração) de cada microserviço em paralelo. Implementámos \textit{caching} de dependências Maven para otimizar o tempo de execução.
+\item \textbf{Frontend:} Garante a integridade da UI através de \textit{linting} e testes \textit{End-to-End} (E2E) com \textit{Playwright}, validando o fluxo completo do utilizador.
+\item \textbf{Segurança:} Todas as credenciais sensíveis (Stripe, Ably, etc.) são geridas via \textit{GitHub Secrets}, assegurando que nunca são expostas no repositório.
 \end{itemize}
-Estes \textit{workflows} são disparados automaticamente a cada \textit{commit} e \textit{Pull Request}, prevenindo que código quebrado afete o ecossistema.
+
+Esta \textit{pipeline} atua como um \textit{Quality Gate}: o \textit{merge} para a branch \texttt{main} é bloqueado automaticamente caso ocorra qualquer falha, garantindo a estabilidade contínua do software.

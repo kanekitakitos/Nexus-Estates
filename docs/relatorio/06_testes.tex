@@ -1,3 +1,4 @@
+\newpage
 \section{Testes (backend)}
 Os testes do backend estão por microserviço em \texttt{<module>/src/test/java}. Para ver a lista completa (com nomes de testes), consulta \texttt{<module>/TESTS.md}.
 
@@ -48,16 +49,21 @@ Os testes do backend estão por microserviço em \texttt{<module>/src/test/java}
   \item \textbf{Integrações}: endpoints para integrações externas.
   \item \textbf{Auditoria}: ActorContext e Envers.
 \end{itemize}
-
 \subsection{Como correr os testes (backend)}
-Na pasta \texttt{backend}:
-\begin{verbatim}
+
+Para validar a integridade e o comportamento dos microserviços, deves executar os testes a partir da pasta \texttt{backend}. 
+
+\textbf{Execução global (todos os módulos):}
+\begin{codeblock}
 mvn test
-\end{verbatim}
-Ou por módulo:
-\begin{verbatim}
+\end{codeblock}
+
+\textbf{Execução por módulo específico:}
+Utiliza as flags \texttt{-pl} (\textit{project list}) e \texttt{-am} (\textit{also make}) para testar apenas um serviço e as suas dependências internas:
+
+\begin{codeblock}
 mvn -pl booking-service -am test
-\end{verbatim}
+\end{codeblock}
 
 \section{Testes (frontend) — integração/E2E (Playwright)}
 Os testes do frontend estão em \texttt{frontend/e2e/api}. Eles testam os fluxos principais via API Gateway (por defeito \texttt{http://localhost:8080/api}).
@@ -68,16 +74,18 @@ Os testes do frontend estão em \texttt{frontend/e2e/api}. Eles testam os fluxos
   \item \texttt{bookings.spec.ts}: criar reservas, validar conflitos de datas/overlaps, bloqueios e listagens do utilizador.
   \item \texttt{amenities.spec.ts}: CRUD de amenities.
 \end{itemize}
-
 \subsection{Como correr testes do frontend}
-Pré-condição: o backend deve estar acessível (ex.: via Docker deploy, gateway em \texttt{http://localhost:8080}).
 
-Na pasta \texttt{frontend}:
-\begin{verbatim}
+\textbf{Pré-condição:} O \textit{backend} deve estar acessível e funcional (ex.: através do \textit{deploy} Docker com o \textit{gateway} a responder em \texttt{http://localhost:8080}).
+
+Na pasta \texttt{frontend}, utiliza o seguinte comando para executar a suite de testes \textit{End-to-End} (E2E) em modo \textit{headless}:
+
+\begin{codeblock}
 bun test:e2e
-\end{verbatim}
+\end{codeblock}
 
-Modo UI:
-\begin{verbatim}
+Para depuração ou visualização da execução em tempo real, podes utilizar o \textbf{Modo UI} do Playwright:
+
+\begin{codeblock}
 bun test:e2e:ui
-\end{verbatim}
+\end{codeblock}

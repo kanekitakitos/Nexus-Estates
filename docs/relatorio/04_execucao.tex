@@ -1,71 +1,73 @@
-\section{Como correr o projeto (Docker -- Deploy/Demonstração)}
-\subsection{Comando único (levanta tudo)}
-Na raiz do repositório:
-\begin{verbatim}
-docker compose -f infrastructure/docker-compose.deploy.yml pull
-docker compose -f infrastructure/docker-compose.deploy.yml up -d
-\end{verbatim}
+\newpage
+\section{Como correr o projeto (Docker -- Deploy em Produção)}
 
-\subsection{Acessos e Conta de Teste}
-\begin{itemize}[nosep]
-  \item Frontend: \url{http://localhost:3000}
-  \item API Gateway: \url{http://localhost:8080}
-  \item Swagger UI (via Gateway): \url{http://localhost:8080/swagger-ui.html}
+O ecossistema foi desenhado para ser agnóstico ao ambiente. Através do GitHub Container Registry (GHCR), o \textit{deploy} é efetuado de forma imutável e automática.
+
+\subsection{Comando de Deploy}
+Este comando descarrega o manifesto de orquestração e levanta todos os serviços (Gateway, Microserviços, Base de Dados e Frontend) sem necessidade de dependências locais.
+
+\begin{codeblock}
+curl -L -o docker-compose.deploy.yml https://raw.githubusercontent.com/kanekiTakitos/Nexus-Estates/main/infrastructure/docker-compose.deploy.yml && docker compose -f docker-compose.deploy.yml up -d --pull always
+\end{codeblock}
+
+\subsection{Acessos e Credenciais}
+Após o arranque, os serviços estarão operacionais nos seguintes \textit{endpoints}:
+
+\begin{itemize}[label=\textbullet, noitemsep]
+    \item \textbf{Frontend:} \url{http://localhost:3000}
+    \item \textbf{API Gateway:} \url{http://localhost:8080}
+    \item \textbf{Swagger UI:} \url{http://localhost:8080/swagger-ui.html}
 \end{itemize}
 
-\textbf{Conta de Demonstração (com dados preenchidos):}
-\begin{itemize}[nosep]
-  \item \textbf{Email:} \texttt{dev@nexus.com}
-  \item \textbf{Password:} \texttt{12345}
+\textbf{Credenciais de Teste:} \\
+\texttt{Email: dev@nexus.com} \\
+\textbf{Password:} \texttt{12345}
+
+\subsection{Gestão do Ciclo de Vida}
+
+\textbf{Parar e limpar dados (Reset):}
+\begin{codeblock}
+docker compose -f docker-compose.deploy.yml down -v
+\end{codeblock}
+
+\textbf{Remoção Completa (Cleanup Total):}
+Remove contentores, volumes, imagens e o ficheiro YAML gerado pelo \textit{curl}.
+
+\textit{Linux / Mac / WSL:}
+\begin{codeblock}
+docker compose -f docker-compose.deploy.yml down -v --rmi all &&   rm docker-compose.deploy.yml
+\end{codeblock}
+
+\textit{Windows (PowerShell):}
+\begin{codeblock}
+docker compose -f docker-compose.deploy.yml down -v --rmi all ; del docker-compose.deploy.yml
+\end{codeblock}
+
+\subsection{Arquitetura de Rede e Segurança}
+A infraestrutura utiliza uma rede isolada (\texttt{nexus-net}). 
+\begin{itemize}[label=\textbullet, noitemsep]
+    \item \textbf{Isolamento:} Apenas o Frontend e o Gateway expõem portas ao \textit{host}.
+    \item \textbf{Service Discovery:} A comunicação \textit{inter-service} é feita via DNS interno do Docker.
+    \item \textbf{Segurança:} Bases de dados e \textit{brokers} de mensagens estão inacessíveis fora da rede interna.
 \end{itemize}
 
-\subsection{Parar e limpar}
-\begin{verbatim}
-docker compose -f infrastructure/docker-compose.deploy.yml down
-\end{verbatim}
+\section{Ambiente de Desenvolvimento (DEV)}
+Para desenvolvimento ativo com \textit{Hot Reload} e \textit{debug}:
 
-\subsection{Como a comunicação funciona (rede interna)}
-O \texttt{docker-compose.deploy.yml} define uma rede privada (isolada) chamada \texttt{nexus-net}. Dentro desta rede:
-\begin{itemize}[nosep]
-  \item O Docker fornece \textbf{DNS interno}: o nome do serviço no Compose (ex.: \texttt{booking-service}) vira hostname.
-  \item Os serviços comunicam por \texttt{http://<service-name>:<port>} sem depender de IPs fixos.
-  \item Postgres e RabbitMQ ficam acessíveis internamente como \texttt{postgres} e \texttt{rabbitmq}.
-\end{itemize}
-
-\textbf{Exposição de portas (segurança por defeito):}
-\begin{itemize}[nosep]
-  \item Apenas \textbf{frontend (3000)} e \textbf{api-gateway (8080)} expõem \texttt{ports} para o host.
-  \item Microserviços internos, Postgres e RabbitMQ não expõem portas para fora (continuam acessíveis dentro da \texttt{nexus-net}).
-\end{itemize}
-
-\subsection{Configuração por variáveis de ambiente (compose standalone)}
-Para simplificar o deploy e permitir correr o compose sem dependências locais, as variáveis de ambiente estão embutidas no próprio \texttt{docker-compose.deploy.yml}. Estas variáveis:
-\begin{itemize}[nosep]
-  \item Definem \texttt{SPRING\_DATASOURCE\_*} apontando para \texttt{postgres}
-  \item Definem \texttt{SPRING\_RABBITMQ\_*} apontando para \texttt{rabbitmq}
-  \item Definem URLs internos (\texttt{*\_SERVICE\_URL}) apontando para \texttt{http://<service-name>:<port>}
-\end{itemize}
-
-Isto garante que os fallbacks \texttt{localhost} presentes em \texttt{application.properties} são substituídos automaticamente em Docker.
-
-\section{Como correr em DEV (infra em Docker + apps localmente)}
-\subsection{Levantar apenas Postgres + RabbitMQ}
-\begin{verbatim}
+\subsection{Infraestrutura Base}
+Levanta apenas os serviços de suporte (Base de Dados e RabbitMQ).
+\begin{codeblock}
 docker compose -f infrastructure/docker-compose.yml up -d
-\end{verbatim}
+\end{codeblock}
 
-\subsection{Backend local (Spring Boot)}
-\begin{itemize}[nosep]
-  \item Recomendado: abrir \texttt{backend/} no IntelliJ e iniciar serviços (começar pelo \texttt{api-gateway}).
-  \item Alternativa terminal (na pasta \texttt{backend}):
-\end{itemize}
-\begin{verbatim}
+\subsection{Backend e Frontend}
+Comandos para execução local dos serviços em modo de desenvolvimento.
+\begin{codeblock}
+# Terminal 1 (Java/Spring)
 mvn -pl api-gateway -am spring-boot:run
-\end{verbatim}
 
-\subsection{Frontend local (Next.js + Bun)}
-\begin{verbatim}
-cd frontend
-bun install
-bun dev
-\end{verbatim}
+# Terminal 2 (Next.js)
+cd frontend && bun dev
+\end{codeblock}
+
+Atualmente usamos o IDE de jetbrains que facilita a instalação e compilação.
