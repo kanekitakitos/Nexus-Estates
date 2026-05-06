@@ -2,7 +2,8 @@
 \subsection{Comando único (levanta tudo)}
 Na raiz do repositório:
 \begin{verbatim}
-docker compose -f infrastructure/docker-compose.deploy.yml up -d --build
+docker compose -f infrastructure/docker-compose.deploy.yml pull
+docker compose -f infrastructure/docker-compose.deploy.yml up -d
 \end{verbatim}
 
 \subsection{Acessos e Conta de Teste}
@@ -37,8 +38,8 @@ O \texttt{docker-compose.deploy.yml} define uma rede privada (isolada) chamada \
   \item Microserviços internos, Postgres e RabbitMQ não expõem portas para fora (continuam acessíveis dentro da \texttt{nexus-net}).
 \end{itemize}
 
-\subsection{Configuração por variáveis de ambiente (.env por serviço)}
-Para simplificar o deploy, cada microserviço tem um ficheiro de variáveis dedicado em \texttt{infrastructure/env/} (um por serviço). Estes ficheiros:
+\subsection{Configuração por variáveis de ambiente (compose standalone)}
+Para simplificar o deploy e permitir correr o compose sem dependências locais, as variáveis de ambiente estão embutidas no próprio \texttt{docker-compose.deploy.yml}. Estas variáveis:
 \begin{itemize}[nosep]
   \item Definem \texttt{SPRING\_DATASOURCE\_*} apontando para \texttt{postgres}
   \item Definem \texttt{SPRING\_RABBITMQ\_*} apontando para \texttt{rabbitmq}

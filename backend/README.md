@@ -31,7 +31,8 @@ O projeto é um **Maven Multi-Module Project**.
 Este modo é o mais simples para “subir tudo” (inclui frontend e infraestrutura):
 
 ```bash
-docker compose -f ../infrastructure/docker-compose.deploy.yml up -d --build
+docker compose -f ../infrastructure/docker-compose.deploy.yml pull
+docker compose -f ../infrastructure/docker-compose.deploy.yml up -d
 ```
 
 * Gateway: `http://localhost:8080`
@@ -39,7 +40,7 @@ docker compose -f ../infrastructure/docker-compose.deploy.yml up -d --build
 
 Notas:
 * Os microserviços comunicam entre si por DNS interno do Docker (`http://<nome-do-serviço>:<porta>`).
-* As variáveis de ambiente já estão preparadas em `../infrastructure/env/*.env` (um ficheiro por serviço).
+* As variáveis de deploy estão embutidas no próprio `docker-compose.deploy.yml` (compose standalone).
 
 ---
 
@@ -73,13 +74,13 @@ docker compose -f ../infrastructure/docker-compose.deploy.yml logs -f api-gatewa
 
 **Rebuild de um serviço específico**
 ```bash
-docker compose -f ../infrastructure/docker-compose.deploy.yml build --no-cache booking-service
+docker compose -f ../infrastructure/docker-compose.deploy.yml pull booking-service
 docker compose -f ../infrastructure/docker-compose.deploy.yml up -d booking-service
 ```
 
 **Erros típicos**
-* **Chamadas internas a `localhost` falham em containers**: dentro do Docker, `localhost` aponta para o próprio container. A solução é usar os hostnames do Compose (ex.: `http://booking-service:8081`). No deploy isto já fica automático via `../infrastructure/env/*.env`.
-* **Build Maven demora muito / “downloads infinitos”**: é normal no primeiro build. Repetir `up -d --build` costuma resolver por cache. Confirma também a ligação à internet e espaço em disco.
+* **Chamadas internas a `localhost` falham em containers**: dentro do Docker, `localhost` aponta para o próprio container. A solução é usar os hostnames do Compose (ex.: `http://booking-service:8081`). No deploy isto já fica configurado no `docker-compose.deploy.yml`.
+* **Pull dá Unauthorized**: torna os packages do GHCR públicos (GitHub → Packages → Package settings → Visibility: Public).
 * **Imagens `<none>` no Docker Desktop**: são “dangling images” (sobras de builds). Podes remover com:
   ```bash
   docker image prune

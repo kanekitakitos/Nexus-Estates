@@ -60,6 +60,10 @@ jobs:
             dockerfile: ./backend/Dockerfile
             build_args: |
               SERVICE=user-service
+          - name: postgres
+            context: ./infrastructure/postgres
+            dockerfile: ./infrastructure/postgres/Dockerfile
+            build_args: ""
 
     steps:
       - name: Checkout repository

@@ -40,6 +40,13 @@ Este projeto é um **Monorepo** organizado da seguinte forma:
 
 Este modo levanta **Postgres + RabbitMQ + todos os microserviços + frontend** automaticamente.
 
+Se só tiveres Docker instalado e não quiseres clonar o repositório:
+```bash
+curl -L -o docker-compose.deploy.yml https://raw.githubusercontent.com/kanekiTakitos/Nexus-Estates/main/infrastructure/docker-compose.deploy.yml
+docker compose -f docker-compose.deploy.yml pull
+docker compose -f docker-compose.deploy.yml up -d
+```
+
 1. Na raiz do repositório:
    ```bash
    docker compose -f infrastructure/docker-compose.deploy.yml pull
@@ -54,7 +61,7 @@ Este modo levanta **Postgres + RabbitMQ + todos os microserviços + frontend** a
 3. Notas importantes:
    * Só **frontend (3000)** e **api-gateway (8080)** expõem portas para o host.
    * Os restantes serviços, Postgres e RabbitMQ ficam acessíveis apenas dentro da rede Docker (segurança por defeito).
-   * As variáveis para deploy estão pré-preparadas em `infrastructure/env/*.env` (um ficheiro por serviço) para simplificar o arranque.
+   * As variáveis de deploy estão embutidas no próprio `docker-compose.deploy.yml` (compose standalone).
    * As imagens Docker são publicadas no **GHCR** quando existe push para as branches **main** e **Testar_software** (tags `main`/`Testar_software` + `sha`).
    * O compose de deploy usa por defeito as imagens `:main`. Para usar outra branch/tag, injeta `IMAGE_TAG` (sem editar o ficheiro):
      ```bash
