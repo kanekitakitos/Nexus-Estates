@@ -12,6 +12,16 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Implementação da integração com o software de faturação Moloni
+ * <p>
+ *     Utiliza o {@link org.springframework.web.client.RestClient} para comunicar com a API v1 do Moloni
+ *     Transforma os detalhes do pagamento e da reserva num payload aceitável pelo Molini
+ *     para inserir um "Invoice Receipt" (Fatura-Recibo) válido para a Autoridade Tributária
+ * </p>
+ * @author Nexus Estates Team
+ * @version 1.0
+ */
 @Service
 public class MoloniInvoiceProviderStrategy implements InvoiceProviderStrategy {
 

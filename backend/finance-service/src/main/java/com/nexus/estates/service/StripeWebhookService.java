@@ -20,6 +20,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
+/**
+ * Serviço responsável por capturar, validar e reagir aos eventos (Webhooks) enviados pelo Stripe
+ * <p>
+ *     Implementa verificações de segurança obrigatórias (validação de assinaturas cripotográficas)
+ *     e garante a <b>Idempotência</b> das operações de rede: verifica na tabela {@code processed_events}
+ *     se o evento já foi tratado, ignorando avisos duplicados e evitando cobranças/faturação dupla
+ * </p>
+ * @author Nexus Estates Team
+ * @version 1.0
+ */
 @Service
 public class StripeWebhookService {
 
@@ -43,6 +53,17 @@ public class StripeWebhookService {
         this.invoiceOrchestrator = invoiceOrchestrator;
     }
 
+
+    /**
+     * Interceta e processa o webhook recebido
+     * <p>
+     *     Controi o evento de forma segura e, dependendo do tipo, delega para os tratadores internos
+     *     que atualizam a base de dados e faturam o cliente
+     * </p>
+     * @param payload O corpo bruto em JSON enviado pelo Stripe
+     * @param signatureHeader O cabeçalho de assinatura do Stripe para validação criptográfica
+     * @throws PaymentProcessingException Se a assinatura for inválida ou o JSON for maformado
+     */
     @Transactional
     public void handleStripeWebhook(String payload, String signatureHeader) {
         Event event;
