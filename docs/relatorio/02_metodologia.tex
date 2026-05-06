@@ -22,7 +22,7 @@ Utilizámos o \textit{GitHub Actions} para automatizar a verificação de qualid
 \begin{itemize}[nosep]
 \item \textbf{Backend:} Executa o \textit{build} e os testes (unitários e de integração) de cada microserviço em paralelo. Implementámos \textit{caching} de dependências Maven para otimizar o tempo de execução.
 \item \textbf{Frontend:} Garante a integridade da UI através de \textit{linting} e testes \textit{End-to-End} (E2E) com \textit{Playwright}, validando o fluxo completo do utilizador.
-\item \textbf{Segurança:} Todas as credenciais sensíveis (Stripe, Ably, etc.) são geridas via \textit{GitHub Secrets}, assegurando que nunca são expostas no repositório.
+
 \end{itemize}
 
 Esta \textit{pipeline} atua como um \textit{Quality Gate}: o \textit{merge} para a branch \texttt{main} é bloqueado automaticamente caso ocorra qualquer falha, garantindo a estabilidade contínua do software.

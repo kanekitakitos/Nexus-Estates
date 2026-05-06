@@ -6,9 +6,21 @@ O ecossistema foi desenhado para ser agnóstico ao ambiente. Através do GitHub 
 \subsection{Comando de Deploy}
 Este comando descarrega o manifesto de orquestração e levanta todos os serviços (Gateway, Microserviços, Base de Dados e Frontend) sem necessidade de dependências locais.
 
+
+
+\textit{Windows (PowerShell):}
 \begin{codeblock}
-curl -L -o docker-compose.deploy.yml https://raw.githubusercontent.com/kanekiTakitos/Nexus-Estates/main/infrastructure/docker-compose.deploy.yml && docker compose -f docker-compose.deploy.yml up -d --pull always
+curl.exe -L -o docker-compose.deploy.yml "https://raw.githubusercontent.com/kanekiTakitos/Nexus-Estates/main/infrastructure/docker-compose.deploy.yml" ; docker compose -f docker-compose.deploy.yml up -d --pull always
 \end{codeblock}
+
+
+
+
+\textit{Linux / Mac / WSL:}
+\begin{codeblock}
+curl -L -o docker-compose.deploy.yml "https://raw.githubusercontent.com/kanekiTakitos/Nexus-Estates/main/infrastructure/docker-compose.deploy.yml" && docker compose -f docker-compose.deploy.yml up -d --pull always
+\end{codeblock}
+
 
 \subsection{Acessos e Credenciais}
 Após o arranque, os serviços estarão operacionais nos seguintes \textit{endpoints}:

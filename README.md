@@ -11,14 +11,6 @@ Este projeto é um **Monorepo** organizado da seguinte forma:
 * **[`/infrastructure`](./infrastructure)**: Configurações de Docker e Kubernetes.
 * **[`/docs`](./docs)**: Documentação técnica detalhada e diagramas.
 
-### Estrutura do Frontend (`/frontend/src`)
-* **`app/`**: Rotas e layouts (Next.js App Router).
-* **`features/`**: Módulos por domínio (ex.: `bookings`, `property`, `profile`) com as suas views e sub-componentes.
-* **`components/`**: Componentes reutilizáveis e layout (ex.: `components/ui/*`, `components/layout/*`).
-* **`services/`**: Camada de comunicação com APIs (Axios/WebClient via Gateway) e lógica de integração.
-* **`types/`**: Tipos/DTOs partilhados (contratos entre UI ↔ services).
-* **`lib/`**: Utilitários e infraestrutura (ex.: axios central, helpers).
-
 ---
 
 ## ✅ Pré-requisitos
@@ -34,51 +26,46 @@ Este projeto é um **Monorepo** organizado da seguinte forma:
 
 ---
 
-## 🚀 Como correr (2 modos)
+## Como correr (2 modos)
 
 ### Modo A — Deploy/Apresentação (100% em containers)
 
-Este modo levanta **Postgres + RabbitMQ + todos os microserviços + frontend** automaticamente.
+Este modo levanta **Postgres + RabbitMQ + todos os microserviços + frontend** automaticamente, sem precisares de clonar o repositório.
 
-Se só tiveres Docker instalado e não quiseres clonar o repositório:
-```bash
-curl -L -o docker-compose.deploy.yml https://raw.githubusercontent.com/kanekiTakitos/Nexus-Estates/main/infrastructure/docker-compose.deploy.yml
-docker compose -f docker-compose.deploy.yml pull
-docker compose -f docker-compose.deploy.yml up -d
+Windows (PowerShell):
+```powershell
+curl.exe -L -o docker-compose.deploy.yml "https://raw.githubusercontent.com/kanekiTakitos/Nexus-Estates/main/infrastructure/docker-compose.deploy.yml" ; docker compose -f docker-compose.deploy.yml up -d --pull always
 ```
 
-1. Na raiz do repositório:
-   ```bash
-   docker compose -f infrastructure/docker-compose.deploy.yml pull
-   docker compose -f infrastructure/docker-compose.deploy.yml up -d
-   ```
-
-2. Acessos:
-   * Frontend: `http://localhost:3000`
-   * API Gateway: `http://localhost:8080`
-   * Swagger UI (via Gateway): `http://localhost:8080/swagger-ui.html`
-
-3. Notas importantes:
-   * Só **frontend (3000)** e **api-gateway (8080)** expõem portas para o host.
-   * Os restantes serviços, Postgres e RabbitMQ ficam acessíveis apenas dentro da rede Docker (segurança por defeito).
-   * As variáveis de deploy estão embutidas no próprio `docker-compose.deploy.yml` (compose standalone).
-   * As imagens Docker são publicadas no **GHCR** quando existe push para as branches **main** e **Testar_software** (tags `main`/`Testar_software` + `sha`).
-   * O compose de deploy usa por defeito as imagens `:main`. Para usar outra branch/tag, injeta `IMAGE_TAG` (sem editar o ficheiro):
-     ```bash
-     IMAGE_TAG=Testar_software docker compose -f infrastructure/docker-compose.deploy.yml pull
-     IMAGE_TAG=Testar_software docker compose -f infrastructure/docker-compose.deploy.yml up -d
-     ```
-     Em PowerShell:
-     ```powershell
-     $env:IMAGE_TAG="Testar_software"
-     docker compose -f infrastructure/docker-compose.deploy.yml pull
-     docker compose -f infrastructure/docker-compose.deploy.yml up -d
-     ```
-   * Se o GHCR estiver com imagens privadas, vais ter erro `Unauthorized` ao fazer pull. Neste caso, torna os packages públicos (GitHub → Packages → Package settings → Visibility: Public).
-
-Para parar:
+Linux / Mac / WSL:
 ```bash
-docker compose -f infrastructure/docker-compose.deploy.yml down
+curl -L -o docker-compose.deploy.yml "https://raw.githubusercontent.com/kanekiTakitos/Nexus-Estates/main/infrastructure/docker-compose.deploy.yml" && docker compose -f docker-compose.deploy.yml up -d --pull always
+```
+
+Acessos:
+* Frontend: `http://localhost:3000`
+* API Gateway: `http://localhost:8080`
+* Swagger UI: `http://localhost:8080/swagger-ui.html`
+
+Credenciais de teste:
+* Email: `dev@nexus.com`
+* Password: `12345`
+
+Parar e limpar dados (reset):
+```bash
+docker compose -f docker-compose.deploy.yml down -v
+```
+
+Remoção completa (cleanup total):
+
+Linux / Mac / WSL:
+```bash
+docker compose -f docker-compose.deploy.yml down -v --rmi all && rm docker-compose.deploy.yml
+```
+
+Windows (PowerShell):
+```powershell
+docker compose -f docker-compose.deploy.yml down -v --rmi all ; del docker-compose.deploy.yml
 ```
 
 ---
