@@ -1,10 +1,11 @@
 "use client"
 
 import React, { useEffect, useRef } from "react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { BrutalCard } from "@/components/ui/data-display/brutal-card"
 import { Period, TimelineItemWithNames } from "@/types"
 import { ActiveArea } from "@/features/dashboard/calendar/ActiveArea"
+import { useView } from "@/providers/view-context"
 import {
   Tooltip,
   TooltipContent,
@@ -69,6 +70,9 @@ export function CalendarTimeline({
   headerLeft,
   renderAfterRow,
 }: CalendarTimelineProps) {
+  const router = useRouter()
+  const { selectPropertyId } = useView()
+
   const dayWidth = density === "compact" ? 38 : 56
   const cellW = density === "compact" ? "w-[38px]" : "w-14"
   const cellH = density === "compact" ? "h-12" : "h-16"
@@ -107,6 +111,15 @@ export function CalendarTimeline({
     el.addEventListener("wheel", onWheel, { passive: false })
     return () => el.removeEventListener("wheel", onWheel)
   }, [scroolOnScroolEvent])
+
+  const openPropertyDetails = (opts: { propertyId: number; mode: "EDIT" | "RULES" }) => {
+    const id = String(opts.propertyId)
+    selectPropertyId(id)
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("properties:open", JSON.stringify({ propertyId: id, mode: opts.mode }))
+    }
+    router.push("/properties")
+  }
 
   return (
     <TooltipProvider delayDuration={500}>
@@ -192,22 +205,32 @@ export function CalendarTimeline({
                           <div className="text-xs text-muted-foreground">
                             Estado: {item.properti?.isActive ? "Ativa" : "Inativa"}
                           </div>
-                            {typeof item.properti?.id === "number" ? (
-                              <div className="pt-2 flex items-center gap-2">
-                                <Link
-                                  href={`/properties?propertyId=${item.properti.id}&mode=EDIT`}
-                                  className="inline-flex items-center rounded-lg border-2 border-foreground bg-card px-2 py-1 text-[10px] font-mono font-black uppercase tracking-widest shadow-[2px_2px_0_0_#0D0D0D] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
-                                >
-                                  Editar
-                                </Link>
-                                <Link
-                                  href={`/properties?propertyId=${item.properti.id}&mode=RULES`}
-                                  className="inline-flex items-center rounded-lg border-2 border-foreground bg-card px-2 py-1 text-[10px] font-mono font-black uppercase tracking-widest shadow-[2px_2px_0_0_#0D0D0D] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
-                                >
-                                  Regras
-                                </Link>
-                              </div>
-                            ) : null}
+                          {typeof item.properti?.id === "number" ? (
+                            <div className="pt-2 flex items-center gap-2">
+                              <button
+                                type="button"
+                                className="inline-flex items-center rounded-lg border-2 border-foreground bg-card px-2 py-1 text-[10px] font-mono font-black uppercase tracking-widest shadow-[2px_2px_0_0_#0D0D0D] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  openPropertyDetails({ propertyId: item.properti!.id, mode: "EDIT" })
+                                }}
+                              >
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                className="inline-flex items-center rounded-lg border-2 border-foreground bg-card px-2 py-1 text-[10px] font-mono font-black uppercase tracking-widest shadow-[2px_2px_0_0_#0D0D0D] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  openPropertyDetails({ propertyId: item.properti!.id, mode: "RULES" })
+                                }}
+                              >
+                                Regras
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
                       </TooltipContent>
                     </Tooltip>

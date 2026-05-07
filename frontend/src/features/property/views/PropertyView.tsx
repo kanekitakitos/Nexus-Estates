@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 
 import { PropertyManagementRoot } from "../sections/management/property-management-root"
@@ -53,10 +53,46 @@ export function PropertyView({
   const { properties, selectedProperty, isLoading, refresh, deleteProperty } = usePropertyManager(selectedPropertyId)
 
   const [isCreating, setIsCreating] = useState(false)
-  const [detailInitialMode, setDetailInitialMode] = useState<EditMode>(() => initialMode ?? "VIEW")
+  const didConsumeQuickAccessRef = useRef(false)
+
+  const [detailInitialMode, setDetailInitialMode] = useState<EditMode>(() => {
+    if (typeof window === "undefined") return initialMode ?? "VIEW"
+    const raw = sessionStorage.getItem("properties:open")
+    if (!raw) return initialMode ?? "VIEW"
+    try {
+      const parsed = JSON.parse(raw) as { propertyId?: unknown; mode?: unknown } | null
+      const mode = parsed?.mode
+      if (mode === "EDIT" || mode === "RULES" || mode === "VIEW") return mode
+    } catch {
+      return initialMode ?? "VIEW"
+    }
+    return initialMode ?? "VIEW"
+  })
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const raw = sessionStorage.getItem("properties:open")
+    if (!raw) return
+
+    try {
+      const parsed = JSON.parse(raw) as { propertyId?: unknown; mode?: unknown } | null
+      const propertyId = typeof parsed?.propertyId === "string" ? parsed.propertyId : null
+      const mode = parsed?.mode
+      if (!propertyId) return
+      if (mode !== "EDIT" && mode !== "RULES" && mode !== "VIEW") return
+
+      didConsumeQuickAccessRef.current = true
+      setIsCreating(false)
+      setDetailInitialMode(mode)
+      selectPropertyId(propertyId)
+    } finally {
+      sessionStorage.removeItem("properties:open")
+    }
+  }, [selectPropertyId])
 
   useEffect(() => {
     if (!initialPropertyId) return
+    if (didConsumeQuickAccessRef.current) return
     setIsCreating(false)
     setDetailInitialMode(initialMode ?? "VIEW")
     selectPropertyId(initialPropertyId)
