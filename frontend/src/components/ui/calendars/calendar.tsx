@@ -137,11 +137,16 @@ function BrutalCalendar({
 
   if (title) {
     return (
-      <div className="border-[2px] border-foreground bg-card p-4 overflow-hidden shadow-[5px_5px_0_0_rgb(0,0,0)] dark:shadow-[5px_5px_0_0_rgba(255,255,255,0.9)]">
+      <div
+        className={cn(
+          "border-[2px] border-foreground bg-card p-4 overflow-hidden shadow-[5px_5px_0_0_rgb(0,0,0)] dark:shadow-[5px_5px_0_0_rgba(255,255,255,0.9)] w-fit max-w-full mx-auto",
+          className,
+        )}
+      >
         <h3 className="mb-4 font-mono text-lg font-bold uppercase tracking-wider text-center md:text-left">
           {title}
         </h3>
-        <div className="flex justify-center w-full overflow-x-auto">
+        <div className="flex justify-center w-full max-w-full overflow-x-auto">
           {calendar}
         </div>
       </div>

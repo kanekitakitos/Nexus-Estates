@@ -14,6 +14,9 @@ interface ViewContextType {
 
 const ViewContext = createContext<ViewContextType | undefined>(undefined)
 
+/**
+ * Componete para ajudar a lidar com as views
+ */
 export function ViewProvider({ children }: { children: ReactNode }) {
     const [view, setView] = useState<PossibleViews>("booking")
     const [selectedPropertyId, setPropertyId] = useState<string | null>(null)

@@ -1,0 +1,120 @@
+\documentclass[11pt,a4paper]{article}
+
+% --- Configurações de Margens e Idioma ---
+\usepackage[margin=2.2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[portuguese]{babel}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{parskip}
+\usepackage{url}
+
+% --- Pacotes para Código e Design (Estilo Markdown) ---
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, listings, breakable}
+
+% Definição do estilo de bloco de código (GitHub/Markdown Style)
+\newtcblisting{codeblock}{
+    listing only,
+    enhanced,
+    breakable,
+    sharp corners,
+    colback=gray!5,         % Fundo cinza claro
+    colframe=gray!30,       % Borda subtil
+    boxrule=0.5pt,
+    left=10pt,
+    right=10pt,
+    top=10pt,
+    bottom=10pt,
+    listing options={
+        basicstyle=\small\ttfamily,
+        breaklines=true,        
+        keepspaces=true,        % Mantém os espaços que tu digitas
+        columns=flexible,       % Impede que o texto fique "encolhido" ou colado
+        literate={\&}{{\&}}1,   % Escapa o & corretamente
+        showstringspaces=false  % Não mostra símbolos nos espaços vazios
+    },
+    overlay={
+        \node[anchor=north east, text=gray!40, font=\tiny\sffamily] 
+        at (frame.north east) {COPY};
+    }
+}
+
+% --- Configuração de Links ---
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=blue,
+  pdftitle={Nexus Estates — Guia de Execução e Arquitetura},
+}
+
+\begin{document}
+
+% --- CAPA ---
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    
+    {\Large \textsc{Laboratório de Engenharia de Software} \par}
+    
+    \vspace{3cm}
+    
+    {\Huge \textbf{Nexus Estates} \par}
+    \vspace{0.5cm}
+    {\Large \textbf{Guia de Execução, Arquitetura e Testes} \par}
+    
+    \vspace{1.5cm}
+    
+    {\normalsize \textit{Gestão centralizada de reservas e ocupação para imóveis. Um ecossistema de microserviços focado em consistência de dados, prevenção de erros de reserva e integração simulada com plataformas externas.} \par}
+    
+    \vspace{1.5cm}
+    
+    \textbf{Repositório GitHub:} \\
+    \url{https://github.com/kanekitakitos/Nexus-Estates}
+    
+    \vfill
+    
+    \begin{minipage}[t]{0.45\textwidth}
+        \begin{flushleft}
+            \large \textbf{Docentes} \\
+            \normalsize
+            José Barateiro \\
+            Marco Giunti
+        \end{flushleft}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.5\textwidth}
+        \begin{flushright}
+            \large \textbf{Estudantes} \\
+            \normalsize
+            Brandon Mejia -- 79261 \\
+            Luís Moreira -- 81432 \\
+            Miguel Correia -- 71369 \\
+            Tiago Antunes -- 76920
+        \end{flushright}
+    \end{minipage}
+    
+    \vspace{2cm}
+\end{titlepage}
+
+% --- ÍNDICE ---
+\tableofcontents
+\newpage
+
+% --- MÓDULOS ---
+\input{01_stack}
+\input{02_metodologia}
+\newpage
+
+\input{03_objetivo}
+\input{04_execucao}
+\input{05_arquitetura}
+\newpage
+
+\input{06_testes}
+\newpage
+
+\input{07_referencias}
+
+\end{document}

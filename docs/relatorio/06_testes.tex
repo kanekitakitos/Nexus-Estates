@@ -1,0 +1,91 @@
+\newpage
+\section{Testes (backend)}
+Os testes do backend estão por microserviço em \texttt{<module>/src/test/java}. Para ver a lista completa (com nomes de testes), consulta \texttt{<module>/TESTS.md}.
+
+\subsection{api-gateway}
+\begin{itemize}[nosep]
+  \item \textbf{Filtros e segurança}: validações do JWT, rotas públicas vs protegidas e regras de segurança do gateway.
+  \item \textbf{Principais classes}: \texttt{AuthenticationFilterTest}, \texttt{RouteValidatorTest}, \texttt{JwtUtilTest}.
+\end{itemize}
+
+\subsection{booking-service}
+\begin{itemize}[nosep]
+  \item \textbf{API e validações}: criar reservas, validar payload, conflitos de datas e leituras por utilizador/propriedade.
+  \item \textbf{Domínio}: regras (min/max noites, lead time), overlaps e consistência de estado.
+  \item \textbf{Eventos/RabbitMQ}: publicar e consumir eventos, incluindo bloqueios de calendário.
+  \item \textbf{Pagamentos}: integração com o \texttt{finance-service} via client declarativo.
+  \item \textbf{Principais classes}: \texttt{BookingControllerTest}, \texttt{BookingServiceTest}, \texttt{BookingRepositoryTest}, \texttt{BookingEventPublisherTest}, \texttt{CalendarBlockConsumerTest}, \texttt{BookingPaymentServiceTest}.
+\end{itemize}
+
+\subsection{property-service}
+\begin{itemize}[nosep]
+  \item \textbf{CRUD e endpoints}: propriedades e amenities (criar/listar/editar/apagar), endpoints expandidos e histórico.
+  \item \textbf{Regras e preços}: regras base, sazonalidade e cotações (quote).
+  \item \textbf{Permissões}: ACL por níveis (PRIMARY\_OWNER/MANAGER/STAFF) e validações.
+  \item \textbf{Upload}: parâmetros de upload e integração com Cloudinary.
+  \item \textbf{Auditoria}: ActorContext e Envers.
+\end{itemize}
+
+\subsection{sync-service}
+\begin{itemize}[nosep]
+  \item \textbf{Config e filas}: bindings RabbitMQ + DLQ e testes de configuração.
+  \item \textbf{Integração externa}: cliente HTTP, autenticação externa e resiliência (inclui testes de integração).
+  \item \textbf{Ferramentas admin}: endpoints para DLQ e parsing/apply de ICS.
+  \item \textbf{Webhooks e chat}: validações de assinatura, dispatch de webhooks e persistência/notificações.
+\end{itemize}
+
+\subsection{finance-service}
+\begin{itemize}[nosep]
+  \item \textbf{Pagamentos}: criação/confirmação e persistência de pagamentos.
+  \item \textbf{Webhooks Stripe}: validação de assinatura e idempotência.
+  \item \textbf{Faturação}: orquestração de invoice e estratégias (mock/moloni/noop).
+\end{itemize}
+
+\subsection{user-service}
+\begin{itemize}[nosep]
+  \item \textbf{Auth}: registo/login e JWT.
+  \item \textbf{Segurança}: filtro JWT, roles e headers do gateway.
+  \item \textbf{Recuperação de password}: controllers e serviço (tokens, expiração, privacidade).
+  \item \textbf{Integrações}: endpoints para integrações externas.
+  \item \textbf{Auditoria}: ActorContext e Envers.
+\end{itemize}
+\subsection{Como correr os testes (backend)}
+
+Para validar a integridade e o comportamento dos microserviços, deves executar os testes a partir da pasta \texttt{backend}. 
+
+\textbf{Execução global (todos os módulos):}
+\begin{codeblock}
+mvn test
+\end{codeblock}
+
+\textbf{Execução por módulo específico:}
+Utiliza as flags \texttt{-pl} (\textit{project list}) e \texttt{-am} (\textit{also make}) para testar apenas um serviço e as suas dependências internas:
+
+\begin{codeblock}
+mvn -pl booking-service -am test
+\end{codeblock}
+
+\section{Testes (frontend) — integração/E2E (Playwright)}
+Os testes do frontend estão em \texttt{frontend/e2e/api}. Eles testam os fluxos principais via API Gateway (por defeito \texttt{http://localhost:8080/api}).
+
+\begin{itemize}[nosep]
+  \item \texttt{auth.spec.ts}: registo/login, permissões por role, perfil, integrações e webhooks (inclui casos sem token e casos de segurança como IDOR).
+  \item \texttt{properties.spec.ts}: CRUD de propriedades, validações, regras/sazonalidade, permissões (ACL) e endpoints de upload.
+  \item \texttt{bookings.spec.ts}: criar reservas, validar conflitos de datas/overlaps, bloqueios e listagens do utilizador.
+  \item \texttt{amenities.spec.ts}: CRUD de amenities.
+\end{itemize}
+\subsection{Como correr testes do frontend}
+
+\textbf{Pré-condição:} O \textit{backend} deve estar acessível e funcional (ex.: através do \textit{deploy} Docker com o \textit{gateway} a responder em \texttt{http://localhost:8080}).
+
+Na pasta \texttt{frontend}, utiliza o seguinte comando para executar a suite de testes \textit{End-to-End} (E2E) em modo \textit{headless}:
+
+\begin{codeblock}
+bun test:e2e
+\end{codeblock}
+
+Para depuração ou visualização da execução em tempo real, podes utilizar o \textbf{Modo UI} do Playwright:
+
+\begin{codeblock}
+bun test:e2e:ui
+\end{codeblock}

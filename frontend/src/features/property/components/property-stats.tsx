@@ -30,7 +30,7 @@ export interface PropertyStatsProps {
  * Nota: Implementação própria para suportar `AnimatedCounter` no valor,
  * uma vez que `BrutalStatCard` aceita apenas `string | number`.
  */
-function StatCard({
+export function StatCard({
   label,
   value,
   color,
@@ -38,6 +38,7 @@ function StatCard({
   icon: Icon,
   suffix,
   index,
+  animatedCount = true,
 }: {
   label: string
   value: number
@@ -46,6 +47,7 @@ function StatCard({
   icon: React.ElementType
   suffix: string
   index: number
+  animatedCount?: boolean
 }) {
   return (
     <motion.div
@@ -86,7 +88,10 @@ function StatCard({
               className={cn("text-6xl font-black tracking-tighter italic", color)}
               style={{ WebkitTextStroke: propertyTokens.ui.stats.valueStroke }}
             >
-              <AnimatedCounter value={value} />
+              {animatedCount
+                  ?<AnimatedCounter value={value} />
+                  : value
+              }
             </span>
             <span className="font-mono text-[11px] font-bold uppercase opacity-40">
               {suffix}

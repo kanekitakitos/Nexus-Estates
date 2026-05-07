@@ -1,6 +1,7 @@
 package com.nexus.estates.service;
 
 import com.nexus.estates.common.dto.SeasonalityRuleDTO;
+import com.nexus.estates.dto.SeasonalityRulePatchRequest;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.SeasonalityRule;
 import com.nexus.estates.exception.PropertyNotFoundException;
@@ -9,7 +10,11 @@ import com.nexus.estates.repository.SeasonalityRuleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Serviço para gerir a lógica de negócio das regras de sazonalidade de uma propriedade.
@@ -69,6 +74,25 @@ public class SeasonalityRuleService {
                 rule.getDayOfWeek(),
                 rule.getChannel()
         );
+    }
+
+    private void validateReplaceDto(SeasonalityRuleDTO dto) {
+        if (dto == null) {
+            throw new IllegalArgumentException("Regra inválida.");
+        }
+        validateEntity(dto.startDate(), dto.endDate(), dto.priceModifier());
+    }
+
+    private void validateEntity(LocalDate startDate, LocalDate endDate, BigDecimal priceModifier) {
+        if (startDate == null || endDate == null || priceModifier == null) {
+            throw new IllegalArgumentException("startDate, endDate e priceModifier são obrigatórios.");
+        }
+        if (endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("A data de fim não pode ser anterior à data de início.");
+        }
+        if (priceModifier.compareTo(new BigDecimal("0.01")) < 0) {
+            throw new IllegalArgumentException("O multiplicador deve ser >= 0.01.");
+        }
     }
 }
 

@@ -33,6 +33,9 @@ public class WebClientConfig {
      * @param builder Builder injetado do Spring para criar o {@link RestClient}
      * @return Proxy implementado da interface {@link NexusClients.UserClient}
      */
+    @Value("${property.service.url:http://localhost:8082}")
+    private String propertyServiceUrl;
+
     @Bean
     public NexusClients.UserClient userClient(RestClient.Builder builder) {
         return createClient(NexusClients.UserClient.class, builder, userServiceUrl);

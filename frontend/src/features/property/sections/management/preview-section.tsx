@@ -261,7 +261,7 @@ function PreviewServicesAcl({ property }: { property: OwnProperty }) {
                 <span className={propertyTokens.ui.preview.assignmentVerifiedClass}>{propertyCopy.preview.assignmentVerified}</span>
               </div>
               <span className={propertyTokens.ui.preview.permLevelBadgeClass}>
-                {perm.level}
+                {perm.accessLevel}
               </span>
             </div>
           ))}

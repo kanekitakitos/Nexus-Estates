@@ -9,7 +9,7 @@ WITH seed(name, description, location, city, address, base_price, max_guests, is
             95.00,
             2,
             true,
-            'https://images.unsplash.com/photo-1555854816-802f188090e7'
+            'https://res.cloudinary.com/dsfjm1ncn/image/upload/v1777626894/45671ecb-fd4f-4f0f-8b8b-f9ee3e9277b4_ptk9xl.avif'
         ),
         (
             'Brandon Test - Parque das Nações T1',
@@ -20,7 +20,7 @@ WITH seed(name, description, location, city, address, base_price, max_guests, is
             160.00,
             4,
             true,
-            'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688'
+            'https://res.cloudinary.com/dsfjm1ncn/image/upload/v1777626894/69f498e1-9046-4684-ab5a-32812b02a087_kjbcex.avif'
         ),
         (
             'Brandon Test - Porto Ribeira Loft',
@@ -31,7 +31,7 @@ WITH seed(name, description, location, city, address, base_price, max_guests, is
             140.00,
             3,
             true,
-            'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'
+            'https://res.cloudinary.com/dsfjm1ncn/image/upload/v1777627199/2f517677-7fcc-4cca-bbec-a9d3cc16d2b2_d4ucp9.avif'
         ),
         (
             'Brandon Test - Lagos Beach House',
@@ -42,7 +42,7 @@ WITH seed(name, description, location, city, address, base_price, max_guests, is
             220.00,
             6,
             true,
-            'https://images.unsplash.com/photo-1493809842364-78817add7ffb'
+            'https://res.cloudinary.com/dsfjm1ncn/image/upload/v1777627199/89351a48-558a-4e2b-972a-fd191984d493_wieoh4.avif'
         ),
         (
             'Brandon Test - Madeira View Apartment',
@@ -53,7 +53,7 @@ WITH seed(name, description, location, city, address, base_price, max_guests, is
             175.00,
             4,
             true,
-            'https://images.unsplash.com/photo-1551882547-ff43c69e5c43'
+            'https://res.cloudinary.com/dsfjm1ncn/image/upload/v1777627199/931bd455-c51a-4a99-9106-fbfbe2e4e767_luyz2n.avif'
         )
 )
 INSERT INTO properties (name, description, location, city, address, base_price, max_guests, is_active, image_url)
