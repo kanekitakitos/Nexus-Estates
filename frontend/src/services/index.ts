@@ -1,3 +1,11 @@
+/**
+ * Barrel file para services (camada de integração com APIs).
+ *
+ * Uso recomendado:
+ * - import { PropertyService, BookingService } from "@/services"
+ *
+ * Nota: manter este ficheiro apenas com exports para reduzir ciclos.
+ */
 export * from "./auth.service";
 export * from "./property.service";
 export * from "./booking.service";

@@ -4,7 +4,23 @@ import React, { useEffect, useRef } from "react"
 import { BrutalCard } from "@/components/ui/data-display/brutal-card"
 import { Period, TimelineItemWithNames } from "@/types"
 import { ActiveArea } from "@/features/dashboard/calendar/ActiveArea"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/overlay/tooltip"
 
+/**
+ * Calendário/timeline do dashboard.
+ *
+ * Características:
+ * - header sticky (dias do mês) e labels sticky (coluna esquerda)
+ * - modo "compact" com `dayWidth=38px` para reduzir scroll horizontal
+ * - hover não intrusivo com Tooltip (delay configurado no Provider)
+ *
+ * Nota: este componente é específico do dashboard (não é shared).
+ */
 const border = {
   b: "border-b-0",
   r: "border-r-2",
@@ -92,11 +108,12 @@ export function CalendarTimeline({
   }, [scroolOnScroolEvent])
 
   return (
-    <div className="flex relative w-full">
-      <div
-        id={"calender"}
-        ref={scrollRef}
-        className={`overflow-auto ${maxHeightClassName} pe-5 pb-5 bg-transparent ${border.color}
+    <TooltipProvider delayDuration={500}>
+      <div className="flex relative w-full">
+        <div
+          id={"calender"}
+          ref={scrollRef}
+          className={`overflow-auto ${maxHeightClassName} pe-5 pb-5 bg-transparent ${border.color}
                 [&::-webkit-scrollbar]:h-4
                 [&::-webkit-scrollbar-track]:bg-zinc-200
                 [&::-webkit-scrollbar-track]:rounded-full
@@ -107,8 +124,8 @@ export function CalendarTimeline({
                 [&::-webkit-scrollbar-thumb]:border-transparent
                 [&::-webkit-scrollbar-thumb]:bg-clip-padding
                 `}
-      >
-        <div className={`flex flex-col ${gapY} min-w-max w-fit mx-auto`}>
+        >
+          <div className={`flex flex-col ${gapY} min-w-max w-fit mx-auto`}>
           <BrutalCard className={"sticky top-0 z-30 p-0 bg-card overflow-clip"}>
             <div id={"Item Header"} className="flex">
               <div
@@ -153,9 +170,30 @@ export function CalendarTimeline({
                     className={`sticky left-0 z-10 ${labelW} bg-card ${border.r} ${border.color} p-4 flex items-center`}
                     onClick={() => onClickData?.(item)}
                   >
-                    <span title={item.label} className="truncate font-bold uppercase text-sm">
-                      {item.label}
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="truncate font-bold uppercase text-sm">{item.label}</span>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        sideOffset={8}
+                        className="rounded-xl border-2 border-foreground bg-card text-foreground shadow-[4px_4px_0_0_#0D0D0D] px-3 py-2"
+                      >
+                        <div className="grid gap-1">
+                          <div className="font-mono text-[11px] font-black">
+                            {item.properti?.name ?? item.label}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {typeof item.properti?.basePrice === "number"
+                              ? `Preço base: €${item.properti.basePrice.toFixed(2)}`
+                              : "Preço base: —"}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Estado: {item.properti?.isActive ? "Ativa" : "Inativa"}
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
 
                   <div className={`flex relative overflow-hidden ${cellH}`}>
@@ -210,8 +248,9 @@ export function CalendarTimeline({
               {renderAfterRow ? renderAfterRow(renderCtx, item, indx) : null}
             </div>
           ))}
+          </div>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   )
 }

@@ -3,7 +3,14 @@
 import { CalendarTimeline } from "@/features/dashboard/calendar/calendar(x,y)"
 import type { TimelineItemWithNames } from "@/types"
 import { DashboardSeasonalityLine } from "@/features/dashboard/components/DashboardSeasonalityLine"
+import type { ComponentProps } from "react"
 
+/**
+ * Wrapper do calendário do dashboard.
+ *
+ * Mantém a configuração "compact" e injeta a linha de sazonalidade
+ * logo após a primeira linha (a propriedade em foco).
+ */
 export function DashboardTimeline({
   calendarItems,
   isFocused,
@@ -17,6 +24,27 @@ export function DashboardTimeline({
   viewDate: Date
   onClickData: (timelineItem: TimelineItemWithNames) => void
 }) {
+  const renderAfterRow: NonNullable<ComponentProps<typeof CalendarTimeline>["renderAfterRow"]> =
+    (ctx, _item, index) => {
+      if (!isFocused) return null
+      if (index !== 0) return null
+      if (!seasonalityMultipliers || seasonalityMultipliers.length !== ctx.daysInMonth) return null
+
+      return (
+        <div className="pt-6">
+          <DashboardSeasonalityLine
+            year={ctx.year}
+            month={ctx.month}
+            dayWidth={ctx.dayWidth}
+            labelWClassName={ctx.labelWClassName}
+            borderRightClassName={ctx.borderRightClassName}
+            borderColorClassName={ctx.borderColorClassName}
+            multipliers={seasonalityMultipliers}
+          />
+        </div>
+      )
+    }
+
   return (
     <CalendarTimeline
       items={calendarItems}
@@ -25,24 +53,7 @@ export function DashboardTimeline({
       onClickData={onClickData}
       density="compact"
       maxHeightClassName="max-h-[520px]"
-      renderAfterRow={(ctx, _item, index) => {
-        if (!isFocused) return null
-        if (index !== 0) return null
-        if (!seasonalityMultipliers || seasonalityMultipliers.length !== ctx.daysInMonth) return null
-        return (
-          <div className="pt-6">
-            <DashboardSeasonalityLine
-              year={ctx.year}
-              month={ctx.month}
-              dayWidth={ctx.dayWidth}
-              labelWClassName={ctx.labelWClassName}
-              borderRightClassName={ctx.borderRightClassName}
-              borderColorClassName={ctx.borderColorClassName}
-              multipliers={seasonalityMultipliers}
-            />
-          </div>
-        )
-      }}
+      renderAfterRow={renderAfterRow}
     />
   )
 }

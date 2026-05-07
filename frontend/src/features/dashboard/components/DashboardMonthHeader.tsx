@@ -5,6 +5,14 @@ import { Switch } from "@/components/ui/forms/switch"
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 
+/**
+ * Cabeçalho do Dashboard (mês/ano, navegação, foco e filtros).
+ *
+ * Notas:
+ * - "Só com reservas" está bloqueado via `Switch disabled` no componente;
+ *   o estado vem do container e é mantido como `true` por default.
+ * - O botão "Ver todas" só aparece quando existe `focusedPropertyLabel`.
+ */
 export function DashboardMonthHeader({
   viewDate,
   monthNames,

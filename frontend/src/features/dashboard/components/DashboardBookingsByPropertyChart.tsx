@@ -15,6 +15,9 @@ const chartConfig = {
   bookings: { label: "Reservas", color: "var(--chart-1)" },
 } satisfies ChartConfig
 
+/**
+ * BarChart (vertical) com o top de propriedades por número de reservas.
+ */
 export function DashboardBookingsByPropertyChart({
   chartData,
   className,

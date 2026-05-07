@@ -1,9 +1,22 @@
 "use client"
 
-import React, { useMemo } from "react"
+import React, { useEffect, useId, useMemo, useRef, useState } from "react"
 
 type Point = { x: number; y: number }
 
+/**
+ * Linha de sazonalidade (multiplicador por dia) para o mês em foco.
+ *
+ * Design/UX:
+ * - estilo "ink" com filtro SVG (turbulence + displacement)
+ * - sombra dura offset (estética retro)
+ * - animação de entrada (draw-in) + onda senoidal em cima do traçado
+ *
+ * Implementação:
+ * - calcula pontos base a partir de `multipliers`
+ * - anima a onda via requestAnimationFrame, recalculando o `d` do path
+ * - respeita `prefers-reduced-motion`
+ */
 function clamp01(x: number): number {
   if (x < 0) return 0
   if (x > 1) return 1
@@ -32,6 +45,10 @@ function catmullRomToBezierPath(points: Point[], tension = 1): string {
   return parts.join(" ")
 }
 
+function easeInOutSine(t: number): number {
+  return -(Math.cos(Math.PI * t) - 1) / 2
+}
+
 export function DashboardSeasonalityLine({
   year,
   month,
@@ -50,6 +67,13 @@ export function DashboardSeasonalityLine({
   multipliers: number[]
 }) {
   const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const pathRef = useRef<SVGPathElement>(null)
+  const shadowPathRef = useRef<SVGPathElement>(null)
+  const uid = useId().replace(/:/g, "")
+  const [motionEnabled, setMotionEnabled] = useState(false)
+  const phaseOriginRef = useRef<number | null>(null)
+
+  const isFlat = useMemo(() => multipliers.every((m) => m === 1), [multipliers])
 
   const plot = useMemo(() => {
     if (multipliers.length !== daysInMonth) return null
@@ -59,9 +83,9 @@ export function DashboardSeasonalityLine({
     const range = max - min || 1
 
     const width = dayWidth * daysInMonth
-    const height = 22
-    const topPad = 2
-    const bottomPad = 2
+    const height = 30
+    const topPad = 4
+    const bottomPad = 4
     const plotHeight = height - topPad - bottomPad
 
     const points: Point[] = multipliers.map((m, idx) => {
@@ -79,29 +103,134 @@ export function DashboardSeasonalityLine({
     }
   }, [multipliers, daysInMonth, dayWidth])
 
+  useEffect(() => {
+    const el = pathRef.current
+    if (!el || !plot) return
+    const len = el.getTotalLength()
+    el.style.strokeDasharray = String(len)
+    el.style.strokeDashoffset = String(len)
+    void el.getBoundingClientRect()
+    el.style.transition = "stroke-dashoffset 0.85s cubic-bezier(0.22, 1, 0.36, 1)"
+    el.style.strokeDashoffset = "0"
+    return () => {
+      el.style.transition = ""
+    }
+  }, [plot])
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const update = () => setMotionEnabled(!media.matches)
+    update()
+    media.addEventListener("change", update)
+    return () => media.removeEventListener("change", update)
+  }, [])
+
+  useEffect(() => {
+    if (!motionEnabled || !plot) return
+
+    const main = pathRef.current
+    const shadow = shadowPathRef.current
+    if (!main || !shadow) return
+
+    const base = plot.points
+    const waveLengthPx = Math.max(dayWidth * 6, 120)
+    const k = (2 * Math.PI) / waveLengthPx
+    const phaseSpeed = (2 * Math.PI) / 2400
+    const amplitude = Math.min(7, Math.max(2.4, dayWidth * 0.11)) * (isFlat ? 1.25 : 1)
+
+    let raf = 0
+    let rampStart = 0
+
+    const tick = (t: number) => {
+      if (!phaseOriginRef.current) phaseOriginRef.current = t
+      if (!rampStart) rampStart = t
+
+      const phase = (t - phaseOriginRef.current) * phaseSpeed
+      const rampT = clamp01((t - rampStart) / 650)
+      const a = amplitude * easeInOutSine(rampT)
+
+      const points: Point[] = base.map((p) => ({
+        x: p.x,
+        y: p.y + a * Math.sin(p.x * k + phase),
+      }))
+
+      const d = catmullRomToBezierPath(points, 1)
+      shadow.setAttribute("d", d)
+      main.setAttribute("d", d)
+
+      raf = requestAnimationFrame(tick)
+    }
+
+    raf = requestAnimationFrame(tick)
+
+    return () => {
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [dayWidth, isFlat, motionEnabled, plot])
+
   if (!plot) return null
+
+
+  const filterId = `ink-${uid}`
 
   return (
     <div className={`flex ${borderColorClassName}`}>
       <div
-        className={`sticky  left-0 z-10 ${labelWClassName} bg-transparent`}
+        className={`sticky left-0 z-10 ${labelWClassName} ${borderRightClassName} ${borderColorClassName} bg-transparent`}
       />
-      <div className="relative h-5 overflow-visible">
+      <div className="relative overflow-visible" style={{ height: plot.height }}>
         <svg
           width={plot.width}
           height={plot.height}
           viewBox={`0 0 ${plot.width} ${plot.height}`}
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0 pointer-events-none overflow-visible"
           aria-label="Multiplicador de preço por dia"
         >
+          <defs>
+            <filter id={filterId} x="-5%" y="-70%" width="110%" height="220%">
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.04 0.7"
+                numOctaves="3"
+                seed="9"
+                result="n"
+              />
+              <feDisplacementMap
+                in="SourceGraphic"
+                in2="n"
+                scale="2.2"
+                xChannelSelector="X"
+                yChannelSelector="Y"
+              />
+            </filter>
+          </defs>
+
           <path
+            ref={shadowPathRef}
+            d={plot.d}
+            fill="none"
+            stroke="#c4440f"
+            strokeWidth={5.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={0.55}
+            transform="translate(3,3)"
+            filter={`url(#${filterId})`}
+          />
+
+          <path
+            ref={pathRef}
             d={plot.d}
             fill="none"
             stroke="#e2621c"
-            strokeWidth={3}
+            strokeWidth={5}
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity={0.95}
+            opacity={0.97}
+            filter={`url(#${filterId})`}
+            style={{
+              filter: `url(#${filterId}) drop-shadow(3px 3px 0 #c4440f)`,
+            }}
           />
         </svg>
       </div>

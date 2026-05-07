@@ -8,6 +8,15 @@ import type { BarChartData } from "@/components/ui/data-display/Charts/ChartBarM
 import type { BookingsByPropertyDatum } from "@/features/dashboard/components/DashboardBookingsByPropertyChart"
 import type { PieLabelDatum } from "@/components/ui/data-display/Charts/PieChart"
 
+/**
+ * Constrói métricas e datasets do Dashboard a partir de reservas + propriedades filtradas.
+ *
+ * Notas importantes:
+ * - A função é pura do ponto de vista da UI: usa apenas `useMemo`.
+ * - O output é consumido por StatCards e por múltiplos charts (line/bar/radar/pie).
+ * - A lógica foi mantida compatível com o comportamento atual (mesmo que existam
+ *   algumas simplificações e aproximações nos cálculos).
+ */
 export function useDashboardStats({
   filteredBookings,
   filteredProperties,
@@ -29,6 +38,9 @@ export function useDashboardStats({
   bookingsByProperty: BookingsByPropertyDatum[]
 } {
   return useMemo(() => {
+    /**
+     * Totais mostrados nos StatCards.
+     */
     const totals = {
       checkIn: 0,
       checkOut: 0,
@@ -37,15 +49,24 @@ export function useDashboardStats({
       count: filteredBookings.length,
     }
 
+    /**
+     * Referência temporal para separar "já faturado" vs "por faturar".
+     */
     const now = new Date()
     const currentMonth = now.getMonth()
     const currentYear = now.getFullYear()
 
+    /**
+     * Base para normalizar revenue diário (usado no line chart).
+     */
     const totalDailyPotentialRevenue = filteredProperties.reduce(
       (acc, p) => acc + p.basePrice,
       0
     )
 
+    /**
+     * BarChart: mapa por propriedade para acumular occupancy/profit.
+     */
     const barMap: Map<number, BarChartData> = new Map()
     filteredProperties.forEach((p) => {
       barMap.set(Number(p.id), {
@@ -55,6 +76,9 @@ export function useDashboardStats({
       } as BarChartData)
     })
 
+    /**
+     * RadarChart: métricas por mês (Ano atual).
+     */
     const monthNames = [
       "Jan",
       "Fev",
@@ -73,6 +97,9 @@ export function useDashboardStats({
       (name) => ({ month: name, occupancy: 0, profit: 0 } as RadarChartData)
     )
 
+    /**
+     * LineChart: métricas por dia no mês em foco.
+     */
     const daysInMonth = new Date(
       viewDate.getFullYear(),
       viewDate.getMonth() + 1,
@@ -85,6 +112,13 @@ export function useDashboardStats({
       profit: 0,
     }))
 
+    /**
+     * Percorre reservas uma única vez e alimenta:
+     * - totals
+     * - barMap
+     * - radarData
+     * - lineData
+     */
     filteredBookings.forEach((b) => {
       const checkIn = new Date(b.checkInDate)
       const checkOut = new Date(b.checkOutDate)
@@ -161,6 +195,9 @@ export function useDashboardStats({
       }
     })
 
+    /**
+     * PieChart: distribuição de estados das reservas.
+     */
     const statuses: BookingStatus[] = [
       "PENDING_PAYMENT",
       "CONFIRMED",
@@ -191,6 +228,9 @@ export function useDashboardStats({
       fill: statusColors[status],
     }))
 
+    /**
+     * Bar vertical: top propriedades com mais reservas.
+     */
     const bookingsByPropertyMap = new Map<number, { name: string; bookings: number }>()
     filteredProperties.forEach((p) => {
       bookingsByPropertyMap.set(Number(p.id), { name: p.name, bookings: 0 })

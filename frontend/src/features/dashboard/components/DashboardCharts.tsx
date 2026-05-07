@@ -10,6 +10,12 @@ import type { LineChartData } from "@/components/ui/data-display/Charts/ChartLin
 import type { RadarChartData } from "@/components/ui/data-display/Charts/ChartRadarLegend"
 import type { PieLabelDatum } from "@/components/ui/data-display/Charts/PieChart"
 
+/**
+ * Grid de gráficos do dashboard.
+ *
+ * Nota: este bloco é renderizado apenas quando `isClient` é true para evitar
+ * problemas de SSR/hydration em bibliotecas de charting.
+ */
 export function DashboardCharts({
   isClient,
   barCharData,

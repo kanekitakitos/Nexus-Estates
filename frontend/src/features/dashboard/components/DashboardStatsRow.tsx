@@ -8,6 +8,9 @@ import {
   SquareArrowRightExit,
 } from "lucide-react"
 
+/**
+ * Linha de StatCards do dashboard (KPIs do mês).
+ */
 export function DashboardStatsRow({
   checkIn,
   checkOut,
