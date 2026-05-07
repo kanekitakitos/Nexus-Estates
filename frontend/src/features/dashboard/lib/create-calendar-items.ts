@@ -21,7 +21,7 @@ export function createCalendarItems(
   userEmailById?: Map<number, string>
 ): TimelineItemWithNames[] {
   const calendarItems: TimelineItemWithNames[] = []
-  const colors = ["bg-red-500", "bg-green-500", "bg-blue-500", "bg-purple-500"]
+  const colors = ["bg-red-300", "bg-green-300", "bg-blue-300", "bg-purple-300"]
   let i = 0
 
   properties.forEach((p) => {
