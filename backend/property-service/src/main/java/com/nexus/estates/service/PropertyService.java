@@ -49,16 +49,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Serviço responsável pela lógica de negócio associada às propriedades.
- *
- * <p>Esta camada atua como intermediária entre o controller e o repositório,
- * encapsulando operações de persistência e regras de negócio complexas como
- * o cálculo de preços dinâmicos.</p>
+ * Serviço responsável pela lógica de negócio associada às propriedades. * * <p>Esta camada atua como intermediária entre o controller e o repositório,
+ * encapsulando operações de persistência e regras de negócio complexas como * o cálculo de preços dinâmicos.</p>
  *
  * @see PropertyRepository
  * @author Nexus Estates Team
- */
-@Service
+ */@Service
 @Slf4j
 public class PropertyService {
 
@@ -72,9 +68,7 @@ public class PropertyService {
     private final ImageStorageService imageStorageService;
 
     /**
-     * Construtor do serviço.
-     */
-    public PropertyService(PropertyRepository repository,
+     * Construtor do serviço.     */    public PropertyService(PropertyRepository repository,
                            AmenityRepository amenityRepository,
                            SeasonalityRuleRepository seasonalityRuleRepository,
                            PropertyRuleRepository propertyRuleRepository,
@@ -93,15 +87,12 @@ public class PropertyService {
     }
 
     /**
-     * Cria uma nova propriedade no sistema a partir de um DTO.
-     *
-     * <p>Realiza o mapeamento dos dados do Request para a Entidade,
+     * Cria uma nova propriedade no sistema a partir de um DTO.     *     * <p>Realiza o mapeamento dos dados do Request para a Entidade,
      * suportando descrições multi-idioma (JSONB) e preparando a associação de comodidades.</p>
      *
      * @param request dados da propriedade vindos do controller (DTO)
      * @return propriedade persistida
-     */
-    @Transactional
+     */    @Transactional
     public Property create(CreatePropertyRequest request, String userIdHeader) {
         Long resolvedOwnerId = request.ownerId();
         if (resolvedOwnerId == null) {
@@ -190,11 +181,8 @@ public class PropertyService {
             return null;
         }
     }
-
     /**
-     * Garante que o utilizador autenticado tem acesso de escrita/gestão ao ativo.
-     *
-     * <p>Regra:</p>
+     * Garante que o utilizador autenticado tem acesso de escrita/gestão ao ativo.     *     * <p>Regra:</p>
      * <ul>
      *   <li>PRIMARY_OWNER e MANAGER podem gerir regras, sazonalidade e permissões.</li>
      *   <li>STAFF não pode efetuar alterações (apenas leitura quando aplicável).</li>
@@ -205,8 +193,7 @@ public class PropertyService {
      * @return nível de acesso do utilizador (PRIMARY_OWNER ou MANAGER)
      * @throws AccessDeniedException se o utilizador não tiver permissão
      * @throws PropertyNotFoundException se a propriedade não existir
-     */
-    @Transactional(readOnly = true)
+     */    @Transactional(readOnly = true)
     public AccessLevel requireManageAccess(Long propertyId, String userIdHeader) {
         Long userId = parseUserIdHeader(userIdHeader);
         if (userId == null) {
@@ -230,18 +217,13 @@ public class PropertyService {
             throw new AccessDeniedException("Acesso negado.");
         }
     }
-
     /**
-     * Adiciona uma sobreposição de regra sazonal.
-     *
-     * @param propertyId ID da propriedade.
+     * Adiciona uma sobreposição de regra sazonal.     *     * @param propertyId ID da propriedade.
      * @param dto Dados da sobreposição.
      * @return A sobreposição criada.
-     */
-    @Transactional
+     */    @Transactional
     public RuleOverride addRuleOverride(Long propertyId, RuleOverrideDTO dto) {
         Property property = findById(propertyId);
-        
         RuleOverride override = RuleOverride.builder()
                 .property(property)
                 .startDate(dto.startDate())
@@ -250,17 +232,13 @@ public class PropertyService {
                 .allowedCheckInDays(dto.allowedCheckInDays())
                 .allowedCheckOutDays(dto.allowedCheckOutDays())
                 .build();
-        
         return ruleOverrideRepository.save(override);
     }
 
     /**
-     * Lista todos os overrides de uma propriedade.
-     *
-     * @param propertyId ID da propriedade.
+     * Lista todos os overrides de uma propriedade.     *     * @param propertyId ID da propriedade.
      * @return Lista de overrides.
-     */
-    @Transactional(readOnly = true)
+     */    @Transactional(readOnly = true)
     public List<RuleOverride> listOverrides(Long propertyId) {
         return ruleOverrideRepository.findAll().stream()
                 .filter(r -> r.getProperty().getId().equals(propertyId))
@@ -268,23 +246,17 @@ public class PropertyService {
     }
 
     /**
-     * Remove um override.
-     *
-     * @param overrideId ID do override a remover.
-     */
-    @Transactional
+     * Remove um override.     *     * @param overrideId ID do override a remover.
+     */    @Transactional
     public void deleteOverride(Long overrideId) {
         ruleOverrideRepository.deleteById(overrideId);
     }
 
     /**
-     * Substitui a lista de comodidades de uma propriedade.
-     *
-     * @param propertyId identificador da propriedade a atualizar
+     * Substitui a lista de comodidades de uma propriedade.     *     * @param propertyId identificador da propriedade a atualizar
      * @param amenityIds conjunto de IDs das novas comodidades
      * @return propriedade atualizada
-     */
-    @Transactional
+     */    @Transactional
     public Property updateAmenities(Long propertyId, Set<Long> amenityIds) {
         log.info("Atualizando comodidades da propriedade ID: {}", propertyId);
 
@@ -301,13 +273,10 @@ public class PropertyService {
     }
 
     /**
-     * Adiciona uma comodidade específica a uma propriedade.
-     *
-     * @param propertyId ID da propriedade.
+     * Adiciona uma comodidade específica a uma propriedade.     *     * @param propertyId ID da propriedade.
      * @param amenityId ID da comodidade a adicionar.
      * @return Propriedade atualizada.
-     */
-    @Transactional
+     */    @Transactional
     public Property addAmenity(Long propertyId, Long amenityId) {
         log.info("Adicionando comodidade {} à propriedade {}", amenityId, propertyId);
         Property property = findById(propertyId);
@@ -319,13 +288,10 @@ public class PropertyService {
     }
 
     /**
-     * Remove uma comodidade específica de uma propriedade.
-     *
-     * @param propertyId ID da propriedade.
+     * Remove uma comodidade específica de uma propriedade.     *     * @param propertyId ID da propriedade.
      * @param amenityId ID da comodidade a remover.
      * @return Propriedade atualizada.
-     */
-    @Transactional
+     */    @Transactional
     public Property removeAmenity(Long propertyId, Long amenityId) {
         log.info("Removendo comodidade {} da propriedade {}", amenityId, propertyId);
         Property property = findById(propertyId);
@@ -337,11 +303,8 @@ public class PropertyService {
     }
 
     /**
-     * Obtém todas as propriedades registadas.
-     *
-     * @return lista de propriedades
-     */
-    public List<Property> findAll() {
+     * Obtém todas as propriedades registadas.     *     * @return lista de propriedades
+     */    public List<Property> findAll() {
         return repository.findAll();
     }
 
@@ -357,21 +320,16 @@ public class PropertyService {
     }
 
     /**
-     * Obtém uma propriedade pelo seu identificador.
-     *
-     * @param id identificador da propriedade
+     * Obtém uma propriedade pelo seu identificador.     *     * @param id identificador da propriedade
      * @return propriedade encontrada
      * @throws PropertyNotFoundException caso a propriedade não exista
-     */
-    public Property findById(Long id) {
+     */    public Property findById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new PropertyNotFoundException(id));
     }
 
     /**
-     * Resolve o utilizador com permissões de PRIMARY_OWNER para a propriedade.
-     *
-     * <p>Este método é usado como building block para fluxos que necessitam de identificar
+     * Resolve o utilizador com permissões de PRIMARY_OWNER para a propriedade.     *     * <p>Este método é usado como building block para fluxos que necessitam de identificar
      * o “dono principal” sem expor emails ou dados pessoais ao frontend.</p>
      */
     @Transactional(readOnly = true)
@@ -384,11 +342,8 @@ public class PropertyService {
     }
 
     /**
-     * Resolve o nível de acesso de um utilizador a uma propriedade.
-     *
-     * @return {@link AccessLevel} quando existe permissão; null caso contrário.
-     */
-    @Transactional(readOnly = true)
+     * Resolve o nível de acesso de um utilizador a uma propriedade.     *     * @return {@link AccessLevel} quando existe permissão; null caso contrário.
+     */    @Transactional(readOnly = true)
     public AccessLevel getUserAccessLevel(Long propertyId, Long userId) {
         repository.findById(propertyId).orElseThrow(() -> new PropertyNotFoundException(propertyId));
         return permissionRepository
@@ -503,9 +458,7 @@ public class PropertyService {
     }
 
     /**
-     * Valida as regras da propriedade (incluindo sobreposições sazonais) e calcula o preço total.
-     */
-    @Transactional(readOnly = true)
+     * Valida as regras da propriedade (incluindo sobreposições sazonais) e calcula o preço total.     */    @Transactional(readOnly = true)
     public PropertyQuoteResponse validateAndQuote(Long propertyId, PropertyQuoteRequest request) {
         Property property = findById(propertyId);
         List<String> errors = new ArrayList<>();
@@ -530,8 +483,7 @@ public class PropertyService {
             if (ro.getMinNightsOverride() != null && ro.getMinNightsOverride() > effectiveMinNights) {
                 effectiveMinNights = ro.getMinNightsOverride();
             }
-        }
-        if (nights < effectiveMinNights) {
+        }        if (nights < effectiveMinNights) {
             errors.add("Para este período, o número mínimo de noites é " + effectiveMinNights);
         }
 
@@ -543,10 +495,7 @@ public class PropertyService {
                     if (!ro.getAllowedCheckInDays().contains(request.checkInDate().getDayOfWeek())) {
                         errors.add("Neste período, o Check-in só é permitido em: " + ro.getAllowedCheckInDays());
                     }
-                }
-            }
-        }
-
+                }            }        }
         // --- Regra: Allowed Check-out Days ---
         for (RuleOverride ro : overrides) {
             // Se o dia de Check-out cair dentro do período deste override
@@ -555,10 +504,7 @@ public class PropertyService {
                     if (!ro.getAllowedCheckOutDays().contains(request.checkOutDate().getDayOfWeek())) {
                         errors.add("Neste período, o Check-out só é permitido em: " + ro.getAllowedCheckOutDays());
                     }
-                }
-            }
-        }
-
+                }            }        }
         // --- Regra: Lead Time (Base) ---
         if (baseRule != null && baseRule.getBookingLeadTimeDays() != null) {
             LocalDate minCheckInDate = LocalDate.now().plusDays(baseRule.getBookingLeadTimeDays());
@@ -566,7 +512,6 @@ public class PropertyService {
                 errors.add("A reserva deve ser feita com pelo menos " + baseRule.getBookingLeadTimeDays() + " dias de antecedência.");
             }
         }
-
         // Retorno de erros se existirem
         if (!errors.isEmpty()) {
             return PropertyQuoteResponse.failure(errors);
@@ -574,14 +519,11 @@ public class PropertyService {
 
         // 4. Cálculo de Preço (Sazonalidade)
         BigDecimal totalPrice = calculateTotalPrice(propertyId, request.checkInDate(), request.checkOutDate(), null);
-        
         return PropertyQuoteResponse.success(totalPrice, "EUR");
     }
 
     /**
-     * Calcula o preço total de uma estadia para uma propriedade, aplicando regras de sazonalidade.
-     */
-    public BigDecimal calculateTotalPrice(Long propertyId, LocalDate checkInDate, LocalDate checkOutDate, String channel) {
+     * Calcula o preço total de uma estadia para uma propriedade, aplicando regras de sazonalidade.     */    public BigDecimal calculateTotalPrice(Long propertyId, LocalDate checkInDate, LocalDate checkOutDate, String channel) {
         Property property = findById(propertyId);
 
         // Busca todas as regras de sazonalidade que se sobrepõem ao período da reserva
@@ -615,9 +557,7 @@ public class PropertyService {
     }
 
     /**
-     * Define a prioridade de uma regra de sazonalidade.
-     */
-    private int getRulePriority(SeasonalityRule rule) {
+     * Define a prioridade de uma regra de sazonalidade.     */    private int getRulePriority(SeasonalityRule rule) {
         int priority = 0;
         if (rule.getChannel() != null && !rule.getChannel().isEmpty()) {
             priority += 100;
