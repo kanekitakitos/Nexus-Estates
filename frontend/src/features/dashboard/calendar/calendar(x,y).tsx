@@ -153,7 +153,9 @@ export function CalendarTimeline({
                     className={`sticky left-0 z-10 ${labelW} bg-card ${border.r} ${border.color} p-4 flex items-center`}
                     onClick={() => onClickData?.(item)}
                   >
-                    <span className="truncate font-bold uppercase text-sm">{item.label}</span>
+                    <span title={item.label} className="truncate font-bold uppercase text-sm">
+                      {item.label}
+                    </span>
                   </div>
 
                   <div className={`flex relative overflow-hidden ${cellH}`}>

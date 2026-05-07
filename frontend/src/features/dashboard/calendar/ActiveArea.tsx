@@ -60,6 +60,7 @@ export function ActiveArea({
     <div
       id={"active"}
       className={`absolute ${period.color} flex items-center px-4 group transition-all`}
+      title={period.name}
       style={{
         left: `${startPos}px`,
         width: `${width}px`,
@@ -91,4 +92,3 @@ export function ActiveArea({
     </div>
   )
 }
-
