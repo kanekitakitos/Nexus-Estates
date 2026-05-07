@@ -193,10 +193,11 @@ export function DashBoardView(){
                 calendarItems={calendarItems}
                 viewDate={viewDate}
                 onClickData={handlePropertyClick}
-                seasonality={
+                isFocused={Boolean(focusPropertie)}
+                seasonalityMultipliers={
                     focusPropertie && seasonalityMultipliers && !isLoadingSeasonality
-                        ? { multipliers: seasonalityMultipliers }
-                        : undefined
+                        ? seasonalityMultipliers
+                        : null
                 }
             />
 

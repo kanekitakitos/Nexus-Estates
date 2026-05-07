@@ -32,37 +32,21 @@ function catmullRomToBezierPath(points: Point[], tension = 1): string {
   return parts.join(" ")
 }
 
-export function SeasonalityMultiplierRow({
+export function DashboardSeasonalityLine({
   year,
   month,
   dayWidth,
-  cellWClassName,
-  cellHClassName,
-  rowCellClassName,
-  labelClassName,
+  labelWClassName,
   borderRightClassName,
   borderColorClassName,
   multipliers,
 }: {
-  /**
-   * Ano/mês atualmente exibidos no calendário.
-   * Nota: month segue o padrão JS (Janeiro = 0).
-   */
   year: number
   month: number
-  /**
-   * Largura (px) de cada dia para manter alinhamento com a grelha do calendário.
-   */
   dayWidth: number
-  cellWClassName: string
-  cellHClassName: string
-  rowCellClassName: string
-  labelClassName: string
+  labelWClassName: string
   borderRightClassName: string
   borderColorClassName: string
-  /**
-   * Multiplicador por dia (tamanho = dias do mês). Ex.: 1.20 = +20%.
-   */
   multipliers: number[]
 }) {
   const daysInMonth = new Date(year, month + 1, 0).getDate()
@@ -75,9 +59,9 @@ export function SeasonalityMultiplierRow({
     const range = max - min || 1
 
     const width = dayWidth * daysInMonth
-    const height = 44
-    const topPad = 8
-    const bottomPad = 10
+    const height = 22
+    const topPad = 2
+    const bottomPad = 2
     const plotHeight = height - topPad - bottomPad
 
     const points: Point[] = multipliers.map((m, idx) => {
@@ -87,46 +71,39 @@ export function SeasonalityMultiplierRow({
       return { x, y }
     })
 
-    const d = catmullRomToBezierPath(points, 1)
+    return {
+      width,
+      height,
+      d: catmullRomToBezierPath(points, 1),
+      points,
+    }
+  }, [multipliers, daysInMonth, dayWidth])
 
-    return { width, height, points, d }
-  }, [multipliers, dayWidth, daysInMonth])
+  if (!plot) return null
 
   return (
     <div className={`flex ${borderColorClassName}`}>
-      <div className={labelClassName} />
-
-      <div className={`relative ${rowCellClassName}`}>
-        {plot ? (
-          <svg
-            width={plot.width}
-            height={plot.height}
-            viewBox={`0 0 ${plot.width} ${plot.height}`}
-            className="absolute inset-0"
-            aria-label="Multiplicador de preço por dia"
-          >
-            <path
-              d={plot.d}
-              fill="none"
-              stroke="var(--chart-1)"
-              strokeWidth={3}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity={0.9}
-            />
-
-            {plot.points.map((p, idx) => (
-              <circle
-                key={idx}
-                cx={p.x}
-                cy={p.y}
-                r={2.25}
-                fill="var(--chart-1)"
-                opacity={0.25}
-              />
-            ))}
-          </svg>
-        ) : null}
+      <div
+        className={`sticky  left-0 z-10 ${labelWClassName} bg-transparent`}
+      />
+      <div className="relative h-5 overflow-visible">
+        <svg
+          width={plot.width}
+          height={plot.height}
+          viewBox={`0 0 ${plot.width} ${plot.height}`}
+          className="absolute inset-0 pointer-events-none"
+          aria-label="Multiplicador de preço por dia"
+        >
+          <path
+            d={plot.d}
+            fill="none"
+            stroke="#e2621c"
+            strokeWidth={3}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={0.95}
+          />
+        </svg>
       </div>
     </div>
   )

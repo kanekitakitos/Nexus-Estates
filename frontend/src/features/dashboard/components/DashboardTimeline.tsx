@@ -1,18 +1,19 @@
 "use client"
 
-import { CalendarTimeline } from "@/components/ui/calendars/calendar(x,y)"
+import { CalendarTimeline } from "@/features/dashboard/calendar/calendar(x,y)"
 import type { TimelineItemWithNames } from "@/types"
+import { DashboardSeasonalityLine } from "@/features/dashboard/components/DashboardSeasonalityLine"
 
 export function DashboardTimeline({
   calendarItems,
-  seasonality,
+  isFocused,
+  seasonalityMultipliers,
   viewDate,
   onClickData,
 }: {
   calendarItems: TimelineItemWithNames[]
-  seasonality?: {
-    multipliers: number[]
-  }
+  isFocused: boolean
+  seasonalityMultipliers?: number[] | null
   viewDate: Date
   onClickData: (timelineItem: TimelineItemWithNames) => void
 }) {
@@ -24,7 +25,24 @@ export function DashboardTimeline({
       onClickData={onClickData}
       density="compact"
       maxHeightClassName="max-h-[520px]"
-      seasonality={seasonality}
+      renderAfterRow={(ctx, _item, index) => {
+        if (!isFocused) return null
+        if (index !== 0) return null
+        if (!seasonalityMultipliers || seasonalityMultipliers.length !== ctx.daysInMonth) return null
+        return (
+          <div className="pt-6">
+            <DashboardSeasonalityLine
+              year={ctx.year}
+              month={ctx.month}
+              dayWidth={ctx.dayWidth}
+              labelWClassName={ctx.labelWClassName}
+              borderRightClassName={ctx.borderRightClassName}
+              borderColorClassName={ctx.borderColorClassName}
+              multipliers={seasonalityMultipliers}
+            />
+          </div>
+        )
+      }}
     />
   )
 }

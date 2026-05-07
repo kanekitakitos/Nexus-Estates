@@ -50,7 +50,7 @@ export function DashboardMonthHeader({
         >
           {isViewingToday ? (
             <>
-              <h1>TODAY is</h1>
+              <h1>Today is</h1>
               <span>{today!.getDate()}</span>
             </>
           ) : null}
@@ -80,6 +80,8 @@ export function DashboardMonthHeader({
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 420, damping: 18 }}
               >
+
+                <div className="pb-2">
                 <BrutalButton
                   variant="brutal-outline"
                   size="xs"
@@ -88,6 +90,7 @@ export function DashboardMonthHeader({
                 >
                   Ver todas
                 </BrutalButton>
+                </div>
               </motion.div>
             </motion.div>
           ) : null}
