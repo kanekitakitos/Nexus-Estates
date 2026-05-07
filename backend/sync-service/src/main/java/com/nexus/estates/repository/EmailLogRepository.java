@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
  * do histórico de comunicações.</p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Repository
 public interface EmailLogRepository extends JpaRepository<EmailLog, Long> {

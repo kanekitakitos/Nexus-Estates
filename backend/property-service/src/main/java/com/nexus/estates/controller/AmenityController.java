@@ -103,6 +103,17 @@ public class AmenityController {
         return ResponseEntity.ok(service.findById(id));
     }
 
+
+    /**
+     * Atualiza os dados de uma comodidade existente
+     * <p>
+     *     Substitui os valores da comodidade com o ID fornecido pelos novos dados
+     *     Valida se os campos obrigatórios (nome e categoria) estão presentes antes de guardar
+     * </p>
+     * @param id O identificador único da comodidade a atualizar
+     * @param amenity Os novos dados da comodidade a aplciar
+     * @return A comodidade atualziada ou erro 400 (Bad Request) caso falhem as validações
+     */
     @Operation(summary = "Atualizar comodidade", description = "Atualiza os campos de uma comodidade existente.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Comodidade atualizada com sucesso"),
@@ -121,6 +132,15 @@ public class AmenityController {
         return ResponseEntity.ok(service.update(id, amenity));
     }
 
+
+    /**
+     * Remove permanentemente uma comodidade do catálogo do sistema
+     * <p>
+     *     Elimina a caraterística global pelo seu identificador
+     * </p>
+     * @param id O identificador único da comodiade a remover
+     * @return Um resposta vazia (204 No Content) indicando que a operação foi bem sucedida
+     */
     @Operation(summary = "Remover comodidade", description = "Remove uma comodidade do catálogo.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Comodidade removida com sucesso"),

@@ -10,6 +10,7 @@ import java.util.Map;
  * os consumidores do serviço.</p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 public interface ImageStorageService {
 

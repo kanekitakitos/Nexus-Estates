@@ -16,6 +16,9 @@ import java.util.List;
 
 /**
  * Endpoint para gestão de subscrições de Webhooks externos.
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
  */
 @Slf4j
 @RestController
@@ -26,6 +29,17 @@ public class WebhookSubscriptionController {
 
     private final WebhookSubscriptionService service;
 
+
+    /**
+     * Regista uma nova subscrição de webhook para o utilizador
+     * <p>
+     *     Gera automaticaemnte um segredo (secret) criptográfico que será usado para assinar as mensagens enviadas
+     *     para o o URL forncedio, garantindo a autenticidade e a segurança da integração externa
+     * </p>
+     * @param userId O identificador do utilizador que está a criar o webhook
+     * @param request O playload contendo o URL de destino e a lista de eventos subscritos
+     * @return Uma resposta de sucesso contendo os detalhes do webhook criado e o segredo gerado
+     */
     @PostMapping
     @Operation(summary = "Criar Webhook", description = "Regista um novo URL para receber eventos do sistema.")
     public ResponseEntity<ApiResponse<WebhookSubscriptionDTO.CreatedResponse>> create(
@@ -36,6 +50,12 @@ public class WebhookSubscriptionController {
         return ResponseEntity.ok(ApiResponse.success(response, "Webhook criado com sucesso. Guarde o segredo com segurança."));
     }
 
+
+    /**
+     * Recupera todas as subscrições de webhooks (ativas e inativas) do utilizador
+     * @param userId O identificador do utilizador que fez o pedido
+     * @return Uma resposta padronizada contendo a lista com os detalhes de cada subscrição
+     */
     @GetMapping
     @Operation(summary = "Listar Webhooks", description = "Retorna todos os webhooks configurados pelo utilizador.")
     public ResponseEntity<ApiResponse<List<WebhookSubscriptionDTO.Response>>> list(
@@ -45,6 +65,17 @@ public class WebhookSubscriptionController {
         return ResponseEntity.ok(ApiResponse.success(list, "Lista de webhooks recuperada."));
     }
 
+
+    /**
+     * Alterna o estado (ativo/inativo) de uma subscrição de webhook existente
+     * <p>
+     *     Se o webhook estiver desativado, os eventos do sistema não serão enviados para o URL
+     *     de destino até que este seja reativado pelo utilizador
+     * </p>
+     * @param userId O identificador do utilizador proprietário do webhook
+     * @param id O identificador único do webhook a alterar
+     * @return Uma resposta de sucesso vazia indicando que o estado foi atualizado
+     */
     @PatchMapping("/{id}/toggle")
     @Operation(summary = "Ativar/Desativar Webhook", description = "Alterna o estado de envio de um webhook específico.")
     public ResponseEntity<ApiResponse<Void>> toggle(
@@ -59,6 +90,13 @@ public class WebhookSubscriptionController {
         }
     }
 
+
+    /**
+     * Remove permanetemente uma subscrição de webhook do sistema
+     * @param userId O identificador do utilizador proprietário do webhook
+     * @param id O identificador único do webhook a eliminar
+     * @return Uma resposta de sucesso vazia confirmando a eliminação
+     */
     @DeleteMapping("/{id}")
     @Operation(summary = "Remover Webhook", description = "Elimina permanentemente uma subscrição.")
     public ResponseEntity<ApiResponse<Void>> delete(

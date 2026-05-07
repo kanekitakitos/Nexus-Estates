@@ -25,6 +25,9 @@ import java.util.function.Function;
  * Refatorado para suportar criação dinâmica de clientes com base em configurações
  * fornecidas em tempo de execução, permitindo integração com múltiplas OTAs.
  * </p>
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
  */
 @Configuration
 public class ExternalApiClientConfig {

@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
  * </p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Entity
 @Table(name = "email_logs")

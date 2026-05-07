@@ -24,6 +24,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
                         + "e integração com sistemas externos, incluindo infraestrutura de Dead Letter Queues."
         )
 )
+
 @SpringBootApplication
 public class SyncServiceApplication {
     public static void main(String[] args) {

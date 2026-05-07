@@ -19,6 +19,7 @@ import java.util.Optional;
  * utilizando {@code Long} como tipo de identificador primário.</p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Repository
 public interface PropertyRepository extends JpaRepository<Property, Long> {

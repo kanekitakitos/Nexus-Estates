@@ -22,6 +22,7 @@ import java.time.LocalTime;
  * </p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Entity
 @Table(name = "property_rules")
