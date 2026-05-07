@@ -12,6 +12,9 @@ type Section = (typeof SECTIONS)[number]
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+/**
+ * Letras de fundo ("AL") com efeito de stroke.
+ */
 function GhostLetters() {
   return (
     <motion.div
@@ -32,6 +35,9 @@ function GhostLetters() {
   )
 }
 
+/**
+ * Texto introdutório (Eyebrow).
+ */
 function Eyebrow() {
   return (
     <motion.div
@@ -49,6 +55,9 @@ function Eyebrow() {
   )
 }
 
+/**
+ * Título Principal.
+ */
 function HeroTitle({ s }: { s: Section }) {
   return (
     <div className="relative z-20">
@@ -63,6 +72,9 @@ function HeroTitle({ s }: { s: Section }) {
   )
 }
 
+/**
+ * Subtítulo com efeito de troca de texto (Morphing).
+ */
 function MorphingSubtitle() {
   return (
     <motion.div
@@ -77,6 +89,9 @@ function MorphingSubtitle() {
   )
 }
 
+/**
+ * Indicador visual para convidar o utilizador a explorar o resto da página.
+ */
 function ScrollCue() {
   return (
     <motion.div className="flex items-center gap-6 relative z-20" {...fadeUpEnter(1.1, 16)}>

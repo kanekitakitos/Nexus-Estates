@@ -12,7 +12,7 @@ export const chatTokens = {
         statusConnecting: "A ligar...",
       },
       list: {
-        searchPlaceholder: "Pesquisar por bookingId ou propertyId…",
+        searchPlaceholder: "Pesquisar por nome ou localização…",
         loading: "A carregar conversas…",
         empty: "Sem conversas disponíveis.",
         bookingPrefix: "Booking #",

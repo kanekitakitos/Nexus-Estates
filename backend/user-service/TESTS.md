@@ -11,6 +11,10 @@
 - [Classe "PasswordResetServiceTest"](#classe-passwordresetservicetest)
 - [Classe "SecretCryptoServiceTest"](#classe-secretcryptoservicetest)
 - [Classe "PasswordResetTokenTest"](#classe-passwordresettokentest)
+- [Classe "ActorContextFilterTest"](#classe-actorcontextfiltertest)
+- [Classe "UserEnversAuditTest"](#classe-userenversauditTest)
+- [Classe "GuestProfileControllerTest"](#classe-guestprofilecontrollertest)
+- [Classe "GuestProfileServiceTest"](#classe-guestprofileservicetest)
 
 ### Classe "ExternalIntegrationControllerTest"
 - shouldCreateIntegrationAsOwner:
@@ -51,6 +55,8 @@
     'Verifica que o role vindo do header X-User-Role tem prioridade sobre a role na base de dados.'
 - shouldContinueChainOnInvalidToken:
     'Verifica que, perante token inválido/erro, o filtro não autentica e continua a FilterChain.'
+- shouldAuthenticateUsingGatewayHeadersWhenAuthorizationMissing:
+    'Verifica que, quando o header Authorization está ausente mas X-User-Email e X-User-Role estão presentes, o filtro autentica o utilizador via headers do Gateway sem chamar o JwtService.'
 
 ### Classe "EncryptedStringAttributeConverterTest"
 - shouldConvertAndRecover:
@@ -100,3 +106,42 @@
 - isExpired_ShouldReturnFalse_WhenDateIsInFuture:
     'Verifica que isExpired devolve false quando expiryDate está no futuro.'
 
+### Classe "ActorContextFilterTest"
+- setsActorContextFromGatewayHeaders:
+  'Verifica que o filtro lê os headers X-User-Id e X-User-Email injectados pelo Gateway, popula o ActorContext durante o doFilter e limpa-o depois.'
+- fallsBackToSecurityContextWhenHeadersMissing:
+  'Verifica que, quando os headers do Gateway estão ausentes, o filtro usa o principal do SecurityContextHolder como actor e limpa o ActorContext após o doFilter.'
+
+### Classe "UserEnversAuditTest"
+- userEntityIsAudited:
+  'Verifica que a entidade User está anotada com @Audited do Hibernate Envers.'
+- revisionEntityIsConfigured:
+  'Verifica que AuditRevisionEntity está anotada com @RevisionEntity e que a tabela se chama revinfo.'
+- revisionListenerWritesActorIntoRevisionEntity:
+  'Verifica que o AuditRevisionListener lê o actor do ActorContext e preenche actorUserId e actorEmail no AuditRevisionEntity.'
+
+### Classe "GuestProfileControllerTest"
+- getGuestProfile_ShouldReturn200_WhenUserIsAdmin:
+  'Verifica que um utilizador com role ADMIN consegue fazer GET /api/users/{id}/profile e recebe 200 OK com os dados do perfil incluindo internalNotes e tags.'
+- getGuestProfile_ShouldReturn200_WhenUserIsManager:
+  'Verifica que um utilizador com role MANAGER consegue fazer GET /api/users/{id}/profile e recebe 200 OK.'
+- getGuestProfile_ShouldReturn403_WhenUserIsGuest:
+  'Verifica que um utilizador com role GUEST recebe 403 Forbidden ao tentar aceder ao GET /api/users/{id}/profile.'
+- updateGuestProfile_ShouldReturn200_WhenAuthorized:
+  'Verifica que um ADMIN consegue fazer PUT /api/users/{id}/profile com payload válido e recebe 200 OK com o perfil actualizado.'
+- patchGuestProfile_ShouldReturn200_WhenAuthorized:
+  'Verifica que um MANAGER consegue fazer PATCH /api/users/{id}/profile e recebe 200 OK.'
+- patchGuestProfile_ShouldReturn403_WhenUnauthorized:
+  'Verifica que um GUEST recebe 403 Forbidden ao tentar fazer PATCH /api/users/{id}/profile.'
+
+### Classe "GuestProfileServiceTest"
+- getProfileByUserId_ShouldReturnProfile_WhenExists:
+  'Verifica que getProfileByUserId devolve GuestProfileResponse com todos os campos correctos quando o perfil existe no repositório.'
+- getProfileByUserId_ShouldThrowException_WhenProfileNotFound:
+  'Verifica que getProfileByUserId lança UserNotFoundException quando não existe perfil para o userId fornecido.'
+- updateGuestProfile_ShouldUpdateExistingProfile:
+  'Verifica que updateGuestProfile actualiza internalNotes e tags de um perfil existente e chama save() no repositório.'
+- updateGuestProfile_ShouldCreateProfile_WhenNotExists:
+  'Verifica comportamento de Upsert: quando o perfil não existe, updateGuestProfile cria um novo perfil associado ao utilizador e persiste-o.'
+- patchGuestProfile_ShouldUpdateOnlyNotes:
+  'Verifica que patchGuestProfile actualiza apenas os campos não nulos — altera internalNotes mas preserva as tags originais quando tags é nulo no request.'

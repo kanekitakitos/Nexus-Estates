@@ -50,6 +50,23 @@ public interface NexusClients {
         @PostExchange("/api/properties/{id}/quote")
         ApiResponse<PropertyQuoteResponse> quote(@PathVariable Long id, @RequestBody PropertyQuoteRequest request);
 
+        /**
+         * Resolve o utilizador com permissões de PRIMARY_OWNER para uma propriedade.
+         *
+         * <p>Usado em fluxos internos como chat por booking (participantes) sem expor emails.</p>
+         */
+        @GetExchange("/api/properties/{id}/primary-owner")
+        ApiResponse<Long> getPrimaryOwnerId(@PathVariable Long id);
+
+        /**
+         * Resolve o nível de acesso do utilizador a uma propriedade.
+         *
+         * <p>Usado para validar se o utilizador tem acesso operacional à propriedade, permitindo
+         * fluxos como shared inbox em chats.</p>
+         */
+        @GetExchange("/api/properties/{id}/access-level/{userId}")
+        ApiResponse<String> getAccessLevel(@PathVariable Long id, @PathVariable Long userId);
+
     }
 
     interface UserClient {

@@ -1,0 +1,9 @@
+.git
+.idea
+.vscode
+**/*.iml
+**/*.log
+**/target
+**/.classpath
+**/.project
+**/.settings

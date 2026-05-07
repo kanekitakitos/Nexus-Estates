@@ -24,4 +24,5 @@ export interface AuthCredentials {
   email: string;
   password?: string;
   phone?: string;
+  role?: string;
 }
