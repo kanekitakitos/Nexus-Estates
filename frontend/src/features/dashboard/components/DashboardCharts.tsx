@@ -42,13 +42,13 @@ export function DashboardCharts({
 
   return (
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
-      <div className="xl:col-span-6 xl:h-[420px]">
+      <div className="min-h-[360px] md:min-h-[420px] xl:col-span-6 xl:h-[420px]">
         <ChartLineMultiple className="h-full" chartData={lineCharData} />
       </div>
-      <div className="xl:col-span-6 xl:h-[420px]">
+      <div className="min-h-[360px] md:min-h-[420px] xl:col-span-6 xl:h-[420px]">
         <DashboardBookingsByPropertyChart className="h-full" chartData={bookingsByProperty} />
       </div>
-      <div className="xl:col-span-4 xl:h-[420px]">
+      <div className="min-h-[360px] md:min-h-[420px] xl:col-span-4 xl:h-[420px]">
         <ChartPieLabel
           className="h-full"
           title="Estados das Reservas"
@@ -57,10 +57,10 @@ export function DashboardCharts({
           heightClassName="h-full"
         />
       </div>
-      <div className="xl:col-span-4 xl:h-[420px]">
+      <div className="min-h-[360px] md:min-h-[420px] xl:col-span-4 xl:h-[420px]">
         <ChartBarMultiple className="h-full" chartData={barCharData} />
       </div>
-      <div className="xl:col-span-4 xl:h-[420px]">
+      <div className="min-h-[360px] md:min-h-[420px] xl:col-span-4 xl:h-[420px]">
         <ChartRadarLegend className="h-full" chartData={radarCharData} />
       </div>
     </div>

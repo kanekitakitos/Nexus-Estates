@@ -8,7 +8,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/data-display/card"
-import { BrutalCard } from "@/components/ui/data-display//brutal-card";
+import { BrutalCard } from "@/components/ui/data-display/brutal-card";
 import {
     ChartContainer,
     ChartTooltip,

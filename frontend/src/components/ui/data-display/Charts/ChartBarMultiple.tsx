@@ -3,7 +3,6 @@
 import {Bar, BarChart, CartesianGrid, XAxis, YAxis} from "recharts"
 
 import {
-    Card,
     CardContent,
     CardDescription,
     CardHeader,
@@ -16,7 +15,6 @@ import {
     ChartTooltipContent,
     type ChartConfig, ChartLegendContent, ChartLegend,
 } from "@/components/ui/data-display/Charts/chart"
-import {useMemo} from "react";
 import { cn } from "@/lib/utils";
 
 export const description = "A multiple bar chart"

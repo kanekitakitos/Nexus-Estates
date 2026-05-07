@@ -3,10 +3,8 @@
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts"
 
 import {
-    Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "@/components/ui/data-display/card"
@@ -77,7 +75,7 @@ export function ChartRadarLegend({
             <CardContent className="flex-1 min-h-0 flex items-center justify-center">
                 <ChartContainer
                     config={chartConfig}
-                    className="mx-auto aspect-square h-full w-full max-h-[320px]"
+                    className="mx-auto aspect-square h-full w-full"
                 >
                     <RadarChart
                         data={processedData}

@@ -3,7 +3,6 @@
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
 
 import {
-    Card,
     CardContent,
     CardDescription,
     CardHeader,
@@ -17,7 +16,6 @@ import {
     type ChartConfig, ChartLegend, ChartLegendContent,
 } from "@/components/ui/data-display/Charts/chart"
 import { cn } from "@/lib/utils"
-import {useMemo} from "react";
 
 export const description = "A multiple line chart"
 

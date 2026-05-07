@@ -135,7 +135,7 @@ export function CalendarTimeline({
         <div
           id={"calender"}
           ref={scrollRef}
-          className={`overflow-auto ${maxHeightClassName} pe-5 pb-5 bg-transparent ${border.color}
+          className={`flex-1 w-full overflow-auto ${maxHeightClassName} px-5 pb-5 bg-transparent ${border.color}
                 [&::-webkit-scrollbar]:h-4
                 [&::-webkit-scrollbar-track]:bg-zinc-200
                 [&::-webkit-scrollbar-track]:rounded-full
