@@ -1,3 +1,11 @@
+/**
+ * @file chat-compact-sidebar.tsx
+ * @author Nexus Estates team
+ * @description Componente de barra lateral para o módulo de chat.
+ *              Apresenta a lista de conversas (ChatList) ou a janela de uma conversa ativa (ChatWindow),
+ *              delegando a implementação à estratégia de chat atual (ex: Ably).
+ */
+
 "use client"
 
 import * as React from "react"

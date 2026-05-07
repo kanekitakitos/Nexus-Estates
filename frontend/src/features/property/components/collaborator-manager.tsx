@@ -1,3 +1,10 @@
+/**
+ * @file collaborator-manager.tsx
+ * @author Nexus Estates team
+ * @description Componente para gerir os colaboradores associados a uma propriedade.
+ *              Permite convidar novos membros, definir níveis de acesso (papéis/roles) e remover permissões existentes.
+ */
+
 "use client"
 
 import { useState } from "react"

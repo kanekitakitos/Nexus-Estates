@@ -1,7 +1,8 @@
 /**
- * @description
- * Configuração central do Axios para comunicação com o API Gateway do Nexus Estates.
- * Implementa interceptores para gestão de JWT, tratamento de erros global e suporte a SSR.
+ * @file axiosAPI.ts
+ * @author Nexus Estates team
+ * @description Configuração central do Axios para comunicação com o API Gateway do Nexus Estates.
+ *              Implementa intercetores para gestão de JWT, tratamento de erros global e suporte a SSR.
  */
 
 import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';

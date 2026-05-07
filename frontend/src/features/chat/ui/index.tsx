@@ -1,3 +1,11 @@
+/**
+ * @file index.tsx
+ * @author Nexus Estates team
+ * @description Componentes de UI genéricos (agnósticos à estratégia) para o chat.
+ *              Inclui o cabeçalho (ChatHeader), bolhas de mensagem (ChatMessageBubble), lista de mensagens (ChatMessageList)
+ *              e o campo de introdução (ChatFooter).
+ */
+
 "use client";
 
 import React from "react";

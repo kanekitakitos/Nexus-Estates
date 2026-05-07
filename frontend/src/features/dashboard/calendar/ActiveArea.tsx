@@ -1,3 +1,11 @@
+/**
+ * @file ActiveArea.tsx
+ * @author Nexus Estates team
+ * @description Componente visual para uma reserva na timeline do calendário.
+ *              Renderiza um bloco ("pill") posicionado consoante as datas de check-in e check-out
+ *              e apresenta uma tooltip (hover) com detalhes da estadia (email, dias, hóspedes).
+ */
+
 import { Period } from "@/types"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/overlay/tooltip"
 import { differenceInCalendarDays } from "date-fns"

@@ -1,3 +1,10 @@
+/**
+ * @file seasonality.ts
+ * @author Nexus Estates team
+ * @description Lógica de sazonalidade do Dashboard. Converte regras (intervalos + modificador de preço) num
+ *              array de multiplicadores por dia do mês, usado para projeções visuais no calendário.
+ */
+
 import type { SeasonalityRuleDTO } from "@/types"
 import { isDateInRange, parseISODateLocal } from "@/features/dashboard/lib/date"
 
@@ -34,4 +41,3 @@ export function computeSeasonalityMultipliers(
 
   return multipliers
 }
-

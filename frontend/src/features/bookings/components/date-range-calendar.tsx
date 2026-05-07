@@ -1,3 +1,10 @@
+/**
+ * @file date-range-calendar.tsx
+ * @author Nexus Estates team
+ * @description Componente de calendário para seleção de intervalo de datas (check-in e check-out).
+ *              Inclui o cálculo dinâmico de noites e o resumo de preços para pré-visualização da reserva.
+ */
+
 "use client"
 
 /**

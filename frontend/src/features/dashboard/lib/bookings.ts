@@ -1,3 +1,10 @@
+/**
+ * @file bookings.ts
+ * @author Nexus Estates team
+ * @description Utilitários de reservas usados no Dashboard para suportar filtros, agregações e validações
+ *              de calendário (ex.: detetar se uma propriedade tem reservas no mês em foco).
+ */
+
 import type { BookingResponse } from "@/types"
 
 /**
@@ -19,4 +26,3 @@ export function hasBookingInMonth(
     return checkIn <= monthEnd && checkOut >= monthStart
   })
 }
-

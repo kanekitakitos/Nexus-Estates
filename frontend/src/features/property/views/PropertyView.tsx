@@ -1,3 +1,10 @@
+/**
+ * @file PropertyView.tsx
+ * @author Nexus Estates team
+ * @description Vista principal da gestão de propriedades. Gere o estado global desta secção, alternando entre
+ *              listagem de propriedades, criação (Wizard) e os detalhes de uma propriedade (edição/visualização).
+ */
+
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"

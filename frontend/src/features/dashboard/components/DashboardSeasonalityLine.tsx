@@ -1,3 +1,10 @@
+/**
+ * @file DashboardSeasonalityLine.tsx
+ * @author Nexus Estates team
+ * @description Componente visual que desenha a linha de sazonalidade (multiplicadores de preço) no calendário do dashboard.
+ *              Utiliza SVG com animações e filtros para um efeito orgânico ("ink").
+ */
+
 "use client"
 
 import React, { useEffect, useId, useMemo, useRef, useState } from "react"

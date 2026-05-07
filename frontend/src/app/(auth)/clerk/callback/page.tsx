@@ -1,5 +1,12 @@
 "use client"
 
+/**
+ * @file page.tsx
+ * @author Nexus Estates team
+ * @description Callback do Clerk (rota /clerk/callback). Finaliza autenticação social, troca o token do
+ *              Clerk por sessão no backend e redireciona o utilizador para um destino seguro.
+ */
+
 import React from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AuthService } from "@/services/auth.service"

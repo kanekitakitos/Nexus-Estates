@@ -1,3 +1,11 @@
+/**
+ * @file property-utils.ts
+ * @author Nexus Estates team
+ * @description Funções utilitárias puras para o módulo de propriedades.
+ *              Inclui o mapeamento de DTOs da API para os modelos do frontend,
+ *              resolução de multi-idioma (traduções) e formatação de IDs visuais.
+ */
+
 import {
   PropertyCardDisplayVariant,
   PropertyCardVariant,

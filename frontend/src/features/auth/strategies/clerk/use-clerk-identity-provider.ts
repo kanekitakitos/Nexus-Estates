@@ -1,3 +1,10 @@
+/**
+ * @file use-clerk-identity-provider.ts
+ * @author Nexus Estates team
+ * @description Implementa a estratégia `IdentityProvider` utilizando o Clerk.
+ *              Fornece acesso aos métodos de login OAuth e obtenção de token nativos do Clerk.
+ */
+
 "use client"
 
 import { useAuth, useSignIn } from "@clerk/nextjs"

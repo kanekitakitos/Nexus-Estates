@@ -1,3 +1,10 @@
+/**
+ * @file property-gallery.tsx
+ * @author Nexus Estates team
+ * @description Componente para visualização e gestão da galeria de imagens de uma propriedade.
+ *              Inclui o visualizador principal (com botões prev/next), miniaturas para seleção rápida e a funcionalidade de upload.
+ */
+
 "use client"
 
 import { useState } from "react"

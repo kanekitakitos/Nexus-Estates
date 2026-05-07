@@ -1,3 +1,10 @@
+/**
+ * @file DashboardBookingsByPropertyChart.tsx
+ * @author Nexus Estates team
+ * @description Componente de gráfico de barras horizontais.
+ *              Apresenta o ranking das propriedades com base no volume (número) de reservas efetuadas.
+ */
+
 "use client"
 
 import { BrutalCard } from "@/components/ui/data-display/brutal-card"

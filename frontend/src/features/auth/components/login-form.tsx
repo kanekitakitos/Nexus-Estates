@@ -1,3 +1,10 @@
+/**
+ * @file login-form.tsx
+ * @author Nexus Estates team
+ * @description Componente de formulário para login de utilizadores.
+ *              Suporta login tradicional (email/password) e login social via Clerk (quando configurado).
+ */
+
 "use client"
 
 import { cn } from "@/lib/utils"

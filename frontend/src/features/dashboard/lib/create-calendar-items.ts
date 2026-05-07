@@ -1,3 +1,10 @@
+/**
+ * @file create-calendar-items.ts
+ * @author Nexus Estates team
+ * @description Constrói os itens do calendário (timeline) do Dashboard a partir de propriedades e reservas,
+ *              agregando períodos por propriedade e enriquecendo-os com meta para hover na UI.
+ */
+
 import type { BookingResponse, Period, PropertyListItem, TimelineItemWithNames } from "@/types"
 
 /**

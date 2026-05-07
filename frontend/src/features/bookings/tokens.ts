@@ -1,3 +1,10 @@
+/**
+ * @file tokens.ts
+ * @author Nexus Estates team
+ * @description Tokens de design e textos específicos do módulo de reservas.
+ *              Inclui classes utilitárias da UI (Tailwind) e dicionários de texto (copy) para o sidebar de reservas.
+ */
+
 export const bookingsTokens = {
   ui: {
     sidebar: {

@@ -1,5 +1,7 @@
 /**
- * Barrel file para services (camada de integração com APIs).
+ * @file index.ts
+ * @author Nexus Estates team
+ * @description Ponto de entrada (barrel file) para todos os serviços de integração com APIs do backend.
  *
  * Uso recomendado:
  * - import { PropertyService, BookingService } from "@/services"

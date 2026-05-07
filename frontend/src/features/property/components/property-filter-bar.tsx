@@ -1,3 +1,11 @@
+/**
+ * @file property-filter-bar.tsx
+ * @author Nexus Estates team
+ * @description Componente da barra de filtros de propriedades.
+ *              Fornece controlos de pesquisa (texto, localização), filtragem por status (disponível, reservado)
+ *              e ordenação, suportando um modo expandido (default) e compacto.
+ */
+
 import { motion } from "framer-motion"
 import { Search, SlidersHorizontal, ArrowUpDown, MapPin } from "lucide-react"
 import { cn } from "@/lib/utils"

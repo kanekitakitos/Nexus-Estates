@@ -1,3 +1,9 @@
+/**
+ * @file use-media-query.ts
+ * @author Nexus Estates team
+ * @description Hook React para monitorizar media queries do browser (ex: tamanho do ecrã).
+ */
+
 import { useSyncExternalStore } from "react"
 
 /**

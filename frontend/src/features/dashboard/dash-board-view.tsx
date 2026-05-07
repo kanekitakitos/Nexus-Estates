@@ -1,3 +1,10 @@
+/**
+ * @file dash-board-view.tsx
+ * @author Nexus Estates team
+ * @description Vista principal do Dashboard.
+ *              Exibe métricas, gráficos, timeline e estatísticas gerais para proprietários e gestores.
+ */
+
 "use client"
 
 import type {

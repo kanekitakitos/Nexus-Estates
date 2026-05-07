@@ -1,3 +1,11 @@
+/**
+ * @file calendar(x,y).tsx
+ * @author Nexus Estates team
+ * @description Componente de calendário/timeline interativo para o Dashboard.
+ *              Apresenta uma visão temporal (grelha horizontal) das reservas, agrupadas por propriedade,
+ *              com cabeçalho pegajoso (sticky), marcação de fins de semana e tooltips de informação.
+ */
+
 "use client"
 
 import React, { useEffect, useRef } from "react"

@@ -1,3 +1,9 @@
+/**
+ * @file integrations.service.ts
+ * @author Nexus Estates team
+ * @description Serviço para gerir integrações externas do utilizador autenticado (ex: credenciais Airbnb, Booking).
+ */
+
 import { usersAxios, ApiResponse } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import { notify } from "@/lib/notify";

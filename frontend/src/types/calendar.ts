@@ -1,3 +1,9 @@
+/**
+ * @file calendar.ts
+ * @author Nexus Estates team
+ * @description Tipos de dados usados nos componentes do calendário e da timeline no dashboard.
+ */
+
 import type { PropertyListItem } from "@/types/property"
 
 /**

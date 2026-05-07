@@ -1,3 +1,10 @@
+/**
+ * @file social-icon-row.tsx
+ * @author Nexus Estates team
+ * @description Componentes visuais para botões de login social (Google, GitHub, Facebook).
+ *              Inclui variantes com suporte ao Clerk (`ClerkSocialIconRow`) e estados desativados (`DisabledSocialIconRow`).
+ */
+
 "use client"
 
 import { Button } from "@/components/ui/forms/button"

@@ -1,3 +1,10 @@
+/**
+ * @file use-booking-user-emails.ts
+ * @author Nexus Estates team
+ * @description Hook do Dashboard que resolve e memoiza emails de utilizadores associados às reservas em
+ *              contexto, reduzindo requests repetidos e suportando hover rico no calendário.
+ */
+
 import { UserService } from "@/services"
 import type { BookingResponse } from "@/types"
 import { useEffect, useState } from "react"
@@ -47,4 +54,3 @@ export function useBookingUserEmails(filteredBookings: BookingResponse[]): Map<n
 
   return userEmailById
 }
-

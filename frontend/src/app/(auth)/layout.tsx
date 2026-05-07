@@ -1,3 +1,11 @@
+/**
+ * @file layout.tsx
+ * @author Nexus Estates team
+ * @description Layout do grupo de rotas de autenticação (App Router).
+ *              Centraliza o background/efeito visual e fornece um container consistente para páginas
+ *              como login, registo e recuperação de conta.
+ */
+
 import { PixelBlast } from "@/components/ui/PixelBlast";
 
 export default function AuthLayout({

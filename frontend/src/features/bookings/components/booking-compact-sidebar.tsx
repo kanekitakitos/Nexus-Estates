@@ -1,3 +1,11 @@
+/**
+ * @file booking-compact-sidebar.tsx
+ * @author Nexus Estates team
+ * @description Componente de barra lateral compacta para acesso rápido a reservas.
+ *              Permite aos utilizadores (hóspedes ou staff) visualizar, filtrar e interagir rapidamente com as suas reservas
+ *              (incluindo opções de repetir reserva ou retomar pagamento).
+ */
+
 "use client"
 
 /**

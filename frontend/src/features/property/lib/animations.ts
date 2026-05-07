@@ -1,3 +1,10 @@
+/**
+ * @file animations.ts
+ * @author Nexus Estates team
+ * @description Definições de animações reutilizáveis (Framer Motion variants) para o módulo de propriedades.
+ *              Inclui animações para páginas, listas em cascata (stagger), cartões e modais.
+ */
+
 import { Variants } from "framer-motion"
 
 export const SNAP_SPRING = { type: "spring", stiffness: 400, damping: 25 } as const

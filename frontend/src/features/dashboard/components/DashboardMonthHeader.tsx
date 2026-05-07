@@ -1,3 +1,11 @@
+/**
+ * @file DashboardMonthHeader.tsx
+ * @author Nexus Estates team
+ * @description Componente de cabeçalho para o calendário do Dashboard.
+ *              Inclui controlos de navegação temporal (mês anterior/seguinte), apresentação do mês focado
+ *              e controlos de filtros ("Só ativas", "Só com reservas") juntamente com a visualização do foco.
+ */
+
 "use client"
 
 import { BrutalButton } from "@/components/ui/forms/button"

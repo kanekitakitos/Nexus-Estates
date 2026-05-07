@@ -1,3 +1,10 @@
+/**
+ * @file property-compact-sidebar.tsx
+ * @author Nexus Estates team
+ * @description Componente da barra lateral compacta para acesso rápido à gestão de propriedades.
+ *              Mostra o botão para gerir propriedades ou a lista compacta de propriedades disponíveis (quando o utilizador está autenticado).
+ */
+
 "use client"
 
 import * as React from "react"

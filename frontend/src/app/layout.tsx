@@ -1,3 +1,10 @@
+/**
+ * @file layout.tsx
+ * @author Nexus Estates team
+ * @description Layout principal da aplicação. Define a estrutura base de todas as páginas, 
+ *              configurações de metadados, fontes, e envolve a aplicação com os provedores necessários (Clerk, Chat, View).
+ */
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -7,7 +14,8 @@ import { ViewProvider } from "@/providers/view-context";
 import { ClerkProvider } from "@clerk/nextjs";
 
 /**
- * Fonte principal, para textos, botões e menus (fornecida pela Geist)
+ * Fonte principal, para textos, botões e menus (fornecida pela Geist).
+ * Usada globalmente para garantir uma tipografia consistente e moderna.
  */
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +23,8 @@ const geistSans = Geist({
 });
 
 /**
- * A fonte para código, números ou dados tabulares (fornecida pela Geist)
+ * A fonte para código, números ou dados tabulares (fornecida pela Geist).
+ * Garante que dados tabulares ou trechos de código fiquem alinhados.
  */
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -23,7 +32,8 @@ const geistMono = Geist_Mono({
 });
 
 /**
- * Metadata da aplicação para o cabeçajo do documento
+ * Metadata da aplicação para o cabeçalho do documento HTML (tags `<head>`).
+ * Define o título e a descrição que aparecem no navegador e em motores de busca.
  */
 export const metadata: Metadata = {
   title: "Nexus-Estates",
@@ -31,10 +41,13 @@ export const metadata: Metadata = {
 };
 
 /**
- * Componente de Layout do Root
- * Injeta fontes, estilos globais e providers
- * @param children - componetes filhas desta
- * @returns layout configurado para ser aplicado a um ficheiro page.tsx
+ * Componente de Layout do Root.
+ * Este componente envolve todas as rotas da aplicação, injetando as fontes, 
+ * os estilos globais e os provedores de estado globais.
+ * 
+ * @param {Object} props - Propriedades do componente de layout.
+ * @param {React.ReactNode} props.children - O conteúdo ou página atual a ser renderizada.
+ * @returns {JSX.Element} Estrutura base HTML da aplicação configurada.
  */
 export default function RootLayout({
   children,
@@ -50,17 +63,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-          {/* define a postição das notificações Toasts */}
+          {/* Componente para notificações globais (Toasts), definindo a posição no topo ao centro */}
           <Toaster position="top-center"/>
 
           <div className="min-h-screen">
-            {/* inicia o Provider do serviço de chat */}
+            {/* Se o Clerk estiver ativado, envolve com ClerkProvider. Em ambos os casos, fornece o contexto de Chat e View */}
             {enableClerk ? (
               <ClerkProvider publishableKey={clerkPublishableKey}>
                 <ChatProvider>
                   <ViewProvider>
 
-                {/* Conteodo da page.tsx desta pasta */}
+                {/* Conteúdo da página atual sendo renderizada */}
                 {children}
                   </ViewProvider>
                 </ChatProvider>

@@ -1,3 +1,10 @@
+/**
+ * @file use-identity-provider.ts
+ * @author Nexus Estates team
+ * @description Fornece utilitários para verificar e determinar qual Identity Provider está ativo.
+ *              Baseia-se em variáveis de ambiente (ex: NEXT_PUBLIC_IDP) para selecionar o provedor (ex: Clerk ou nenhum).
+ */
+
 "use client"
 
 /**

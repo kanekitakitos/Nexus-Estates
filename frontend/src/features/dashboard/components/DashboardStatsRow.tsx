@@ -1,3 +1,10 @@
+/**
+ * @file DashboardStatsRow.tsx
+ * @author Nexus Estates team
+ * @description Linha de cartões estatísticos (KPIs) exibida no topo do dashboard.
+ *              Apresenta o número de check-ins, check-outs, total de reservas e valores financeiros faturados/por faturar no mês em foco.
+ */
+
 "use client"
 
 import { StatCard } from "@/features/property/components/property-stats"

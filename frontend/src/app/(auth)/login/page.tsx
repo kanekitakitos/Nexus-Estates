@@ -1,3 +1,9 @@
+/**
+ * @file page.tsx
+ * @author Nexus Estates team
+ * @description Página de login (rota /login). Renderiza o formulário e copy legal de consentimento.
+ */
+
 import { LoginForm } from "@/features/auth"
 import { FieldDescription } from "@/components/ui/forms/field"
 

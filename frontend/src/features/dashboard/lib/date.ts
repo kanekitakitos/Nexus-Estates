@@ -1,4 +1,11 @@
 /**
+ * @file date.ts
+ * @author Nexus Estates team
+ * @description Utilitários de datas específicos do Dashboard. Centraliza conversões e comparações de datas
+ *              (incluindo parsing seguro de "YYYY-MM-DD") para evitar efeitos colaterais de timezone.
+ */
+
+/**
  * Utilitários de datas do Dashboard (timezone local).
  *
  * Nota: o dashboard lida com strings ISO do backend no formato "YYYY-MM-DD" e
@@ -22,4 +29,3 @@ export function isDateInRange(date: Date, start: Date, end: Date): boolean {
   const b = new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime()
   return x >= a && x <= b
 }
-

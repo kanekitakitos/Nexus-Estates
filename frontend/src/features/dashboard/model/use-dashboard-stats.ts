@@ -1,5 +1,13 @@
 "use client"
 
+/**
+ * @file use-dashboard-stats.ts
+ * @author Nexus Estates team
+ * @description Hook do Dashboard que agrega reservas e propriedades em métricas e datasets (StatCards e
+ *              gráficos line/bar/radar/pie). A lógica é computada via `useMemo` para evitar recomputação
+ *              desnecessária durante o render.
+ */
+
 import { useMemo } from "react"
 import type { BookingResponse, BookingStatus, PropertyListItem } from "@/types"
 import type { LineChartData } from "@/components/ui/data-display/Charts/ChartLineMultiple"

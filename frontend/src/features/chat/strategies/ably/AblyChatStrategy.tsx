@@ -1,3 +1,10 @@
+/**
+ * @file AblyChatStrategy.tsx
+ * @author Nexus Estates team
+ * @description Implementação da estratégia de chat utilizando o Ably Realtime.
+ *              Fornece os componentes específicos (`AblyChatList`, `AblyChatWindow`) para injetar no `ChatProvider`.
+ */
+
 "use client";
 
 import React from "react";

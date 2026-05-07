@@ -1,3 +1,10 @@
+/**
+ * @file tokens.ts
+ * @author Nexus Estates team
+ * @description Tokens de design específicos para o módulo de chat.
+ *              Inclui estilos para a janela de chat, balões de mensagem e input.
+ */
+
 export const chatTokens = {
   copy: {
     errors: {

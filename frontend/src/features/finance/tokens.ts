@@ -1,3 +1,10 @@
+/**
+ * @file tokens.ts
+ * @author Nexus Estates team
+ * @description Tokens de design e textos específicos do módulo financeiro.
+ *              Inclui estilos para painéis de pagamento (ex: Stripe) e cópias padrão.
+ */
+
 export const financeTokens = {
   copy: {
     common: {

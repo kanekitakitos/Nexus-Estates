@@ -1,3 +1,10 @@
+/**
+ * @file register-form.tsx
+ * @author Nexus Estates team
+ * @description Componente de formulário para registo de novos utilizadores.
+ *              Suporta registo tradicional (email/telefone/password) e opções de login social.
+ */
+
 "use client"
 
 import { Button } from "@/components/ui/forms/button"

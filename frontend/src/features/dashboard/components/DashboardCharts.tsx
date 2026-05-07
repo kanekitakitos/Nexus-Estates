@@ -1,3 +1,10 @@
+/**
+ * @file DashboardCharts.tsx
+ * @author Nexus Estates team
+ * @description Componente contentor que organiza a grelha de gráficos do dashboard.
+ *              Inclui gráficos de linha, barras, radar, pie chart e barras horizontais para métricas de propriedades.
+ */
+
 "use client"
 
 import { ChartLineMultiple } from "@/components/ui/data-display/Charts/ChartLineMultiple"

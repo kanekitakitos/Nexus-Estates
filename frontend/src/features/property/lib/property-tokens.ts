@@ -1,3 +1,11 @@
+/**
+ * @file property-tokens.ts
+ * @author Nexus Estates team
+ * @description Ficheiro centralizado de "tokens" do módulo de propriedades.
+ *              Contém strings constantes (copy), configurações base de UI e classes utilitárias do Tailwind,
+ *              garantindo que o texto e os estilos da aplicação sejam mantidos num só local.
+ */
+
 export const nexusEyebrowClass =
   "font-mono text-[9px] font-black uppercase tracking-[0.32em] text-[#0D0D0D]/65 dark:text-zinc-400"
 

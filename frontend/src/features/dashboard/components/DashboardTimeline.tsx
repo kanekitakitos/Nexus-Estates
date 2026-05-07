@@ -1,3 +1,10 @@
+/**
+ * @file DashboardTimeline.tsx
+ * @author Nexus Estates team
+ * @description Wrapper em torno do calendário base (CalendarTimeline).
+ *              Responsável por configurar a densidade ("compact") e injetar a linha de sazonalidade (DashboardSeasonalityLine) logo abaixo da propriedade focada.
+ */
+
 "use client"
 
 import { CalendarTimeline } from "@/features/dashboard/calendar/calendar(x,y)"

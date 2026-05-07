@@ -1,3 +1,10 @@
+/**
+ * @file property-stats.tsx
+ * @author Nexus Estates team
+ * @description Componente para exibir o painel de estatísticas das propriedades.
+ *              Apresenta KPIs agregados (total, operacionais, indisponíveis) utilizando cartões com contadores animados.
+ */
+
 "use client"
 
 import { useMemo } from "react"

@@ -1,5 +1,8 @@
 /**
- * Tipos do módulo de reservas (Bookings).
+ * @file booking.ts
+ * @author Nexus Estates team
+ * @description Tipos do módulo de reservas (Bookings).
+ *              Contém definições do estado de uma reserva, as respostas do backend e pedidos de criação.
  *
  * Origem backend (API Gateway):
  * - /api/bookings (booking-service)

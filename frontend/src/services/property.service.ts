@@ -1,3 +1,10 @@
+/**
+ * @file property.service.ts
+ * @author Nexus Estates team
+ * @description Serviço responsável por comunicar com o API Gateway para gerir Propriedades.
+ *              Inclui criação, atualização, listagem, e outras operações relacionadas com os dados das propriedades.
+ */
+
 import { propertiesAxios, ApiResponse } from "@/lib/axiosAPI";
 import axios from "axios";
 import type { AxiosError } from "axios";
@@ -524,10 +531,14 @@ export class PropertyService {
     }
 
     /**
-     * Valida regras e calcula cotação.
+     * Valida regras operacionais e calcula a cotação/orçamento para uma estadia.
      *
      * Endpoint backend:
      * - POST /api/properties/{id}/quote
+     * 
+     * @param id ID numérico da propriedade.
+     * @param request Dados necessários para cotar a estadia (datas de check-in, check-out e número de hóspedes).
+     * @returns Promessa com o resultado da cotação, incluindo validade, preço total e eventuais erros de validação.
      */
     static async quote(id: number, request: PropertyQuoteRequest): Promise<PropertyQuoteResponse> {
         try {
