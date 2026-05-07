@@ -35,12 +35,32 @@ function RubberBackground() {
   )
 }
 
-export function PropertyView() {
+/**
+ * PropertyView — Página de propriedades (listagem + editor).
+ *
+ * Também suporta quick access via query params passados pela página `/properties`:
+ * - `initialPropertyId`: abre diretamente a propriedade
+ * - `initialMode`: define o separador inicial (VIEW/EDIT/RULES)
+ */
+export function PropertyView({
+  initialPropertyId,
+  initialMode,
+}: {
+  initialPropertyId?: string
+  initialMode?: EditMode
+}) {
   const { selectedPropertyId, selectPropertyId } = useView()
   const { properties, selectedProperty, isLoading, refresh, deleteProperty } = usePropertyManager(selectedPropertyId)
 
   const [isCreating, setIsCreating] = useState(false)
   const [detailInitialMode, setDetailInitialMode] = useState<EditMode>("VIEW")
+
+  useEffect(() => {
+    if (!initialPropertyId) return
+    setIsCreating(false)
+    setDetailInitialMode(initialMode ?? "VIEW")
+    selectPropertyId(initialPropertyId)
+  }, [initialMode, initialPropertyId, selectPropertyId])
 
   useEffect(() => {
     const onManage = () => {

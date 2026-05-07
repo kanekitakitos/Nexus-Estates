@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useRef } from "react"
+import Link from "next/link"
 import { BrutalCard } from "@/components/ui/data-display/brutal-card"
 import { Period, TimelineItemWithNames } from "@/types"
 import { ActiveArea } from "@/features/dashboard/calendar/ActiveArea"
@@ -191,6 +192,22 @@ export function CalendarTimeline({
                           <div className="text-xs text-muted-foreground">
                             Estado: {item.properti?.isActive ? "Ativa" : "Inativa"}
                           </div>
+                            {typeof item.properti?.id === "number" ? (
+                              <div className="pt-2 flex items-center gap-2">
+                                <Link
+                                  href={`/properties?propertyId=${item.properti.id}&mode=EDIT`}
+                                  className="inline-flex items-center rounded-lg border-2 border-foreground bg-card px-2 py-1 text-[10px] font-mono font-black uppercase tracking-widest shadow-[2px_2px_0_0_#0D0D0D] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                                >
+                                  Editar
+                                </Link>
+                                <Link
+                                  href={`/properties?propertyId=${item.properti.id}&mode=RULES`}
+                                  className="inline-flex items-center rounded-lg border-2 border-foreground bg-card px-2 py-1 text-[10px] font-mono font-black uppercase tracking-widest shadow-[2px_2px_0_0_#0D0D0D] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                                >
+                                  Regras
+                                </Link>
+                              </div>
+                            ) : null}
                         </div>
                       </TooltipContent>
                     </Tooltip>
