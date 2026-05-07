@@ -30,7 +30,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -239,6 +238,16 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(property, "Propriedade encontrada."));
     }
 
+    /**
+     * Resolve o utilizador com permissões de PRIMARY_OWNER da propriedade.
+     *
+     * <p>Quando existe header {@code X-User-Id}, o método valida se o requester tem algum nível
+     * de acesso à propriedade antes de expor o PRIMARY_OWNER.</p>
+     *
+     * @param id ID da propriedade
+     * @param userIdHeader header {@code X-User-Id} (opcional)
+     * @return userId do PRIMARY_OWNER
+     */
     @Operation(summary = "Obter proprietário principal", description = "Retorna o userId do PRIMARY_OWNER da propriedade.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Proprietário recuperado com sucesso"),
@@ -263,6 +272,17 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(ownerId, "Proprietário principal encontrado."));
     }
 
+    /**
+     * Resolve o nível de acesso (PRIMARY_OWNER/MANAGER/STAFF) do utilizador a uma propriedade.
+     *
+     * <p>Quando existe header {@code X-User-Id}, este endpoint força que o requester seja o mesmo
+     * utilizador indicado em {@code userId} (self-access).</p>
+     *
+     * @param id ID da propriedade
+     * @param userId ID do utilizador para o qual se quer obter o nível de acesso
+     * @param userIdHeader header {@code X-User-Id} (opcional)
+     * @return accessLevel (string) quando existe permissão; 404 caso contrário
+     */
     @Operation(summary = "Obter nível de acesso", description = "Retorna o access_level do utilizador para uma propriedade (PRIMARY_OWNER, MANAGER, STAFF).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Nível de acesso encontrado"),
@@ -593,11 +613,31 @@ public class PropertyController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Obtém o preço base (basePrice) de uma propriedade.
+     *
+     * @param id ID da propriedade
+     * @return preço base configurado para a propriedade
+     * @throws EntityNotFoundException se a propriedade não existir
+     */
     public BigDecimal getPriceById(Long id) {
         return repository.findPriceById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Propriedade não encontrada com o ID: " + id));
     }
 
+    /**
+     * Lista propriedades às quais um utilizador tem vínculo (via permissões), com paginação e filtros.
+     *
+     * @param userId ID do utilizador a consultar
+     * @param page índice da página (0-based)
+     * @param size tamanho da página
+     * @param sort campo e direção, no formato {@code campo,asc|desc}
+     * @param city filtro opcional por cidade
+     * @param isActive filtro opcional por ativo/inativo
+     * @param minPrice filtro opcional por preço mínimo
+     * @param maxPrice filtro opcional por preço máximo
+     * @return página de propriedades em formato resumo
+     */
     @Operation(summary = "Listar propriedades por utilizador", description = "Lista propriedades vinculadas a um utilizador com paginação, filtros e ordenação.")
     @GetMapping("/by-user/{userId}")
     public ResponseEntity<ApiResponse<Page<Map<String, Object>>>> listByUser(
@@ -618,6 +658,19 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(mapped, "Propriedades do utilizador listadas."));
     }
 
+    /**
+     * Lista propriedades do utilizador autenticado (resolvido pelo header {@code X-User-Id}).
+     *
+     * @param userIdHeader header injetado pelo API Gateway
+     * @param page índice da página (0-based)
+     * @param size tamanho da página
+     * @param sort campo e direção, no formato {@code campo,asc|desc}
+     * @param city filtro opcional por cidade
+     * @param isActive filtro opcional por ativo/inativo
+     * @param minPrice filtro opcional por preço mínimo
+     * @param maxPrice filtro opcional por preço máximo
+     * @return página de propriedades em formato resumo
+     */
     @Operation(summary = "Listar propriedades do utilizador autenticado", description = "Lista propriedades vinculadas ao utilizador autenticado via header X-User-Id do API Gateway.")
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<Page<Map<String, Object>>>> listMine(
@@ -647,6 +700,12 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(mapped, "Propriedades do utilizador autenticado listadas."));
     }
 
+    /**
+     * Obtém uma propriedade em formato expandido, incluindo amenities, regras, sazonalidade e permissões.
+     *
+     * @param id ID da propriedade
+     * @return payload expandido para consumo do frontend/backoffice
+     */
     @Operation(summary = "Obter propriedade expandida", description = "Retorna uma propriedade com dados expandidos: amenities, regras e sazonalidade.")
     @GetMapping("/{id}/expanded")
     public ResponseEntity<ApiResponse<ExpandedPropertyResponse>> getExpanded(@PathVariable Long id) {
@@ -654,6 +713,15 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(dto, "Propriedade expandida obtida com sucesso."));
     }
 
+    /**
+     * Atualiza parcialmente campos permitidos da propriedade.
+     *
+     * @param id ID da propriedade
+     * @param request payload com campos a atualizar (apenas os não nulos são aplicados)
+     * @param actorUserId ID do utilizador “ator” (opcional; usado para auditoria)
+     * @param userIdHeader header {@code X-User-Id} do utilizador autenticado (para autorização)
+     * @return a propriedade atualizada em formato expandido
+     */
     @Operation(summary = "Atualizar propriedade (parcial)", description = "Atualiza qualquer campo permitido da propriedade (PATCH).")
     @PatchMapping("/{id}")
     @PreAuthorize("hasRole('OWNER')")
@@ -670,6 +738,14 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(response, "Propriedade atualizada com sucesso."));
     }
 
+    /**
+     * Elimina definitivamente uma propriedade.
+     *
+     * @param id ID da propriedade
+     * @param actorUserId ID do utilizador “ator” (opcional; usado para auditoria)
+     * @param userIdHeader header {@code X-User-Id} do utilizador autenticado (para autorização)
+     * @return 204 No Content em sucesso
+     */
     @Operation(summary = "Eliminar propriedade", description = "Remove definitivamente uma propriedade.")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('OWNER')")
@@ -683,6 +759,12 @@ public class PropertyController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Lista o histórico de alterações (audit log) associado a uma propriedade.
+     *
+     * @param id ID da propriedade
+     * @return lista de alterações ordenada por data desc
+     */
     @Operation(summary = "Histórico de alterações", description = "Lista o histórico de alterações de uma propriedade (audit).")
     @GetMapping("/{id}/history")
     public ResponseEntity<ApiResponse<List<PropertyChangeLog>>> history(@PathVariable Long id) {
@@ -690,6 +772,13 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(logs, "Histórico obtido com sucesso."));
     }
 
+    /**
+     * Devolve parâmetros temporários para upload seguro de documentos (assinado).
+     *
+     * @param id ID da propriedade
+     * @param userIdHeader header {@code X-User-Id} do utilizador autenticado (para autorização)
+     * @return mapa de parâmetros, enriquecido com {@code context_property_id}
+     */
     @Operation(summary = "Parâmetros de upload de documentos", description = "Obtém parâmetros temporários para upload seguro de documentos da propriedade.")
     @GetMapping("/{id}/documents/upload-params")
     @PreAuthorize("hasRole('OWNER')")
@@ -704,6 +793,14 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(enriched, "Parâmetros de upload gerados."));
     }
 
+    /**
+     * Gera um relatório CSV de propriedades (resumo) do utilizador, com filtros básicos.
+     *
+     * @param userId ID do utilizador
+     * @param city filtro opcional por cidade
+     * @param isActive filtro opcional por ativo/inativo
+     * @return bytes do CSV com headers apropriados para download
+     */
     @Operation(summary = "Relatório de propriedades (CSV)", description = "Gera um relatório CSV das propriedades do utilizador com filtros.")
     @GetMapping(value = "/reports/summary", produces = "text/csv")
     public ResponseEntity<byte[]> reportSummary(
@@ -723,8 +820,20 @@ public class PropertyController {
         return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
     }
 
+    /**
+     * Sanitiza valores para CSV, prevenindo quebra de colunas pelo separador ';'.
+     *
+     * @param s string original
+     * @return string segura para CSV (sem ';')
+     */
     private String safe(String s) { return s == null ? "" : s.replace(";", ","); }
 
+    /**
+     * Converte a entidade {@link Property} para um mapa resumo, otimizado para listagens.
+     *
+     * @param p entidade de propriedade
+     * @return mapa com campos principais, incluindo {@code imageUrl} resolvida
+     */
     private Map<String, Object> toSummary(Property p) {
         Map<String, Object> m = new java.util.HashMap<>();
         m.put("id", p.getId());

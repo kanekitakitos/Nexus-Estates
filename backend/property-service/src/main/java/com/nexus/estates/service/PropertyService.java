@@ -171,6 +171,12 @@ public class PropertyService {
         return savedProperty;
     }
 
+    /**
+     * Faz parse do header {@code X-User-Id} para {@link Long}.
+     *
+     * @param userIdHeader valor do header (pode ser null/blank)
+     * @return userId parseado ou null se ausente/inválido
+     */
     private Long parseUserIdHeader(String userIdHeader) {
         if (userIdHeader == null || userIdHeader.isBlank()) {
             return null;
@@ -206,6 +212,14 @@ public class PropertyService {
         return level;
     }
 
+    /**
+     * Garante que o utilizador autenticado é o {@link AccessLevel#PRIMARY_OWNER} da propriedade.
+     *
+     * @param propertyId ID da propriedade
+     * @param userIdHeader header {@code X-User-Id} injetado pelo API Gateway
+     * @throws AccessDeniedException se a sessão estiver ausente/expirada ou se não for PRIMARY_OWNER
+     * @throws PropertyNotFoundException se a propriedade não existir
+     */
     @Transactional(readOnly = true)
     public void requirePrimaryOwnerAccess(Long propertyId, String userIdHeader) {
         Long userId = parseUserIdHeader(userIdHeader);
@@ -308,6 +322,18 @@ public class PropertyService {
         return repository.findAll();
     }
 
+    /**
+     * Lista propriedades às quais o utilizador está associado via {@link PropertyPermission},
+     * aplicando filtros opcionais e paginação.
+     *
+     * @param userId ID do utilizador
+     * @param city filtro opcional por cidade
+     * @param isActive filtro opcional por ativo/inativo
+     * @param minPrice filtro opcional por preço mínimo
+     * @param maxPrice filtro opcional por preço máximo
+     * @param pageable paginação/ordenação
+     * @return página de propriedades
+     */
     @Transactional(readOnly = true)
     public Page<Property> listByUserWithFilters(Long userId, String city, Boolean isActive,
                                                 BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
@@ -352,6 +378,13 @@ public class PropertyService {
                 .orElse(null);
     }
 
+    /**
+     * Carrega uma propriedade com relações necessárias para “visão expandida” e converte para DTO.
+     *
+     * @param id ID da propriedade
+     * @return DTO expandido (amenities, regras, sazonalidade, permissões e imageUrl resolvida)
+     * @throws PropertyNotFoundException se a propriedade não existir
+     */
     @Transactional(readOnly = true)
     public ExpandedPropertyResponse getExpandedById(Long id) {
         Property p = repository.findExpandedById(id)
@@ -359,6 +392,14 @@ public class PropertyService {
         return convertToExpandedDto(p);
     }
 
+    /**
+     * Resolve o nome “preferido” de uma amenity a partir de um mapa de idiomas.
+     *
+     * <p>Prioridade: pt → en → primeiro valor não vazio.</p>
+     *
+     * @param name mapa de nomes por idioma (ex.: {"pt": "...", "en": "..."})
+     * @return nome resolvido ou null
+     */
     private String resolveAmenityName(Map<String, String> name) {
         if (name == null || name.isEmpty()) return null;
         String pt = name.get("pt");
@@ -368,6 +409,14 @@ public class PropertyService {
         return name.values().stream().filter(v -> v != null && !v.isBlank()).findFirst().orElse(null);
     }
 
+    /**
+     * Atualiza parcialmente campos da propriedade e registra mudanças para auditoria.
+     *
+     * @param id ID da propriedade
+     * @param req payload com campos a atualizar (apenas os não nulos são aplicados)
+     * @param actorUserId ID do utilizador “ator” (opcional; usado em auditoria)
+     * @return propriedade atualizada
+     */
     @Transactional
     public Property updateProperty(Long id, UpdatePropertyRequest req, Long actorUserId) {
         Long effectiveActorUserId = resolveActorUserId(actorUserId);
@@ -420,6 +469,12 @@ public class PropertyService {
         return repository.save(p);
     }
 
+    /**
+     * Remove definitivamente uma propriedade e registra a ação no histórico (audit log).
+     *
+     * @param id ID da propriedade
+     * @param actorUserId ID do utilizador “ator” (opcional; usado em auditoria)
+     */
     @Transactional
     public void deleteProperty(Long id, Long actorUserId) {
         Long effectiveActorUserId = resolveActorUserId(actorUserId);
@@ -428,6 +483,16 @@ public class PropertyService {
         recordChange(id, effectiveActorUserId, "DELETE", null, null, null);
     }
 
+    /**
+     * Regista uma alteração no repositório de auditoria {@link PropertyChangeLogRepository}.
+     *
+     * @param propertyId ID da propriedade
+     * @param userId ID do utilizador que efetuou a alteração (pode ser null)
+     * @param action ação executada (ex.: UPDATE/DELETE)
+     * @param field campo alterado (ou null)
+     * @param oldV valor anterior (ou null)
+     * @param newV novo valor (ou null)
+     */
     private void recordChange(Long propertyId, Long userId, String action, String field, String oldV, String newV) {
         PropertyChangeLog logChange = new PropertyChangeLog();
         logChange.setPropertyId(propertyId);
@@ -440,6 +505,12 @@ public class PropertyService {
         changeLogRepository.save(logChange);
     }
 
+    /**
+     * Resolve o userId do “ator” para fins de auditoria.
+     *
+     * @param actorUserId valor explícito (pode ser null)
+     * @return userId resolvido a partir do parâmetro ou do {@link ActorContext}
+     */
     private Long resolveActorUserId(Long actorUserId) {
         if (actorUserId != null) {
             return actorUserId;
@@ -447,10 +518,22 @@ public class PropertyService {
         return ActorContext.get().map(ActorContext.Actor::userId).orElse(null);
     }
 
+    /**
+     * Converte um mapa simples em string para ser armazenada no audit log.
+     *
+     * @param map mapa (pode ser null)
+     * @return string (ou null)
+     */
     private String asString(Map<String, String> map) {
         return map == null ? null : map.toString();
     }
 
+    /**
+     * Obtém o histórico de alterações (audit log) de uma propriedade.
+     *
+     * @param propertyId ID da propriedade
+     * @return lista ordenada por {@code changedAt} desc
+     */
     @Transactional(readOnly = true)
     public List<PropertyChangeLog> getHistory(Long propertyId) {
         findById(propertyId);
@@ -523,7 +606,19 @@ public class PropertyService {
     }
 
     /**
-     * Calcula o preço total de uma estadia para uma propriedade, aplicando regras de sazonalidade.     */    public BigDecimal calculateTotalPrice(Long propertyId, LocalDate checkInDate, LocalDate checkOutDate, String channel) {
+     * Calcula o preço total de uma estadia para uma propriedade, aplicando regras de sazonalidade.
+     *
+     * <p>O cálculo é feito por noite (de {@code checkInDate} inclusive até {@code checkOutDate} exclusive).
+     * Para cada noite, escolhe-se a regra aplicável “mais específica” usando prioridade:
+     * canal &gt; dia da semana &gt; regra genérica.</p>
+     *
+     * @param propertyId ID da propriedade
+     * @param checkInDate data de check-in (inclusive)
+     * @param checkOutDate data de check-out (exclusive)
+     * @param channel canal (opcional; ex.: AIRBNB/BOOKING)
+     * @return preço total calculado
+     */
+    public BigDecimal calculateTotalPrice(Long propertyId, LocalDate checkInDate, LocalDate checkOutDate, String channel) {
         Property property = findById(propertyId);
 
         // Busca todas as regras de sazonalidade que se sobrepõem ao período da reserva
@@ -557,7 +652,12 @@ public class PropertyService {
     }
 
     /**
-     * Define a prioridade de uma regra de sazonalidade.     */    private int getRulePriority(SeasonalityRule rule) {
+     * Define a prioridade de uma regra de sazonalidade.
+     *
+     * @param rule regra a avaliar
+     * @return score de prioridade (maior = mais específica)
+     */
+    private int getRulePriority(SeasonalityRule rule) {
         int priority = 0;
         if (rule.getChannel() != null && !rule.getChannel().isEmpty()) {
             priority += 100;
@@ -570,6 +670,12 @@ public class PropertyService {
 
 
 
+    /**
+     * Converte uma entidade {@link Property} (idealmente expandida) para {@link ExpandedPropertyResponse}.
+     *
+     * @param p propriedade
+     * @return DTO expandido
+     */
     public ExpandedPropertyResponse convertToExpandedDto(Property p) {
         List<String> amenityNames = p.getAmenities().stream()
                 .map(Amenity::getName)
