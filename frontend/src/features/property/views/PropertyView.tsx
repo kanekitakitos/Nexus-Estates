@@ -53,7 +53,7 @@ export function PropertyView({
   const { properties, selectedProperty, isLoading, refresh, deleteProperty } = usePropertyManager(selectedPropertyId)
 
   const [isCreating, setIsCreating] = useState(false)
-  const [detailInitialMode, setDetailInitialMode] = useState<EditMode>("VIEW")
+  const [detailInitialMode, setDetailInitialMode] = useState<EditMode>(() => initialMode ?? "VIEW")
 
   useEffect(() => {
     if (!initialPropertyId) return
@@ -248,7 +248,13 @@ function PropertyDetailScreen({
   onSave: (updated: OwnProperty) => Promise<void>
 }) {
   return (
-    <motion.div key="detail" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+    <motion.div
+      key={`detail:${String(property.id)}:${initialMode ?? "VIEW"}`}
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+    >
       <PropertyManagementRoot property={property} initialMode={initialMode} onBack={onBack} onSave={onSave} />
     </motion.div>
   )
