@@ -14,12 +14,21 @@ import org.springframework.security.web.SecurityFilterChain;
  * Configuração de segurança para o Property Service.
  * Permite acesso aos endpoints de documentação e delega a autenticação para o
  * API Gateway.
+ * @author Nexus Estates Team
+ * @version 1.0
  */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    /**
+     * Configura a cadeia de filtros de segurança (Security Filter Chain) do Spring
+     * @param http O objeto de configuração de segurança HTTP
+     * @param gatewayHeaderAuthenticationFilter O filtro que processa os cabeçalhos vindos do Gateway
+     * @return A cadeia de filtros configurada e pronta a ser utilizada pelo Spring
+     * @throws Exception Caso ocorra um erro durante a configuração
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, GatewayHeaderAuthenticationFilter gatewayHeaderAuthenticationFilter) throws Exception {
         http

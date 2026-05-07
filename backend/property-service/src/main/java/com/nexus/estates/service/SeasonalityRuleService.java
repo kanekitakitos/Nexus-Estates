@@ -49,6 +49,17 @@ public class SeasonalityRuleService {
                 .toList();
     }
 
+
+    /**
+     *Converte uma entidade JPA {@link SeasonalityRule} para o seu respetivo
+     * Data Transfer Object [@link SeasonalityRuleDTO}
+     * <p>
+     *     Garante que a camada web apenas recebe os dados necessários e seguros,
+     *     ocultando detalhes internos da base de dados
+     * </p>
+     * @param rule A entidade de regra de sazonalidade original obtida da base de dados
+     * @return O DTO encapsulando os dados da regra
+     */
     private SeasonalityRuleDTO toDto(SeasonalityRule rule) {
         return new SeasonalityRuleDTO(
                 rule.getId(),

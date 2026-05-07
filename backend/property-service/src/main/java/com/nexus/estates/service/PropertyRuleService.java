@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
  * </p>
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Service
 public class PropertyRuleService {

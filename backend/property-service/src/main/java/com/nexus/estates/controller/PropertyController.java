@@ -472,8 +472,27 @@ public class PropertyController {
         return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
     }
 
+    /**
+     * Limpa uma string para evitar que quebre a estrutura do ficheiro CSV
+     * <p>
+     *     O formato CSV usa o ponto e vírgula (;) como separador de colunas. Este método garante que
+     *     se o nome da casa tiver um ";", ele é substituido por uma vírgula (,) para nãoc riar colunas fantasma
+     * </p>
+     * @param s A string original a ser limpa
+     * @return A string segura para inserção no CSV, ou string vazia se for nula
+     */
     private String safe(String s) { return s == null ? "" : s.replace(";", ","); }
 
+
+    /**
+     * Converte uma entidade Property completa num dicionario (Map) simplificado
+     * <p>
+     *     Útil para construir respostas JSON dinâmicas ou parciais onde não se pretende expor
+     *     a entidade completa da base de dados com as suas relações pesadas
+     * </p>
+     * @param p A propriedade original
+     * @return Um mapa com os atributos principais da propriedade
+     */
     private Map<String, Object> toSummary(Property p) {
         Map<String, Object> m = new java.util.HashMap<>();
         m.put("id", p.getId());
