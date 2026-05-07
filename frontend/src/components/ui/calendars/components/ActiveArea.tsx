@@ -2,11 +2,30 @@ import {Period} from "@/types"
 import {MouseEventHandler, useEffect, useState} from "react";
 
 
-export function ActiveArea({year, month, period, isStart, isEnd, pading_x=0, onClick }
-                           : {year:number, month:number, period: Period, isStart: boolean, isEnd: boolean, pading_x?:number, onClick?: MouseEventHandler<HTMLDivElement> | undefined }
+export function ActiveArea({
+    year,
+    month,
+    period,
+    isStart,
+    isEnd,
+    pading_x = 0,
+    dayWidth = 56,
+    height = 48,
+    top = 8,
+    onClick
+}: {
+    year: number,
+    month: number,
+    period: Period,
+    isStart: boolean,
+    isEnd: boolean,
+    pading_x?: number,
+    dayWidth?: number,
+    height?: number,
+    top?: number,
+    onClick?: MouseEventHandler<HTMLDivElement> | undefined
+}
 ) {
-    const dayWidth = 56; // w-14
-
     let startPos: number = 0
     let duration: number = 0
     if (period.startDay.getMonth() < month && period.endDay.getMonth() > month){
@@ -48,8 +67,8 @@ export function ActiveArea({year, month, period, isStart, isEnd, pading_x=0, onC
             style={{
                 left: `${startPos}px`,
                 width: `${width}px`,
-                height: '48px',
-                top: '8px',
+                height: `${height}px`,
+                top: `${top}px`,
                 zIndex: 5,
                 clipPath: clipPath,
                 // Raio apenas nas extremidades reais da sequência

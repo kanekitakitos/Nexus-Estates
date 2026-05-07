@@ -41,7 +41,7 @@ export function StatCard({
   animatedCount = true,
 }: {
   label: string
-  value: number
+  value: number | string
   color: string
   glowColor: string
   icon: React.ElementType
@@ -49,6 +49,9 @@ export function StatCard({
   index: number
   animatedCount?: boolean
 }) {
+  const displayText = typeof value === "number" ? value.toString() : value
+  const isLong = displayText.length >= 6
+
   return (
     <motion.div
       variants={statCardVariants}
@@ -83,17 +86,22 @@ export function StatCard({
 
         {/* Valor principal */}
         <div className={propertyTokens.ui.stats.valueDividerClass}>
-          <div className="flex items-baseline gap-2">
+          <div className="flex items-baseline gap-3">
             <span
-              className={cn("text-6xl font-black tracking-tighter italic", color)}
+              className={cn(
+                isLong ? "text-5xl tracking-tight" : "text-6xl tracking-tighter",
+                "font-black italic tabular-nums",
+                color
+              )}
               style={{ WebkitTextStroke: propertyTokens.ui.stats.valueStroke }}
             >
-              {animatedCount
-                  ?<AnimatedCounter value={value} />
-                  : value
-              }
+              {animatedCount && typeof value === "number" ? (
+                <AnimatedCounter value={value} />
+              ) : (
+                value
+              )}
             </span>
-            <span className="font-mono text-[11px] font-bold uppercase opacity-40">
+            <span className="font-mono text-sm font-bold uppercase opacity-60">
               {suffix}
             </span>
           </div>

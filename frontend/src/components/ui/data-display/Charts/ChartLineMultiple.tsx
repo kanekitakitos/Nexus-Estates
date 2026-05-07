@@ -1,13 +1,11 @@
 "use client"
 
-import { TrendingUp } from "lucide-react"
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
 
 import {
     Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "@/components/ui/data-display/card"
@@ -43,13 +41,13 @@ const chartConfig = {
 export function ChartLineMultiple({ className, chartData }: { className?: string, chartData: LineChartData[] }) {
 
     return (
-        <BrutalCard className={cn("flex flex-col bg-card", className)}>
-            <CardHeader>
+        <BrutalCard className={cn("flex flex-col bg-card overflow-hidden", className)}>
+            <CardHeader className="pb-3">
                 <CardTitle>Performance de Reservas</CardTitle>
                 <CardDescription>Ocupação vs Lucro Diário</CardDescription>
             </CardHeader>
-            <CardContent>
-                <ChartContainer config={chartConfig}>
+            <CardContent className="flex-1 min-h-0">
+                <ChartContainer config={chartConfig} className="aspect-auto h-full w-full">
                     <LineChart data={chartData} margin={{ left: 0, right: 12 }}>
                         <CartesianGrid vertical={false} strokeDasharray="3 3" />
                         <XAxis
