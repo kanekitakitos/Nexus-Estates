@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Controller responsável por fornecer autenticação para serviços de sincronização em tempo real.
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
  */
 @Slf4j
 @RestController
