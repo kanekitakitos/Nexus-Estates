@@ -41,6 +41,42 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private UserRepository userRepository;
 
+
+    /**
+     * Interceta e processa cada pedido HTTP para validar a autenticação baseada em JWT
+     * <p>
+     *     <b>
+     *         Fluxo de Segurança:
+     *     </b>
+     *     <ol>
+     *         <li>
+     *             Extrai o token JWT do cabeçalho {@code Authorization} (ignorando se não tiver o prefixo "Bearer ")
+     *         </li>
+     *         <li>
+     *             Valida a assinatura e a validade do token através do {@link JwtService}
+     *         </li>
+     *         <li>
+     *             Recupera os detalhes do utilizador (User) na base de dados utilizando o email extraído do token
+     *         </li>
+     *         <li>
+     *             Lê as permissões (roles) injetadas pelo API Gateway através do cabeçalho {@code X-User-Role}
+     *             Caso o cabeçalho falhe ou não venha preenchido, aplica uma lógica de <i>fallback</i>, indo buscar
+     *             a Role atualizada diretamente à base de dados
+     *         </li>
+     *         <li>
+     *             Instancia um {@link UsernamePasswordAuthenticationToken} e guarda-o no contexto do Spring Security ({@link SecurityContextHolder})
+     *         </li>
+     *     </ol>
+     *     Se ocorrer qualquer exceção na validação do token (ex: token expirado ou malformado),
+     *     o erro é capturado silenciosamente e o pedido avança sem autenticação. O bloqueio (HTTP 401/403)
+     *     será depois garantido pelas regras definidas no {@code SecurityConfig}
+     * </p>
+     * @param request O pedido HTTP recebido (com os cabeçalhos do cliente e do Gateway)
+     * @param response
+     * @param filterChain
+     * @throws ServletException
+     * @throws IOException
+     */
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
