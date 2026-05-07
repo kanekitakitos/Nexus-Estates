@@ -2,6 +2,7 @@
 
 import { BrutalButton } from "@/components/ui/forms/button"
 import { Switch } from "@/components/ui/forms/switch"
+import { AnimatePresence, motion } from "framer-motion"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 
 export function DashboardMonthHeader({
@@ -59,25 +60,39 @@ export function DashboardMonthHeader({
         <BrutalButton onClick={onNext}>
           <ArrowRight size={14} />
         </BrutalButton>
-
-        {focusedPropertyLabel ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-xl border-2 border-foreground bg-card/70 px-3 py-2 font-mono text-[10px] font-black uppercase tracking-widest">
-              {focusedPropertyLabel}
-            </div>
-            <BrutalButton
-              variant="brutal-outline"
-              size="xs"
-              onClick={onClearFocus}
-              title="Voltar a ver todas as propriedades"
-            >
-              Ver todas
-            </BrutalButton>
-          </div>
-        ) : null}
       </div>
 
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center justify-end gap-4">
+        <AnimatePresence initial={false}>
+          {focusedPropertyLabel ? (
+            <motion.div
+              className="flex flex-wrap items-center gap-3"
+              initial={{ opacity: 0, y: -6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 320, damping: 22 }}
+            >
+              <div className="max-w-[260px] truncate rounded-xl border-2 border-foreground bg-card/70 px-3 py-2 font-mono text-[10px] font-black uppercase tracking-widest">
+                {focusedPropertyLabel}
+              </div>
+              <motion.div
+                initial={{ scale: 0.96 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 420, damping: 18 }}
+              >
+                <BrutalButton
+                  variant="brutal-outline"
+                  size="xs"
+                  onClick={onClearFocus}
+                  title="Voltar a ver todas as propriedades"
+                >
+                  Ver todas
+                </BrutalButton>
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
         <div className="flex items-center gap-2 rounded-xl border-2 border-foreground/30 bg-card/60 px-3 py-2">
           <Switch
             size="sm"
@@ -94,6 +109,7 @@ export function DashboardMonthHeader({
             size="sm"
             checked={filterWithBookingsOnly}
             onCheckedChange={onFilterWithBookingsOnlyChange}
+            disabled
           />
           <span className="font-mono text-[10px] font-black uppercase tracking-widest">
             Só com reservas

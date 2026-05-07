@@ -23,7 +23,7 @@ export function DashBoardView(){
     const [seasonalityRules, setSeasonalityRules] = useState<SeasonalityRuleDTO[]>([])
     const [isLoadingSeasonality, setIsLoadingSeasonality] = useState(false)
     const [filterActiveOnly, setFilterActiveOnly] = useState(false)
-    const [filterWithBookingsOnly, setFilterWithBookingsOnly] = useState(false)
+    const [filterWithBookingsOnly, setFilterWithBookingsOnly] = useState(true)
 
     // Data (ano e mês) que a dashboard está a analizar
     const [viewDate, setViewDate] = useState<Date>(new Date())
