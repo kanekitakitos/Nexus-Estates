@@ -35,10 +35,33 @@ public interface ChannelConnector {
      */
     boolean callBodiless(ExternalApiConfig config, Object payload);
 
+
+    /**
+     * Publica uma mensagem num canal em tempo real
+     * <p>
+     *     Esta operação é opcial e apenas suportada por conectores especializados
+     *     em evento assíncronos e mensageria
+     * </p>
+     * @param channel O nome do canal de destino da mensagem
+     * @param event O tipo ou nome do evento a publicar
+     * @param message O payload da mensagem (o conteúdo a enviar)
+     * @return {@coden true} se a publicação for processada com sucesso
+     * @throws UnsupportedOperationException Se o conector que implementar esta interface foi apenas HTTP e não suportar pub/sub
+     */
     default boolean publishMessage(String channel, String event, Object message) {
         throw new UnsupportedOperationException("publishMessage não suportado");
     }
 
+    /**
+     * Gera um token de autenticação de cliente para ligações diretas a plataformas externas
+     * <p>
+     *     Útil para devolver credenciais temporárias ao Frontend
+     * </p>
+     * @param userId O identificador do utilizador que solicita a ligação
+     * @param channelId O identificador do canal a que o utilizador precisa de ter acesso
+     * @return O token de autenticação (o formato exato depende do provider utilizado)
+     * @throws UnsupportedOperationException Se o conector não tiver a capacidade de gerar tokens de cliente
+     */
     default Object generateClientToken(String userId, String channelId) {
         throw new UnsupportedOperationException("generateClientToken não suportado");
     }

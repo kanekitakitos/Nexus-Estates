@@ -153,6 +153,14 @@ public class BookingRabbitConfig {
                 .with(bookingCreatedDlqRoutingKey);
     }
 
+
+    /**
+     * Fila dedicada para o consumo de eventos de criação de reservas pelo serviço de Webhooks
+     * <p>
+     *     Evita competir com outros consumidores da mesma exchange e possui DLQ configurada
+     * </p>
+     * @return fila durável para webhooks (booking.created)
+     */
     @Bean
     public Queue bookingWebhooksCreatedQueue() {
         return QueueBuilder
@@ -162,6 +170,11 @@ public class BookingRabbitConfig {
                 .build();
     }
 
+
+    /**
+     * Dead Letter Queue (DLQ) para os eventos de criação de reservas destiandos aos Webhooks
+     * @return fila durável dedicada á DLQ
+     */
     @Bean
     public Queue bookingWebhooksCreatedDlqQueue() {
         return QueueBuilder
@@ -169,6 +182,12 @@ public class BookingRabbitConfig {
                 .build();
     }
 
+    /**
+     * Binding entre a fila de webhooks (criação) e a exchange principal
+     * @param bookingWebhooksCreatedQueue fila alvo
+     * @param bookingExchange exchange fonte
+     * @return binding configurado com routing-key
+     */
     @Bean
     public Binding bookingWebhooksCreatedBinding(Queue bookingWebhooksCreatedQueue, TopicExchange bookingExchange) {
         return BindingBuilder
@@ -177,6 +196,13 @@ public class BookingRabbitConfig {
                 .with(bookingCreatedRoutingKey);
     }
 
+
+    /**
+     * Binding enrte a DLQ de webhooks (criação) e a Dead Letter Exchange
+     * @param bookingWebhooksCreatedDlqQueue fila DLQ
+     * @param bookingDeadLetterExchange DLX
+     * @return binding configurado para falhas
+     */
     @Bean
     public Binding bookingWebhooksCreatedDlqBinding(Queue bookingWebhooksCreatedDlqQueue, TopicExchange bookingDeadLetterExchange) {
         return BindingBuilder
@@ -241,6 +267,11 @@ public class BookingRabbitConfig {
                 .with(bookingStatusUpdatedDlqRoutingKey);
     }
 
+
+    /**
+     * Fila dedicada para o consumo de eventos de atualização de estado pelo serviço de Webhooks
+     * @return fila durável com argumentos de DLX
+     */
     @Bean
     public Queue bookingWebhooksStatusUpdatedQueue() {
         return QueueBuilder
@@ -250,6 +281,11 @@ public class BookingRabbitConfig {
                 .build();
     }
 
+
+    /**
+     * Dead Letter Queue (DLQ) para eventos de atualização de estado destinados aos Webhooks
+     * @return fila durável dedicada á DLQ
+     */
     @Bean
     public Queue bookingWebhooksStatusUpdatedDlqQueue() {
         return QueueBuilder
@@ -257,6 +293,13 @@ public class BookingRabbitConfig {
                 .build();
     }
 
+
+    /**
+     * Binding entre a fila de webhooks (status updated) e a exchange principal
+     * @param bookingWebhooksStatusUpdatedQueue fila alvo
+     * @param bookingExchange exchange fonte
+     * @return binding configurado
+     */
     @Bean
     public Binding bookingWebhooksStatusUpdatedBinding(Queue bookingWebhooksStatusUpdatedQueue, TopicExchange bookingExchange) {
         return BindingBuilder
@@ -265,6 +308,13 @@ public class BookingRabbitConfig {
                 .with(bookingStatusUpdatedRoutingKey);
     }
 
+
+    /**
+     * Binding entre a DLQ de webhooks (status updated) e a Dead Letter Exchange
+     * @param bookingWebhooksStatusUpdatedDlqQueue fila DLQ alvo
+     * @param bookingDeadLetterExchange DLX
+     * @return configurado para falhas
+     */
     @Bean
     public Binding bookingWebhooksStatusUpdatedDlqBinding(Queue bookingWebhooksStatusUpdatedDlqQueue, TopicExchange bookingDeadLetterExchange) {
         return BindingBuilder

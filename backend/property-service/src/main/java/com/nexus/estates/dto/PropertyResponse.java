@@ -23,6 +23,7 @@ import java.util.Map;
  * @param isActive Estado do anúncio.
  *
  * @author Nexus Estates Team
+ * @version 1.0
  */
 @Schema(description = "Resposta detalhada de uma propriedade imobiliária")
 public record PropertyResponse(

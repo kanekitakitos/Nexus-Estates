@@ -4,6 +4,25 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.util.Map;
 
+/**
+ * DTO utilizado para a atualização parcial (PATCH/PUT) dos dados de uma propriedade
+ * <p>
+ *     Todos os campos são opcionais. Apenas os campos fornecidos na requisição (não nulos)
+ *     serão processados e atualizados na base de dados. Isto permite atualizar apenas o preço ou apenas o título sem ter de enviar o objeto inteiro
+ * </p>
+ * @param title O niovo título do anúncio (opcional)
+ * @param description O novo mapa de descrições multi-idioma (opcional)
+ * @param location A nova região ou localização geral (opcional)
+ * @param city A nova cidade (opcional)
+ * @param address A nova morada compelta (opcional)
+ * @param basePrice O novo preço base cobrado por noite (opcional)
+ * @param maxGuests A nova lotação máxima permitida (opcional)
+ * @param isActive O novo estado de visibilidade do anúncio (opcional)
+ * @param imageUrl O novo URL da imagem da capa (opcional)
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
+ */
 @Schema(description = "Payload para atualização parcial de uma propriedade (PATCH). Campos nulos não são alterados.")
 public record UpdatePropertyRequest(
         @Schema(description = "Novo título do anúncio", example = "Apartamento Premium no Chiado")

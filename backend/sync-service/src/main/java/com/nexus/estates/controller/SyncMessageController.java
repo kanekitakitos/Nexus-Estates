@@ -28,6 +28,9 @@ import java.util.List;
  * Fornece endpoints para recuperar o histórico de mensagens e enviar novas mensagens,
  * garantindo a persistência local e a sincronização em tempo real via {@link ChatPlatform}.
  * </p>
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
  */
 @Slf4j
 @RestController

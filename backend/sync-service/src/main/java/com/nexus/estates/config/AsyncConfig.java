@@ -30,6 +30,14 @@ public class AsyncConfig {
     private int queueSize = 100;
 
 
+    /**
+     * Define o executor de tarefas padrão para operações assíncronas
+     * <p>
+     *     Configura um {@link ThreadPoolTaskExecutor} com prefixo de nome de thread
+     *     personalizado para facilitar o rastreio em logs e monitorização
+     * </p>
+     * @return Uma instância de {@link Executor} configurada com o pool de threads
+     */
     @Bean(name = "taskExecutor")
     public Executor taskExecutor()
     {

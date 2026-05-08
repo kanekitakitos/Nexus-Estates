@@ -12,15 +12,12 @@ import java.time.LocalDateTime;
 /**
  * Entidade que representa uma mensagem de chat persistida no sync-service.
  * <p>
- * Armazena o histórico de conversas localmente para garantir persistência permanente,
- * independente da política de retenção do serviço de tempo real externo.
+ *     Armazena o histórico de conversas localmente para garantir persistência permanente,
+ *     independente da política de retenção do serviço de tempo real externo
  * </p>
  *
- * <p>Modelo:</p>
- * <ul>
- *   <li>{@code contextType/contextId} identificam a thread (BOOKING, PROPERTY_INQUIRY, ...).</li>
- *   <li>{@code bookingId} é um campo legado para compatibilidade/migração.</li>
- * </ul>
+ * @author Nexus Estates Team
+ * @version 1.0
  */
 
 @Entity

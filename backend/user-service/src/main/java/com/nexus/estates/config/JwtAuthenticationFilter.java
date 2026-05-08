@@ -41,6 +41,42 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private UserRepository userRepository;
 
+
+    /**
+     * Interceta e processa cada pedido HTTP para validar a autenticação baseada em JWT
+     * <p>
+     *     <b>
+     *         Fluxo de Segurança:
+     *     </b>
+     *     <ol>
+     *         <li>
+     *             Extrai o token JWT do cabeçalho {@code Authorization} (ignorando se não tiver o prefixo "Bearer ")
+     *         </li>
+     *         <li>
+     *             Valida a assinatura e a validade do token através do {@link JwtService}
+     *         </li>
+     *         <li>
+     *             Recupera os detalhes do utilizador (User) na base de dados utilizando o email extraído do token
+     *         </li>
+     *         <li>
+     *             Lê as permissões (roles) injetadas pelo API Gateway através do cabeçalho {@code X-User-Role}
+     *             Caso o cabeçalho falhe ou não venha preenchido, aplica uma lógica de <i>fallback</i>, indo buscar
+     *             a Role atualizada diretamente à base de dados
+     *         </li>
+     *         <li>
+     *             Instancia um {@link UsernamePasswordAuthenticationToken} e guarda-o no contexto do Spring Security ({@link SecurityContextHolder})
+     *         </li>
+     *     </ol>
+     *     Se ocorrer qualquer exceção na validação do token (ex: token expirado ou malformado),
+     *     o erro é capturado silenciosamente e o pedido avança sem autenticação. O bloqueio (HTTP 401/403)
+     *     será depois garantido pelas regras definidas no {@code SecurityConfig}
+     * </p>
+     * @param request O pedido HTTP recebido (com os cabeçalhos do cliente e do Gateway)
+     * @param response A resposta HTTP a ser enviada
+     * @param filterChain A cadeia de filtros do Spring Security para dar continuidade ao processamento
+     * @throws ServletException Se ocorrer um erro interno durante a execução da cadeia de filtros
+     * @throws IOException Se ocorrer um erro de entrada/saída
+     */
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -141,6 +177,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 
+
+    /**
+     * Resolve a entidade do utilizador de forma segura a partir do cabeçalho HTTP de ID
+     * <p>
+     *     Tenta converter o valor do cabeçalho (injetado pelo API Gateway) para um valor numérico (Long)
+     *     e pesquisa o utilizador correspondente na base de dados. O uso do bloco try-catch
+     *     garante que valores mal formatados ou corrompidos não originem um {@code NumberFormatException},
+     *     devolvendo um valor nulo de forma silenciosa para que a cadeia de filtros continue em segurança
+     * </p>
+     * @param userIdHeader O valor bruto do cabeçalho HTTP
+     * @return A entidade {@link com.nexus.estates.entity.User} caso seja encontrada, ou {@code null} se o ID for inválido ou não existir
+     */
     private com.nexus.estates.entity.User resolveByUserIdHeader(String userIdHeader) {
         try {
             long id = Long.parseLong(userIdHeader);
