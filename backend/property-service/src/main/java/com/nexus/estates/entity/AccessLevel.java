@@ -8,7 +8,6 @@ package com.nexus.estates.entity;
  * STAFF         → Acesso limitado
  *
  * @author Nexus Estates Team
- * @version 1.0
  */
 public enum AccessLevel {
     PRIMARY_OWNER,

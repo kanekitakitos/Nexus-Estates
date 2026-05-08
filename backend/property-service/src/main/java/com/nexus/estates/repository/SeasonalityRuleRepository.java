@@ -18,7 +18,6 @@ import java.util.List;
  * </p>
  *
  * @author Nexus Estates Team
- * @version 1.0
  */
 @Repository
 public interface SeasonalityRuleRepository extends JpaRepository<SeasonalityRule, Long> {

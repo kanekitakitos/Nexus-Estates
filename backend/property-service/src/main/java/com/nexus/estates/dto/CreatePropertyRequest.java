@@ -22,7 +22,6 @@ import java.util.Set;
  * @param amenityIds  Conjunto de IDs das comodidades (Amenities) a associar à propriedade.
  *
  * @author Nexus Estates Team
- * @version 1.0
  */
 @Schema(description = "Payload para criação de uma nova propriedade imobiliária")
 public record CreatePropertyRequest(

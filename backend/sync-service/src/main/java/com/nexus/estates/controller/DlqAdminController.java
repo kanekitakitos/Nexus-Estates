@@ -31,9 +31,6 @@ import java.util.List;
  * expostos diretamente a clientes finais. Servem para inspecionar mensagens que foram
  * encaminhadas para DLQ devido a erros de processamento ou payloads inválidos.
  * </p>
- *
- * @author Nexus Estates Team
- * @version 1.0
  */
 @RestController
 @RequestMapping("/api/sync/admin/dlq")

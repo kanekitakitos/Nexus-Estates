@@ -10,12 +10,9 @@ import java.util.List;
 /**
  * Repositório JPA para a entidade {@link Message}.
  * <p>
- *     Fornece os métodos de acesso á base de dados para persistir e recuperar o
- *     histórico permanente de mensagens de chat entre utilizadores do sistema
+ * Fornece métodos para persistir e recuperar o histórico de mensagens de chat.
  * </p>
- *
- * @author Nexus Estates Team
- * @version 1.0
+ * Para interagir com a Tabela
  */
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {

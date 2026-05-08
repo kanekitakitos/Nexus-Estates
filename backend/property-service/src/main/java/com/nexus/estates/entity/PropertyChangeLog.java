@@ -3,19 +3,6 @@ package com.nexus.estates.entity;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 
-/**
- * Entidade que representa o registo histórico de alterações (Auditorria) de uma propriedade
- * <p>
- *     Armazena de forma granular as modificações feitas aos atributos de um imóvel,
- *     permitindo rastrear quem fez a alteração, quando ocorreu, e qual era o valor antes e depois da modificação
- *     É essencial para a resolução de disputas e garante total transparência na gestão
- * </p>
- *
- * @author Nexus Estates Team
- * @version 1.0
- */
-
-//Getter e Setters
 @Entity
 @Table(name = "property_change_logs")
 public class PropertyChangeLog {
