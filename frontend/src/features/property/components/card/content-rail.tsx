@@ -1,3 +1,10 @@
+/**
+ * @file content-rail.tsx
+ * @author Nexus Estates team
+ * @description Layout de conteúdo do cartão de propriedade na variante 'inventoryRail' (lista compacta/lateral).
+ *              Apresenta a informação essencial de forma ultra-compacta.
+ */
+
 "use client"
 
 import { cn } from "@/lib/utils"

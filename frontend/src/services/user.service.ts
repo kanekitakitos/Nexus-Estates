@@ -1,3 +1,9 @@
+/**
+ * @file user.service.ts
+ * @author Nexus Estates team
+ * @description Serviço responsável pela gestão de perfis de utilizador (consultar perfis, atualizar dados de contacto, mudança de password).
+ */
+
 import { usersAxios } from "@/lib/axiosAPI"
 import type { AxiosError } from "axios"
 import { notify } from "@/lib/notify"

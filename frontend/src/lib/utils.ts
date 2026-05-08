@@ -1,3 +1,9 @@
+/**
+ * @file utils.ts
+ * @author Nexus Estates team
+ * @description Utilitários de uso geral na aplicação.
+ */
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 

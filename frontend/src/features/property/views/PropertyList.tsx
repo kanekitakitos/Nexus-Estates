@@ -1,3 +1,10 @@
+/**
+ * @file PropertyList.tsx
+ * @author Nexus Estates team
+ * @description Componentes de visualização em lista das propriedades.
+ *              Inclui a grelha (Grid) e a vista em barra (Rail), bem como a gestão dos filtros e paginação.
+ */
+
 "use client"
 
 import { motion } from "framer-motion"
@@ -11,6 +18,9 @@ import { PropertyStats } from "../components/property-stats"
 import { ListHeader } from "../components/list-header"
 import { EmptyState, SkeletonLoader } from "../components/list-feedback"
 
+/**
+ * Propriedades esperadas para a listagem de propriedades.
+ */
 export interface PropertyListProps {
   variant?: PropertyListVariant
   addNewProperty?: boolean
@@ -22,6 +32,9 @@ export interface PropertyListProps {
   isLoading?: boolean
 }
 
+/**
+ * Sub-componente responsável por renderizar a lista de propriedades num formato de grelha de cartões (Grid).
+ */
 function AssetGrid({
   items,
   onSelect,
@@ -57,6 +70,9 @@ function AssetGrid({
   )
 }
 
+/**
+ * Sub-componente responsável por renderizar a lista de propriedades num formato vertical compacto (Rail).
+ */
 function InventoryRailView({
   items,
   onAdd,
@@ -74,6 +90,7 @@ function InventoryRailView({
 }) {
   return (
     <div className="h-full flex flex-col pt-4 overflow-hidden">
+      {/* Botão de adicionar nova propriedade, exibido se showAdd for verdadeiro */}
       {showAdd && (
         <button
           onClick={onAdd}
@@ -98,8 +115,13 @@ function InventoryRailView({
   )
 }
 
+/**
+ * Componente principal que engloba toda a funcionalidade da lista de propriedades.
+ * Inclui os filtros, as estatísticas, os estados de carregamento e as propriedades propriamente ditas.
+ */
 export function PropertyList({ variant = "CARDS", properties = [], ...props }: PropertyListProps) {
   const items = properties
+  // Hook customizado que lida com o estado e a lógica de filtragem das propriedades
   const { filters, updateFilter, filteredProperties } = usePropertyFilters(items)
   const setFilter = updateFilter as (key: string, value: string | boolean | number) => void
 
@@ -141,6 +163,9 @@ export function PropertyList({ variant = "CARDS", properties = [], ...props }: P
   )
 }
 
+/**
+ * Componente utilitário que renderiza a lista no modo BARS diretamente.
+ */
 export function PropertyListBars(props: PropertyListProps) {
   return <PropertyList {...props} variant="BARS" />
 }

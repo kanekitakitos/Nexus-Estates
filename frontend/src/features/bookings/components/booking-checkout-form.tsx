@@ -1,3 +1,11 @@
+/**
+ * @file booking-checkout-form.tsx
+ * @author Nexus Estates team
+ * @description Formulário de checkout para criação de uma reserva.
+ *              Implementa um fluxo de "single-page scroll" com secções progressivas (Dados, Identificação, Revisão, Pagamento).
+ *              Inclui validação de dados com Zod e React Hook Form, bem como integração com serviços de pagamento (Stripe).
+ */
+
 "use client"
 
 /**

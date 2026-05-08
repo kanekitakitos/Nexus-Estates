@@ -1,3 +1,10 @@
+/**
+ * @file content-grid.tsx
+ * @author Nexus Estates team
+ * @description Layout de conteúdo do cartão de propriedade na variante 'grid' (grelha).
+ *              Mostra o título, estado, preço, localização e ação de editar com um layout em grelha.
+ */
+
 "use client"
 
 import { MapPin, Users2, Pencil } from "lucide-react"

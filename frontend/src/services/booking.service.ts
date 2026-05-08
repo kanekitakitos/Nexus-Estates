@@ -1,3 +1,9 @@
+/**
+ * @file booking.service.ts
+ * @author Nexus Estates team
+ * @description Serviço responsável pelas operações relacionadas com reservas (Bookings), comunicando com o API Gateway.
+ */
+
 import { bookingsAxios } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import { notify } from "@/lib/notify";

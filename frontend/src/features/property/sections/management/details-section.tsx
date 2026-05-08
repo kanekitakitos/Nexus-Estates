@@ -1,3 +1,11 @@
+/**
+ * @file details-section.tsx
+ * @author Nexus Estates team
+ * @description Secção de edição detalhada de uma propriedade.
+ *              Inclui os painéis para atualizar a Identidade (título, preço, descrição), Média (imagem, destaque), 
+ *              Estado Operacional, Logística (localização) e Zona de Exclusão (remover propriedade).
+ */
+
 "use client"
 
 import { useState } from "react"

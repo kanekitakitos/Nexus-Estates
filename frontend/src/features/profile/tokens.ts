@@ -1,3 +1,10 @@
+/**
+ * @file tokens.ts
+ * @author Nexus Estates team
+ * @description Tokens de design e textos específicos do módulo de perfil.
+ *              Inclui estilos visuais e textos para formulários, painéis de webhooks e integrações.
+ */
+
 export const profileTokens = {
   ui: {
     theme: {

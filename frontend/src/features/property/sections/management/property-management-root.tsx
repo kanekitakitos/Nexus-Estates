@@ -1,3 +1,11 @@
+/**
+ * @file property-management-root.tsx
+ * @author Nexus Estates team
+ * @description Componente orquestrador da gestão detalhada de uma propriedade.
+ *              Gere o estado local (draft) do ativo, permitindo alternar entre os modos de Visualização (VIEW),
+ *              Edição de Dados (EDIT) e Regras/Protocolos (RULES). Inclui lógica para guardar ou descartar alterações.
+ */
+
 "use client"
 
 import { useEffect, useState } from "react"

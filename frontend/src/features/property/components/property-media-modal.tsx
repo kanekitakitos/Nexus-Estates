@@ -1,3 +1,10 @@
+/**
+ * @file property-media-modal.tsx
+ * @author Nexus Estates team
+ * @description Componente de modal para visualização das imagens de uma propriedade em ecrã inteiro.
+ *              Inclui controlos de navegação (anterior/seguinte), suporte para teclado e metadados da imagem atual.
+ */
+
 "use client"
 
 import { useState, useEffect, useCallback, useSyncExternalStore } from "react"

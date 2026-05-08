@@ -1,3 +1,10 @@
+/**
+ * @file tokens.ts
+ * @author Nexus Estates team
+ * @description Tokens de design e textos (copy) específicos para o módulo de autenticação.
+ *              Centraliza mensagens, etiquetas e textos de formulários.
+ */
+
 export const authTokens = {
   copy: {
     login: {

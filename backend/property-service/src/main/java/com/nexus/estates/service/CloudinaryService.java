@@ -16,9 +16,6 @@ import java.util.TreeMap;
  * Serviço responsável pela integração com o Cloudinary.
  * <p>Gera assinaturas de segurança para permitir que o frontend faça upload
  * de imagens diretamente para a nuvem.</p>
- *
- * @author Nexus Estates Team
- * @version 1.0
  */
 @Service
 public class CloudinaryService implements ImageStorageService {
@@ -29,17 +26,6 @@ public class CloudinaryService implements ImageStorageService {
     private final boolean fetchEnabled;
     private final String fetchTransform;
 
-    /**
-     * Construtor do serviço de integração com o Cloudinary
-     * <p>
-     *     Inicializa o cliente oficial do Cloudinary utilizando as credenciais injetadas
-     *     pelo Spring a aprtir do ficheiro de propriedades (application.properties)
-     * </p>
-     * @param cloudName O nome da cloud atribuido pela conta Cloudinary
-     * @param apiKey A chave pública de acesso á API
-     * @param apiSecret A chave privada e secreta da API (nunca exposta ao fronted)
-     * @param folderPath A pasta de destino na cloud onde as imagens serão guardadas
-     */
     public CloudinaryService(
             String cloudName,
             String apiKey,

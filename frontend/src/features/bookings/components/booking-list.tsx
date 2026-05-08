@@ -1,3 +1,11 @@
+/**
+ * @file booking-list.tsx
+ * @author Nexus Estates team
+ * @description Grelha de listagem de propriedades disponíveis para reserva.
+ *              Gere a renderização de múltiplos cartões (`BookingCard`), injeta o componente informativo
+ *              `BookingHowItWorks` numa posição específica e exibe um estado vazio (`EmptyState`) caso não existam resultados.
+ */
+
 "use client"
 
 /**

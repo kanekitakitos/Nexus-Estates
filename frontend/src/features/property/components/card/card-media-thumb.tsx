@@ -1,3 +1,10 @@
+/**
+ * @file card-media-thumb.tsx
+ * @author Nexus Estates team
+ * @description Componente da imagem miniatura para o cartão de propriedade.
+ *              Adapta as dimensões e elementos sobrepostos (como a badge de destaque) com base no modo de visualização.
+ */
+
 "use client"
 
 import { Star } from "lucide-react"

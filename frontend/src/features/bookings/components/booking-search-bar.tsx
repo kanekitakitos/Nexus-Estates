@@ -1,3 +1,11 @@
+/**
+ * @file booking-search-bar.tsx
+ * @author Nexus Estates team
+ * @description Barra de pesquisa de propriedades.
+ *              Inclui secções para destino, datas (check-in/out), número de hóspedes e limite de preço,
+ *              com dropdowns e popovers adaptados para mobile.
+ */
+
 "use client"
 
 /**

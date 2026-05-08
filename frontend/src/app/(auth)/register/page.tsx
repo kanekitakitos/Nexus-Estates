@@ -1,3 +1,9 @@
+/**
+ * @file page.tsx
+ * @author Nexus Estates team
+ * @description Página de registo (rota /register). Renderiza o formulário para criação de conta.
+ */
+
 import { FieldDescription } from "@/components/ui/forms/field"
 import { RegisterForm } from "@/features/auth"
 

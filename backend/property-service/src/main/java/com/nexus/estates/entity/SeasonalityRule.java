@@ -25,7 +25,6 @@ import java.time.LocalDate;
  * </p>
  *
  * @author Nexus Estates Team
- * @version 1.0
  */
 @Entity
 @Table(name = "seasonality_rules")

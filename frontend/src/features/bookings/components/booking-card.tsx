@@ -1,3 +1,10 @@
+/**
+ * @file booking-card.tsx
+ * @author Nexus Estates team
+ * @description Cartão visual (BookingCard) para representar uma propriedade disponível na listagem de reservas.
+ *              Inclui imagem, título, localização, preço, tags e um botão (CTA) para avançar para a reserva.
+ */
+
 "use client"
 
 /**

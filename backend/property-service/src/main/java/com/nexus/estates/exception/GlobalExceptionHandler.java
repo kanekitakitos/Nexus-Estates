@@ -19,19 +19,10 @@ import java.util.stream.Collectors;
 /**
  * Gestor global de exceções para o Property Service.
  * Captura erros e retorna uma resposta JSON amigável em vez de um erro 500 genérico.
- *
- * @author Nexus Estates Team
- * @version 1.0
  */
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-
-    /**
-     * Trata os casos em que uma propriedade procurada não existe
-     * @param ex A exceção lançada pelo serviço
-     * @return Uma resposta HTTP 404 (Not Found) contendo a timestamp e a mensagem de erro
-     */
     @ExceptionHandler(PropertyNotFoundException.class)
     public ResponseEntity<Object> handlePropertyNotFound(PropertyNotFoundException ex) {
         Map<String, Object> body = new HashMap<>();
@@ -40,11 +31,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
     }
 
-    /**
-     * Trata os casos em que uma comodidade pesquisada não é encontrada
-     * @param ex A exceção original
-     * @return Uma resposta HTTP 404 (Not Found) formatada
-     */
     @ExceptionHandler(AmenityNotFoundException.class)
     public ResponseEntity<Object> handleAmenityNotFound(AmenityNotFoundException ex) {
         Map<String, Object> body = new HashMap<>();
@@ -53,11 +39,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
     }
 
-    /**
-     * Interceta tentativas de acesso a recursos sem as devidas permissões (Roles /Ownership)
-     * @param ex A exceção de segurança do Spring
-     * @return Uma resposta HTTP 403 (Forbidden) avisando que o acesso foi negado
-     */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Object> handleAccessDenied(AccessDeniedException ex) {
         Map<String, Object> body = new HashMap<>();
@@ -67,11 +48,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
     }
 
-    /**
-     * Trata erros de validação genéricos ou regras de negócio violadas
-     * @param ex A exceção indicando o argumento ilegal
-     * @return Uma resposta HTTP 400 (Bad Request)
-     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Object> handleIllegalArgument(IllegalArgumentException ex) {
         Map<String, Object> body = new HashMap<>();
@@ -81,14 +57,56 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Rede de segurança (Fallbak) para todas as exceções não previstas
-     * <p>
-     *     Garante que erros críticos de sistema (NullPointers, problemas de Base de Dados)
-     *     nunca expõem a infraestrututra interna ao cliente
-     * </p>
-     * @param ex A exceção inesperada
-     * @return Uma resposta HTTP 500 (Internal Server Error) com uma mensagem genérica de segurança
+     * Trata falhas de validação de payload (ex.: @Valid em @RequestBody).
+     *
+     * <p>Mapeia {@link MethodArgumentNotValidException} para HTTP 400, devolvendo uma lista de erros
+     * por campo para consumo direto em UI e testes.</p>
      */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("message", "Pedido inválido.");
+
+        List<Map<String, String>> errors = ex.getBindingResult().getFieldErrors().stream()
+                .map(err -> {
+                    Map<String, String> m = new HashMap<>();
+                    m.put("field", err.getField());
+                    m.put("message", err.getDefaultMessage());
+                    return m;
+                })
+                .collect(Collectors.toList());
+
+        body.put("errors", errors);
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Trata falhas de validação ao nível de constraints (ex.: @Min em query/path params).
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Object> handleConstraintViolation(ConstraintViolationException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("message", "Pedido inválido.");
+        body.put("details", ex.getConstraintViolations().stream()
+                .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+                .collect(Collectors.toList()));
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Trata payloads malformados (JSON inválido, tipos incompatíveis, etc.) como 400.
+     */
+    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<Object> handleBadRequest(Exception ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("message", "Pedido inválido.");
+        body.put("details", ex.getMessage());
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneralException(Exception ex) {
         Map<String, Object> body = new HashMap<>();

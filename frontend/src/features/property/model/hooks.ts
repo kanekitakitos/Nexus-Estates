@@ -1,3 +1,10 @@
+/**
+ * @file hooks.ts
+ * @author Nexus Estates team
+ * @description Hooks React customizados que encapsulam a lógica de negócio do módulo de propriedades.
+ *              Inclui gestão de estado para a lista de propriedades, filtros, catálogo de comodidades e lógica de formulários/wizard.
+ */
+
 "use client"
 
 import { useState, useMemo, useCallback, useEffect } from "react"

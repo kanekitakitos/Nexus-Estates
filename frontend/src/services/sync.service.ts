@@ -1,3 +1,9 @@
+/**
+ * @file sync.service.ts
+ * @author Nexus Estates team
+ * @description Serviço responsável pela comunicação em tempo real, chat (mensagens) e sincronização de dados externos (webhooks).
+ */
+
 import { syncAxios } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import { notify } from "@/lib/notify";

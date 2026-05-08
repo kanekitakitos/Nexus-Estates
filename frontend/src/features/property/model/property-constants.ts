@@ -1,3 +1,11 @@
+/**
+ * @file property-constants.ts
+ * @author Nexus Estates team
+ * @description Constantes de configuração e definição de tipos para propriedades.
+ *              Inclui configurações de status operacionais (cores, labels), mapeamento de variantes de cartões
+ *              e configurações visuais para categorias de comodidades.
+ */
+
 export const STATUS_CONFIG = {
   AVAILABLE: {
     bg: "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-500/5",

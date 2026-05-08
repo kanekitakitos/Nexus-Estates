@@ -1,3 +1,10 @@
+/**
+ * @file list-feedback.tsx
+ * @author Nexus Estates team
+ * @description Componentes de feedback visual para a lista de propriedades.
+ *              Inclui o estado vazio (EmptyState) quando não há resultados e o carregador em esqueleto (SkeletonLoader).
+ */
+
 "use client"
 
 import { motion } from "framer-motion"

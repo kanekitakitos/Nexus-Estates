@@ -1,5 +1,8 @@
 /**
- * Tipos do módulo de autenticação.
+ * @file auth.ts
+ * @author Nexus Estates team
+ * @description Tipos do módulo de autenticação.
+ *              Inclui os formatos das respostas e pedidos de login, registo, e recuperação de senha.
  *
  * Origem backend (API Gateway):
  * - POST /api/users/auth/login

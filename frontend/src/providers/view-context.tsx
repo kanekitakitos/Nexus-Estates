@@ -1,3 +1,10 @@
+/**
+ * @file view-context.tsx
+ * @author Nexus Estates team
+ * @description Contexto React (Provider) para gestão da view atual (dashboard vs propriedades)
+ *              e da propriedade atualmente selecionada pelo utilizador.
+ */
+
 "use client"
 import { createContext, useContext, useState, ReactNode } from "react"
 

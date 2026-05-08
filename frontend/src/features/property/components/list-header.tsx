@@ -1,3 +1,10 @@
+/**
+ * @file list-header.tsx
+ * @author Nexus Estates team
+ * @description Componente de cabeçalho para a listagem de propriedades.
+ *              Apresenta o título, subtítulo e a ação de adicionar uma nova propriedade.
+ */
+
 "use client"
 
 import { motion } from "framer-motion"

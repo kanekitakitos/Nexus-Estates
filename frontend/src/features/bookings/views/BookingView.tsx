@@ -1,3 +1,11 @@
+/**
+ * @file BookingView.tsx
+ * @author Nexus Estates team
+ * @description Vista principal do módulo de reservas.
+ *              Gere o fluxo completo de uma reserva, navegando entre a listagem (BookingList),
+ *              os detalhes da propriedade (BookingDetails) e o checkout (BookingCheckoutForm), sem mudar de rota.
+ */
+
 "use client"
 
 /**

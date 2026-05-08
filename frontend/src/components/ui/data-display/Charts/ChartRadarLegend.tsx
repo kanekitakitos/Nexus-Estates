@@ -1,13 +1,10 @@
 "use client"
 
-import { TrendingUp } from "lucide-react"
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts"
 
 import {
-    Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "@/components/ui/data-display/card"
@@ -21,6 +18,7 @@ import {
     type ChartConfig,
 } from "@/components/ui/data-display/Charts/chart"
 import {useMemo} from "react";
+import { cn } from "@/lib/utils";
 
 export const description = "A radar chart with a legend"
 
@@ -42,7 +40,13 @@ const chartConfig = {
     },
 } satisfies ChartConfig
 
-export function ChartRadarLegend({chartData} : { chartData:RadarChartData[] }) {
+export function ChartRadarLegend({
+    chartData,
+    className,
+} : {
+    chartData:RadarChartData[]
+    className?: string
+}) {
 
     // Normalizar os dados
     const processedData = useMemo(() => {
@@ -61,17 +65,17 @@ export function ChartRadarLegend({chartData} : { chartData:RadarChartData[] }) {
     }, [chartData]);
 
     return (
-        <BrutalCard className={"bg-card"}>
+        <BrutalCard className={cn("flex flex-col bg-card overflow-hidden", className)}>
             <CardHeader className="items-center">
                 <CardTitle>Radar Chart - Legend</CardTitle>
                 <CardDescription>
                     Showing total visitors for the last 6 months
                 </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 min-h-0 flex items-center justify-center">
                 <ChartContainer
                     config={chartConfig}
-                    className="mx-auto aspect-square max-h-[250px]"
+                    className="mx-auto aspect-square h-full w-full"
                 >
                     <RadarChart
                         data={processedData}
@@ -126,14 +130,6 @@ export function ChartRadarLegend({chartData} : { chartData:RadarChartData[] }) {
                     </RadarChart>
                 </ChartContainer>
             </CardContent>
-            <CardFooter className="flex-col gap-2 pt-4 text-sm">
-                <div className="flex items-center gap-2 leading-none font-medium">
-                    Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
-                </div>
-                <div className="flex items-center gap-2 leading-none text-muted-foreground">
-                    January - June 2024
-                </div>
-            </CardFooter>
         </BrutalCard>
     )
 }

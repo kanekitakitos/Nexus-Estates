@@ -1,3 +1,11 @@
+/**
+ * @file profile-view.tsx
+ * @author Nexus Estates team
+ * @description Vista principal da gestão de perfil do utilizador.
+ *              Inclui componentes para atualizar dados de contacto, alterar a senha, gerir integrações (APIs/Webhooks)
+ *              e lidar com estados de loading e erro.
+ */
+
 "use client"
 
 import React, { useState, useCallback, useEffect } from "react"

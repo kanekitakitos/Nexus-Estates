@@ -1,3 +1,11 @@
+/**
+ * @file rules-section.tsx
+ * @author Nexus Estates team
+ * @description Secção de regras e protocolos operacionais de uma propriedade.
+ *              Inclui os painéis para gerir horários de check-in/out, regras de sazonalidade (multiplicadores de preço)
+ *              e colaboradores associados (permissões de acesso).
+ */
+
 "use client"
 
 import { Clock, Calendar, Sun, Plus, Trash2, HelpCircle, Sparkles, ShieldCheck, Save } from "lucide-react"

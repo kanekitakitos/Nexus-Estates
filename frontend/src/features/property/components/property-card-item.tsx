@@ -1,3 +1,10 @@
+/**
+ * @file property-card-item.tsx
+ * @author Nexus Estates team
+ * @description Componente raiz do cartão de propriedade.
+ *              É responsável por compor os subcomponentes de apresentação (imagem e detalhes) consoante o layout desejado (grelha, lista compacta, ou portfólio).
+ */
+
 "use client"
 
 import { motion } from "framer-motion"

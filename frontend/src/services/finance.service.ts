@@ -1,3 +1,9 @@
+/**
+ * @file finance.service.ts
+ * @author Nexus Estates team
+ * @description Serviço responsável pelas operações financeiras (pagamentos, intenções de pagamento, reembolsos, transações).
+ */
+
 import { bookingsAxios } from "@/lib/axiosAPI"
 import type { AxiosError } from "axios"
 import { notify } from "@/lib/notify"

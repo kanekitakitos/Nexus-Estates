@@ -1,3 +1,11 @@
+/**
+ * @file motion.ts
+ * @author Nexus Estates team
+ * @description Biblioteca de presets de animação e movimento (Framer Motion) para o módulo de reservas.
+ *              Centraliza curvas de aceleração (easing), definições de 'spring' e variantes de animação
+ *              (como page transitions, hovers, staggers e reveals) para garantir uma UI consistente.
+ */
+
 "use client"
 
 // ─────────────────────────────────────────────

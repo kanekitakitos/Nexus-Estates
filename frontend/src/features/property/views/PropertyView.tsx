@@ -1,6 +1,13 @@
+/**
+ * @file PropertyView.tsx
+ * @author Nexus Estates team
+ * @description Vista principal da gestão de propriedades. Gere o estado global desta secção, alternando entre
+ *              listagem de propriedades, criação (Wizard) e os detalhes de uma propriedade (edição/visualização).
+ */
+
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 
 import { PropertyManagementRoot } from "../sections/management/property-management-root"
@@ -35,12 +42,68 @@ function RubberBackground() {
   )
 }
 
-export function PropertyView() {
+/**
+ * PropertyView — Página de propriedades (listagem + editor).
+ *
+ * Também suporta quick access via query params passados pela página `/properties`:
+ * - `initialPropertyId`: abre diretamente a propriedade
+ * - `initialMode`: define o separador inicial (VIEW/EDIT/RULES)
+ */
+export function PropertyView({
+  initialPropertyId,
+  initialMode,
+}: {
+  initialPropertyId?: string
+  initialMode?: EditMode
+}) {
   const { selectedPropertyId, selectPropertyId } = useView()
   const { properties, selectedProperty, isLoading, refresh, deleteProperty } = usePropertyManager(selectedPropertyId)
 
   const [isCreating, setIsCreating] = useState(false)
-  const [detailInitialMode, setDetailInitialMode] = useState<EditMode>("VIEW")
+  const didConsumeQuickAccessRef = useRef(false)
+
+  const [detailInitialMode, setDetailInitialMode] = useState<EditMode>(() => {
+    if (typeof window === "undefined") return initialMode ?? "VIEW"
+    const raw = sessionStorage.getItem("properties:open")
+    if (!raw) return initialMode ?? "VIEW"
+    try {
+      const parsed = JSON.parse(raw) as { propertyId?: unknown; mode?: unknown } | null
+      const mode = parsed?.mode
+      if (mode === "EDIT" || mode === "RULES" || mode === "VIEW") return mode
+    } catch {
+      return initialMode ?? "VIEW"
+    }
+    return initialMode ?? "VIEW"
+  })
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const raw = sessionStorage.getItem("properties:open")
+    if (!raw) return
+
+    try {
+      const parsed = JSON.parse(raw) as { propertyId?: unknown; mode?: unknown } | null
+      const propertyId = typeof parsed?.propertyId === "string" ? parsed.propertyId : null
+      const mode = parsed?.mode
+      if (!propertyId) return
+      if (mode !== "EDIT" && mode !== "RULES" && mode !== "VIEW") return
+
+      didConsumeQuickAccessRef.current = true
+      setIsCreating(false)
+      setDetailInitialMode(mode)
+      selectPropertyId(propertyId)
+    } finally {
+      sessionStorage.removeItem("properties:open")
+    }
+  }, [selectPropertyId])
+
+  useEffect(() => {
+    if (!initialPropertyId) return
+    if (didConsumeQuickAccessRef.current) return
+    setIsCreating(false)
+    setDetailInitialMode(initialMode ?? "VIEW")
+    selectPropertyId(initialPropertyId)
+  }, [initialMode, initialPropertyId, selectPropertyId])
 
   useEffect(() => {
     const onManage = () => {
@@ -228,7 +291,13 @@ function PropertyDetailScreen({
   onSave: (updated: OwnProperty) => Promise<void>
 }) {
   return (
-    <motion.div key="detail" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+    <motion.div
+      key={`detail:${String(property.id)}:${initialMode ?? "VIEW"}`}
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+    >
       <PropertyManagementRoot property={property} initialMode={initialMode} onBack={onBack} onSave={onSave} />
     </motion.div>
   )

@@ -1,3 +1,11 @@
+/**
+ * @file booking-details.tsx
+ * @author Nexus Estates team
+ * @description Ecrã de detalhe de uma propriedade dentro do fluxo de reservas.
+ *              Mostra a imagem da propriedade, estatísticas, comodidades, descrição e o calendário
+ *              para o hóspede selecionar as datas antes de avançar para o checkout.
+ */
+
 "use client"
 
 /**

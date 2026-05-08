@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
  * de emails enviados.</p>
  *
  * @author Nexus Estates Team
- * @version 1.0
  */
 @Data
 @Builder

@@ -1,5 +1,8 @@
 /**
- * Tipos do módulo de propriedades (Properties).
+ * @file property.ts
+ * @author Nexus Estates team
+ * @description Tipos do módulo de propriedades (Properties).
+ *              Inclui tipos para regras de sazonalidade, propriedades em lista, permissões e uploads de imagem.
  *
  * Origem backend (API Gateway):
  * - /api/properties (property-service)

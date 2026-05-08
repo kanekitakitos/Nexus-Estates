@@ -1,3 +1,11 @@
+/**
+ * @file preview-section.tsx
+ * @author Nexus Estates team
+ * @description Secção de pré-visualização de uma propriedade.
+ *              Apresenta uma vista high-fidelity do ativo com Hero, KPIs, descrições, 
+ *              localização, comodidades, equipa associada e regras operacionais.
+ */
+
 "use client"
 
 import { useState } from "react"

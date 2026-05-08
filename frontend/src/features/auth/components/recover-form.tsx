@@ -1,7 +1,8 @@
 /**
- * @description
- *  Componente de recuperação de autenticação que fornece a interface de recuperação.
- *  Tambem implementa a logica para a componente se comunicar com o serviço users.
+ * @file recover-form.tsx
+ * @author Nexus Estates team
+ * @description Componente de recuperação de autenticação que fornece a interface para redefinir a password.
+ *              Também implementa a lógica de comunicação com o serviço de utilizadores.
  * 
  * @version 1.0
  */

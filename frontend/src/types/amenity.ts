@@ -1,5 +1,8 @@
 /**
- * Tipos do catálogo de comodidades (Amenities).
+ * @file amenity.ts
+ * @author Nexus Estates team
+ * @description Tipos do catálogo de comodidades (Amenities).
+ *              Usados em todo o frontend para definir e tipar objetos de comodidades de propriedades.
  *
  * Origem backend (API Gateway):
  * - /api/amenities (property-service)

@@ -28,7 +28,7 @@ function AppHeaderNav({ pathname, isAuthenticated }: { pathname: string; isAuthe
   const links = [
     { href: "/", label: "Home" },
     ...(isAuthenticated ? [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }] : []),
-    { href: "/properties", label: "Properties" },
+    ...(isAuthenticated ? [{ href: "/properties", label: "Properties" }] : [{ href: "/register", label: "Register" }]),
     { href: "/booking", label: "Booking" },
     ...(!isAuthenticated ? [{ href: "/login", label: "Login" }] : []),
   ]
@@ -180,7 +180,7 @@ export function AppShell({ children, header, showHeader = true }: AppShellProps)
                 </>
               ))}
           </header>
-          <div className="flex min-h-[calc(100vh-56px)] flex-1 flex-col pb-10">
+          <div className="flex min-h-[calc(100vh-56px)] flex-1 flex-col pb-24">
             <div className="flex-1">
               {children}
             </div>

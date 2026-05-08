@@ -30,7 +30,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -52,15 +51,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
- * REST Controller responsável pela gestão de propriedades e suas regras associadas.
- *
- * <p>Expõe endpoints para criação, consulta e atualização de propriedades,
+ * REST Controller responsável pela gestão de propriedades e suas regras associadas. * * <p>Expõe endpoints para criação, consulta e atualização de propriedades,
  * bem como para a gestão das suas regras operacionais.</p>
  *
  * @author Nexus Estates Team
  * @version 1.2
- */
-@RestController
+ */@RestController
 @RequestMapping("/api/properties")
 @Tag(name = "Property API", description = "Gestão de propriedades e regras da Nexus Estates")
 public class PropertyController {
@@ -74,15 +70,12 @@ public class PropertyController {
     private final ImageStorageService imageStorageService;
 
     /**
-     * Construtor do controller.
-     *
-     * @param service serviço responsável pela lógica de negócio das propriedades
+     * Construtor do controller.     *     * @param service serviço responsável pela lógica de negócio das propriedades
      * @param imageStorageService serviço responsável pela integração com armazenamento de imagens
      * @param repository repositório de propriedades
      * @param ruleService serviço de gestão de regras
      * @param seasonalityRuleService serviço de gestão de regras de sazonalidade
-     */
-    public PropertyController(
+     */    public PropertyController(
             PropertyService service,
             ImageStorageService imageStorageService,
             PropertyRepository repository,
@@ -99,19 +92,15 @@ public class PropertyController {
     }
 
     /**
-     * Gera parâmetros de upload para o serviço de armazenamento de forma assíncrona.
-     *
-     * <p>Permite que o frontend faça upload de fotos diretamente para a cloud
+     * Gera parâmetros de upload para o serviço de armazenamento de forma assíncrona.     *     * <p>Permite que o frontend faça upload de fotos diretamente para a cloud
      * de forma segura, sem sobrecarregar a thread principal do servidor.</p>
      *
      * @return CompletableFuture com os parâmetros de autenticação
-     */
-    @Operation(summary = "Obter parâmetros de upload", description = "Gera uma assinatura segura para upload de fotos. Requer role OWNER.")
+     */    @Operation(summary = "Obter parâmetros de upload", description = "Gera uma assinatura segura para upload de fotos. Requer role OWNER.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Parâmetros gerados com sucesso"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado - Requer permissão de OWNER")
-    })
-    @GetMapping("/upload-params")
+    })    @GetMapping("/upload-params")
     @PreAuthorize("hasRole('OWNER')")
     public CompletableFuture<ResponseEntity<ApiResponse<Map<String, Object>>>> getUploadParams() {
         return CompletableFuture.supplyAsync(() ->
@@ -128,22 +117,17 @@ public class PropertyController {
                                         null
                                 ));
                     }
-                }
-        );
+                }        );
     }
 
     /**
-     * Cria uma propriedade.
-     *
-     * @param request dados da propriedade a criar via DTO
+     * Cria uma propriedade.     *     * @param request dados da propriedade a criar via DTO
      * @return propriedade criada com status 201 Created
-     */
-    @Operation(summary = "Criar nova propriedade", description = "Cria uma propriedade e as suas regras padrão. Suporta múltiplos idiomas na descrição.")
+     */    @Operation(summary = "Criar nova propriedade", description = "Cria uma propriedade e as suas regras padrão. Suporta múltiplos idiomas na descrição.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Propriedade criada com sucesso"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados de entrada inválidos ou campos obrigatórios em falta")
-    })
-    @PostMapping
+    })    @PostMapping
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<Property>> create(
             @Valid @RequestBody CreatePropertyRequest request,
@@ -172,22 +156,18 @@ public class PropertyController {
     }
 
     /**
-     * Atualiza a lista de comodidades de uma propriedade.
-     *
-     * <p>Este endpoint permite associar ou remover características da propriedade
+     * Atualiza a lista de comodidades de uma propriedade.     *     * <p>Este endpoint permite associar ou remover características da propriedade
      * (ex: WiFi, Piscina) de forma dinâmica.</p>
      *
      * @param id identificador único da propriedade
      * @param amenityIds conjunto de IDs das comodidades a associar
      * @return propriedade atualizada de forma assíncrona
-     */
-    @Operation(summary = "Atualizar comodidades", description = "Substitui as comodidades da casa pelos IDs fornecidos. Requer role OWNER.")
+     */    @Operation(summary = "Atualizar comodidades", description = "Substitui as comodidades da casa pelos IDs fornecidos. Requer role OWNER.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Comodidades atualizadas com sucesso"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado")
-    })
-    @PutMapping("/{id}/amenities")
+    })    @PutMapping("/{id}/amenities")
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<ExpandedPropertyResponse>> updateAmenities(
             @Parameter(description = "ID da propriedade") @PathVariable Long id,
@@ -202,14 +182,11 @@ public class PropertyController {
     }
 
     /**
-     * Adiciona uma comodidade específica a uma propriedade.
-     */
-    @Operation(summary = "Adicionar comodidade", description = "Associa uma nova comodidade à propriedade sem remover as existentes. Requer role OWNER.")
+     * Adiciona uma comodidade específica a uma propriedade.     */    @Operation(summary = "Adicionar comodidade", description = "Associa uma nova comodidade à propriedade sem remover as existentes. Requer role OWNER.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Comodidade adicionada com sucesso"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade ou Comodidade não encontrada")
-    })
-    @PostMapping("/{id}/amenities/{amenityId}")
+    })    @PostMapping("/{id}/amenities/{amenityId}")
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<Property>> addAmenity(
             @Parameter(description = "ID da propriedade") @PathVariable Long id,
@@ -221,14 +198,11 @@ public class PropertyController {
     }
 
     /**
-     * Remove uma comodidade específica de uma propriedade.
-     */
-    @Operation(summary = "Remover comodidade da propriedade", description = "Desassocia uma comodidade específica da propriedade. Requer role OWNER.")
+     * Remove uma comodidade específica de uma propriedade.     */    @Operation(summary = "Remover comodidade da propriedade", description = "Desassocia uma comodidade específica da propriedade. Requer role OWNER.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Comodidade removida com sucesso"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade ou Comodidade não encontrada")
-    })
-    @DeleteMapping("/{id}/amenities/{amenityId}")
+    })    @DeleteMapping("/{id}/amenities/{amenityId}")
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<Property>> removeAmenity(
             @Parameter(description = "ID da propriedade") @PathVariable Long id,
@@ -240,11 +214,8 @@ public class PropertyController {
     }
 
     /**
-     * Lista todas as propriedades registadas.
-     *
-     * @return lista de propriedades
-     */
-    @Operation(summary = "Listar todas as propriedades", description = "Retorna uma lista de todos os imóveis")
+     * Lista todas as propriedades registadas.     *     * @return lista de propriedades
+     */    @Operation(summary = "Listar todas as propriedades", description = "Retorna uma lista de todos os imóveis")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Sucesso ao retornar lista")
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> listAll() {
@@ -253,17 +224,13 @@ public class PropertyController {
     }
 
     /**
-     * Obtém os detalhes de uma propriedade pelo ID.
-     *
-     * @param id identificador da propriedade
+     * Obtém os detalhes de uma propriedade pelo ID.     *     * @param id identificador da propriedade
      * @return propriedade encontrada
-     */
-    @Operation(summary = "Obter propriedade por ID", description = "Retorna os detalhes de um imóvel específico")
+     */    @Operation(summary = "Obter propriedade por ID", description = "Retorna os detalhes de um imóvel específico")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Imóvel encontrado"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Imóvel não existe")
-    })
-    @GetMapping("/{id}")
+    })    @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<Property>> getById(
             @Parameter(description = "ID único da propriedade", example = "1")
             @PathVariable Long id) {
@@ -271,13 +238,22 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(property, "Propriedade encontrada."));
     }
 
+    /**
+     * Resolve o utilizador com permissões de PRIMARY_OWNER da propriedade.
+     *
+     * <p>Quando existe header {@code X-User-Id}, o método valida se o requester tem algum nível
+     * de acesso à propriedade antes de expor o PRIMARY_OWNER.</p>
+     *
+     * @param id ID da propriedade
+     * @param userIdHeader header {@code X-User-Id} (opcional)
+     * @return userId do PRIMARY_OWNER
+     */
     @Operation(summary = "Obter proprietário principal", description = "Retorna o userId do PRIMARY_OWNER da propriedade.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Proprietário recuperado com sucesso"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não existe"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Proprietário não encontrado")
-    })
-    @GetMapping("/{id}/primary-owner")
+    })    @GetMapping("/{id}/primary-owner")
     public ResponseEntity<ApiResponse<Long>> getPrimaryOwner(
             @PathVariable Long id,
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
@@ -292,17 +268,26 @@ public class PropertyController {
             } catch (Exception e) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Acesso negado.", "FORBIDDEN"));
             }
-        }
-        Long ownerId = service.getPrimaryOwnerId(id);
+        }        Long ownerId = service.getPrimaryOwnerId(id);
         return ResponseEntity.ok(ApiResponse.success(ownerId, "Proprietário principal encontrado."));
     }
 
+    /**
+     * Resolve o nível de acesso (PRIMARY_OWNER/MANAGER/STAFF) do utilizador a uma propriedade.
+     *
+     * <p>Quando existe header {@code X-User-Id}, este endpoint força que o requester seja o mesmo
+     * utilizador indicado em {@code userId} (self-access).</p>
+     *
+     * @param id ID da propriedade
+     * @param userId ID do utilizador para o qual se quer obter o nível de acesso
+     * @param userIdHeader header {@code X-User-Id} (opcional)
+     * @return accessLevel (string) quando existe permissão; 404 caso contrário
+     */
     @Operation(summary = "Obter nível de acesso", description = "Retorna o access_level do utilizador para uma propriedade (PRIMARY_OWNER, MANAGER, STAFF).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Nível de acesso encontrado"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Sem permissões ou propriedade não existe")
-    })
-    @GetMapping("/{id}/access-level/{userId}")
+    })    @GetMapping("/{id}/access-level/{userId}")
     public ResponseEntity<ApiResponse<String>> getAccessLevel(
             @PathVariable Long id,
             @PathVariable Long userId,
@@ -317,8 +302,7 @@ public class PropertyController {
             } catch (Exception e) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Acesso negado.", "FORBIDDEN"));
             }
-        }
-        var level = service.getUserAccessLevel(id, userId);
+        }        var level = service.getUserAccessLevel(id, userId);
         if (level == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("Permissão não encontrada.", "NOT_FOUND"));
         }
@@ -326,54 +310,42 @@ public class PropertyController {
     }
 
     /**
-     * Obtém as regras operacionais de uma propriedade.
-     *
-     * @param id O ID da propriedade.
+     * Obtém as regras operacionais de uma propriedade.     *     * @param id O ID da propriedade.
      * @return As regras da propriedade.
-     */
-    @Operation(summary = "Obter regras da propriedade", description = "Retorna as regras operacionais de uma propriedade, como horários de check-in/out e noites mínimas.")
+     */    @Operation(summary = "Obter regras da propriedade", description = "Retorna as regras operacionais de uma propriedade, como horários de check-in/out e noites mínimas.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Regras obtidas com sucesso."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
-    })
-    @GetMapping("/{id}/rules")
+    })    @GetMapping("/{id}/rules")
     public ResponseEntity<ApiResponse<PropertyRuleDTO>> getRules(@Parameter(description = "ID da propriedade") @PathVariable Long id) {
         PropertyRuleDTO rules = ruleService.getRules(id);
         return ResponseEntity.ok(ApiResponse.success(rules, "Regras da propriedade obtidas com sucesso."));
     }
 
     /**
-     * Obtém as regras operacionais de uma propriedade (alias compatível).
-     */
-    @Operation(summary = "Obter regras operacionais", description = "Alias do endpoint de regras operacionais para integração por contexto.")
+     * Obtém as regras operacionais de uma propriedade (alias compatível).     */    @Operation(summary = "Obter regras operacionais", description = "Alias do endpoint de regras operacionais para integração por contexto.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Regras obtidas com sucesso."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
-    })
-    @GetMapping("/{id}/rules/operational")
+    })    @GetMapping("/{id}/rules/operational")
     public ResponseEntity<ApiResponse<PropertyRuleDTO>> getOperationalRules(@Parameter(description = "ID da propriedade") @PathVariable Long id) {
         PropertyRuleDTO rules = ruleService.getRules(id);
         return ResponseEntity.ok(ApiResponse.success(rules, "Regras operacionais obtidas com sucesso."));
     }
 
     /**
-     * Obtém as regras de sazonalidade (precificação dinâmica) de uma propriedade.
-     */
-    @Operation(summary = "Obter regras de sazonalidade", description = "Lista regras de precificação dinâmica por datas/dias da semana/canal.")
+     * Obtém as regras de sazonalidade (precificação dinâmica) de uma propriedade.     */    @Operation(summary = "Obter regras de sazonalidade", description = "Lista regras de precificação dinâmica por datas/dias da semana/canal.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Regras obtidas com sucesso."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
-    })
-    @GetMapping("/{id}/rules/seasonality")
+    })    @GetMapping("/{id}/rules/seasonality")
     public ResponseEntity<ApiResponse<List<SeasonalityRuleDTO>>> getSeasonalityRules(@Parameter(description = "ID da propriedade") @PathVariable Long id) {
         List<SeasonalityRuleDTO> rules = seasonalityRuleService.listRules(id);
         return ResponseEntity.ok(ApiResponse.success(rules, "Regras de sazonalidade obtidas com sucesso."));
     }
 
     /**
-     * Substitui a lista completa de regras de sazonalidade de uma propriedade.
-     *
-     * <p>Permite ao frontend aplicar alterações de forma atómica, garantindo que
+     * Substitui a lista completa de regras de sazonalidade de uma propriedade.     *     * <p>Permite ao frontend aplicar alterações de forma atómica, garantindo que
      * o estado final no servidor reflete a lista enviada.</p>
      *
      * <p>Permissões:</p>
@@ -388,8 +360,7 @@ public class PropertyController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados inválidos."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
-    })
-    @PutMapping("/{id}/rules/seasonality")
+    })    @PutMapping("/{id}/rules/seasonality")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<SeasonalityRuleDTO>>> replaceSeasonalityRules(
             @PathVariable Long id,
@@ -402,16 +373,13 @@ public class PropertyController {
     }
 
     /**
-     * Cria uma regra de sazonalidade individual.
-     */
-    @Operation(summary = "Criar regra de sazonalidade", description = "Cria uma regra de sazonalidade individual (POST). Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
+     * Cria uma regra de sazonalidade individual.     */    @Operation(summary = "Criar regra de sazonalidade", description = "Cria uma regra de sazonalidade individual (POST). Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Regra criada com sucesso."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados inválidos."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
-    })
-    @PostMapping("/{id}/rules/seasonality")
+    })    @PostMapping("/{id}/rules/seasonality")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<SeasonalityRuleDTO>> createSeasonalityRule(
             @PathVariable Long id,
@@ -424,16 +392,13 @@ public class PropertyController {
     }
 
     /**
-     * Atualiza parcialmente uma regra de sazonalidade.
-     */
-    @Operation(summary = "Atualizar regra de sazonalidade (PATCH)", description = "Atualiza parcialmente uma regra de sazonalidade (PATCH). Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
+     * Atualiza parcialmente uma regra de sazonalidade.     */    @Operation(summary = "Atualizar regra de sazonalidade (PATCH)", description = "Atualiza parcialmente uma regra de sazonalidade (PATCH). Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Regra atualizada com sucesso."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados inválidos."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
-    })
-    @PatchMapping("/{id}/rules/seasonality/{ruleId}")
+    })    @PatchMapping("/{id}/rules/seasonality/{ruleId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<SeasonalityRuleDTO>> patchSeasonalityRule(
             @PathVariable Long id,
@@ -447,16 +412,13 @@ public class PropertyController {
     }
 
     /**
-     * Remove uma regra de sazonalidade.
-     */
-    @Operation(summary = "Remover regra de sazonalidade", description = "Remove uma regra de sazonalidade (DELETE). Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
+     * Remove uma regra de sazonalidade.     */    @Operation(summary = "Remover regra de sazonalidade", description = "Remove uma regra de sazonalidade (DELETE). Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Regra removida com sucesso."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Pedido inválido."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
-    })
-    @DeleteMapping("/{id}/rules/seasonality/{ruleId}")
+    })    @DeleteMapping("/{id}/rules/seasonality/{ruleId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> deleteSeasonalityRule(
             @PathVariable Long id,
@@ -469,16 +431,13 @@ public class PropertyController {
     }
 
     /**
-     * Lista permissões (ACL) de uma propriedade.
-     */
-    @Operation(summary = "Listar permissões da propriedade", description = "Lista permissões (PRIMARY_OWNER/MANAGER/STAFF) de uma propriedade. Requer que o utilizador tenha acesso à propriedade.")
+     * Lista permissões (ACL) de uma propriedade.     */    @Operation(summary = "Listar permissões da propriedade", description = "Lista permissões (PRIMARY_OWNER/MANAGER/STAFF) de uma propriedade. Requer que o utilizador tenha acesso à propriedade.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Permissões obtidas com sucesso."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Sessão expirada."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
-    })
-    @GetMapping("/{id}/permissions")
+    })    @GetMapping("/{id}/permissions")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<PropertyPermissionDTO>>> listPermissions(
             @PathVariable Long id,
@@ -502,17 +461,14 @@ public class PropertyController {
     }
 
     /**
-     * Substitui a lista completa de permissões de uma propriedade.
-     */
-    @Operation(summary = "Substituir permissões da propriedade", description = "Substitui a lista de permissões (PUT). Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
+     * Substitui a lista completa de permissões de uma propriedade.     */    @Operation(summary = "Substituir permissões da propriedade", description = "Substitui a lista de permissões (PUT). Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Permissões atualizadas com sucesso."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados inválidos."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Sessão expirada."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
-    })
-    @PutMapping("/{id}/permissions")
+    })    @PutMapping("/{id}/permissions")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<PropertyPermissionDTO>>> replacePermissions(
             @PathVariable Long id,
@@ -525,17 +481,14 @@ public class PropertyController {
     }
 
     /**
-     * Atualiza parcialmente a permissão de um utilizador numa propriedade.
-     */
-    @Operation(summary = "Atualizar permissão (PATCH)", description = "Atualiza o accessLevel de um utilizador numa propriedade. Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
+     * Atualiza parcialmente a permissão de um utilizador numa propriedade.     */    @Operation(summary = "Atualizar permissão (PATCH)", description = "Atualiza o accessLevel de um utilizador numa propriedade. Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Permissão atualizada com sucesso."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados inválidos."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Sessão expirada."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
-    })
-    @PatchMapping("/{id}/permissions/{userId}")
+    })    @PatchMapping("/{id}/permissions/{userId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PropertyPermissionDTO>> patchPermission(
             @PathVariable Long id,
@@ -549,17 +502,14 @@ public class PropertyController {
     }
 
     /**
-     * Remove a permissão de um utilizador numa propriedade.
-     */
-    @Operation(summary = "Remover permissão", description = "Remove a permissão de um utilizador numa propriedade. Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
+     * Remove a permissão de um utilizador numa propriedade.     */    @Operation(summary = "Remover permissão", description = "Remove a permissão de um utilizador numa propriedade. Requer acesso de gestão (PRIMARY_OWNER/MANAGER).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Permissão removida com sucesso."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Pedido inválido."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Sessão expirada."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
-    })
-    @DeleteMapping("/{id}/permissions/{userId}")
+    })    @DeleteMapping("/{id}/permissions/{userId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> removePermission(
             @PathVariable Long id,
@@ -572,9 +522,7 @@ public class PropertyController {
     }
 
     /**
-     * Endpoint consolidado para validação de regras e cálculo de preço (cotação).
-     *
-     * <p>Consolida regras operacionais e sazonalidade de forma a manter o booking-service desacoplado
+     * Endpoint consolidado para validação de regras e cálculo de preço (cotação).     *     * <p>Consolida regras operacionais e sazonalidade de forma a manter o booking-service desacoplado
      * da lógica interna de cálculo e restrições.</p>
      */
     @Operation(summary = "Validar e cotar estadia", description = "Valida regras operacionais + sazonalidade e devolve preço total calculado.")
@@ -582,8 +530,7 @@ public class PropertyController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Cotação calculada com sucesso."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Pedido inválido."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
-    })
-    @PostMapping("/{id}/quote")
+    })    @PostMapping("/{id}/quote")
     public ResponseEntity<ApiResponse<PropertyQuoteResponse>> quote(
             @Parameter(description = "ID da propriedade") @PathVariable Long id,
             @Valid @RequestBody PropertyQuoteRequest request
@@ -594,20 +541,16 @@ public class PropertyController {
     }
 
     /**
-     * Atualiza as regras operacionais de uma propriedade.
-     *
-     * @param id O ID da propriedade.
+     * Atualiza as regras operacionais de uma propriedade.     *     * @param id O ID da propriedade.
      * @param dto Os novos dados das regras.
      * @return As regras atualizadas.
-     */
-    @Operation(summary = "Atualizar regras da propriedade", description = "Atualiza as regras operacionais de uma propriedade (PUT). Requer acesso de gestão (PRIMARY_OWNER/MANAGER) no contexto da propriedade.")
+     */    @Operation(summary = "Atualizar regras da propriedade", description = "Atualiza as regras operacionais de uma propriedade (PUT). Requer acesso de gestão (PRIMARY_OWNER/MANAGER) no contexto da propriedade.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Regras atualizadas com sucesso."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados de entrada inválidos."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
-    })
-    @PutMapping("/{id}/rules")
+    })    @PutMapping("/{id}/rules")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PropertyRuleDTO>> updateRules(
             @Parameter(description = "ID da propriedade") @PathVariable Long id,
@@ -619,9 +562,7 @@ public class PropertyController {
     }
 
     /**
-     * Atualiza parcialmente as regras operacionais de uma propriedade.
-     *
-     * <p>Aplica apenas os campos presentes no payload, mantendo os restantes valores inalterados.</p>
+     * Atualiza parcialmente as regras operacionais de uma propriedade.     *     * <p>Aplica apenas os campos presentes no payload, mantendo os restantes valores inalterados.</p>
      */
     @Operation(summary = "Atualizar regras da propriedade (PATCH)", description = "Atualiza parcialmente as regras operacionais. Requer acesso de gestão (PRIMARY_OWNER/MANAGER) no contexto da propriedade.")
     @ApiResponses(value = {
@@ -629,8 +570,7 @@ public class PropertyController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados de entrada inválidos."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Propriedade não encontrada.")
-    })
-    @PatchMapping("/{id}/rules")
+    })    @PatchMapping("/{id}/rules")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PropertyRuleDTO>> patchRules(
             @Parameter(description = "ID da propriedade") @PathVariable Long id,
@@ -643,14 +583,11 @@ public class PropertyController {
     }
 
     /**
-     * Adiciona uma sobreposição de regra sazonal (Rule Override).
-     */
-    @Operation(summary = "Adicionar sobreposição de regra", description = "Define regras estritas para um período específico (ex: Agosto). Requer role OWNER.")
+     * Adiciona uma sobreposição de regra sazonal (Rule Override).     */    @Operation(summary = "Adicionar sobreposição de regra", description = "Define regras estritas para um período específico (ex: Agosto). Requer role OWNER.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Sobreposição criada com sucesso."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acesso negado.")
-    })
-    @PostMapping("/{id}/overrides")
+    })    @PostMapping("/{id}/overrides")
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<RuleOverride>> addOverride(
             @PathVariable Long id,
@@ -660,9 +597,7 @@ public class PropertyController {
     }
 
     /**
-     * Lista todas as sobreposições de regras de uma propriedade.
-     */
-    @Operation(summary = "Listar sobreposições", description = "Retorna todas as exceções sazonais configuradas para a propriedade.")
+     * Lista todas as sobreposições de regras de uma propriedade.     */    @Operation(summary = "Listar sobreposições", description = "Retorna todas as exceções sazonais configuradas para a propriedade.")
     @GetMapping("/{id}/overrides")
     public ResponseEntity<ApiResponse<List<RuleOverride>>> listOverrides(@PathVariable Long id) {
         List<RuleOverride> overrides = service.listOverrides(id);
@@ -670,9 +605,7 @@ public class PropertyController {
     }
 
     /**
-     * Remove uma sobreposição de regra.
-     */
-    @Operation(summary = "Remover sobreposição", description = "Elimina uma exceção sazonal específica. Requer role OWNER.")
+     * Remove uma sobreposição de regra.     */    @Operation(summary = "Remover sobreposição", description = "Elimina uma exceção sazonal específica. Requer role OWNER.")
     @DeleteMapping("/overrides/{overrideId}")
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<Void> deleteOverride(@PathVariable Long overrideId) {
@@ -680,11 +613,31 @@ public class PropertyController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Obtém o preço base (basePrice) de uma propriedade.
+     *
+     * @param id ID da propriedade
+     * @return preço base configurado para a propriedade
+     * @throws EntityNotFoundException se a propriedade não existir
+     */
     public BigDecimal getPriceById(Long id) {
         return repository.findPriceById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Propriedade não encontrada com o ID: " + id));
     }
 
+    /**
+     * Lista propriedades às quais um utilizador tem vínculo (via permissões), com paginação e filtros.
+     *
+     * @param userId ID do utilizador a consultar
+     * @param page índice da página (0-based)
+     * @param size tamanho da página
+     * @param sort campo e direção, no formato {@code campo,asc|desc}
+     * @param city filtro opcional por cidade
+     * @param isActive filtro opcional por ativo/inativo
+     * @param minPrice filtro opcional por preço mínimo
+     * @param maxPrice filtro opcional por preço máximo
+     * @return página de propriedades em formato resumo
+     */
     @Operation(summary = "Listar propriedades por utilizador", description = "Lista propriedades vinculadas a um utilizador com paginação, filtros e ordenação.")
     @GetMapping("/by-user/{userId}")
     public ResponseEntity<ApiResponse<Page<Map<String, Object>>>> listByUser(
@@ -705,6 +658,19 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(mapped, "Propriedades do utilizador listadas."));
     }
 
+    /**
+     * Lista propriedades do utilizador autenticado (resolvido pelo header {@code X-User-Id}).
+     *
+     * @param userIdHeader header injetado pelo API Gateway
+     * @param page índice da página (0-based)
+     * @param size tamanho da página
+     * @param sort campo e direção, no formato {@code campo,asc|desc}
+     * @param city filtro opcional por cidade
+     * @param isActive filtro opcional por ativo/inativo
+     * @param minPrice filtro opcional por preço mínimo
+     * @param maxPrice filtro opcional por preço máximo
+     * @return página de propriedades em formato resumo
+     */
     @Operation(summary = "Listar propriedades do utilizador autenticado", description = "Lista propriedades vinculadas ao utilizador autenticado via header X-User-Id do API Gateway.")
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<Page<Map<String, Object>>>> listMine(
@@ -734,6 +700,12 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(mapped, "Propriedades do utilizador autenticado listadas."));
     }
 
+    /**
+     * Obtém uma propriedade em formato expandido, incluindo amenities, regras, sazonalidade e permissões.
+     *
+     * @param id ID da propriedade
+     * @return payload expandido para consumo do frontend/backoffice
+     */
     @Operation(summary = "Obter propriedade expandida", description = "Retorna uma propriedade com dados expandidos: amenities, regras e sazonalidade.")
     @GetMapping("/{id}/expanded")
     public ResponseEntity<ApiResponse<ExpandedPropertyResponse>> getExpanded(@PathVariable Long id) {
@@ -741,6 +713,15 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(dto, "Propriedade expandida obtida com sucesso."));
     }
 
+    /**
+     * Atualiza parcialmente campos permitidos da propriedade.
+     *
+     * @param id ID da propriedade
+     * @param request payload com campos a atualizar (apenas os não nulos são aplicados)
+     * @param actorUserId ID do utilizador “ator” (opcional; usado para auditoria)
+     * @param userIdHeader header {@code X-User-Id} do utilizador autenticado (para autorização)
+     * @return a propriedade atualizada em formato expandido
+     */
     @Operation(summary = "Atualizar propriedade (parcial)", description = "Atualiza qualquer campo permitido da propriedade (PATCH).")
     @PatchMapping("/{id}")
     @PreAuthorize("hasRole('OWNER')")
@@ -750,14 +731,21 @@ public class PropertyController {
             @RequestHeader(value = "X-Actor-UserId", required = false) Long actorUserId,
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
     )
-    {
-        service.requireManageAccess(id, userIdHeader);
+    {        service.requireManageAccess(id, userIdHeader);
         Property updated = service.updateProperty(id, request, actorUserId);
 
         ExpandedPropertyResponse response = service.convertToExpandedDto(updated);
         return ResponseEntity.ok(ApiResponse.success(response, "Propriedade atualizada com sucesso."));
     }
 
+    /**
+     * Elimina definitivamente uma propriedade.
+     *
+     * @param id ID da propriedade
+     * @param actorUserId ID do utilizador “ator” (opcional; usado para auditoria)
+     * @param userIdHeader header {@code X-User-Id} do utilizador autenticado (para autorização)
+     * @return 204 No Content em sucesso
+     */
     @Operation(summary = "Eliminar propriedade", description = "Remove definitivamente uma propriedade.")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('OWNER')")
@@ -771,6 +759,12 @@ public class PropertyController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Lista o histórico de alterações (audit log) associado a uma propriedade.
+     *
+     * @param id ID da propriedade
+     * @return lista de alterações ordenada por data desc
+     */
     @Operation(summary = "Histórico de alterações", description = "Lista o histórico de alterações de uma propriedade (audit).")
     @GetMapping("/{id}/history")
     public ResponseEntity<ApiResponse<List<PropertyChangeLog>>> history(@PathVariable Long id) {
@@ -778,6 +772,13 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(logs, "Histórico obtido com sucesso."));
     }
 
+    /**
+     * Devolve parâmetros temporários para upload seguro de documentos (assinado).
+     *
+     * @param id ID da propriedade
+     * @param userIdHeader header {@code X-User-Id} do utilizador autenticado (para autorização)
+     * @return mapa de parâmetros, enriquecido com {@code context_property_id}
+     */
     @Operation(summary = "Parâmetros de upload de documentos", description = "Obtém parâmetros temporários para upload seguro de documentos da propriedade.")
     @GetMapping("/{id}/documents/upload-params")
     @PreAuthorize("hasRole('OWNER')")
@@ -792,6 +793,14 @@ public class PropertyController {
         return ResponseEntity.ok(ApiResponse.success(enriched, "Parâmetros de upload gerados."));
     }
 
+    /**
+     * Gera um relatório CSV de propriedades (resumo) do utilizador, com filtros básicos.
+     *
+     * @param userId ID do utilizador
+     * @param city filtro opcional por cidade
+     * @param isActive filtro opcional por ativo/inativo
+     * @return bytes do CSV com headers apropriados para download
+     */
     @Operation(summary = "Relatório de propriedades (CSV)", description = "Gera um relatório CSV das propriedades do utilizador com filtros.")
     @GetMapping(value = "/reports/summary", produces = "text/csv")
     public ResponseEntity<byte[]> reportSummary(
@@ -812,25 +821,18 @@ public class PropertyController {
     }
 
     /**
-     * Limpa uma string para evitar que quebre a estrutura do ficheiro CSV
-     * <p>
-     *     O formato CSV usa o ponto e vírgula (;) como separador de colunas. Este método garante que
-     *     se o nome da casa tiver um ";", ele é substituido por uma vírgula (,) para nãoc riar colunas fantasma
-     * </p>
-     * @param s A string original a ser limpa
-     * @return A string segura para inserção no CSV, ou string vazia se for nula
+     * Sanitiza valores para CSV, prevenindo quebra de colunas pelo separador ';'.
+     *
+     * @param s string original
+     * @return string segura para CSV (sem ';')
      */
     private String safe(String s) { return s == null ? "" : s.replace(";", ","); }
 
-
     /**
-     * Converte uma entidade Property completa num dicionario (Map) simplificado
-     * <p>
-     *     Útil para construir respostas JSON dinâmicas ou parciais onde não se pretende expor
-     *     a entidade completa da base de dados com as suas relações pesadas
-     * </p>
-     * @param p A propriedade original
-     * @return Um mapa com os atributos principais da propriedade
+     * Converte a entidade {@link Property} para um mapa resumo, otimizado para listagens.
+     *
+     * @param p entidade de propriedade
+     * @return mapa com campos principais, incluindo {@code imageUrl} resolvida
      */
     private Map<String, Object> toSummary(Property p) {
         Map<String, Object> m = new java.util.HashMap<>();

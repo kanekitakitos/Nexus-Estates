@@ -1,3 +1,9 @@
+/**
+ * @file auth.service.ts
+ * @author Nexus Estates team
+ * @description Serviço que encapsula a lógica de autenticação (login, registo, reset de password, integração com Clerk) e a gestão da sessão local do utilizador.
+ */
+
 import { usersAxios, ApiResponse } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import { notify } from "@/lib/notify";

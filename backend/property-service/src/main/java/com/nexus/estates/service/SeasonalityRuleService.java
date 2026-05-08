@@ -54,17 +54,143 @@ public class SeasonalityRuleService {
                 .toList();
     }
 
+    /**
+     * Substitui a lista completa de regras de sazonalidade de uma propriedade (PUT).
+     *
+     * <p>Estratégia:</p>
+     * <ul>
+     *   <li>Regras com {@code id} que existam e pertençam à propriedade são atualizadas.</li>
+     *   <li>Regras sem {@code id} (ou com {@code id} inválido) são criadas de novo.</li>
+     *   <li>Regras existentes que não estejam no payload são removidas (orphanRemoval).</li>
+     * </ul>
+     *
+     * @param propertyId ID da propriedade
+     * @param dtos lista final de regras desejada
+     * @return lista persistida (com IDs reais), ordenada por data de início
+     */
+    @Transactional
+    public List<SeasonalityRuleDTO> replaceRules(Long propertyId, List<SeasonalityRuleDTO> dtos) {
+        if (dtos == null) {
+            throw new IllegalArgumentException("Lista de regras inválida.");
+        }
+
+        Property property = propertyRepository.findByIdForUpdate(propertyId)
+                .orElseThrow(() -> new PropertyNotFoundException(propertyId));
+
+        Map<Long, SeasonalityRule> existingById = new HashMap<>();
+        for (SeasonalityRule r : seasonalityRuleRepository.findByProperty_IdOrderByStartDateAsc(property.getId())) {
+            existingById.put(r.getId(), r);
+        }
+
+        for (SeasonalityRuleDTO dto : dtos) {
+            validateReplaceDto(dto);
+
+            SeasonalityRule entity = (dto.id() != null) ? existingById.remove(dto.id()) : null;
+            if (entity == null) {
+                entity = new SeasonalityRule();
+                entity.setProperty(property);
+            }
+
+            entity.setStartDate(dto.startDate());
+            entity.setEndDate(dto.endDate());
+            entity.setPriceModifier(dto.priceModifier());
+            entity.setDayOfWeek(dto.dayOfWeek());
+            entity.setChannel(dto.channel());
+
+            seasonalityRuleRepository.save(entity);
+        }
+
+        for (SeasonalityRule orphan : existingById.values()) {
+            seasonalityRuleRepository.delete(orphan);
+        }
+
+        return seasonalityRuleRepository.findByProperty_IdOrderByStartDateAsc(property.getId())
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
 
     /**
-     *Converte uma entidade JPA {@link SeasonalityRule} para o seu respetivo
-     * Data Transfer Object [@link SeasonalityRuleDTO}
-     * <p>
-     *     Garante que a camada web apenas recebe os dados necessários e seguros,
-     *     ocultando detalhes internos da base de dados
-     * </p>
-     * @param rule A entidade de regra de sazonalidade original obtida da base de dados
-     * @return O DTO encapsulando os dados da regra
+     * Cria uma nova regra de sazonalidade.
+     *
+     * @param propertyId ID da propriedade
+     * @param dto regra a criar
+     * @return regra persistida
      */
+    @Transactional
+    public SeasonalityRuleDTO createRule(Long propertyId, SeasonalityRuleDTO dto) {
+        validateReplaceDto(dto);
+
+        Property property = propertyRepository.findByIdForUpdate(propertyId)
+                .orElseThrow(() -> new PropertyNotFoundException(propertyId));
+
+        SeasonalityRule entity = new SeasonalityRule();
+        entity.setProperty(property);
+        entity.setStartDate(dto.startDate());
+        entity.setEndDate(dto.endDate());
+        entity.setPriceModifier(dto.priceModifier());
+        entity.setDayOfWeek(dto.dayOfWeek());
+        entity.setChannel(dto.channel());
+
+        return toDto(seasonalityRuleRepository.save(entity));
+    }
+
+    /**
+     * Atualiza parcialmente uma regra de sazonalidade.
+     *
+     * @param propertyId ID da propriedade
+     * @param ruleId ID da regra
+     * @param patch payload parcial
+     * @return regra atualizada
+     */
+    @Transactional
+    public SeasonalityRuleDTO patchRule(Long propertyId, Long ruleId, SeasonalityRulePatchRequest patch) {
+        if (patch == null) {
+            throw new IllegalArgumentException("Payload de patch inválido.");
+        }
+
+        propertyRepository.findByIdForUpdate(propertyId)
+                .orElseThrow(() -> new PropertyNotFoundException(propertyId));
+
+        SeasonalityRule entity = seasonalityRuleRepository.findById(ruleId)
+                .orElseThrow(() -> new IllegalArgumentException("Regra de sazonalidade não encontrada."));
+
+        if (!entity.getProperty().getId().equals(propertyId)) {
+            throw new IllegalArgumentException("Regra não pertence à propriedade.");
+        }
+
+        if (patch.startDate() != null) entity.setStartDate(patch.startDate());
+        if (patch.endDate() != null) entity.setEndDate(patch.endDate());
+        if (patch.priceModifier() != null) entity.setPriceModifier(patch.priceModifier());
+        if (patch.dayOfWeek() != null) entity.setDayOfWeek(patch.dayOfWeek());
+        if (patch.channel() != null) entity.setChannel(patch.channel());
+
+        validateEntity(entity.getStartDate(), entity.getEndDate(), entity.getPriceModifier());
+
+        return toDto(seasonalityRuleRepository.save(entity));
+    }
+
+    /**
+     * Remove uma regra de sazonalidade.
+     *
+     * @param propertyId ID da propriedade
+     * @param ruleId ID da regra
+     */
+    @Transactional
+    public void deleteRule(Long propertyId, Long ruleId) {
+        propertyRepository.findByIdForUpdate(propertyId)
+                .orElseThrow(() -> new PropertyNotFoundException(propertyId));
+
+        SeasonalityRule entity = seasonalityRuleRepository.findById(ruleId)
+                .orElseThrow(() -> new IllegalArgumentException("Regra de sazonalidade não encontrada."));
+
+        if (!entity.getProperty().getId().equals(propertyId)) {
+            throw new IllegalArgumentException("Regra não pertence à propriedade.");
+        }
+
+        seasonalityRuleRepository.delete(entity);
+    }
+
     private SeasonalityRuleDTO toDto(SeasonalityRule rule) {
         return new SeasonalityRuleDTO(
                 rule.getId(),

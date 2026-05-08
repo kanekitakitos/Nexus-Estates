@@ -1,3 +1,10 @@
+/**
+ * @file property-creation-wizard.tsx
+ * @author Nexus Estates team
+ * @description Wizard multi-etapa (assistente passo-a-passo) para criação e edição de propriedades.
+ *              Inclui os passos de Identidade (Essence), Localização, Comodidades, Permissões e Revisão Final.
+ */
+
 "use client"
 
 import * as React from "react"

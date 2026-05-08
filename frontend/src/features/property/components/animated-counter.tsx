@@ -1,3 +1,9 @@
+/**
+ * @file animated-counter.tsx
+ * @author Nexus Estates team
+ * @description Componente de interface de utilizador (UI) para animar valores numéricos desde zero até a um valor específico.
+ */
+
 "use client"
 
 import { useEffect, useState } from "react"

@@ -1,3 +1,10 @@
+/**
+ * @file booking-how-it-works.tsx
+ * @author Nexus Estates team
+ * @description Componente editorial "Como Funciona".
+ *              Cartão informativo inserido na grelha de listagem de propriedades para guiar os utilizadores pelo fluxo de reserva.
+ */
+
 "use client"
 
 /**
