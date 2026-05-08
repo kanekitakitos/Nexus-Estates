@@ -156,6 +156,18 @@ public class UserController {
                 .orElseGet(() -> ResponseEntity.status(404).body(com.nexus.estates.common.dto.ApiResponse.error("Utilizador não encontrado.", "NOT_FOUND")));
     }
 
+
+    /**
+     * Recupera o perfil do utilizador atualmente autenticado
+     * <p>
+     *     Este endpoint é fundamental para o Frontend carregar a sessão do utilizador
+     *     obtendo o seu ID, email e nível de permissão (Role) logo após o login
+     *     Suporta a identificação tanto via contexto de segurança como via cabeçalhos do Gateway
+     * </p>
+     * @param userIdHeader Cabeçalho opcional com o ID do utilziador (injetado pelo Gateway)
+     * @param userEmailHeader Cabeçalho opcional com o email do utilizador (injetado pelo Gateway)
+     * @return Uma resposta encapsulada com os dados do perfil ativo ({@link MeResponse})
+     */
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<com.nexus.estates.common.dto.ApiResponse<MeResponse>> me(
@@ -263,10 +275,24 @@ public class UserController {
         return ResponseEntity.ok(com.nexus.estates.common.dto.ApiResponse.success(session, "Password atualizada."));
     }
 
+    /**
+     * DTO de reposta para os dados do perfil atual
+     */
     public record MeResponse(Long id, String email, String phone, String role, String clerkUserId) {}
+
+    /**
+     * DTO de resposta para o endpoint de lookup contendo os dados essenciais
+     */
     public record LookupResponse(Long id, String email) {}
+
+    /**
+     * DTO de resposta após uma atualização bem-sucessida do perfil
+     */
     public record MeUpdateResponse(Long id, String email, String phone, String role, String clerkUserId, String token) {}
 
+    /**
+     * DTO para o pedido de atulização parcial do perfil
+     */
     public record MePatchRequest(
             @Email(message = "Email inválido.")
             String email,
@@ -274,6 +300,9 @@ public class UserController {
             String phone
     ) {}
 
+    /**
+     * DTO para o pedido de alteração de password
+     */
     public record ChangePasswordRequest(
             @Size(min = 1, message = "A password atual é obrigatória.")
             String currentPassword,
@@ -281,6 +310,14 @@ public class UserController {
             String newPassword
     ) {}
 
+    /**
+     * Valida se a password cumpre os critérios de segurança da plataforma
+     * <p>
+     *     Exige no mínimo 8 carateres, pelos menos um número e pelos menos um símbolo
+     * </p>
+     * @param password A password a validar
+     * @throws IllegalArgumentException Se algum critério de segurança for violado
+     */
     private void validatePasswordStrength(String password) {
         if (password == null || password.isBlank()) {
             throw new IllegalArgumentException("A nova password é obrigatória.");
@@ -296,6 +333,16 @@ public class UserController {
         }
     }
 
+    /**
+     * Resolve a recupera a entidade User a aprtir do contexto de segurança ou dos cabeçalhos do Gateway
+     * <p>
+     *     Esta é a fonte de verdade para identificar quem está a realizar a operação
+     * </p>
+     * @param userIdHeader Valor do header X-User-Id
+     * @param userEmailHeader Valor do header X-User-Email
+     * @return A entidade {@link User} encontrada
+     * @throws IllegalStateException Caso o utilizador não consiga ser identificado por nenhuma via
+     */
     private User getCurrentUser(String userIdHeader, String userEmailHeader) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Object principal = auth != null ? auth.getPrincipal() : null;

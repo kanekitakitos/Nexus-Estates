@@ -20,9 +20,26 @@ import org.springframework.web.service.invoker.HttpServiceProxyFactory;
  */
 @Configuration
 public class WebClientConfig {
+
+    /**
+     * URL base do microsserviço de reservas (booking-service)
+     * <p>
+     *     Injetado através da propriedade {@code booking.service.url}, com um valor de fallback por omissão (localhost)
+     * </p>
+     */
     @Value("${booking.service.url:http://localhost:8081}")
     private String bookingServiceUrl;
 
+
+    /**
+     * Cria e configura o cliente HTTP declarativo para comunicação com o Booking Service
+     * <p>
+     *     Utiliza o {@link RestClient} para construir as chamadas REST baseadas nas anotações da interface
+     *     {@link NexusClients.BookingClient}, delegando à fábrica do Spring a criação do proxy dinâmico
+     * </p>
+     * @param builder O construtor do {@link RestClient} injetado automaticamente pelo Spring Boot
+     * @return O proxy instanciado e pronto a usar da interface {@link NexusClients.BookingClient}
+     */
     @Bean
     public NexusClients.BookingClient bookingClient(RestClient.Builder builder) {
         RestClient restClient = builder.baseUrl(bookingServiceUrl).build();

@@ -14,9 +14,24 @@ import java.math.BigDecimal;
  */
 public class InvalidRefundException extends RuntimeException {
 
+    /**
+     * O identificador interno da transação na qual se tentou efetuar o reembolso
+     */
     private final String transactionId;
+
+    /**
+     * O valor monetário que foi explicitamente solicitado para reembolso
+     */
     private final BigDecimal requestedAmount;
+
+    /**
+     * O saldo máximo que estava efetivamente disponível para estorno no momento do pedido
+     */
     private final BigDecimal availableAmount;
+
+    /**
+     * A justificação ou motivo submetido para a realização do reembolso
+     */
     private final String refundReason;
 
     /**

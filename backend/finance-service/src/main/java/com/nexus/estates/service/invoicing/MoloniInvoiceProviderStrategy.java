@@ -25,14 +25,53 @@ import java.util.Map;
 @Service
 public class MoloniInvoiceProviderStrategy implements InvoiceProviderStrategy {
 
+    /**
+     * Cliente HTTP síncrono para efetuar chamadas à API do Moloni
+     */
     private final RestClient restClient;
+
+    /**
+     * Token de acesso estático para autenticação na API (Developer mode/Client mode)
+     */
     private final String accessToken;
+
+    /**
+     * Identificador interno da empresa registada no Moloni
+     */
     private final Integer companyId;
+
+    /**
+     * Série documental na qual as faturas-recibo serão inseridas
+     */
     private final Integer documentSetId;
+
+    /**
+     * ID do cliente genérico associado às faturas ao consumidor final (B2C)
+     */
     private final Integer customerId;
+
+    /**
+     * ID que mapeia o método de pagamento no sistema Moloni
+     */
     private final Integer paymentMethodId;
+
+    /**
+     * Identificador do artigo/produto genérico a faturar
+     */
     private final Integer productId;
 
+    /**
+     * Construtor da integração Moloni
+     * Inicializa as credenciais de API, os identificadores internos do Moloni e configura o cliente HTTP
+     * @param restClientBuilder Builder injetado pelo Spring
+     * @param baseUrl URL base da API do Moloni
+     * @param accessToken Token OAuth2 ou Developer Token
+     * @param companyId Identificador da empresa no Moloni
+     * @param documentSetId Série documental para a emissão
+     * @param customerId ID do cliente de destino
+     * @param paymentMethodId Método de pagamento Moloni
+     * @param productId Produto a apresentar na linha de faturaçã
+     */
     public MoloniInvoiceProviderStrategy(
             RestClient.Builder restClientBuilder,
             @Value("${moloni.base-url:https://api.moloni.pt/v1}") String baseUrl,
@@ -52,11 +91,25 @@ public class MoloniInvoiceProviderStrategy implements InvoiceProviderStrategy {
         this.productId = productId;
     }
 
+    /**
+     * Identificador do provedor Moloni
+     * @return A constante "MOLONI"
+     */
     @Override
     public String providerKey() {
         return "MOLONI";
     }
 
+
+    /**
+     * Processa a criação efetiva de uma Fatura-Recibo através de chamadas à API do Moloni
+     * <p>
+     *     A operação é dividida em dois passos: inserção do documento no Moloni e subsequente recuperação do URL do PDF original
+     * </p>
+     * @param invoice A entidade de rascunho da fatura
+     * @param payment Os detalhes do pagamento que originou esta fatura
+     * @return O resultado da operação indicando sucesso (ISSUED) ou falha (FAILED)
+     */
     @Override
     public InvoiceIssueResult issue(Invoice invoice, Payment payment) {
         if (isBlank(accessToken) || companyId == null || documentSetId == null || customerId == null || paymentMethodId == null || productId == null) {
@@ -136,6 +189,13 @@ public class MoloniInvoiceProviderStrategy implements InvoiceProviderStrategy {
         }
     }
 
+
+    /**
+     * Utilitário para recuperar o primeiro valor não nulo de um mapa, percorrendo uma lista de chaves
+     * @param map O mapa origem de dados
+     * @param keys A sequência de chaves a procurar
+     * @return O primeiro valor encontrado, ou nulo se não encontrar correspondência
+     */
     private static Object firstNonNull(Map<?, ?> map, String... keys) {
         if (map == null) return null;
         for (String key : keys) {
@@ -145,6 +205,12 @@ public class MoloniInvoiceProviderStrategy implements InvoiceProviderStrategy {
         return null;
     }
 
+
+    /**
+     * Utilitário para garantir a conversão segura de um Objeto genérico para Inteiro
+     * @param value O valor a converter
+     * @return O valor numérico, ou nulo se for incompatível
+     */
     private static Integer asInteger(Object value) {
         if (value == null) return null;
         if (value instanceof Number n) return n.intValue();
@@ -155,12 +221,23 @@ public class MoloniInvoiceProviderStrategy implements InvoiceProviderStrategy {
         }
     }
 
+    /**
+     * Utilitário para garantir a extração segura de uma String a partir de um Objeto
+     * @param value O valor a converter
+     * @return A string extraída, ou nulo se for vazia ou nula
+     */
     private static String asString(Object value) {
         if (value == null) return null;
         String s = value.toString();
         return s.isBlank() ? null : s;
     }
 
+    /**
+     * Utilitário para interpretar dinamicamente um valor como Booleano
+     * Suporta inteiros (1=true, 0=false), Strings ("true", "1") ou literais booleanos
+     * @param value O valor a avaliar
+     * @return O booleano resultante
+     */
     private static boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
     }

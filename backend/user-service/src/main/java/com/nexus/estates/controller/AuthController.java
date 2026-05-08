@@ -99,6 +99,15 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(authResponse, "Login efetuado com sucesso."));
     }
 
+
+    /**
+     * Realiza a troca de um token de identidade externo (Clerk) por um token interno da Nexus Estates
+     * <p>
+     *     Permite a integração fluida com providers de identidade externos sem compremeter a segurança interna
+     * </p>
+     * @param authorization O cabeçalho Authorization contendo o token do Clerk
+     * @return Resposta com o JWT interno gerado
+     */
     @PostMapping("/clerk/exchange")
     public ResponseEntity<ApiResponse<AuthResponse>> clerkExchange(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
         String token = authorization != null && authorization.startsWith("Bearer ")

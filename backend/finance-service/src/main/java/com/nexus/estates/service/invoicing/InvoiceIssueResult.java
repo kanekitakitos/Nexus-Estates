@@ -7,6 +7,9 @@ package com.nexus.estates.service.invoicing;
  * @param status estado final (ISSUED/FAILED)
  * @param legalId identificador legal do documento
  * @param pdfUrl link para o PDF do documento emitido
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
  */
 public record InvoiceIssueResult(
         String providerKey,

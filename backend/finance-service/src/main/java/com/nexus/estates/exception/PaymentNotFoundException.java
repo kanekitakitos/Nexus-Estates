@@ -12,7 +12,14 @@ package com.nexus.estates.exception;
  */
 public class PaymentNotFoundException extends RuntimeException {
 
+    /**
+     * O identificador interno (da base de dados local) da transação não encontrada
+     */
     private final String transactionId;
+
+    /**
+     * O identificador externo (do gateway de pagamento, ex: Stripe) da transação não encontrada
+     */
     private final String providerTransactionId;
 
     /**

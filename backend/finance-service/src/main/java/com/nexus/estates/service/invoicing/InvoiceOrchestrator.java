@@ -23,6 +23,7 @@ import java.util.List;
 @Service
 public class InvoiceOrchestrator {
 
+
     private final InvoiceRepository invoiceRepository;
     private final String activeInvoiceProvider;
     private final InvoiceProviderStrategy invoiceProviderStrategy;

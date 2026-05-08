@@ -35,9 +35,8 @@ public class PasswordResetController {
 
     /**
      * Inicia o processo de recuperação de password enviando um email com o token.
-     *
      * @param request DTO contendo o email do utilizador.
-     * @return Resposta de sucesso genérica (para evitar enumeração de utilizadores).
+     * @return Resposta de sucesso genérica (para evitar enumeração de utilizadores, por razões de segurança).
      */
     @Operation(summary = "Solicitar recuperação de password", description = "Envia um email com um link/token para redefinir a password.")
     @ApiResponses(value = {
@@ -54,7 +53,6 @@ public class PasswordResetController {
 
     /**
      * Redefine a password do utilizador utilizando um token válido.
-     *
      * @param request DTO contendo o token e a nova password.
      * @return Resposta de sucesso.
      */

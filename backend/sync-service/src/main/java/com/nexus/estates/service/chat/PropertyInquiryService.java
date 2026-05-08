@@ -26,6 +26,9 @@ import java.util.Optional;
  *   <li>O frontend nunca faz lookup de emails nem conhece emails de proprietários.</li>
  *   <li>O sync-service valida permissões via property-service internamente.</li>
  * </ul>
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
  */
 @Service
 @RequiredArgsConstructor

@@ -33,14 +33,39 @@ import java.math.BigDecimal;
 @Service
 public class StripeWebhookService {
 
+    /**
+     * Repositório para acesso e manipulação do estado dos pagamentos na base de dados
+     */
     private final PaymentRepository paymentRepository;
+
+    /**
+     * Repositório dedicado à gestão do ciclo de vida dos eventos recebidos (tabela de idempotência)
+     */
     private final ProcessedEventRepository processedEventRepository;
+
+    /**
+     * Fachada para comunicação interna com outros microsserviços (como o booking-service)
+     */
     private final Proxy proxy;
+
+    /**
+     * Orquestrador que gere a emissão de documentos fiscais após a validação do pagamento
+     */
     private final InvoiceOrchestrator invoiceOrchestrator;
 
+    /**
+     * Segredo criptográfico do Webhook do Stripe (injetado via configuração)
+     */
     @Value("${stripe.webhook.secret}")
     private String stripeWebhookSecret;
 
+    /**
+     * Construtor principal para o serviço de Webhooks
+     * @param paymentRepository Repositório de pagamentos
+     * @param processedEventRepository Repositório de idempotência
+     * @param proxy Proxy para chamadas a clientes HTTP (BookingClient)
+     * @param invoiceOrchestrator Orquestrador de faturas
+     */
     public StripeWebhookService(
             PaymentRepository paymentRepository,
             ProcessedEventRepository processedEventRepository,
@@ -87,6 +112,14 @@ public class StripeWebhookService {
         }
     }
 
+
+    /**
+     * Constrói e verifica a assinatura do evento do Stripe utilizando o SDK nativo
+     * @param payload O corpo do pedido
+     * @param signatureHeader O cabeçalho de assinatura criptográfica
+     * @return O evento validado
+     * @throws SignatureVerificationException Caso a assinatura não seja autêntica
+     */
     protected Event constructEvent(String payload, String signatureHeader) throws SignatureVerificationException {
         return Webhook.constructEvent(payload, signatureHeader, stripeWebhookSecret);
     }

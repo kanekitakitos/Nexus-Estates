@@ -34,8 +34,16 @@ import java.util.Optional;
 @Tag(name = "Finance Payments", description = "Operações de pagamentos (Stripe) e transações.")
 public class FinancePaymentController {
 
+    /**
+     * Serviço central de orquestração financeira
+     */
     private final FinancePaymentService financePaymentService;
 
+
+    /**
+     * Construtor do controlador financeiro
+     * @param financePaymentService Serviço injetado responsável pela lógica de negócio dos pagamentos
+     */
     public FinancePaymentController(FinancePaymentService financePaymentService) {
         this.financePaymentService = financePaymentService;
     }
