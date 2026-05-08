@@ -33,9 +33,24 @@ import java.util.Optional;
 @Service
 public class FinancePaymentService {
 
+    /**
+     * Repositório para acesso e manipulação do estado dos pagamentos na base de dados
+     */
     private final PaymentGatewayProvider paymentGatewayProvider;
+
+    /**
+     * Orquestrador responsável por acionar a emissão de faturas após pagamentos bem-sucedidos
+     */
     private final PaymentRepository paymentRepository;
+
+    /**
+     * Provedor de gateway de pagamento (Strategy) que abstrai a comunicação com APIs externas
+     */
     private final Proxy proxy;
+
+    /**
+     * Cliente HTTP (Proxy) para comunicação interna com o microsserviço de reservas (booking-service)
+     */
     private final InvoiceOrchestrator invoiceOrchestrator;
 
     /**

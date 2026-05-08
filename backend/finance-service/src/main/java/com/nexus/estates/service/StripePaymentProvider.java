@@ -30,6 +30,12 @@ import java.util.*;
 @Service
 public class StripePaymentProvider implements PaymentGatewayProvider {
 
+    /**
+     * Chave de publicação pública do Stripe (Publishable Key)
+     * <p>
+     *     Injetada via configuração, é utilizada em operações que não exigem privilégios máximos de API
+     * </p>
+     */
     @Value("${stripe.publishable.key:}")
     private String stripePublishableKey;
 
@@ -41,6 +47,14 @@ public class StripePaymentProvider implements PaymentGatewayProvider {
         return "STRIPE";
     }
 
+    /**
+     *
+     * @param amount O valor monetário a cobrar
+     * @param currency A moeda da transação
+     * @param referenceId O ID da reservanoi entidade associada
+     * @param metadata Dados extra a guardar na transação do provedor
+     * @return
+     */
     @Override
     public PaymentResponse createPaymentIntent(BigDecimal amount, String currency, String referenceId, Map<String, Object> metadata) {
         try {
@@ -68,6 +82,13 @@ public class StripePaymentProvider implements PaymentGatewayProvider {
         }
     }
 
+
+    /**
+     *
+     * @param paymentIntentId Ddaos adicionais a anexar na confirmação
+     * @param metadata Dados adicionais a anexar na confirmação
+     * @return
+     */
     @Override
     public PaymentResponse confirmPaymentIntent(String paymentIntentId, Map<String, Object> metadata) {
         try {
@@ -81,6 +102,15 @@ public class StripePaymentProvider implements PaymentGatewayProvider {
         }
     }
 
+    /**
+     *
+     * @param amount Valor a cobrar
+     * @param currency Moeda
+     * @param referenceId Referência interna da reserva
+     * @param paymentMethod O método de pagamento a utilizar
+     * @param metadata Dados extra
+     * @return
+     */
     @Override
     public PaymentResponse processDirectPayment(BigDecimal amount, String currency, String referenceId, PaymentMethod paymentMethod, Map<String, Object> metadata) {
         try {
@@ -110,6 +140,15 @@ public class StripePaymentProvider implements PaymentGatewayProvider {
         }
     }
 
+    /**
+     *
+     * @param transactionId O ID transação original
+     * @param amount O valor a reembolsar. Se for null, reembolsa o total
+     * @param currency A moeda do reembolso
+     * @param reason O motivo do cancelamente (opcional)
+     * @param metadata Dados extra de auditoria
+     * @return
+     */
     @Override
     public RefundResult processRefund(String transactionId, BigDecimal amount, String currency, Optional<String> reason, Map<String, Object> metadata) {
         try {
@@ -154,6 +193,13 @@ public class StripePaymentProvider implements PaymentGatewayProvider {
         }
     }
 
+
+    /**
+     * Consulta todos os detalhes financeiros e de cliente de uma transação específica no Stripe
+     * @param transactionId O identificador único do PaymentIntent
+     * @return Objeto {@link TransactionInfo} com o resumo completo
+     * @throws PaymentNotFoundException Se a transação não existir no Stripe
+     */
     @Override
     public TransactionInfo getTransactionDetails(String transactionId) {
         try {
@@ -164,6 +210,13 @@ public class StripePaymentProvider implements PaymentGatewayProvider {
         }
     }
 
+
+    /**
+     * Efetua uma consulta rápida ao Stripe para obter apenas o estado atual de um pagamento
+     * @param transactionId O identificador do PaymentIntent
+     * @return O enumerador {@link PaymentStatus} correspondente ao estado no provedor
+     * @throws PaymentNotFoundException Se a transação não for encontrada
+     */
     @Override
     public PaymentStatus getPaymentStatus(String transactionId) {
         try {
@@ -174,11 +227,27 @@ public class StripePaymentProvider implements PaymentGatewayProvider {
         }
     }
 
+
+    /**
+     * Devolve a lista de transações associadas a uma referência interna
+     * <p>
+     *     Atualmente, a API de pesquisa síncrona direta por metadados do Stripe não é suportada
+     *     nesta implementação, devolvendo uma lista vazia por omissão
+     * </p>
+     * @param referenceId Referência interna do Nexus Estates
+     * @return Lista vazia de {@link TransactionInfo}
+     */
     @Override
     public List<TransactionInfo> getTransactionsByReference(String referenceId) {
         return Collections.emptyList();
     }
 
+
+    /**
+     * Verifica se o Stripe suporta um determinado método de pagamento
+     * @param paymentMethod O tipo de pagamento (ex: MBWAY)
+     * @return {@code true} se for suportado (Cartão de Crédito, Débito ou Transferência Bancária)
+     */
     @Override
     public boolean supportsPaymentMethod(PaymentMethod paymentMethod) {
         return paymentMethod == PaymentMethod.CREDIT_CARD ||
@@ -186,6 +255,11 @@ public class StripePaymentProvider implements PaymentGatewayProvider {
                 paymentMethod == PaymentMethod.BANK_TRANSFER;
     }
 
+
+    /**
+     * Exibe os metadados técnicos e as capacidades do Stripe para exposição a clientes (Frontend)
+     * @return {@link ProviderInfo} com detalhes técnicos desta integração
+     */
     @Override
     public ProviderInfo getProviderInfo() {
         return new ProviderInfo(
@@ -204,6 +278,12 @@ public class StripePaymentProvider implements PaymentGatewayProvider {
         );
     }
 
+
+    /**
+     * Converte o estado nativo do Stripe para o formato padronizado do sistema
+     * @param stripeStatus O estado devolvido pela API do Stripe
+     * @return O {@link PaymentStatus} correspondente
+     */
     private PaymentStatus mapStripeStatusToDto(String stripeStatus) {
         if (stripeStatus == null) return PaymentStatus.UNKNOWN;
         return switch (stripeStatus) {
@@ -217,6 +297,12 @@ public class StripePaymentProvider implements PaymentGatewayProvider {
         };
     }
 
+
+    /**
+     * onverte o estado de um reembolso do Stripe para o formato padronizado do sistema
+     * @param stripeStatus O estado devolvido pela API do Stripe
+     * @return O {@link RefundStatus} correspondente
+     */
     private RefundStatus mapStripeRefundStatusToDto(String stripeStatus) {
         if (stripeStatus == null) return RefundStatus.UNKNOWN;
         return switch (stripeStatus) {
@@ -228,6 +314,11 @@ public class StripePaymentProvider implements PaymentGatewayProvider {
         };
     }
 
+    /**
+     * Converte um PaymentIntent do Stripe num DTO polimórfico {@link PaymentResponse}
+     * @param intent O objeto nativo do Stripe
+     * @return O DTO correspondente ao estado da transação
+     */
     private PaymentResponse mapToPaymentResponse(PaymentIntent intent) {
         PaymentStatus status = mapStripeStatusToDto(intent.getStatus());
 
@@ -275,6 +366,12 @@ public class StripePaymentProvider implements PaymentGatewayProvider {
         };
     }
 
+
+    /**
+     * Converte um PaymentIntent detalhado num {@link TransactionInfo} para consultas exatas
+     * @param intent Objeto do Stripe
+     * @return O registo de detalhes da transação
+     */
     private TransactionInfo mapToTransactionInfo(PaymentIntent intent) {
         PaymentStatus status = mapStripeStatusToDto(intent.getStatus());
 
@@ -304,6 +401,11 @@ public class StripePaymentProvider implements PaymentGatewayProvider {
         );
     }
 
+    /**
+     * Converte o mapa de metadados nativo do SDK do Stripe para um mapa genérico do sistema
+     * @param metadata O mapa de chaves-valores recebido do Stripe
+     * @return Um mapa genérico com segurança contra nulos
+     */
     private Map<String, Object> convertStripeMetadata(Map<String, String> metadata) {
         if (metadata == null) return new HashMap<>();
         Map<String, Object> result = new HashMap<>();

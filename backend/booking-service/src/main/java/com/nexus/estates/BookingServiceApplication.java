@@ -25,6 +25,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class BookingServiceApplication
 {
+    /**
+     * Método de arranque principal da aplicação Spring Boot
+     * @param args Argumentos de linha de comandos passados durante a inicialização do processo
+     */
     public static void main(String[] args)
     {
         SpringApplication.run(BookingServiceApplication.class, args);

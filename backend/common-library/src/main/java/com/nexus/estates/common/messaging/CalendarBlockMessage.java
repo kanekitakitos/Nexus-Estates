@@ -11,6 +11,9 @@ import java.time.Instant;
  * @param endUtc instante UTC de fim do bloqueio.
  * @param sourceUid identificador único do evento no calendário externo (quando disponível).
  * @param sourceSummary descrição/título do evento no calendário externo (quando disponível).
+ *
+ * @author Nexus Estates Team
+ * @version 1.0
  */
 public record CalendarBlockMessage(
         Long propertyId,

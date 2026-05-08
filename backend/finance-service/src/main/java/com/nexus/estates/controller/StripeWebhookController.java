@@ -30,8 +30,16 @@ import java.util.Map;
 @Tag(name = "Finance Webhooks", description = "Receção de webhooks de pagamentos.")
 public class StripeWebhookController {
 
+    /**
+     * Serviço encarregue de processar e validar eventos assíncronos do Stripe
+     */
     private final StripeWebhookService stripeWebhookService;
 
+
+    /**
+     * Construtor do controlador de webhooks
+     * @param stripeWebhookService O serviço responsável pela validação criptográfica e idempotência dos eventos
+     */
     public StripeWebhookController(StripeWebhookService stripeWebhookService) {
         this.stripeWebhookService = stripeWebhookService;
     }

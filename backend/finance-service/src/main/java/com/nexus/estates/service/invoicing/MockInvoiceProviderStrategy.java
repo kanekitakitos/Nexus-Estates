@@ -20,9 +20,21 @@ import java.time.LocalDateTime;
 @Service
 public class MockInvoiceProviderStrategy implements InvoiceProviderStrategy {
 
+    /**
+     * O prefixo atribuído ás faturas ficticias
+     */
     private final String prefix;
+
+    /**
+     * O URL base usado para simular o endereço de descarregamento do PDF
+     */
     private final String baseUrl;
 
+    /**
+     * Construtor do provedor Mock
+     * @param prefix Prefixo da fatura injetado via propriedades
+     * @param baseUrl Endereço base para os URLs dos PDFs injetado via propriedades
+     */
     public MockInvoiceProviderStrategy(
             @Value("${mock.invoice.prefix:FT}") String prefix,
             @Value("${mock.invoice.base-url:https://cdn.nexus-estates.local/mock}") String baseUrl
@@ -31,11 +43,26 @@ public class MockInvoiceProviderStrategy implements InvoiceProviderStrategy {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 
+
+    /**
+     * Identificador do provedor simulado
+     * @return A constante "MOCK"
+     */
     @Override
     public String providerKey() {
         return "MOCK";
     }
 
+
+    /**
+     * Gera uma emissão fictícia de fatura
+     * <p>
+     *     Constrói um ID legal baseado no ano e no ID do pagamento, e forja um URL de PDF simulado
+     * </p>
+     * @param invoice A entidade de rascunho da fatura
+     * @param payment Os detalhes do pagamento que originou esta fatura
+     * @return O resultado da simulação indicando sucesso ("ISSUED")
+     */
     @Override
     public InvoiceIssueResult issue(Invoice invoice, Payment payment) {
         String legalId = prefix + " " + LocalDateTime.now().getYear() + "/" + payment.getId();
