@@ -8,8 +8,33 @@
 "use client"
 
 import React, { useEffect, useId, useMemo, useRef, useState } from "react"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/overlay/tooltip"
 
 type Point = { x: number; y: number }
+
+type Plot = {
+  width: number
+  height: number
+  d: string
+  points: Point[]
+}
+
+const SEASONALITY_LINE_HEIGHT = 42
+const PLOT_PADDING_PX = 2
+const BASELINE_FRACTION = 0.09
+const SNAP_PX = 5
+
+const WAVE_MIN_WAVELENGTH_PX = 120
+const WAVE_WAVELENGTH_DAYS = 6
+const WAVE_PHASE_PERIOD_MS = 2400
+const WAVE_RAMP_MS = 650
+const WAVE_AMPLITUDE_MIN_PX = 2.4
+const WAVE_AMPLITUDE_MAX_PX = 7
+const WAVE_AMPLITUDE_PER_DAYWIDTH = 0.11
+const WAVE_FLAT_AMPLITUDE_MULTIPLIER = 1.25
+
+const TOOLTIP_CLASSNAME =
+  "rounded-xl border-2 border-foreground bg-card text-foreground shadow-[4px_4px_0_0_#0D0D0D] px-3 py-2"
 
 /**
  * Linha de sazonalidade (multiplicador por dia) para o mês em foco.
@@ -30,30 +55,126 @@ function clamp01(x: number): number {
   return x
 }
 
-function catmullRomToBezierPath(points: Point[], tension = 1): string {
+function clamp(x: number, min: number, max: number): number {
+  if (x < min) return min
+  if (x > max) return max
+  return x
+}
+
+function pointsToLinearPath(points: Point[]): string {
   if (points.length < 2) return ""
-  const t = tension
   const parts: string[] = [`M${points[0].x},${points[0].y}`]
-
-  for (let i = 0; i < points.length - 1; i += 1) {
-    const p0 = points[i - 1] ?? points[i]
-    const p1 = points[i]
-    const p2 = points[i + 1]
-    const p3 = points[i + 2] ?? p2
-
-    const c1x = p1.x + ((p2.x - p0.x) / 6) * t
-    const c1y = p1.y + ((p2.y - p0.y) / 6) * t
-    const c2x = p2.x - ((p3.x - p1.x) / 6) * t
-    const c2y = p2.y - ((p3.y - p1.y) / 6) * t
-
-    parts.push(`C${c1x},${c1y} ${c2x},${c2y} ${p2.x},${p2.y}`)
+  for (let i = 1; i < points.length; i += 1) {
+    const p = points[i]
+    parts.push(`L${p.x},${p.y}`)
   }
-
   return parts.join(" ")
 }
 
 function easeInOutSine(t: number): number {
   return -(Math.cos(Math.PI * t) - 1) / 2
+}
+
+function formatMultiplier(x: number): string {
+  return Number.isFinite(x) ? x.toFixed(2) : "—"
+}
+
+function formatDay(year: number, month: number, day: number): string {
+  return new Date(year, month, day).toLocaleDateString("pt-PT", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  })
+}
+
+function computePlot(opts: {
+  year: number
+  month: number
+  dayWidth: number
+  multipliers: number[]
+}): Plot | null {
+  const { year, month, dayWidth, multipliers } = opts
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  if (multipliers.length !== daysInMonth) return null
+
+  const max = Math.max(1, ...multipliers)
+  const range = max - 1 || 1
+
+  const width = dayWidth * daysInMonth
+  const height = SEASONALITY_LINE_HEIGHT
+  const topPad = PLOT_PADDING_PX
+  const bottomPad = PLOT_PADDING_PX
+  const plotHeight = height - topPad - bottomPad
+  const baselineY = topPad + plotHeight * BASELINE_FRACTION
+  const downRange = topPad + plotHeight - baselineY
+
+  const points: Point[] = multipliers.map((m, idx) => {
+    const x = (idx + 0.5) * dayWidth
+    const day = idx + 1
+
+    const mm =
+      day === 1 || day === daysInMonth
+        ? 1
+        : Number.isFinite(m)
+          ? Math.max(1, m)
+          : 1
+
+    const t = clamp01((mm - 1) / range)
+    const y0 = baselineY + t * downRange
+    const y1 = baselineY + Math.round((y0 - baselineY) / SNAP_PX) * SNAP_PX
+    const y = clamp(y1, baselineY, baselineY + downRange)
+
+    return { x, y }
+  })
+
+  return {
+    width,
+    height,
+    d: pointsToLinearPath(points),
+    points,
+  }
+}
+
+function DayMultiplierHoverOverlay({
+  year,
+  month,
+  dayWidth,
+  multipliers,
+}: {
+  year: number
+  month: number
+  dayWidth: number
+  multipliers: number[]
+}) {
+  return (
+    <div className="absolute inset-0 flex">
+      {multipliers.map((m, idx) => {
+        const day = idx + 1
+        const mm = Number.isFinite(m) ? Math.max(1, m) : 1
+        return (
+          <Tooltip key={idx}>
+            <TooltipTrigger asChild>
+              <div
+                className="h-full flex-shrink-0 cursor-help"
+                style={{ width: dayWidth }}
+                aria-label={`Multiplicador ${formatMultiplier(mm)} no dia ${day}`}
+              />
+            </TooltipTrigger>
+            <TooltipContent side="top" sideOffset={8} className={TOOLTIP_CLASSNAME}>
+              <div className="grid gap-1">
+                <div className="font-mono text-[11px] font-black truncate">
+                  {formatDay(year, month, day)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Multiplicador: x{formatMultiplier(mm)}
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        )
+      })}
+    </div>
+  )
 }
 
 export function DashboardSeasonalityLine({
@@ -81,34 +202,10 @@ export function DashboardSeasonalityLine({
   const phaseOriginRef = useRef<number | null>(null)
 
   const isFlat = useMemo(() => multipliers.every((m) => m === 1), [multipliers])
-
-  const plot = useMemo(() => {
-    if (multipliers.length !== daysInMonth) return null
-
-    const min = Math.min(1, ...multipliers)
-    const max = Math.max(1, ...multipliers)
-    const range = max - min || 1
-
-    const width = dayWidth * daysInMonth
-    const height = 30
-    const topPad = 4
-    const bottomPad = 4
-    const plotHeight = height - topPad - bottomPad
-
-    const points: Point[] = multipliers.map((m, idx) => {
-      const x = (idx + 0.5) * dayWidth
-      const t = clamp01((m - min) / range)
-      const y = topPad + (1 - t) * plotHeight
-      return { x, y }
-    })
-
-    return {
-      width,
-      height,
-      d: catmullRomToBezierPath(points, 1),
-      points,
-    }
-  }, [multipliers, daysInMonth, dayWidth])
+  const plot = useMemo(
+    () => computePlot({ year, month, dayWidth, multipliers }),
+    [dayWidth, month, multipliers, year]
+  )
 
   useEffect(() => {
     const el = pathRef.current
@@ -140,10 +237,14 @@ export function DashboardSeasonalityLine({
     if (!main || !shadow) return
 
     const base = plot.points
-    const waveLengthPx = Math.max(dayWidth * 6, 120)
+    const waveLengthPx = Math.max(dayWidth * WAVE_WAVELENGTH_DAYS, WAVE_MIN_WAVELENGTH_PX)
     const k = (2 * Math.PI) / waveLengthPx
-    const phaseSpeed = (2 * Math.PI) / 2400
-    const amplitude = Math.min(7, Math.max(2.4, dayWidth * 0.11)) * (isFlat ? 1.25 : 1)
+    const phaseSpeed = (2 * Math.PI) / WAVE_PHASE_PERIOD_MS
+    const amplitude =
+      Math.min(
+        WAVE_AMPLITUDE_MAX_PX,
+        Math.max(WAVE_AMPLITUDE_MIN_PX, dayWidth * WAVE_AMPLITUDE_PER_DAYWIDTH)
+      ) * (isFlat ? WAVE_FLAT_AMPLITUDE_MULTIPLIER : 1)
 
     let raf = 0
     let rampStart = 0
@@ -153,15 +254,15 @@ export function DashboardSeasonalityLine({
       if (!rampStart) rampStart = t
 
       const phase = (t - phaseOriginRef.current) * phaseSpeed
-      const rampT = clamp01((t - rampStart) / 650)
+      const rampT = clamp01((t - rampStart) / WAVE_RAMP_MS)
       const a = amplitude * easeInOutSine(rampT)
 
       const points: Point[] = base.map((p) => ({
         x: p.x,
-        y: p.y + a * Math.sin(p.x * k + phase),
+        y: p.y + a * Math.max(0, Math.sin(p.x * k + phase)),
       }))
 
-      const d = catmullRomToBezierPath(points, 1)
+      const d = pointsToLinearPath(points)
       shadow.setAttribute("d", d)
       main.setAttribute("d", d)
 
@@ -185,7 +286,7 @@ export function DashboardSeasonalityLine({
       <div
         className={`sticky left-0 z-10 ${labelWClassName} ${borderRightClassName} ${borderColorClassName} bg-transparent`}
       />
-      <div className="relative overflow-visible" style={{ height: plot.height }}>
+      <div className="relative overflow-visible" style={{ height: plot.height, width: plot.width }}>
         <svg
           width={plot.width}
           height={plot.height}
@@ -240,6 +341,13 @@ export function DashboardSeasonalityLine({
             }}
           />
         </svg>
+
+        <DayMultiplierHoverOverlay
+          year={year}
+          month={month}
+          dayWidth={dayWidth}
+          multipliers={multipliers}
+        />
       </div>
     </div>
   )
