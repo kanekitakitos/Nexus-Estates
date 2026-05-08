@@ -16,7 +16,8 @@
  * Parse seguro de "YYYY-MM-DD" para uma Date em tempo local (00:00).
  */
 export function parseISODateLocal(dateStr: string): Date {
-  const [y, m, d] = dateStr.split("-").map((part) => Number(part))
+  const base = String(dateStr ?? "").trim().split("T")[0]?.split(" ")[0] ?? ""
+  const [y, m, d] = base.split("-").map((part) => Number(part))
   return new Date(y, (m ?? 1) - 1, d ?? 1)
 }
 
