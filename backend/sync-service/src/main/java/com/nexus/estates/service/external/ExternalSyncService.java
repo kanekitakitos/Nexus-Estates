@@ -37,7 +37,7 @@ public class ExternalSyncService {
 
     private final WebClient externalApiWebClient;
     private final ExternalAuthService authService;
-
+    //Alterar o timeout do ExternalSyncService
     @Value("${external.api.timeout.request:5s}")
     private Duration requestTimeout;
 

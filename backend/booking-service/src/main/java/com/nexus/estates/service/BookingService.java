@@ -86,6 +86,20 @@ public class BookingService
         if (!request.checkOutDate().isAfter(request.checkInDate()))
             throw new IllegalArgumentException("Check-out date must be after check-in date");
 
+        //Como adicionar uma nova validação ao createBooking()
+        //Exemplo: rejeitar reservas com mais de 12 meses de antecedência
+        //if (request.checkInDate().isAfter(LocalDate.now().plusMonths(12)))
+            //throw new IllegalArgumentException("Cannot book more than 12 months in advance");
+
+        //Exemplo: rejeitar reservas com menos de 1 hóspede
+        //if (request.guestCount() < 1)
+        //    throw new IllegalArgumentException("O número de hóspedes deve ser pelo menos 1");
+
+        //Exemplo: rejeitar reservas no passado
+        //if (request.checkInDate().isBefore(java.time.LocalDate.now()))
+        //    throw new IllegalArgumentException("A data de check-in não pode ser no passado");
+
+
         // 2. Verificar Disponibilidade com Pessimistic Lock (domínio do booking-service)
         // Rejeita se existir sobreposição com CONFIRMED, BLOCKED ou PENDING_PAYMENT
         boolean isOccupied = bookingRepository.existsOverlappingBooking(
@@ -292,4 +306,19 @@ public class BookingService
     public com.nexus.estates.dto.payment.RefundResult processRefund(Long bookingId, java.math.BigDecimal amount, String reason) {
         return bookingPaymentService.processRefund(bookingId, amount, reason);
     }
+    /*
+    Como criar um endpoint para cancelar uma reserva
+    No BookingService, adicionar método cancelBooking():
+
+    @Transactional
+    public BookingResponse cancelBooking(Long id, String reason) {
+        Booking b = bookingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+        if (b.getStatus() == BookingStatus.COMPLETED || b.getStatus() == BookingStatus.REFUNDED)
+            throw new IllegalStateException("Cannot cancel a completed/refunded booking");
+        b.setStatus(BookingStatus.CANCELLED);
+        b.setCancellationReason(reason);
+        return new BookingResponse(bookingRepository.save(b));
+    }*/
+
 }

@@ -45,6 +45,14 @@ public class AuthService {
      */
     public AuthResponse register(RegisterRequest request) {
 
+        //A password deve ter pelo menos 8 caracteres
+        /*if (request.getPassword() == null || request.getPassword().length() < 8)
+            throw new IllegalArgumentException("A password deve ter pelo menos 8 caracteres.");*/
+
+        //O email deve conter um @
+        /*if (!request.getEmail().contains("@"))
+            throw new IllegalArgumentException("O email fornecido não é válido.");*/
+
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new EmailAlreadyRegisteredException("O email '" + request.getEmail() + "' já se encontra registado.");
         }
@@ -86,7 +94,7 @@ public class AuthService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new InvalidCredentialsException("A password fornecida está incorreta.");
         }
-
+        // se quiser Remove a promoção automática de GUEST para OWNER no login" — remover estas 4 linhas do login():
         if (user.getRole() == UserRole.GUEST) {
             user.setRole(UserRole.OWNER);
             user = userRepository.save(user);

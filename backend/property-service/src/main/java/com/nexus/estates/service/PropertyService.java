@@ -367,6 +367,11 @@ public class PropertyService {
             if (req.basePrice().scale() > 2 || req.basePrice().compareTo(BigDecimal.ZERO) <= 0) {
                 throw new IllegalArgumentException("O preço base deve ser positivo e com no máximo 2 casas decimais.");
             }
+
+            //Exemplo de validação de preço: O preço base deve ser pelo menos 10€
+            //if (req.basePrice().compareTo(new BigDecimal("10")) < 0)
+                //throw new IllegalArgumentException("O preço base deve ser pelo menos 10€.");
+
             recordChange(id, effectiveActorUserId, "UPDATE", "basePrice", p.getBasePrice() == null ? null : p.getBasePrice().toPlainString(), req.basePrice().toPlainString());
             p.setBasePrice(req.basePrice());
         }
@@ -577,4 +582,11 @@ public class PropertyService {
                 p.getImageUrl()
         );
     }
+
+    //Adiciona um método que conta quantas propriedades activas existem
+    /*public long countActiveProperties() {
+        return repository.findAll().stream()
+            .filter(p -> Boolean.TRUE.equals(p.getIsActive()))
+            .count();
+        }*/
 }

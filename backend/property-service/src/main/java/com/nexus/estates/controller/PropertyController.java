@@ -488,4 +488,10 @@ public class PropertyController {
         m.put("imageUrl", p.getImageUrl());
         return m;
     }
+
+    //endpoint para o contador de propriedades
+    /*@GetMapping("/count/active")
+    public ResponseEntity<Long> countActive() {
+    return ResponseEntity.ok(propertyService.countActiveProperties());
+    }*/
 }

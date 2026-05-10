@@ -48,7 +48,7 @@ public record CreateBookingRequest(
         @NotNull(message = "Check-out date is required")
         @Future(message = "Check-out must be in the future")
         LocalDate checkOutDate,
-
+        //Alterar o número mínimo de hóspedes no CreateBookingRequest
         @Schema(description = "Número total de hóspedes para a reserva", example = "2", minimum = "1")
         @Min(value = 1, message = "At least 1 guest is required")
         int guestCount,

@@ -313,6 +313,11 @@ public class BookingPaymentService {
         if (booking.getTotalPrice() == null || booking.getTotalPrice().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalStateException("Invalid booking total price");
         }
+        //A reserva também não pode ser paga se estiver REFUNDED
+        /*if (booking.getStatus() == BookingStatus.REFUNDED) {
+            throw new IllegalStateException("Cannot process payment for a refunded booking");
+        }*/
+
     }
 
     /**

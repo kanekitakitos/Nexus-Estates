@@ -265,4 +265,14 @@ public class BookingController {
         }
     }
 
+    /*
+
+    No BookingController, adicionar endpoint para ligar ao booking service
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<BookingResponse> cancel(@PathVariable Long id,
+                                                  @RequestParam(required = false) String reason) {
+        return ResponseEntity.ok(bookingService.cancelBooking(id, reason));
+    }*/
+
+
 }

@@ -42,8 +42,11 @@ public class PasswordResetService {
      *
      * @param email O endereço de e-mail do utilizador que solicita a redefinição.
      */
+    //@Slf4j
     @Transactional
     public void initiatePasswordReset(String email) {
+        //Adicionar logging a um método que não tem
+        //log.info("Token gerado para o utilizador {}", email);
         userRepository.findByEmail(email).ifPresent(user -> {
             // Garante que apenas um token esteja ativo por utilizador de cada vez
             tokenRepository.deleteByUser(user);
@@ -55,6 +58,7 @@ public class PasswordResetService {
             PasswordResetToken resetToken = PasswordResetToken.builder()
                     .token(token)
                     .user(user)
+                    //Alterar o TTL do token de reset de password
                     .expiryDate(LocalDateTime.now().plusMinutes(15))
                     .build();
 
@@ -91,6 +95,12 @@ public class PasswordResetService {
 
         // Atualização da entidade User com a nova credencial encriptada
         User user = resetToken.getUser();
+
+        //Adiciona validação: a nova password não pode ser igual ao email
+        /*if (newPassword.equalsIgnoreCase(user.getEmail())) {
+            throw new IllegalArgumentException("A password não pode ser igual ao email.");
+        }*/
+        user.setPassword(passwordEncoder.encode(newPassword));
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 

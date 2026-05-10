@@ -59,6 +59,11 @@ public record BookingResponse(
 
         @Schema(description = "Estado atual da reserva ao longo do seu ciclo de vida")
         BookingStatus status
+
+        //Como adicionar um campo novo ao DTO
+        //Exemplo: adicionar numberOfNights calculado ao BookingResponse.
+        //Como BookingResponse é um Record, LEMBRAR --> adiciona o campo e actualiza o construtor de conveniência
+        //Long numberOfNights,
 ) {
 
     /**
@@ -68,6 +73,6 @@ public record BookingResponse(
      * @param booking A entidade de domínio contendo os dados persistidos da reserva.
      */
     public BookingResponse(Booking booking) {
-        this(booking.getId(), booking.getPropertyId(), booking.getUserId(), booking.getCheckInDate(), booking.getCheckOutDate(), booking.getGuests(), booking.getTotalPrice(), booking.getCurrency(), booking.getStatus());
+        this(booking.getId(), booking.getPropertyId(), booking.getUserId(), booking.getCheckInDate(), booking.getCheckOutDate(), booking.getGuests(), booking.getTotalPrice(), booking.getCurrency(), booking.getStatus() /*,ChronoUnit.DAYS.between(booking.getCheckInDate(), booking.getCheckOutDate())*/);
     }
 }

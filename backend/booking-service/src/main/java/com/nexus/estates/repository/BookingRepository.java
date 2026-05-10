@@ -103,6 +103,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
      */
     List<Booking> findByUserId(Long userId);
 
+    //Como adicionar uma nova query ao Repository
+    //Exemplo: listar reservas com status BLOCKED de uma propriedade
+    //List<Booking> findByPropertyIdAndStatus(Long propertyId, BookingStatus status);
+
+    //Exemplo: Conta quantas reservas CONFIRMED uma propriedade tem
+    //long countByPropertyIdAndStatus(Long propertyId, BookingStatus status);
+
+    //Exemplo: Lista reservas por status de forma geral
+    //List<Booking> findByStatus(BookingStatus status);
+
     //* Outra forma de fazer a query, mas se ve horrivel
 //?    boolean existsByPropertyIdAndStatusInAndCheckInDateLessThanAndCheckOutDateGreaterThan(
 //            UUID propertyId,
