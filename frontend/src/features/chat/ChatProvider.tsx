@@ -1,7 +1,14 @@
+/**
+ * @file ChatProvider.tsx
+ * @author Nexus Estates team
+ * @description Injeta a estratégia de chat escolhida (ex: Ably) na aplicação.
+ *              É responsável por instanciar a estratégia ativa e expô-la através do Contexto React.
+ */
+
 "use client";
 
 import React from "react";
-import AblyChatStrategy from "./strategies/ably/AblyChatStrategy";
+import AblyChatStrategy from "./strategies/ably";
 export * from "./ui";
 export * from "./chat-strategy";
 

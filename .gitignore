@@ -3,3 +3,8 @@
 *.log
 .DS_Store
 tmp/
+.env
+.env.*
+*.env
+infrastructure/deploy.env
+!infrastructure/env/**/*.env

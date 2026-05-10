@@ -1,3 +1,10 @@
+/**
+ * @file status-badge.tsx
+ * @author Nexus Estates team
+ * @description Crachá (Badge) de estado operacional de uma propriedade.
+ *              Apresenta o estado atual (ex: Disponível, Ocupado) com um indicador pulsante e cores associadas.
+ */
+
 "use client"
 
 import { cn } from "@/lib/utils"

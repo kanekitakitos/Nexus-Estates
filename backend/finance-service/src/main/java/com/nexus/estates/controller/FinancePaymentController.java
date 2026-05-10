@@ -20,13 +20,30 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Controlador REST principal para a gestão de pagamentos e transações financeiras
+ * <p>
+ *     Fornece a API pública para iniciar intenções de pagamento, confirmar cobranças
+ *     e processar reembolsos, interagindo com o gateway de pagamento configurado (ex:Stripe)
+ * </p>
+ * @author Nexus Estates Team
+ * @version 1.0
+ */
 @RestController
 @RequestMapping("/api/finance")
 @Tag(name = "Finance Payments", description = "Operações de pagamentos (Stripe) e transações.")
 public class FinancePaymentController {
 
+    /**
+     * Serviço central de orquestração financeira
+     */
     private final FinancePaymentService financePaymentService;
 
+
+    /**
+     * Construtor do controlador financeiro
+     * @param financePaymentService Serviço injetado responsável pela lógica de negócio dos pagamentos
+     */
     public FinancePaymentController(FinancePaymentService financePaymentService) {
         this.financePaymentService = financePaymentService;
     }
@@ -167,7 +184,12 @@ public class FinancePaymentController {
     }
 
     /**
-     * Request para criação de PaymentIntent.
+     * Request para criação de PaymentIntent
+     *
+     * @param amount O valor monetário a ser cobrado
+     * @param currency A moeda da transação
+     * @param paymentMethod O método de pagamento a utilizar.
+     * @param metadata Informações adicionais a associar á transação
      */
     public record CreatePaymentIntentRequest(
             @NotNull @Positive BigDecimal amount,
@@ -177,7 +199,9 @@ public class FinancePaymentController {
     ) {}
 
     /**
-     * Request para confirmação de PaymentIntent.
+     * Request para confirmação de PaymentIntent
+     * @param paymentIntentId O identificador único da intenção de pagamento no provedor
+     * @param metadata Informações adicionais a associar á confirmação
      */
     public record ConfirmPaymentRequest(
             @NotBlank String paymentIntentId,
@@ -185,7 +209,11 @@ public class FinancePaymentController {
     ) {}
 
     /**
-     * Request para pagamento direto (confirm imediato).
+     * Request para pagamento direto (confirm imediato)
+     * @param amount O valor monetário a ser cobrado imediatamente
+     * @param currency A moeda da transaçãop
+     * @param paymentMethod O método de pagamento a utilizar
+     * @param metadata Informações adicionais a associar á transação
      */
     public record DirectPaymentRequest(
             @NotNull @Positive BigDecimal amount,
@@ -195,7 +223,12 @@ public class FinancePaymentController {
     ) {}
 
     /**
-     * Request para processamento de reembolso.
+     * Request para processamento de reembolso
+     * @param transactionId O identificador da transação original a ser reembolsada
+     * @param amount O valor parcial a reembolsar (opcional, se nulo reembolsa a totalidade)
+     * @param currency A moeda da transação
+     * @param reason O motivo do reembolso
+     * @param metadata Informações adicionais a associar ao reembolso
      */
     public record RefundRequest(
             @NotBlank String transactionId,

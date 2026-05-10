@@ -7,11 +7,14 @@ import com.nexus.estates.common.dto.RuleOverrideDTO;
 import com.nexus.estates.common.dto.SeasonalityRuleDTO;
 import com.nexus.estates.dto.CreatePropertyRequest;
 import com.nexus.estates.dto.ExpandedPropertyResponse;
+import com.nexus.estates.dto.PropertyPermissionDTO;
 import com.nexus.estates.dto.UpdatePropertyRequest;
 import com.nexus.estates.audit.ActorContext;
+import com.nexus.estates.entity.AccessLevel;
 import com.nexus.estates.entity.Amenity;
 import com.nexus.estates.entity.Property;
 import com.nexus.estates.entity.PropertyChangeLog;
+import com.nexus.estates.entity.PropertyPermission;
 import com.nexus.estates.entity.PropertyRule;
 import com.nexus.estates.entity.RuleOverride;
 import com.nexus.estates.entity.SeasonalityRule;
@@ -24,9 +27,11 @@ import com.nexus.estates.repository.PropertyRepository;
 import com.nexus.estates.repository.PropertyRuleRepository;
 import com.nexus.estates.repository.RuleOverrideRepository;
 import com.nexus.estates.repository.SeasonalityRuleRepository;
+import com.nexus.estates.service.repository.ImageStorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,16 +49,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Serviço responsável pela lógica de negócio associada às propriedades.
- *
- * <p>Esta camada atua como intermediária entre o controller e o repositório,
- * encapsulando operações de persistência e regras de negócio complexas como
- * o cálculo de preços dinâmicos.</p>
+ * Serviço responsável pela lógica de negócio associada às propriedades. * * <p>Esta camada atua como intermediária entre o controller e o repositório,
+ * encapsulando operações de persistência e regras de negócio complexas como * o cálculo de preços dinâmicos.</p>
  *
  * @see PropertyRepository
  * @author Nexus Estates Team
- */
-@Service
+ */@Service
 @Slf4j
 public class PropertyService {
 
@@ -64,17 +65,17 @@ public class PropertyService {
     private final PermissionRepository permissionRepository;
     private final PropertyChangeLogRepository changeLogRepository;
     private final RuleOverrideRepository ruleOverrideRepository;
+    private final ImageStorageService imageStorageService;
 
     /**
-     * Construtor do serviço.
-     */
-    public PropertyService(PropertyRepository repository,
+     * Construtor do serviço.     */    public PropertyService(PropertyRepository repository,
                            AmenityRepository amenityRepository,
                            SeasonalityRuleRepository seasonalityRuleRepository,
                            PropertyRuleRepository propertyRuleRepository,
                            PermissionRepository permissionRepository,
                            PropertyChangeLogRepository changeLogRepository,
-                           RuleOverrideRepository ruleOverrideRepository) {
+                           RuleOverrideRepository ruleOverrideRepository,
+                           ImageStorageService imageStorageService) {
         this.repository = repository;
         this.amenityRepository = amenityRepository;
         this.seasonalityRuleRepository = seasonalityRuleRepository;
@@ -82,18 +83,16 @@ public class PropertyService {
         this.permissionRepository = permissionRepository;
         this.changeLogRepository = changeLogRepository;
         this.ruleOverrideRepository = ruleOverrideRepository;
+        this.imageStorageService = imageStorageService;
     }
 
     /**
-     * Cria uma nova propriedade no sistema a partir de um DTO.
-     *
-     * <p>Realiza o mapeamento dos dados do Request para a Entidade,
+     * Cria uma nova propriedade no sistema a partir de um DTO.     *     * <p>Realiza o mapeamento dos dados do Request para a Entidade,
      * suportando descrições multi-idioma (JSONB) e preparando a associação de comodidades.</p>
      *
      * @param request dados da propriedade vindos do controller (DTO)
      * @return propriedade persistida
-     */
-    @Transactional
+     */    @Transactional
     public Property create(CreatePropertyRequest request, String userIdHeader) {
         Long resolvedOwnerId = request.ownerId();
         if (resolvedOwnerId == null) {
@@ -172,6 +171,12 @@ public class PropertyService {
         return savedProperty;
     }
 
+    /**
+     * Faz parse do header {@code X-User-Id} para {@link Long}.
+     *
+     * @param userIdHeader valor do header (pode ser null/blank)
+     * @return userId parseado ou null se ausente/inválido
+     */
     private Long parseUserIdHeader(String userIdHeader) {
         if (userIdHeader == null || userIdHeader.isBlank()) {
             return null;
@@ -182,18 +187,57 @@ public class PropertyService {
             return null;
         }
     }
+    /**
+     * Garante que o utilizador autenticado tem acesso de escrita/gestão ao ativo.     *     * <p>Regra:</p>
+     * <ul>
+     *   <li>PRIMARY_OWNER e MANAGER podem gerir regras, sazonalidade e permissões.</li>
+     *   <li>STAFF não pode efetuar alterações (apenas leitura quando aplicável).</li>
+     * </ul>
+     *
+     * @param propertyId ID da propriedade
+     * @param userIdHeader header X-User-Id injetado pelo API Gateway
+     * @return nível de acesso do utilizador (PRIMARY_OWNER ou MANAGER)
+     * @throws AccessDeniedException se o utilizador não tiver permissão
+     * @throws PropertyNotFoundException se a propriedade não existir
+     */    @Transactional(readOnly = true)
+    public AccessLevel requireManageAccess(Long propertyId, String userIdHeader) {
+        Long userId = parseUserIdHeader(userIdHeader);
+        if (userId == null) {
+            throw new AccessDeniedException("Sessão expirada.");
+        }
+        AccessLevel level = getUserAccessLevel(propertyId, userId);
+        if (level == null || level == AccessLevel.STAFF) {
+            throw new AccessDeniedException("Acesso negado.");
+        }
+        return level;
+    }
 
     /**
-     * Adiciona uma sobreposição de regra sazonal.
+     * Garante que o utilizador autenticado é o {@link AccessLevel#PRIMARY_OWNER} da propriedade.
      *
-     * @param propertyId ID da propriedade.
+     * @param propertyId ID da propriedade
+     * @param userIdHeader header {@code X-User-Id} injetado pelo API Gateway
+     * @throws AccessDeniedException se a sessão estiver ausente/expirada ou se não for PRIMARY_OWNER
+     * @throws PropertyNotFoundException se a propriedade não existir
+     */
+    @Transactional(readOnly = true)
+    public void requirePrimaryOwnerAccess(Long propertyId, String userIdHeader) {
+        Long userId = parseUserIdHeader(userIdHeader);
+        if (userId == null) {
+            throw new AccessDeniedException("Sessão expirada.");
+        }
+        AccessLevel level = getUserAccessLevel(propertyId, userId);
+        if (level != AccessLevel.PRIMARY_OWNER) {
+            throw new AccessDeniedException("Acesso negado.");
+        }
+    }
+    /**
+     * Adiciona uma sobreposição de regra sazonal.     *     * @param propertyId ID da propriedade.
      * @param dto Dados da sobreposição.
      * @return A sobreposição criada.
-     */
-    @Transactional
+     */    @Transactional
     public RuleOverride addRuleOverride(Long propertyId, RuleOverrideDTO dto) {
         Property property = findById(propertyId);
-        
         RuleOverride override = RuleOverride.builder()
                 .property(property)
                 .startDate(dto.startDate())
@@ -202,17 +246,13 @@ public class PropertyService {
                 .allowedCheckInDays(dto.allowedCheckInDays())
                 .allowedCheckOutDays(dto.allowedCheckOutDays())
                 .build();
-        
         return ruleOverrideRepository.save(override);
     }
 
     /**
-     * Lista todos os overrides de uma propriedade.
-     *
-     * @param propertyId ID da propriedade.
+     * Lista todos os overrides de uma propriedade.     *     * @param propertyId ID da propriedade.
      * @return Lista de overrides.
-     */
-    @Transactional(readOnly = true)
+     */    @Transactional(readOnly = true)
     public List<RuleOverride> listOverrides(Long propertyId) {
         return ruleOverrideRepository.findAll().stream()
                 .filter(r -> r.getProperty().getId().equals(propertyId))
@@ -220,23 +260,17 @@ public class PropertyService {
     }
 
     /**
-     * Remove um override.
-     *
-     * @param overrideId ID do override a remover.
-     */
-    @Transactional
+     * Remove um override.     *     * @param overrideId ID do override a remover.
+     */    @Transactional
     public void deleteOverride(Long overrideId) {
         ruleOverrideRepository.deleteById(overrideId);
     }
 
     /**
-     * Substitui a lista de comodidades de uma propriedade.
-     *
-     * @param propertyId identificador da propriedade a atualizar
+     * Substitui a lista de comodidades de uma propriedade.     *     * @param propertyId identificador da propriedade a atualizar
      * @param amenityIds conjunto de IDs das novas comodidades
      * @return propriedade atualizada
-     */
-    @Transactional
+     */    @Transactional
     public Property updateAmenities(Long propertyId, Set<Long> amenityIds) {
         log.info("Atualizando comodidades da propriedade ID: {}", propertyId);
 
@@ -253,13 +287,10 @@ public class PropertyService {
     }
 
     /**
-     * Adiciona uma comodidade específica a uma propriedade.
-     *
-     * @param propertyId ID da propriedade.
+     * Adiciona uma comodidade específica a uma propriedade.     *     * @param propertyId ID da propriedade.
      * @param amenityId ID da comodidade a adicionar.
      * @return Propriedade atualizada.
-     */
-    @Transactional
+     */    @Transactional
     public Property addAmenity(Long propertyId, Long amenityId) {
         log.info("Adicionando comodidade {} à propriedade {}", amenityId, propertyId);
         Property property = findById(propertyId);
@@ -271,13 +302,10 @@ public class PropertyService {
     }
 
     /**
-     * Remove uma comodidade específica de uma propriedade.
-     *
-     * @param propertyId ID da propriedade.
+     * Remove uma comodidade específica de uma propriedade.     *     * @param propertyId ID da propriedade.
      * @param amenityId ID da comodidade a remover.
      * @return Propriedade atualizada.
-     */
-    @Transactional
+     */    @Transactional
     public Property removeAmenity(Long propertyId, Long amenityId) {
         log.info("Removendo comodidade {} da propriedade {}", amenityId, propertyId);
         Property property = findById(propertyId);
@@ -289,14 +317,23 @@ public class PropertyService {
     }
 
     /**
-     * Obtém todas as propriedades registadas.
-     *
-     * @return lista de propriedades
-     */
-    public List<Property> findAll() {
+     * Obtém todas as propriedades registadas.     *     * @return lista de propriedades
+     */    public List<Property> findAll() {
         return repository.findAll();
     }
 
+    /**
+     * Lista propriedades às quais o utilizador está associado via {@link PropertyPermission},
+     * aplicando filtros opcionais e paginação.
+     *
+     * @param userId ID do utilizador
+     * @param city filtro opcional por cidade
+     * @param isActive filtro opcional por ativo/inativo
+     * @param minPrice filtro opcional por preço mínimo
+     * @param maxPrice filtro opcional por preço máximo
+     * @param pageable paginação/ordenação
+     * @return página de propriedades
+     */
     @Transactional(readOnly = true)
     public Page<Property> listByUserWithFilters(Long userId, String city, Boolean isActive,
                                                 BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
@@ -309,17 +346,45 @@ public class PropertyService {
     }
 
     /**
-     * Obtém uma propriedade pelo seu identificador.
-     *
-     * @param id identificador da propriedade
+     * Obtém uma propriedade pelo seu identificador.     *     * @param id identificador da propriedade
      * @return propriedade encontrada
      * @throws PropertyNotFoundException caso a propriedade não exista
-     */
-    public Property findById(Long id) {
+     */    public Property findById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new PropertyNotFoundException(id));
     }
 
+    /**
+     * Resolve o utilizador com permissões de PRIMARY_OWNER para a propriedade.     *     * <p>Este método é usado como building block para fluxos que necessitam de identificar
+     * o “dono principal” sem expor emails ou dados pessoais ao frontend.</p>
+     */
+    @Transactional(readOnly = true)
+    public Long getPrimaryOwnerId(Long propertyId) {
+        repository.findById(propertyId).orElseThrow(() -> new PropertyNotFoundException(propertyId));
+        return permissionRepository
+                .findFirstByPropertyIdAndAccessLevel(propertyId, AccessLevel.PRIMARY_OWNER)
+                .map(PropertyPermission::getUserId)
+                .orElseThrow(() -> new IllegalStateException("Primary owner not found for property " + propertyId));
+    }
+
+    /**
+     * Resolve o nível de acesso de um utilizador a uma propriedade.     *     * @return {@link AccessLevel} quando existe permissão; null caso contrário.
+     */    @Transactional(readOnly = true)
+    public AccessLevel getUserAccessLevel(Long propertyId, Long userId) {
+        repository.findById(propertyId).orElseThrow(() -> new PropertyNotFoundException(propertyId));
+        return permissionRepository
+                .findFirstByPropertyIdAndUserId(propertyId, userId)
+                .map(PropertyPermission::getAccessLevel)
+                .orElse(null);
+    }
+
+    /**
+     * Carrega uma propriedade com relações necessárias para “visão expandida” e converte para DTO.
+     *
+     * @param id ID da propriedade
+     * @return DTO expandido (amenities, regras, sazonalidade, permissões e imageUrl resolvida)
+     * @throws PropertyNotFoundException se a propriedade não existir
+     */
     @Transactional(readOnly = true)
     public ExpandedPropertyResponse getExpandedById(Long id) {
         Property p = repository.findExpandedById(id)
@@ -327,6 +392,14 @@ public class PropertyService {
         return convertToExpandedDto(p);
     }
 
+    /**
+     * Resolve o nome “preferido” de uma amenity a partir de um mapa de idiomas.
+     *
+     * <p>Prioridade: pt → en → primeiro valor não vazio.</p>
+     *
+     * @param name mapa de nomes por idioma (ex.: {"pt": "...", "en": "..."})
+     * @return nome resolvido ou null
+     */
     private String resolveAmenityName(Map<String, String> name) {
         if (name == null || name.isEmpty()) return null;
         String pt = name.get("pt");
@@ -336,6 +409,14 @@ public class PropertyService {
         return name.values().stream().filter(v -> v != null && !v.isBlank()).findFirst().orElse(null);
     }
 
+    /**
+     * Atualiza parcialmente campos da propriedade e registra mudanças para auditoria.
+     *
+     * @param id ID da propriedade
+     * @param req payload com campos a atualizar (apenas os não nulos são aplicados)
+     * @param actorUserId ID do utilizador “ator” (opcional; usado em auditoria)
+     * @return propriedade atualizada
+     */
     @Transactional
     public Property updateProperty(Long id, UpdatePropertyRequest req, Long actorUserId) {
         Long effectiveActorUserId = resolveActorUserId(actorUserId);
@@ -393,6 +474,12 @@ public class PropertyService {
         return repository.save(p);
     }
 
+    /**
+     * Remove definitivamente uma propriedade e registra a ação no histórico (audit log).
+     *
+     * @param id ID da propriedade
+     * @param actorUserId ID do utilizador “ator” (opcional; usado em auditoria)
+     */
     @Transactional
     public void deleteProperty(Long id, Long actorUserId) {
         Long effectiveActorUserId = resolveActorUserId(actorUserId);
@@ -401,6 +488,16 @@ public class PropertyService {
         recordChange(id, effectiveActorUserId, "DELETE", null, null, null);
     }
 
+    /**
+     * Regista uma alteração no repositório de auditoria {@link PropertyChangeLogRepository}.
+     *
+     * @param propertyId ID da propriedade
+     * @param userId ID do utilizador que efetuou a alteração (pode ser null)
+     * @param action ação executada (ex.: UPDATE/DELETE)
+     * @param field campo alterado (ou null)
+     * @param oldV valor anterior (ou null)
+     * @param newV novo valor (ou null)
+     */
     private void recordChange(Long propertyId, Long userId, String action, String field, String oldV, String newV) {
         PropertyChangeLog logChange = new PropertyChangeLog();
         logChange.setPropertyId(propertyId);
@@ -413,6 +510,12 @@ public class PropertyService {
         changeLogRepository.save(logChange);
     }
 
+    /**
+     * Resolve o userId do “ator” para fins de auditoria.
+     *
+     * @param actorUserId valor explícito (pode ser null)
+     * @return userId resolvido a partir do parâmetro ou do {@link ActorContext}
+     */
     private Long resolveActorUserId(Long actorUserId) {
         if (actorUserId != null) {
             return actorUserId;
@@ -420,10 +523,22 @@ public class PropertyService {
         return ActorContext.get().map(ActorContext.Actor::userId).orElse(null);
     }
 
+    /**
+     * Converte um mapa simples em string para ser armazenada no audit log.
+     *
+     * @param map mapa (pode ser null)
+     * @return string (ou null)
+     */
     private String asString(Map<String, String> map) {
         return map == null ? null : map.toString();
     }
 
+    /**
+     * Obtém o histórico de alterações (audit log) de uma propriedade.
+     *
+     * @param propertyId ID da propriedade
+     * @return lista ordenada por {@code changedAt} desc
+     */
     @Transactional(readOnly = true)
     public List<PropertyChangeLog> getHistory(Long propertyId) {
         findById(propertyId);
@@ -431,9 +546,7 @@ public class PropertyService {
     }
 
     /**
-     * Valida as regras da propriedade (incluindo sobreposições sazonais) e calcula o preço total.
-     */
-    @Transactional(readOnly = true)
+     * Valida as regras da propriedade (incluindo sobreposições sazonais) e calcula o preço total.     */    @Transactional(readOnly = true)
     public PropertyQuoteResponse validateAndQuote(Long propertyId, PropertyQuoteRequest request) {
         Property property = findById(propertyId);
         List<String> errors = new ArrayList<>();
@@ -458,8 +571,7 @@ public class PropertyService {
             if (ro.getMinNightsOverride() != null && ro.getMinNightsOverride() > effectiveMinNights) {
                 effectiveMinNights = ro.getMinNightsOverride();
             }
-        }
-        if (nights < effectiveMinNights) {
+        }        if (nights < effectiveMinNights) {
             errors.add("Para este período, o número mínimo de noites é " + effectiveMinNights);
         }
 
@@ -471,10 +583,7 @@ public class PropertyService {
                     if (!ro.getAllowedCheckInDays().contains(request.checkInDate().getDayOfWeek())) {
                         errors.add("Neste período, o Check-in só é permitido em: " + ro.getAllowedCheckInDays());
                     }
-                }
-            }
-        }
-
+                }            }        }
         // --- Regra: Allowed Check-out Days ---
         for (RuleOverride ro : overrides) {
             // Se o dia de Check-out cair dentro do período deste override
@@ -483,10 +592,7 @@ public class PropertyService {
                     if (!ro.getAllowedCheckOutDays().contains(request.checkOutDate().getDayOfWeek())) {
                         errors.add("Neste período, o Check-out só é permitido em: " + ro.getAllowedCheckOutDays());
                     }
-                }
-            }
-        }
-
+                }            }        }
         // --- Regra: Lead Time (Base) ---
         if (baseRule != null && baseRule.getBookingLeadTimeDays() != null) {
             LocalDate minCheckInDate = LocalDate.now().plusDays(baseRule.getBookingLeadTimeDays());
@@ -494,7 +600,6 @@ public class PropertyService {
                 errors.add("A reserva deve ser feita com pelo menos " + baseRule.getBookingLeadTimeDays() + " dias de antecedência.");
             }
         }
-
         // Retorno de erros se existirem
         if (!errors.isEmpty()) {
             return PropertyQuoteResponse.failure(errors);
@@ -502,12 +607,21 @@ public class PropertyService {
 
         // 4. Cálculo de Preço (Sazonalidade)
         BigDecimal totalPrice = calculateTotalPrice(propertyId, request.checkInDate(), request.checkOutDate(), null);
-        
         return PropertyQuoteResponse.success(totalPrice, "EUR");
     }
 
     /**
      * Calcula o preço total de uma estadia para uma propriedade, aplicando regras de sazonalidade.
+     *
+     * <p>O cálculo é feito por noite (de {@code checkInDate} inclusive até {@code checkOutDate} exclusive).
+     * Para cada noite, escolhe-se a regra aplicável “mais específica” usando prioridade:
+     * canal &gt; dia da semana &gt; regra genérica.</p>
+     *
+     * @param propertyId ID da propriedade
+     * @param checkInDate data de check-in (inclusive)
+     * @param checkOutDate data de check-out (exclusive)
+     * @param channel canal (opcional; ex.: AIRBNB/BOOKING)
+     * @return preço total calculado
      */
     public BigDecimal calculateTotalPrice(Long propertyId, LocalDate checkInDate, LocalDate checkOutDate, String channel) {
         Property property = findById(propertyId);
@@ -544,6 +658,9 @@ public class PropertyService {
 
     /**
      * Define a prioridade de uma regra de sazonalidade.
+     *
+     * @param rule regra a avaliar
+     * @return score de prioridade (maior = mais específica)
      */
     private int getRulePriority(SeasonalityRule rule) {
         int priority = 0;
@@ -558,6 +675,12 @@ public class PropertyService {
 
 
 
+    /**
+     * Converte uma entidade {@link Property} (idealmente expandida) para {@link ExpandedPropertyResponse}.
+     *
+     * @param p propriedade
+     * @return DTO expandido
+     */
     public ExpandedPropertyResponse convertToExpandedDto(Property p) {
         List<String> amenityNames = p.getAmenities().stream()
                 .map(Amenity::getName)
@@ -576,10 +699,15 @@ public class PropertyService {
                         r.getId(), r.getStartDate(), r.getEndDate(), r.getPriceModifier(), r.getDayOfWeek(), r.getChannel()
                 )).toList();
 
+        List<PropertyPermissionDTO> permissions = permissionRepository.findByPropertyId(p.getId()).stream()
+                .map(perm -> new PropertyPermissionDTO(perm.getUserId(), perm.getAccessLevel()))
+                .toList();
+
         return new ExpandedPropertyResponse(
                 p.getId(), p.getName(), p.getDescription(), p.getLocation(), p.getCity(), p.getAddress(),
                 p.getBasePrice(), p.getMaxGuests(), p.getIsActive(), amenityNames, ruleDto, seasonality,
-                p.getImageUrl()
+                permissions,
+                imageStorageService.resolveDeliveryUrl(p.getImageUrl())
         );
     }
 

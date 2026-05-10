@@ -24,6 +24,12 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /**
+     * Trata de cenários onde um cabeçalho HTTP obrigatório está em falta no pedido
+     * @param ex A exceção capturada
+     * @param request O pedido HTTP que originou o erro
+     * @return ResponseEntity com status 400 (Bad Request) e detalhes da falha
+     */
     @ExceptionHandler(MissingRequestHeaderException.class)
     public ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException ex, HttpServletRequest request) {
         ErrorResponse error = ErrorResponse.builder()
@@ -36,6 +42,15 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
+    /**
+     * Trata de erros de validação de DTOs do Spring (anotação @Valid)
+     * <p>
+     *     Agrega todas as violações de campos numa única mensagem legível para o cliente
+     * </p>
+     * @param ex A exceção de validação capturada
+     * @param request O pedido HTTP que originou o erro
+     * @return ResponseEntity com status 400 (Bad Request) e a lista de campos inválidos
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex, HttpServletRequest request) {
         String errorMessage = ex.getBindingResult().getFieldErrors().stream()
@@ -53,6 +68,12 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
+    /**
+     * Trata pesquisas por pagamentos ou transições que não existem no sistema
+     * @param ex A exceção de recurso não encontrado
+     * @param request O pedido HTTP original
+     * @return ResponseEntity com status 404 (Not Found)
+     */
     @ExceptionHandler(PaymentNotFoundException.class)
     public ResponseEntity<ErrorResponse> handlePaymentNotFound(PaymentNotFoundException ex, HttpServletRequest request) {
         ErrorResponse error = ErrorResponse.builder()
@@ -66,6 +87,15 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 
+    /**
+     * interceta regras de negócios financeiros violadas e erros de processamento
+     * <p>
+     *     Lida com pagamentos recusados, reembolsos inválidos ou argumentos incorretos
+     * </p>
+     * @param ex A exceção de negócio capturada
+     * @param request O pedido HTTP original
+     * @return ResponseEntity com status 400 (Bad Request)
+     */
     @ExceptionHandler({PaymentProcessingException.class, InvalidRefundException.class, IllegalArgumentException.class, IllegalStateException.class})
     public ResponseEntity<ErrorResponse> handleBadRequest(RuntimeException ex, HttpServletRequest request) {
         ErrorResponse error = ErrorResponse.builder()
@@ -79,6 +109,15 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
+    /**
+     * Rede de segurança final para exceções não tratas especificamente
+     * <p>
+     *     Garante que o Stack Trace do servidor nunca é exposta no JSON de resposta ao cliente
+     * </p>
+     * @param ex O erro crítico inesperado
+     * @param request O pedido HTTP original
+     * @return ResponseEntity genérico com status 500 (Internal Server Error)
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
         ErrorResponse error = ErrorResponse.builder()

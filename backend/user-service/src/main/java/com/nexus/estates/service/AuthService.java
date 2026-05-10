@@ -28,9 +28,27 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AuthService {
 
+    /**
+     * Repositório para acesso e manipulação dos dados da conta do utilizador
+     * Utilizado para validar credenciais, verificar unicidade de emails e persistir novas contas
+     */
     private final UserRepository userRepository;
+
+    /**
+     * Utilitário criptográfico responsável por aplicar o algoritmo de hashing para
+     * garantir o armazenamento seguro de novas passwords e a validação em processos de login
+     */
     private final PasswordEncoder passwordEncoder;
+
+    /**
+     * Serviço centralizado para emissão e validação de tokens JWT gerando o "passaportte" de sessão que será devolvido ao cliente
+     */
     private final JwtService jwtService;
+
+    /**
+     * Motor de resolução de estrtégias de Single Sign-On
+     * Permite validar de forma agnóstica as identidades recebidas de provedores externos (como o Clerk)
+     */
     private final ExternalIdentityProviderStrategy externalIdentityProvider;
 
     /**
@@ -110,6 +128,11 @@ public class AuthService {
                 .build();
     }
 
+    /**
+     * Processa a autenticação via Single Sign-On (SSO) trocando um token do Clerk por um token interno
+     * @param clerkToken O token JWT emitido pelo provedor de entidade externo (Clerk)
+     * @return Um {@link AuthResponse} com token de acesso interno da Nexus Estates
+     */
     public AuthResponse exchangeClerkToken(String clerkToken) {
         var identity = externalIdentityProvider.verify(clerkToken);
 

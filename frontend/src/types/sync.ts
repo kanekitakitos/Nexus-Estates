@@ -1,5 +1,8 @@
 /**
- * Tipos do módulo de sincronização e chat (Sync Service).
+ * @file sync.ts
+ * @author Nexus Estates team
+ * @description Tipos do módulo de sincronização e chat (Sync Service).
+ *              Inclui tipos para mensagens, conversas e subscrições de webhooks.
  *
  * Origem backend (API Gateway):
  * - /api/sync (sync-service)
@@ -9,6 +12,19 @@ export interface SyncMessage {
   senderId: string;
   content: string;
   createdAt: string;
+}
+
+export type SyncConversation = {
+  inquiryId: number
+  propertyId: number
+  guestId: number
+  chatId: string
+}
+
+export type PropertyMessageResponse = {
+  inquiryId: number
+  chatId: string
+  message: SyncMessage
 }
 
 export type WebhookSubscription = {

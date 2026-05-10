@@ -28,8 +28,19 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PasswordResetService {
 
+    /**
+     * Repositório para acesso e manipulação dos dados principais da conta do utilizador
+     */
     private final UserRepository userRepository;
+
+    /**
+     * Repositório dedicado ao ciclo de vida (criação, consulta e eliminação) dos tokens de segurança
+     */
     private final PasswordResetTokenRepository tokenRepository;
+
+    /**
+     * Utilitário criptográfico responsável por aplicar o algoritmo de hashing ás novas passwords
+     */
     private final PasswordEncoder passwordEncoder;
 
     /**

@@ -78,6 +78,11 @@ public class RabbitMQConfig {
         return new TopicExchange(bookingExchangeName);
     }
 
+    /**
+     * Cria a exchange de Dead Letters (DLX)
+     * <p>Atua como a "estação de correios de segurança" para onde vão as mensagens que falharam o processamento</p>
+     * @return Instância configurada de {@link TopicExchange} para erros
+     */
     @Bean
     public TopicExchange bookingDeadLetterExchange() {
         return new TopicExchange(bookingDeadLetterExchangeName);
@@ -97,6 +102,10 @@ public class RabbitMQConfig {
                 .build();
     }
 
+    /**
+     * Declara a Dead Letter Queue (DLQ) para eventos de criação de reserva que falharam
+     * @return Fila durável de segurança
+     */
     @Bean
     public Queue bookingCreatedDlqQueue() {
         return QueueBuilder
@@ -117,6 +126,13 @@ public class RabbitMQConfig {
                 .with(bookingCreatedRoutingKey);
     }
 
+
+    /**
+     * Associa a fila de falhas (DLQ) de criação de reserva à Dead Letter Exchange
+     * @param bookingCreatedDlqQueue A fila de mensagens mortas gerada pelo bean
+     * @param bookingDeadLetterExchange A exchange de segurança do sistema
+     * @return Regra de roteamento para erros (Binding)
+     */
     @Bean
     public Binding bookingCreatedDlqBinding(Queue bookingCreatedDlqQueue, TopicExchange bookingDeadLetterExchange) {
         return BindingBuilder
@@ -139,6 +155,11 @@ public class RabbitMQConfig {
                 .build();
     }
 
+
+    /**
+     * Declara a Dead Letter Queue (DLQ) para eventos de atualização de estado que falharam
+     * @return Fila durável de segurança
+     */
     @Bean
     public Queue bookingStatusUpdatedDlqQueue() {
         return QueueBuilder
@@ -146,6 +167,11 @@ public class RabbitMQConfig {
                 .build();
     }
 
+
+    /**
+     * Declara a fila que recebe pedidos de bloqueio de calendário de sistemas externos
+     * @return Fila durável configurada para mensagens de bloqueio
+     */
     @Bean
     public Queue calendarBlockQueue() {
         return QueueBuilder
@@ -155,6 +181,11 @@ public class RabbitMQConfig {
                 .build();
     }
 
+
+    /**
+     * Declara a Dead Letter Queue (DLQ) para eventos de bloqueio de calendário que falharam
+     * @return Fila durável de segurança
+     */
     @Bean
     public Queue calendarBlockDlqQueue() {
         return QueueBuilder
@@ -175,6 +206,13 @@ public class RabbitMQConfig {
                 .with(bookingStatusUpdatedRoutingKey);
     }
 
+
+    /**
+     * Associa a fila de falhas de atualização de estado à Dead Letter Exchange
+     * @param bookingStatusUpdatedDlqQueue A fila de mensagens mortas de atualizações
+     * @param bookingDeadLetterExchange A exchange de segurança
+     * @return Regra de roteamento para erros (Binding)
+     */
     @Bean
     public Binding bookingStatusUpdatedDlqBinding(Queue bookingStatusUpdatedDlqQueue, TopicExchange bookingDeadLetterExchange) {
         return BindingBuilder
@@ -183,6 +221,13 @@ public class RabbitMQConfig {
                 .with(bookingStatusUpdatedDlqRoutingKey);
     }
 
+
+    /**
+     * Associa a fila de bloqueios de calendário à exchange principal
+     * @param calendarBlockQueue A fila de bloqueios
+     * @param bookingExchange A exchange principal
+     * @return Regra de roteamento (Binding)
+     */
     @Bean
     public Binding calendarBlockBinding(Queue calendarBlockQueue, TopicExchange bookingExchange) {
         return BindingBuilder
@@ -191,6 +236,13 @@ public class RabbitMQConfig {
                 .with(calendarBlockRoutingKey);
     }
 
+
+    /**
+     * Associa a fila de falhas de bloqueios de calendário à Dead Letter Exchange
+     * @param calendarBlockDlqQueue A fila de mensagens mortas de bloqueios
+     * @param bookingDeadLetterExchange A exchange de segurança
+     * @return Regra de roteamento para erros (Binding)
+     */
     @Bean
     public Binding calendarBlockDlqBinding(Queue calendarBlockDlqQueue, TopicExchange bookingDeadLetterExchange) {
         return BindingBuilder
@@ -224,6 +276,22 @@ public class RabbitMQConfig {
         return template;
     }
 
+
+    /**
+     * Configura a fábrica de listeners (consumidores) do RabbitMQ
+     * <p>
+     *     <b>
+     *         Decisão Crítica de Arquitetura:
+     *     </b>
+     *     Define {@code setDefaultRequeueRejected(false)}
+     *     Isto impede que mensagens com erro (ex: falhas na base de dados) sejam constantemente
+     *     recarregadas na fila principal (criando loops infinitos). Em vez disso, se uma mensagem
+     *     der erro no listener, ela é descartada da fila principal e o RabbitMQ move-a automaticamente para a Dead Letter Queue (DLQ)
+     * </p>
+     * @param connectionFactory A fábrica de conexões AMQP gerida pelo Spring Boot
+     * @param jacksonMessageConverter O conversor JSON para ler os eventos de entrada
+     * @return A fábrica de listeners configurada
+     */
     @Bean
     public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(ConnectionFactory connectionFactory,
                                                                                MessageConverter jacksonMessageConverter) {

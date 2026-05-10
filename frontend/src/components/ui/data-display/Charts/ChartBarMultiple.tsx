@@ -1,13 +1,10 @@
 "use client"
 
-import { TrendingUp } from "lucide-react"
 import {Bar, BarChart, CartesianGrid, XAxis, YAxis} from "recharts"
 
 import {
-    Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "@/components/ui/data-display/card"
@@ -18,7 +15,7 @@ import {
     ChartTooltipContent,
     type ChartConfig, ChartLegendContent, ChartLegend,
 } from "@/components/ui/data-display/Charts/chart"
-import {useMemo} from "react";
+import { cn } from "@/lib/utils";
 
 export const description = "A multiple bar chart"
 
@@ -49,17 +46,23 @@ const chartConfig = {
     },
 } satisfies ChartConfig
 
-export function ChartBarMultiple({chartData = chartData_MOCK} : {chartData : BarChartData[]}) {
+export function ChartBarMultiple({
+    chartData = chartData_MOCK,
+    className,
+}: {
+    chartData : BarChartData[]
+    className?: string
+}) {
 
 
     return (
-        <BrutalCard>
-            <CardHeader>
+        <BrutalCard className={cn("flex flex-col bg-card overflow-hidden", className)}>
+            <CardHeader className="pb-3">
                 <CardTitle>Bar Chart - Multiple</CardTitle>
                 <CardDescription>January - June 2024</CardDescription>
             </CardHeader>
-            <CardContent>
-                <ChartContainer config={chartConfig}>
+            <CardContent className="flex-1 min-h-0">
+                <ChartContainer config={chartConfig} className="aspect-auto h-full w-full">
                     <BarChart accessibilityLayer data={chartData}>
                         <CartesianGrid vertical={false} />
                         <XAxis
@@ -119,14 +122,6 @@ export function ChartBarMultiple({chartData = chartData_MOCK} : {chartData : Bar
                     </BarChart>
                 </ChartContainer>
             </CardContent>
-            <CardFooter className="flex-col items-start gap-2 text-sm">
-                <div className="flex gap-2 leading-none font-medium">
-                    Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
-                </div>
-                <div className="leading-none text-muted-foreground">
-                    Showing total visitors for the last 6 months
-                </div>
-            </CardFooter>
         </BrutalCard>
     )
 }

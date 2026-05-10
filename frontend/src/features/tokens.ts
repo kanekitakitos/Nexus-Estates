@@ -1,3 +1,10 @@
+/**
+ * @file tokens.ts
+ * @author Nexus Estates team
+ * @description Agrega todos os tokens de design (classes, textos padrão, configurações visuais) das várias features da aplicação.
+ *              Isto permite que a interface mantenha uma consistência centralizada.
+ */
+
 import { authTokens } from "@/features/auth/tokens"
 import { bookingsTokens } from "@/features/bookings/tokens"
 import { chatTokens } from "@/features/chat/tokens"

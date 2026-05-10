@@ -84,7 +84,7 @@ class PropertyRuleServiceTest {
     @Test
     void updateRules_ShouldUpdateExistingRules() {
         property.setPropertyRule(propertyRule);
-        when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+        when(propertyRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(property));
         when(ruleRepository.save(any(PropertyRule.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         PropertyRuleDTO newRules = new PropertyRuleDTO(
@@ -105,7 +105,7 @@ class PropertyRuleServiceTest {
     @Test
     void updateRules_ShouldCreateNewRules_WhenNoneExist() {
         property.setPropertyRule(null);
-        when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+        when(propertyRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(property));
         when(ruleRepository.save(any(PropertyRule.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         PropertyRuleDTO newRules = new PropertyRuleDTO(

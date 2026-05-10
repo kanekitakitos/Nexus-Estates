@@ -10,12 +10,17 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 /**
- * Entidade que representa uma mensagem de chat associada a uma reserva.
+ * Entidade que representa uma mensagem de chat persistida no sync-service.
  * <p>
  * Armazena o histórico de conversas localmente para garantir persistência permanente,
  * independente da política de retenção do serviço de tempo real externo.
  * </p>
- * Para criar tabela
+ *
+ * <p>Modelo:</p>
+ * <ul>
+ *   <li>{@code contextType/contextId} identificam a thread (BOOKING, PROPERTY_INQUIRY, ...).</li>
+ *   <li>{@code bookingId} é um campo legado para compatibilidade/migração.</li>
+ * </ul>
  */
 
 @Entity
@@ -31,10 +36,24 @@ public class Message {
     private Long id;
 
     /**
-     * ID da reserva à qual esta mensagem pertence.
-     * Serve como chave de agrupamento para o histórico do chat.
+     * Contexto lógico da mensagem (BOOKING, PROPERTY_INQUIRY).
      */
-    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "context_type", nullable = false)
+    private MessageContextType contextType;
+
+    /**
+     * Identificador do contexto:
+     * - BOOKING: bookingId
+     * - PROPERTY_INQUIRY: inquiryId
+     */
+    @Column(name = "context_id", nullable = false)
+    private Long contextId;
+
+    /**
+     * Campo legado (compatibilidade) para mensagens antigas de booking.
+     */
+    @Column(name = "booking_id")
     private Long bookingId;
 
     /**

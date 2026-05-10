@@ -1,7 +1,8 @@
 /**
- * @description
- * Configuração central do Axios para comunicação com o API Gateway do Nexus Estates.
- * Implementa interceptores para gestão de JWT, tratamento de erros global e suporte a SSR.
+ * @file axiosAPI.ts
+ * @author Nexus Estates team
+ * @description Configuração central do Axios para comunicação com o API Gateway do Nexus Estates.
+ *              Implementa intercetores para gestão de JWT, tratamento de erros global e suporte a SSR.
  */
 
 import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
@@ -91,6 +92,10 @@ function extractFirstJsonValue(text: string): string | null {
     return null;
 }
 
+/**
+ * Transformer para garantir que a resposta é um objeto JS,
+ * mesmo que o conteúdo venha sujo ou mal formatado.
+ */
 function safeJsonTransform(data: unknown): unknown {
     if (typeof data !== 'string') return data;
     const text = data.trim();
@@ -109,12 +114,18 @@ function safeJsonTransform(data: unknown): unknown {
     }
 }
 
+/**
+ * Intercetor de Saída: Injeta o token de autenticação em cada pedido.
+ */
 const requestInterceptor = (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
     const headers = AuthService.getAuthHeaders();
     if (headers.Authorization && config.headers) config.headers.Authorization = headers.Authorization;
     return config;
 };
 
+/**
+ * Interceptor de Entrada (Erro): Gestão centralizada de falhas HTTP.
+ */
 const requestErrorHandler = (error: AxiosError): Promise<AxiosError> => {
     return Promise.reject(error);
 };
@@ -165,6 +176,12 @@ api.interceptors.response.use(responseInterceptor, responseErrorHandler);
  */
 export const gateWayAxios = api;
 
+/**
+ * Cliente para o User Service.
+ *
+ * Base path:
+ * - /api/users
+ */
 export const usersAxios = axios.create({
     baseURL: `${API_BASE_URL}/users`,
     withCredentials: true,

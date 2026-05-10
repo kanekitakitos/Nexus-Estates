@@ -17,9 +17,24 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class StripeConfig {
+
+    /**
+     * Cahve secreta de autentucação da API do Stripe (Secret Key)
+     * <p>
+     *     ~Injetada a partir do ficheiro de propriedades ou variáveis de ambiente
+     * </p>
+     */
     @Value("${stripe.secret.key}")
     private String stripeSecretKey;
 
+
+    /**
+     * Inicializa o SDK do Stripe imediatamente após a injeção de dependências do Spring
+     * <p>
+     *     Associa a chave secreta global à biblioteca estática do Stripe, dispensando a necessidade
+     *     de passar a chave explicitamente em cada requisição à API
+     * </p>
+     */
     @PostConstruct
     public void init() {
         Stripe.apiKey = stripeSecretKey;

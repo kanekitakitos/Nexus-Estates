@@ -92,6 +92,12 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t
 }
 
+function clamp01(x: number): number {
+  if (x < 0) return 0
+  if (x > 1) return 1
+  return x
+}
+
 // ─────────────────────────────────────────────
 // ClickSpark
 // ─────────────────────────────────────────────
@@ -194,10 +200,10 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
         const elapsed  = now - wave.startTime
         if (elapsed >= waveDuration) return false
 
-        const progress = Math.min(1, elapsed / waveDuration)
+        const progress = clamp01(elapsed / waveDuration)
         const eased    = applyEasing(progress, easing)
-        const radius   = lerp(WAVE_START_PX, WAVE_EXPAND_PX, eased)
-        const opacity  = WAVE_OPACITY_PEAK * (1 - eased)
+        const radius   = Math.max(0, lerp(WAVE_START_PX, WAVE_EXPAND_PX, eased))
+        const opacity  = Math.max(0, WAVE_OPACITY_PEAK * (1 - eased))
 
         ctx.save()
         ctx.globalAlpha    = opacity
@@ -217,7 +223,7 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
         const lifetime = duration * spark.variance
         if (elapsed >= lifetime) return false
 
-        const progress = elapsed / lifetime
+        const progress = clamp01(elapsed / lifetime)
         const eased    = applyEasing(progress, easing)
 
         // Per-spark physics

@@ -88,6 +88,17 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
+
+    /**
+     * Trata exceções de argumentos inválidos na lógica de domínio
+     * <p>
+     *     Captura {@link IllegalArgumentException} (como por exemplo, quando a data de
+     *     check-out é anterior à data de check-in) e converte-a numa resposta HTTP sem expor a stack trace
+     * </p>
+     * @param ex A exceção de argumento capturada
+     * @param request O pedido HTTP que originou o erro
+     * @return ResponseEntity com status 400 (Bad Request) e a mensagem de erro
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
         ErrorResponse error = ErrorResponse.builder()

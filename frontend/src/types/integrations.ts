@@ -1,5 +1,7 @@
 /**
- * Tipos de integrações externas (credential vault).
+ * @file integrations.ts
+ * @author Nexus Estates team
+ * @description Tipos de integrações externas (credential vault), por exemplo com o Airbnb ou Booking.
  *
  * Origem backend (API Gateway):
  * - /api/users/integrations (user-service)

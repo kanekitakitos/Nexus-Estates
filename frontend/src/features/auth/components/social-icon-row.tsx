@@ -1,8 +1,15 @@
+/**
+ * @file social-icon-row.tsx
+ * @author Nexus Estates team
+ * @description Componentes visuais para botões de login social (Google, GitHub, Facebook).
+ *              Inclui variantes com suporte ao Clerk (`ClerkSocialIconRow`) e estados desativados (`DisabledSocialIconRow`).
+ */
+
 "use client"
 
 import { Button } from "@/components/ui/forms/button"
 import { useClerkIdentityProvider } from "@/features/auth/strategies/clerk/use-clerk-identity-provider"
-import { Chrome, Facebook, Github, Loader2 } from "lucide-react"
+import { GitBranch, Globe, Loader2, Users } from "lucide-react"
 import { type ReactNode, useState } from "react"
 import { cn } from "@/lib/utils"
 import { notify } from "@/lib/notify"
@@ -21,9 +28,9 @@ interface SocialButton {
 }
 
 const SOCIAL_BUTTONS: SocialButton[] = [
-  { provider: "google",   label: "Continuar com Google",   icon: <Chrome   className="size-4" /> },
-  { provider: "github",   label: "Continuar com GitHub",   icon: <Github   className="size-4" /> },
-  { provider: "facebook", label: "Continuar com Facebook", icon: <Facebook className="size-4" /> },
+  { provider: "google",   label: "Continuar com Google",   icon: <Globe     className="size-4" /> },
+  { provider: "github",   label: "Continuar com GitHub",   icon: <GitBranch className="size-4" /> },
+  { provider: "facebook", label: "Continuar com Facebook", icon: <Users     className="size-4" /> },
 ]
 
 

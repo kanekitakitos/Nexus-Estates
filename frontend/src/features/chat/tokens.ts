@@ -1,3 +1,10 @@
+/**
+ * @file tokens.ts
+ * @author Nexus Estates team
+ * @description Tokens de design específicos para o módulo de chat.
+ *              Inclui estilos para a janela de chat, balões de mensagem e input.
+ */
+
 export const chatTokens = {
   copy: {
     errors: {
@@ -12,7 +19,7 @@ export const chatTokens = {
         statusConnecting: "A ligar...",
       },
       list: {
-        searchPlaceholder: "Pesquisar por bookingId ou propertyId…",
+        searchPlaceholder: "Pesquisar por nome ou localização…",
         loading: "A carregar conversas…",
         empty: "Sem conversas disponíveis.",
         bookingPrefix: "Booking #",

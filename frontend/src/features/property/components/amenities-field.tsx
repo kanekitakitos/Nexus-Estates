@@ -1,3 +1,10 @@
+/**
+ * @file amenities-field.tsx
+ * @author Nexus Estates team
+ * @description Componente para gerir a seleção e edição de comodidades (Amenities) de uma propriedade.
+ *              Inclui agrupamento por categoria, feedback visual de seleção e deteção de alterações não guardadas.
+ */
+
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"

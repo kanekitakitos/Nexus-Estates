@@ -1,3 +1,10 @@
+/**
+ * @file chat-strategy.ts
+ * @author Nexus Estates team
+ * @description Define a interface abstrata para as estratégias de chat da aplicação.
+ *              Permite que o sistema alterne entre provedores de tempo real (como Ably) sem alterar a UI.
+ */
+
 import React from 'react';
 
 /**

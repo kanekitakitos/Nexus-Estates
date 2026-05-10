@@ -49,11 +49,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         final String roleHeader = request.getHeader("X-User-Role"); // Cabeçalho injetado pelo Gateway
         final String userEmailHeader = request.getHeader("X-User-Email"); // Cabeçalho injetado pelo Gateway
+        final String userIdHeader = request.getHeader("X-User-Id"); // Cabeçalho injetado pelo Gateway
 
         if (SecurityContextHolder.getContext().getAuthentication() == null
-                && userEmailHeader != null
-                && !userEmailHeader.isBlank()) {
-            var userDetails = userRepository.findByEmail(userEmailHeader).orElse(null);
+                && ((userIdHeader != null && !userIdHeader.isBlank()) || (userEmailHeader != null && !userEmailHeader.isBlank()))) {
+            var userDetails = (userIdHeader != null && !userIdHeader.isBlank())
+                    ? resolveByUserIdHeader(userIdHeader)
+                    : userRepository.findByEmail(userEmailHeader).orElse(null);
             if (userDetails != null) {
                 List<SimpleGrantedAuthority> authorities = new ArrayList<>();
 
@@ -136,6 +138,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Opcionalmente, pode-se retornar 401 aqui se quiser ser estrito.
             // response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
              filterChain.doFilter(request, response);
+        }
+    }
+
+    private com.nexus.estates.entity.User resolveByUserIdHeader(String userIdHeader) {
+        try {
+            long id = Long.parseLong(userIdHeader);
+            return userRepository.findById(id).orElse(null);
+        } catch (Exception ignored) {
+            return null;
         }
     }
 }

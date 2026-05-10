@@ -1,0 +1,28 @@
+
+\newpage
+\section{Equipa, Gestão e Integração Contínua}
+
+\subsection{Papéis da Equipa}
+A equipa dividiu as responsabilidades e o foco de desenvolvimento da seguinte forma:
+\begin{itemize}[nosep]
+    \item \textbf{Brandon Mejia:} \textit{Fullstack}
+    \item \textbf{Tiago Antunes:} \textit{Frontend}
+    \item \textbf{Luís Moreira (Daniel):} \textit{Backend}
+    \item \textbf{Miguel Correia:} \textit{Backend}
+\end{itemize}
+
+\subsection{Gestão de Projeto (SCRUM e Requisitos)}
+O projeto segue a metodologia ágil SCRUM. Optámos por não duplicar documentação neste relatório, uma vez que o levantamento de requisitos, a definição de atores, a gestão do \textit{backlog} (com \textit{user stories}) e o planeamento dos \textit{sprints} estão totalmente centralizados e documentados no \textbf{Jira}.
+
+Ao nível de código, utilizamos o Git com uma política de \textit{Pull Requests}, onde o código é revisto antes de ser integrado na \textit{branch} principal.
+
+\subsection{Integração Contínua (CI) e Quality Gates}
+Utilizámos o \textit{GitHub Actions} para automatizar a verificação de qualidade a cada \textit{push}. O sistema está estruturado em três eixos principais:
+
+\begin{itemize}[nosep]
+\item \textbf{Backend:} Executa o \textit{build} e os testes (unitários e de integração) de cada microserviço em paralelo. Implementámos \textit{caching} de dependências Maven para otimizar o tempo de execução.
+\item \textbf{Frontend:} Garante a integridade da UI através de \textit{linting} e testes \textit{End-to-End} (E2E) com \textit{Playwright}, validando o fluxo completo do utilizador.
+
+\end{itemize}
+
+Esta \textit{pipeline} atua como um \textit{Quality Gate}: o \textit{merge} para a branch \texttt{main} é bloqueado automaticamente caso ocorra qualquer falha, garantindo a estabilidade contínua do software.

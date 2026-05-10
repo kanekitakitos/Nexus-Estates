@@ -1,3 +1,9 @@
+/**
+ * @file booking.service.ts
+ * @author Nexus Estates team
+ * @description Serviço responsável pelas operações relacionadas com reservas (Bookings), comunicando com o API Gateway.
+ */
+
 import { bookingsAxios } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import { notify } from "@/lib/notify";
@@ -77,7 +83,9 @@ export class BookingService {
 
             if (bookingData.userId != null) {
                 payload.userId = bookingData.userId;
-            } else if (bookingData.guestDetails) {
+            }
+
+            if (bookingData.guestDetails) {
                 payload.guestFullName = bookingData.guestDetails.fullName;
                 payload.guestEmail = bookingData.guestDetails.email;
                 payload.guestPhone = bookingData.guestDetails.phone;

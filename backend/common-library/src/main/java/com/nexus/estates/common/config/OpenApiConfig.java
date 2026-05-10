@@ -12,9 +12,28 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
+/**
+ * Configuração centralizada da documentação OpenApi (Swagger) para os microsserviços da Nexus Estates
+ * <p>
+ *     Ao estar localizada na {@code common-library}, esta classe garante que qualquer microsserviço
+ *     que a importe irá expor a sua documentação de forma padronizada. Define globalmente o URL base
+ *     apontado para o API Gateway, além de injetar automaticamente os mecanismos de segurança e auditoria
+ * </p>
+ * @author Nexus Estates Team
+ * @version 1.0
+ */
 @Configuration
 public class OpenApiConfig {
 
+    /**
+     * Constrói e personaliza a definição principal da OpenAPI
+     * <p>
+     *     Configura o esquema de autenticação global para exigir um token JWT (Bearer)
+     *     e regista o cabeçalho {@code X-Actor-UserId} como um parâmetro global disponível
+     *     em todos os endpoints para fins de rastreabilidade e auditoria
+     * </p>
+     * @return Instância de {@link OpenAPI} pronta a ser renderizada pelo SpringDoc
+     */
     @Bean
     public OpenAPI customOpenAPI() {
         final String securitySchemeName = "bearerAuth";

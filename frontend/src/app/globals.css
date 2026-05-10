@@ -1,3 +1,10 @@
+/**
+ * @file globals.css
+ * @author Nexus Estates team
+ * @description Estilos globais da aplicação. Inclui a importação do Tailwind CSS, definições de temas (claro e escuro), 
+ *              variáveis CSS para cores, tipografia, bordas e animações personalizadas.
+ */
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";

@@ -1,3 +1,10 @@
+/**
+ * @file content-portfolio.tsx
+ * @author Nexus Estates team
+ * @description Layout de conteúdo do cartão de propriedade na variante 'portfolio'.
+ *              Usado para a visualização detalhada/editorial de uma propriedade (incluindo descrição longa e formatação expandida).
+ */
+
 "use client"
 
 import { MapPin, Users2, Pencil } from "lucide-react"

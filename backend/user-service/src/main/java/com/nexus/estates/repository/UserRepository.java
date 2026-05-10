@@ -29,6 +29,27 @@ import java.util.Optional;
  */
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
+
+    /**
+     * Procura um utilizador através do seu enderço de email
+     * <p>
+     *     Utilizado primordialmente nos fluxos de autenticação nativa (login), processos de
+     *     recuperação de password e validação de unicidade de contas no registo
+     * </p>
+     * @param email O email exato do utilizador a pesquisar (case-sensitive ou insensitive dependendo do Dialeto SQL)
+     * @return Um {@link Optional} contendo o utilizador correspondente, se este exisitir na base de dados
+     */
     Optional<User> findByEmail(String email);
+
+
+    /**
+     * Procura um utilizador através do seu identificador no provedor de identidade externo (Clerk)
+     * <p>
+     *     Este método é fundamental para os fluxos de Single Sign-On (SSO)
+     *     Permite sincronizar e recuperar a conta interna do Nexus Estates associada á sessão externa gerida pelo Clerk
+     * </p>
+     * @param clerkUserId O ID único alfanumérico atribuído ao utilizador pela plataforma Clerk
+     * @return Um {@link Optional} contendo o utilizador correspondente, se este já tiver efetuado a integração/registo
+     */
     Optional<User> findByClerkUserId(String clerkUserId);
 }

@@ -120,10 +120,11 @@ class JwtServiceTest {
                 .role(UserRole.GUEST)
                 .build();
 
-        // Simula um token já nascido morto (expirado)
-        ReflectionTestUtils.setField(jwtService, "jwtExpiration", -1000L);
+        ReflectionTestUtils.setField(jwtService, "jwtExpiration", 1L);
 
         String token = jwtService.generateToken(user);
+        assertNotNull(token);
+        assertDoesNotThrow(() -> Thread.sleep(50));
         assertFalse(jwtService.isTokenValid(token, "exp@example.com"));
     }
 }

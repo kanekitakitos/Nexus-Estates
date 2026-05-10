@@ -7,6 +7,13 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/forms/input"
 import { Label } from "@/components/ui/forms/label"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/overlay/dropdown-menu"
 import { ProfilePanel } from "@/features/profile/components/profile-panel"
 import { IntegrationsService } from "@/services/integrations.service"
 import type { ExternalIntegrationDTO, ExternalProviderName } from "@/types/integrations"
@@ -98,24 +105,27 @@ function IntegrationForm({
           <Label className="text-[10px] uppercase font-bold tracking-widest text-(--fg-color)/60" htmlFor="providerName">
             Canal / Provedor
           </Label>
-          <div className="relative">
-            <select
-              id="providerName"
-              title="Selecionar Provedor"
-              value={providerName}
-              onChange={(e) => setProviderName(e.target.value as ExternalProviderName)}
-              className="appearance-none cursor-pointer h-12 w-full rounded-2xl border border-(--fg-color)/20 bg-background/50 px-4 text-sm font-bold text-(--fg-color) outline-none focus:ring-2 focus:ring-(--primary-accent) transition-all hover:bg-background/80"
-            >
-              {PROVIDERS.map((provider) => (
-                <option key={provider} value={provider}>
-                  {provider}
-                </option>
-              ))}
-            </select>
-            <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-              <ChevronDown className="w-4 h-4 text-(--fg-color)/50" />
-            </div>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                id="providerName"
+                type="button"
+                className="cursor-pointer h-12 w-full rounded-2xl border border-(--fg-color)/20 bg-background/50 px-4 text-sm font-bold text-(--fg-color) outline-none focus:ring-2 focus:ring-(--primary-accent) transition-all hover:bg-background/80 flex items-center justify-between"
+              >
+                <span className="truncate">{providerName}</span>
+                <ChevronDown className="w-4 h-4 text-(--fg-color)/50 shrink-0" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] rounded-2xl border border-(--fg-color)/20 bg-background/95 backdrop-blur-md p-2">
+              <DropdownMenuRadioGroup value={providerName} onValueChange={(v) => setProviderName(v as ExternalProviderName)}>
+                {PROVIDERS.map((provider) => (
+                  <DropdownMenuRadioItem key={provider} value={provider} className="rounded-xl py-2 pr-3 pl-8 text-xs font-bold uppercase tracking-wider">
+                    {provider}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Input da Chave API */}

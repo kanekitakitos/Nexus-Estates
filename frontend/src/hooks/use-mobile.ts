@@ -1,3 +1,9 @@
+/**
+ * @file use-mobile.ts
+ * @author Nexus Estates team
+ * @description Hook React utilitário para detetar de forma reativa se o utilizador está a usar um dispositivo com largura de ecrã móvel.
+ */
+
 import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768

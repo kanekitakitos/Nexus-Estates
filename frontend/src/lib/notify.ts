@@ -1,3 +1,10 @@
+/**
+ * @file notify.ts
+ * @author Nexus Estates team
+ * @description Utilitário para o envio de notificações visuais (toasts) na aplicação.
+ *              Funciona como um wrapper em torno da biblioteca 'sonner', padronizando os alertas.
+ */
+
 "use client"
 
 import * as React from "react"

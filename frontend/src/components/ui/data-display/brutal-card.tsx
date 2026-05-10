@@ -78,7 +78,7 @@ export function BrutalCard({
                 </div>
             )}
             
-            <div className="w-full relative">
+            <div className="w-full relative flex flex-col flex-1 min-h-0">
                 {children}
             </div>
         </section>

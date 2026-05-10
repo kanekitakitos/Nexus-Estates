@@ -23,11 +23,31 @@ import java.util.Base64;
  */
 public class SecretCryptoService {
 
+    /**
+     * Instância estática do serviço (Singleton) para acesso global fora de componentes geridos pelo Spring
+     */
     private static SecretCryptoService INSTANCE;
 
+    /**
+     * Chave mestre em formato de array de bytes (32 bytes para AES-256)
+     */
     private final byte[] keyBytes;
+
+    /**
+     * Gerador de números pseudoaleatórios criptograficamente seguro para os Initialization Vectors (IV)
+     */
     private final SecureRandom secureRandom = new SecureRandom();
 
+
+    /**
+     * Construtor que inicializa o serviço de criptografia
+     * <p>
+     *     Injeta a chave mestre definida nas configurações ou variáveis de ambiente,
+     *     valida a sua dimensão, e regista a instância estática para uso global
+     * </p>
+     * @param masterKey A chave AES-256 codificada em Base64 (injetada via {@code @Value})
+     * @throws IllegalStateException Caso a chave seja nula, esteja vazia ou não tenha exatamente 32 bytes após descodificação
+     */
     public SecretCryptoService(@Value("${master.key}") String masterKey) {
         if (masterKey == null || masterKey.isBlank()) {
             throw new IllegalStateException("master.key não configurada. Defina a variável de ambiente MASTER_KEY (ou a propriedade master.key) com a chave AES-256 em Base64.");
@@ -40,6 +60,16 @@ public class SecretCryptoService {
         INSTANCE = this;
     }
 
+
+    /**
+     * Recupera a instância global do serviço de criptografia
+     * <p>
+     *     Permite aceder a métodos de cidfra em entidades ou classes (como os Attribute Converters do JPA)
+     *     que não são instanciadas de forma nativa pelo contendor de injeção de dependências do Spring
+     * </p>
+     * @return A instância ativa e configurada do {@link SecretCryptoService}
+     * @throws IllegalStateException Se o serviço for chamado antes de o Spring o ter inicializado
+     */
     public static SecretCryptoService getInstance() {
         if (INSTANCE == null) {
             throw new IllegalStateException("SecretCryptoService não inicializado. Verifique configuração de master.key/MASTER_KEY.");

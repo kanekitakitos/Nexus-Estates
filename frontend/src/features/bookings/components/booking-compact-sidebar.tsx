@@ -1,20 +1,57 @@
+/**
+ * @file booking-compact-sidebar.tsx
+ * @author Nexus Estates team
+ * @description Componente de barra lateral compacta para acesso rápido a reservas.
+ *              Permite aos utilizadores (hóspedes ou staff) visualizar, filtrar e interagir rapidamente com as suas reservas
+ *              (incluindo opções de repetir reserva ou retomar pagamento).
+ */
+
 "use client"
+
+/**
+ * BookingCompactSidebar
+ * * Contexto
+ * - Sidebar lateral para gestão rápida de reservas.
+ * - Alterna entre visão de Hóspede (myBookings) e Proprietário/Staff (propertyBookings).
+ * * Responsabilidades
+ * - Filtragem multi-critério (status, data, pesquisa textual).
+ * - Ordenação cronológica.
+ * - Atalhos de UX: "Repetir reserva" e "Retomar pagamento" via SessionStorage + CustomEvents.
+ * * Integração
+ * - Comunica com a página `/booking` através de eventos globais para injetar dados de fluxo.
+ */
 
 import * as React from "react"
 import Link from "next/link"
 import { ArrowUpDown } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
 import type { BookingResponse } from "@/services/booking.service"
 import { SidebarFilterBar } from "@/components/ui/data-display/sidebar-filter-bar"
 import { cn } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/overlay/dropdown-menu"
 import { bookingsTokens } from "@/features/bookings/tokens"
 
+
+// ─────────────────────────────────────────────
+// Constants & Utils
+// ─────────────────────────────────────────────
+
 type UserRole = "ADMIN" | "GUEST" | "OWNER" | "STAFF"
 
+const BOOKING_QUICK_ACCESS_STORAGE_KEY = "booking:quick-access"
+const BOOKING_RESUME_PAYMENT_STORAGE_KEY = "booking:resume-payment"
+
+/**
+ * Normaliza strings para comparação
+ */
 function normalizeQuery(value: string) {
   return value.trim().toLowerCase()
 }
 
+/**
+ * Define as horas da data como 0h,0min,0s,0ms
+ * @param dateLike - Date para alterar a hora
+ */
 function dateAtStartOfDay(dateLike: string | Date) {
   const d = typeof dateLike === "string" ? new Date(dateLike) : new Date(dateLike)
   if (Number.isNaN(d.getTime())) return null
@@ -22,10 +59,30 @@ function dateAtStartOfDay(dateLike: string | Date) {
   return d
 }
 
+/**
+ * @return Se a reserva tem datas válidas para o fluxo de 'Rebook'
+ */
+function hasValidRebookRange(b: BookingResponse) {
+  const from = dateAtStartOfDay(b.checkInDate)
+  const to = dateAtStartOfDay(b.checkOutDate)
+  return Boolean(from && to && from.getTime() < to.getTime())
+}
+
+/**
+ * Constrói a string de pesquisa que engloba vários campos da reserva
+ */
 function bookingHaystack(b: BookingResponse) {
   return `${bookingsTokens.copy.sidebar.bookingHaystackPrefix}${b.id} ${b.propertyId} ${b.status} ${b.currency} ${b.totalPrice} ${b.checkInDate} ${b.checkOutDate}`.toLowerCase()
 }
 
+// ─────────────────────────────────────────────
+// Main Component
+// ─────────────────────────────────────────────
+
+/**
+ * Componente principal da Sidebar de Reservas.
+ * Gere o estado global dos filtros e a alternância de escopo (Meus vs Propriedades).
+ */
 export function BookingCompactSidebar({
   isAuthenticated,
   role,
@@ -40,13 +97,17 @@ export function BookingCompactSidebar({
   propertyBookings: BookingResponse[]
 }) {
   const canSeePropertyBookings = role === "OWNER" || role === "ADMIN" || role === "STAFF"
+  const router = useRouter()
+  const pathname = usePathname()
 
+  // Estados e filtros
   const [scope, setScope] = React.useState<"mine" | "properties">("mine")
   const [query, setQuery] = React.useState("")
   const [status, setStatus] = React.useState<"ALL" | BookingResponse["status"]>("ALL")
   const [when, setWhen] = React.useState<"all" | "upcoming" | "past">("all")
   const [sort, setSort] = React.useState<"recentes" | "antigas">("recentes")
 
+  // inicia o scope apartir das permissões do utilizador
   React.useEffect(() => {
     if (!isAuthenticated) {
       setScope("mine")
@@ -55,6 +116,7 @@ export function BookingCompactSidebar({
     if (canSeePropertyBookings) setScope("properties")
     else setScope("mine")
   }, [isAuthenticated, canSeePropertyBookings])
+
 
   const filtered = React.useMemo(() => {
     const scoped = scope === "properties" ? propertyBookings : myBookings
@@ -95,6 +157,39 @@ export function BookingCompactSidebar({
     setWhen("all")
   }, [])
 
+  const openQuickAccess = React.useCallback((b: BookingResponse) => {
+    const payload = {
+      propertyId: String(b.propertyId),
+      checkIn: String(b.checkInDate || ""),
+      checkOut: String(b.checkOutDate || ""),
+    }
+    try {
+      sessionStorage.setItem(BOOKING_QUICK_ACCESS_STORAGE_KEY, JSON.stringify(payload))
+    } catch {}
+
+    window.dispatchEvent(new CustomEvent("booking-quick-access", { detail: payload }))
+
+    if (pathname !== "/booking") {
+      router.push("/booking")
+    }
+  }, [pathname, router])
+
+  const openResumePayment = React.useCallback((b: BookingResponse) => {
+    const payload = {
+      bookingId: Number(b.id),
+      propertyId: String(b.propertyId),
+    }
+    try {
+      sessionStorage.setItem(BOOKING_RESUME_PAYMENT_STORAGE_KEY, JSON.stringify(payload))
+    } catch {}
+
+    window.dispatchEvent(new CustomEvent("booking-resume-payment", { detail: payload }))
+
+    if (pathname !== "/booking") {
+      router.push("/booking")
+    }
+  }, [pathname, router])
+
   if (!isAuthenticated) {
     return (
       <div className="p-4">
@@ -129,12 +224,24 @@ export function BookingCompactSidebar({
           onSortChange={setSort}
           onClear={clear}
         />
-        <BookingCards bookings={filtered} />
+        <BookingCards
+          bookings={filtered}
+          canQuickAccess={scope === "mine"}
+          onQuickAccess={openQuickAccess}
+          onResumePayment={openResumePayment}
+        />
       </div>
     </div>
   )
 }
 
+
+// ─────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────
+/**
+ * Selector de contexto: Reservas Pessoais vs Reservas de Propriedades geridas.
+*/
 function BookingScopeToggle({
   scope,
   onChange,
@@ -168,6 +275,9 @@ function BookingScopeToggle({
   )
 }
 
+/**
+ * Container dos filtros (dropdowns e input de pesquisa).
+ */
 function BookingFilterBar({
   query,
   onQueryChange,
@@ -219,6 +329,9 @@ function BookingFilterBar({
   )
 }
 
+/**
+ * Identifica automaticamente reservas que permitem ações rápidas (Rebook/Resume)
+ */
 function BookingStatusDropdown({
   value,
   onChange,
@@ -390,7 +503,17 @@ function BookingSortDropdown({
   )
 }
 
-function BookingCards({ bookings }: { bookings: BookingResponse[] }) {
+function BookingCards({
+  bookings,
+  canQuickAccess,
+  onQuickAccess,
+  onResumePayment,
+}: {
+  bookings: BookingResponse[]
+  canQuickAccess: boolean
+  onQuickAccess: (b: BookingResponse) => void
+  onResumePayment: (b: BookingResponse) => void
+}) {
   if (bookings.length === 0) {
     return (
       <div className="text-muted-foreground text-sm">
@@ -401,22 +524,87 @@ function BookingCards({ bookings }: { bookings: BookingResponse[] }) {
 
   return (
     <div className="space-y-3">
-      {bookings.map((b) => (
-        <div
-          key={b.id}
-          className={bookingsTokens.ui.sidebar.cardClass}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <div className="font-medium">{bookingsTokens.copy.sidebar.bookingLabelPrefix}{b.id}</div>
-            <div className="text-xs text-muted-foreground font-mono uppercase tracking-widest">{b.status}</div>
+      {bookings.map((b) => {
+        // Reservas canceladas podem ser repetidas se tiverem datas válidas
+        const isRebookable =
+          canQuickAccess &&
+          (b.status === "CANCELLED" || b.status === "REFUNDED") &&
+          hasValidRebookRange(b)
+
+        // Reservas pendentes podem retomar o checkout
+        const isResumable =
+          canQuickAccess &&
+          b.status === "PENDING_PAYMENT" &&
+          typeof b.id === "number" &&
+          b.id > 0
+
+        if (isRebookable) {
+          return (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => onQuickAccess(b)}
+              className={cn(
+                bookingsTokens.ui.sidebar.cardClass,
+                "w-full text-left hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_rgb(0,0,0)] dark:hover:shadow-[6px_6px_0_0_rgba(255,255,255,0.35)] transition-all cursor-pointer"
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-medium">{bookingsTokens.copy.sidebar.bookingLabelPrefix}{b.id}</div>
+                <div className="text-xs text-muted-foreground font-mono uppercase tracking-widest">{b.status}</div>
+              </div>
+              <div className="mt-2 grid gap-1 text-xs text-muted-foreground font-mono">
+                <div>{bookingsTokens.copy.sidebar.propertyLabel}{b.propertyId}</div>
+                <div>{b.checkInDate} → {b.checkOutDate}</div>
+                <div>{bookingsTokens.copy.sidebar.totalLabel}{b.totalPrice} {b.currency}</div>
+                <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-primary">Repetir rápido</div>
+              </div>
+            </button>
+          )
+        }
+
+        if (isResumable) {
+          return (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => onResumePayment(b)}
+              className={cn(
+                bookingsTokens.ui.sidebar.cardClass,
+                "w-full text-left hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_rgb(0,0,0)] dark:hover:shadow-[6px_6px_0_0_rgba(255,255,255,0.35)] transition-all cursor-pointer"
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-medium">{bookingsTokens.copy.sidebar.bookingLabelPrefix}{b.id}</div>
+                <div className="text-xs text-muted-foreground font-mono uppercase tracking-widest">{b.status}</div>
+              </div>
+              <div className="mt-2 grid gap-1 text-xs text-muted-foreground font-mono">
+                <div>{bookingsTokens.copy.sidebar.propertyLabel}{b.propertyId}</div>
+                <div>{b.checkInDate} → {b.checkOutDate}</div>
+                <div>{bookingsTokens.copy.sidebar.totalLabel}{b.totalPrice} {b.currency}</div>
+                <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-primary">Retomar pagamento</div>
+              </div>
+            </button>
+          )
+        }
+
+        return (
+          <div
+            key={b.id}
+            className={bookingsTokens.ui.sidebar.cardClass}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="font-medium">{bookingsTokens.copy.sidebar.bookingLabelPrefix}{b.id}</div>
+              <div className="text-xs text-muted-foreground font-mono uppercase tracking-widest">{b.status}</div>
+            </div>
+            <div className="mt-2 grid gap-1 text-xs text-muted-foreground font-mono">
+              <div>{bookingsTokens.copy.sidebar.propertyLabel}{b.propertyId}</div>
+              <div>{b.checkInDate} → {b.checkOutDate}</div>
+              <div>{bookingsTokens.copy.sidebar.totalLabel}{b.totalPrice} {b.currency}</div>
+            </div>
           </div>
-          <div className="mt-2 grid gap-1 text-xs text-muted-foreground font-mono">
-            <div>{bookingsTokens.copy.sidebar.propertyLabel}{b.propertyId}</div>
-            <div>{b.checkInDate} → {b.checkOutDate}</div>
-            <div>{bookingsTokens.copy.sidebar.totalLabel}{b.totalPrice} {b.currency}</div>
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

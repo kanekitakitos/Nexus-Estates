@@ -1,5 +1,8 @@
 /**
- * Tipos do módulo de propriedades (Properties).
+ * @file property.ts
+ * @author Nexus Estates team
+ * @description Tipos do módulo de propriedades (Properties).
+ *              Inclui tipos para regras de sazonalidade, propriedades em lista, permissões e uploads de imagem.
  *
  * Origem backend (API Gateway):
  * - /api/properties (property-service)
@@ -13,7 +16,6 @@ export type PropertyRuleDTO = {
   minNights?: number;
   maxNights?: number;
   bookingLeadTimeDays?: number;
-  timezone?: string;
 };
 
 /**
@@ -77,13 +79,30 @@ export type PropertyListItem = {
   basePrice: number;
   maxGuests: number;
   isActive: boolean;
+  imageUrl?: string | null;
 };
 
 export type PropertyStatus = "AVAILABLE" | "BOOKED" | "MAINTENANCE"
 
+export type PropertyAccessLevel = "PRIMARY_OWNER" | "MANAGER" | "STAFF"
+
+export type PropertyPermissionDTO = {
+  userId: number
+  accessLevel: PropertyAccessLevel
+}
+
+export type PropertyPermissionPatchRequest = {
+  accessLevel: PropertyAccessLevel
+}
+
+export type PropertyRulePatchRequest = Partial<Pick<PropertyRuleDTO, "checkInTime" | "checkOutTime" | "minNights" | "maxNights" | "bookingLeadTimeDays">>
+
+export type SeasonalityRulePatchRequest = Partial<Pick<SeasonalityRuleDTO, "startDate" | "endDate" | "priceModifier" | "dayOfWeek" | "channel">>
+
 export interface PropertyPermission {
+  userId: number
   email: string
-  level: string
+  accessLevel: PropertyAccessLevel
 }
 
 export interface OwnProperty {
@@ -152,6 +171,25 @@ export type UpdatePropertyRequest = Partial<{
   imageUrl?: string;
   amenityIds?: number[];
 }>;
+
+export type PropertyImageUploadParams = {
+  signature: string;
+  timestamp: number;
+  folder: string;
+  api_key: string;
+  cloud_name: string;
+  upload_url: string;
+  upload_preset?: string;
+  expires_at?: number;
+};
+
+export type PropertyImageUploadErrorStage = "params" | "upload";
+
+export type PropertyImageUploadErrorInfo = {
+  stage: PropertyImageUploadErrorStage;
+  status?: number;
+  message: string;
+};
 
 /**
  * Payload “expandido” devolvido pelo backend (agrega sub-recursos).

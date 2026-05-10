@@ -1,3 +1,10 @@
+/**
+ * @file tokens.ts
+ * @author Nexus Estates team
+ * @description Tokens de design e textos específicos do módulo de perfil.
+ *              Inclui estilos visuais e textos para formulários, painéis de webhooks e integrações.
+ */
+
 export const profileTokens = {
   ui: {
     theme: {
@@ -44,6 +51,15 @@ export const profileTokens = {
       panelRecoveryTitle: "Recuperação de Password",
       panelRecoverySubtitle: "Envia um link por email (fluxo real do backend)",
       btnSendEmail: "Enviar Email",
+      panelContactTitle: "Atualizar Contacto",
+      panelContactSubtitle: "Altera email e/ou telemóvel.",
+      contactEmailLabel: "Email",
+      contactPhoneLabel: "Telemóvel",
+      contactSaveBtn: "Guardar",
+      contactInvalidEmail: "Email inválido.",
+      contactInvalidPhone: "Telemóvel inválido.",
+      contactSaveOk: "Perfil atualizado.",
+      contactSaveError: "Não foi possível atualizar o perfil.",
     },
     webhooksPanel: {
       title: "Webhooks",
@@ -79,6 +95,12 @@ export const profileTokens = {
       updatedError: "Ocorreu um erro ao atualizar a password.",
       submitting: "A Processar...",
       submit: "Atualizar Segurança",
+    },
+    clerk: {
+      title: "Contas Vinculadas",
+      subtitle: "Liga Google, GitHub e Facebook via Clerk (OAuth)",
+      notConfigured: "Clerk não configurado neste ambiente.",
+      signedOutHint: "Para gerir as contas vinculadas, inicia sessão via Clerk com o provedor que queres ligar.",
     },
     webhooks: {
       secretCopied: "Secret copiado para o clipboard.",

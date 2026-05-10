@@ -1,3 +1,10 @@
+/**
+ * @file finance.ts
+ * @author Nexus Estates team
+ * @description Tipos do módulo financeiro.
+ *              Inclui métodos de pagamento, estado das transações, detalhes do provedor de pagamentos e reembolsos.
+ */
+
 export type PaymentMethod =
   | "CREDIT_CARD"
   | "DEBIT_CARD"

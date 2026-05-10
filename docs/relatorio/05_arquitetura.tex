@@ -1,0 +1,71 @@
+\section{Arquitetura e Padrões de Projeto (Backend)}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{Component Diagram.jpg}
+    \caption{Diagrama de Componentes: Orquestração de microserviços, infraestrutura de dados e integrações externas.}
+    \label{fig:arquitetura_geral}
+\end{figure}
+
+\medskip
+
+\subsection{Separação por Camadas (MVC + Service + Repository)}
+Os microserviços seguem uma organização modular e bem definida para garantir a separação de responsabilidades, facilitando a manutenção e a testabilidade individual. A estrutura de pastas segue o padrão:
+
+\begin{itemize}[itemsep=0.5em]
+  \item \textbf{controller/}: \textit{Endpoints} REST e gestão da camada HTTP.
+  \item \textbf{service/}: Implementação das regras de negócio e orquestração de fluxos.
+  \item \textbf{repository/}: Camada de persistência e acesso a dados via Spring Data.
+  \item \textbf{entity/}: Modelos JPA mapeados para as tabelas da base de dados.
+  \item \textbf{dto/}: Contratos de comunicação (\textit{Request/Response}) para evitar a exposição das entidades.
+  \item \textbf{config/}: Configurações do ecossistema Spring (Security, RabbitMQ, Clientes HTTP).
+  \item \textbf{messaging/}: Lógica de \textit{consumers/publishers} para integração assíncrona.
+  \item \textbf{exception/}: Gestão centralizada de erros e \textit{Global Exception Handlers}.
+  \item \textbf{audit/}: Auditoria de dados utilizando contexto de actor e Hibernate Envers.
+\end{itemize}
+
+\medskip
+
+\subsection{Proxy Pattern (HTTP Declarativo entre Microserviços)}
+A comunicação \textit{inter-service} utiliza clientes HTTP declarativos gerados em \textit{runtime}, seguindo o \textbf{Proxy Pattern}. Esta abordagem reduz o acoplamento e centraliza os contratos de comunicação:
+
+\begin{itemize}[itemsep=0.4em]
+  \item As interfaces definidas em \texttt{client/NexusClients.java} descrevem os \textit{endpoints} remotos.
+  \item A classe \texttt{config/WebClientConfig.java} utiliza a \texttt{HttpServiceProxyFactory} para injetar os proxies dinâmicos em cada serviço, permitindo que a comunicação entre microserviços seja tão simples como chamar um método local.
+\end{itemize}
+
+\medskip
+
+\subsection{Strategy Pattern (Ex.: Faturação no finance-service)}
+No \texttt{finance-service}, a lógica de emissão de faturas foi encapsulada através do \textbf{Strategy Pattern}. Isto permite que o fornecedor de faturação varie conforme o ambiente ou a configuração, sem alterar o \texttt{InvoiceOrchestrator}:
+
+\begin{itemize}[itemsep=0.4em]
+  \item \textbf{InvoiceProviderStrategy}: Interface que define o contrato para a emissão de documentos.
+  \item \textbf{Implementações disponíveis}:
+    \begin{itemize}[label=$\circ$, itemsep=0.2em, topsep=0.2em]
+      \item \texttt{MockInvoiceProviderStrategy} (Para testes e desenvolvimento local)
+      \item \texttt{MoloniInvoiceProviderStrategy} (Integração real via API REST)
+      \item \texttt{NoopInvoiceProviderStrategy} (Operação nula para desativação do serviço)
+    \end{itemize}
+\end{itemize}
+
+\medskip
+
+\subsection{Resiliência (Circuit Breaker + Retry)}
+Para proteger o ecossistema contra falhas em cascata em chamadas externas, o \texttt{sync-service} utiliza a biblioteca \textit{Resilience4j}:
+
+\begin{itemize}[itemsep=0.4em]
+  \item \textbf{Circuit Breaker}: Interrompe o tráfego para um serviço externo se este começar a falhar sistematicamente, permitindo a sua recuperação.
+  \item \textbf{Retry with Backoff}: Efetua tentativas automáticas para erros transitórios, com tempos de espera incrementais.
+\end{itemize}
+
+\medskip
+
+\subsection{Eventos Assíncronos e Consistência Eventual}
+A consistência de dados entre os diversos microserviços é gerida através de eventos, garantindo o desacoplamento temporal:
+
+\begin{itemize}[itemsep=0.4em]
+  \item \textbf{RabbitMQ}: Atua como o \textit{message broker} para publicação e consumo de eventos (ex: \textit{booking created}).
+  \item \textbf{Saga Pattern (Coreografada)}: Fluxos de trabalho distribuídos que asseguram que todos os serviços atingem um estado consistente após uma transação complexa.
+  \item \textbf{Documentação}: A estrutura completa do projeto e os fluxos detalhados podem ser consultados no \href{https://github.com/kanekitakitos/Nexus-Estates/blob/main/README.md}{\texttt{README.md}} da raiz do repositório.
+\end{itemize}

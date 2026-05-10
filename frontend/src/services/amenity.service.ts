@@ -1,3 +1,9 @@
+/**
+ * @file amenity.service.ts
+ * @author Nexus Estates team
+ * @description Serviço responsável pela comunicação com o API Gateway para gerir o catálogo de comodidades (Amenities).
+ */
+
 import { amenitiesAxios } from "@/lib/axiosAPI";
 import type { AxiosError } from "axios";
 import { notify } from "@/lib/notify";

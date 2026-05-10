@@ -1,3 +1,10 @@
+/**
+ * @file user.ts
+ * @author Nexus Estates team
+ * @description Tipos do módulo de utilizadores.
+ *              Inclui o modelo base de UserProfile e o payload para alteração de senha.
+ */
+
 export type UserProfile = {
   id: number
   email: string

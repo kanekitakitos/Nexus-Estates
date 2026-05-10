@@ -11,33 +11,94 @@ Este projeto é um **Monorepo** organizado da seguinte forma:
 * **[`/infrastructure`](./infrastructure)**: Configurações de Docker e Kubernetes.
 * **[`/docs`](./docs)**: Documentação técnica detalhada e diagramas.
 
-### Estrutura do Frontend (`/frontend/src`)
-* **`app/`**: Rotas e layouts (Next.js App Router).
-* **`features/`**: Módulos por domínio (ex.: `bookings`, `property`, `profile`) com as suas views e sub-componentes.
-* **`components/`**: Componentes reutilizáveis e layout (ex.: `components/ui/*`, `components/layout/*`).
-* **`services/`**: Camada de comunicação com APIs (Axios/WebClient via Gateway) e lógica de integração.
-* **`types/`**: Tipos/DTOs partilhados (contratos entre UI ↔ services).
-* **`lib/`**: Utilitários e infraestrutura (ex.: axios central, helpers).
+---
+
+## ✅ Pré-requisitos
+
+### Para correr tudo via containers (Deploy / “demo”)
+* **Docker Desktop** (ou Docker Engine) com **Docker Compose v2** (`docker compose`)
+
+### Para desenvolvimento local (DEV)
+* **Docker Desktop** (para Postgres/RabbitMQ)
+* **Java 23** (backend)
+* **Bun** (frontend)
+* (Recomendado) **IntelliJ IDEA** para gerir múltiplos serviços Spring Boot
 
 ---
 
-## 🚀 Quick Start (Geral)
+## Como correr (2 modos)
 
-Para ter o sistema todo a rodar localmente:
+### Modo A — Deploy/Apresentação (100% em containers)
 
-1. **Infraestrutura (Bases de Dados & RabbitMQ):**
+Este modo levanta **Postgres + RabbitMQ + todos os microserviços + frontend** automaticamente, sem precisares de clonar o repositório.
+
+Windows (PowerShell):
+```powershell
+curl.exe -L -o docker-compose.deploy.yml "https://raw.githubusercontent.com/kanekiTakitos/Nexus-Estates/main/infrastructure/docker-compose.deploy.yml" ; docker compose -f docker-compose.deploy.yml up -d --pull always
+```
+
+Linux / Mac / WSL:
+```bash
+curl -L -o docker-compose.deploy.yml "https://raw.githubusercontent.com/kanekiTakitos/Nexus-Estates/main/infrastructure/docker-compose.deploy.yml" && docker compose -f docker-compose.deploy.yml up -d --pull always
+```
+
+Acessos:
+* Frontend: `http://localhost:3000`
+* API Gateway: `http://localhost:8080`
+* Swagger UI: `http://localhost:8080/swagger-ui.html`
+
+Credenciais de teste:
+* Email: `dev@nexus.com`
+* Password: `12345`
+
+Parar e limpar dados (reset):
+```bash
+docker compose -f docker-compose.deploy.yml down -v
+```
+
+Remoção completa (cleanup total):
+
+Linux / Mac / WSL:
+```bash
+docker compose -f docker-compose.deploy.yml down -v --rmi all && rm docker-compose.deploy.yml
+```
+
+Windows (PowerShell):
+```powershell
+docker compose -f docker-compose.deploy.yml down -v --rmi all ; del docker-compose.deploy.yml
+```
+
+---
+
+### Modo B — DEV (infra em Docker + apps localmente)
+
+Este modo é ideal para programar: a infraestrutura corre em Docker e tu corres os serviços localmente.
+
+1. Levantar apenas infraestrutura (Postgres + RabbitMQ):
    ```bash
-   cd infrastructure
-   docker-compose up -d
+   docker compose -f infrastructure/docker-compose.yml up -d
    ```
 
-2. **Backend (APIs):** Abra a pasta `backend` no IntelliJ e inicie os serviços (começando pelo `api-gateway`).
+2. Backend (Spring Boot):
+   * Opção recomendada: abrir `./backend` no IntelliJ e iniciar os serviços (começa pelo `api-gateway`).
+   * Alternativa (terminal, na pasta `backend`):
+     ```bash
+     mvn -pl api-gateway -am spring-boot:run
+     ```
+     Repete para cada microserviço conforme necessário.
 
-3. **Frontend (UI):**
+3. Frontend (Next.js + Bun):
    ```bash
    cd frontend
-   bun install && bun dev
+   bun install
+   bun dev
    ```
+
+4. Acessos (DEV):
+   * Frontend: `http://localhost:3000`
+   * Gateway: `http://localhost:8080`
+
+---
 
 ## 🤝 Contribuição
 Por favor leia o nosso Guia de Contribuição antes de submeter código.
